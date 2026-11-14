@@ -60,6 +60,8 @@ public static class DavAdapterServiceCollectionExtensions
     {
         services.TryAddSingleton<IcalNetCalendarCodec>();
         services.TryAddSingleton<IICalendarCodec>(sp => sp.GetRequiredService<IcalNetCalendarCodec>());
+        services.TryAddSingleton<IcsEditor>();
+        services.TryAddSingleton<FreeBusyCodec>();
         services.TryAddSingleton<VTodoCodec>();
         services.TryAddSingleton<VCardCodec>();
     }

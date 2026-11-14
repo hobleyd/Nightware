@@ -173,12 +173,8 @@ public sealed class DavPrincipalDiscovery : IDavPrincipalDiscovery
             return credential.Error;
         }
 
-        if (credential.Value.ActAs is not null)
-        {
-            return Error.Unsupported("Nextcloud has no DAV impersonation; a service account cannot act as another user.");
-        }
-
-        return IdentityOf(credential.Value);
+        var allowed = DavCredentialPolicy.Check(credential.Value);
+        return allowed.IsSuccess ? IdentityOf(credential.Value) : allowed.Error;
     }
 
     private static DavResponse? FirstOrNull(DavMultistatus multistatus) =>

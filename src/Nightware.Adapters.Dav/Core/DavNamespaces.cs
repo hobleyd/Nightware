@@ -9,6 +9,10 @@ public static class DavNs
     public static readonly XNamespace CalDav = "urn:ietf:params:xml:ns:caldav";
     public static readonly XNamespace CardDav = "urn:ietf:params:xml:ns:carddav";
     public static readonly XNamespace CalendarServer = "http://calendarserver.org/ns/";
+    /// <summary>
+    /// Nextcloud's own properties (rooms, trash bin, owner-displayname). Note Sabre also declares an
+    /// unrelated <c>nc</c> prefix for <c>http://nextcloud.org/ns</c>; match on the URI, never the prefix.
+    /// </summary>
     public static readonly XNamespace Nextcloud = "http://nextcloud.com/ns";
     public static readonly XNamespace OwnCloud = "http://owncloud.org/ns";
     public static readonly XNamespace Sabre = "http://sabredav.org/ns";
@@ -85,5 +89,13 @@ public static class DavNames
     public static readonly XName OwnCloudReadOnly = DavNs.OwnCloud + "read-only";
     public static readonly XName OwnerDisplayName = DavNs.Nextcloud + "owner-displayname";
     public static readonly XName Deleted = DavNs.Nextcloud + "deleted-at";
+    public static readonly XName TrashBin = DavNs.Nextcloud + "trash-bin";
+
+    // Nextcloud calendar_resource_management room principals (namespace http://nextcloud.com/ns).
+    public static readonly XName RoomType = DavNs.Nextcloud + "room-type";
+    public static readonly XName RoomSeatingCapacity = DavNs.Nextcloud + "room-seating-capacity";
+    public static readonly XName RoomBuildingAddress = DavNs.Nextcloud + "room-building-address";
+    public static readonly XName RoomBuildingRoomNumber = DavNs.Nextcloud + "room-building-room-number";
+    public static readonly XName RoomFeatures = DavNs.Nextcloud + "room-features";
     public static readonly XName EmailAddress = DavNs.Sabre + "email-address";
 }

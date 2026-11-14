@@ -402,12 +402,7 @@ public sealed class DavClient : IDavClient
         async Task<Result<BackendCredential>> FetchAsync()
         {
             var result = await _credentials.ForAsync(Backend.Groupware, cancellationToken).ConfigureAwait(false);
-            if (result.IsSuccess && result.Value.ActAs is not null)
-            {
-                return Error.Unsupported("Nextcloud has no DAV impersonation; a service account cannot act as another user.");
-            }
-
-            return result;
+            return result.IsSuccess ? DavCredentialPolicy.Check(result.Value) : result;
         }
     }
 

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cal:schedule-response xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+  <cal:response>
+    <cal:recipient>
+      <d:href>mailto:boardroom@nightware.localhost</d:href>
+    </cal:recipient>
+    <cal:request-status>2.0;Success</cal:request-status>
+    <cal:calendar-data>BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Sabre//Sabre VObject 4.5.6//EN
+CALSCALE:GREGORIAN
+METHOD:REPLY
+BEGIN:VFREEBUSY
+DTSTART:20261115T000000Z
+DTEND:20261116T000000Z
+DTSTAMP:20261114T212558Z
+FREEBUSY:20261115T100000Z/20261115T110000Z
+ATTENDEE:mailto:boardroom@nightware.localhost
+UID:nightware-fb-1794691558
+ORGANIZER:mailto:alice@nightware.localhost
+END:VFREEBUSY
+END:VCALENDAR
+</cal:calendar-data>
+  </cal:response>
+  <cal:response>
+    <cal:recipient>
+      <d:href>mailto:bob@nightware.localhost</d:href>
+    </cal:recipient>
+    <cal:request-status>2.0;Success</cal:request-status>
+    <cal:calendar-data>BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Sabre//Sabre VObject 4.5.6//EN
+CALSCALE:GREGORIAN
+METHOD:REPLY
+BEGIN:VFREEBUSY
+DTSTART:20261115T000000Z
+DTEND:20261116T000000Z
+DTSTAMP:20261114T212558Z
+FREEBUSY:20261115T100000Z/20261115T110000Z
+ATTENDEE:mailto:bob@nightware.localhost
+UID:nightware-fb-1794691558
+ORGANIZER:mailto:alice@nightware.localhost
+END:VFREEBUSY
+END:VCALENDAR
+</cal:calendar-data>
+  </cal:response>
+</cal:schedule-response>
