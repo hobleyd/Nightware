@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.com/ns">
+ <d:response>
+  <d:href>/remote.php/dav/calendars/alice/personal/0F3A1B2C-standup.ics</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:getetag>&quot;7b3d0a5c1e&quot;</d:getetag>
+    <cal:calendar-data>BEGIN:VCALENDAR&#13;
+VERSION:2.0&#13;
+PRODID:-//Sabre//Sabre VObject 4.5.6//EN&#13;
+BEGIN:VEVENT&#13;
+UID:0F3A1B2C-standup&#13;
+DTSTAMP:20261101T000000Z&#13;
+DTSTART:20261116T000000Z&#13;
+DTEND:20261116T003000Z&#13;
+SUMMARY:Standup&#13;
+END:VEVENT&#13;
+END:VCALENDAR&#13;
+</cal:calendar-data>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+ <d:response>
+  <d:href>/remote.php/dav/calendars/alice/personal/gone%20event.ics</d:href>
+  <d:status>HTTP/1.1 404 Not Found</d:status>
+ </d:response>
+</d:multistatus>

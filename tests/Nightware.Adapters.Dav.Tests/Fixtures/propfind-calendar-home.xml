@@ -1,0 +1,120 @@
+<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.com/ns" xmlns:x1="http://apple.com/ns/ical/">
+ <d:response>
+  <d:href>/remote.php/dav/calendars/alice/</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:resourcetype><d:collection/></d:resourcetype>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+  <d:propstat>
+   <d:prop>
+    <d:displayname/>
+    <cal:supported-calendar-component-set/>
+    <x1:calendar-color/>
+    <cs:getctag/>
+    <d:sync-token/>
+    <oc:owner-principal/>
+    <oc:invite/>
+    <oc:read-only/>
+   </d:prop>
+   <d:status>HTTP/1.1 404 Not Found</d:status>
+  </d:propstat>
+ </d:response>
+ <d:response>
+  <d:href>/remote.php/dav/calendars/alice/personal/</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:resourcetype><d:collection/><cal:calendar/></d:resourcetype>
+    <d:displayname>Personal</d:displayname>
+    <cal:supported-calendar-component-set><cal:comp name="VEVENT"/></cal:supported-calendar-component-set>
+    <x1:calendar-color>#0082c9</x1:calendar-color>
+    <cs:getctag>http://sabre.io/ns/sync/42</cs:getctag>
+    <d:sync-token>http://sabre.io/ns/sync/42</d:sync-token>
+    <oc:owner-principal>principals/users/alice</oc:owner-principal>
+    <oc:invite/>
+    <d:current-user-privilege-set>
+     <d:privilege><d:write/></d:privilege>
+     <d:privilege><d:write-properties/></d:privilege>
+     <d:privilege><d:write-content/></d:privilege>
+     <d:privilege><d:read/></d:privilege>
+     <d:privilege><d:all/></d:privilege>
+    </d:current-user-privilege-set>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+  <d:propstat>
+   <d:prop>
+    <oc:read-only/>
+   </d:prop>
+   <d:status>HTTP/1.1 404 Not Found</d:status>
+  </d:propstat>
+ </d:response>
+ <d:response>
+  <d:href>/remote.php/dav/calendars/alice/tasks/</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:resourcetype><d:collection/><cal:calendar/></d:resourcetype>
+    <d:displayname>Tasks</d:displayname>
+    <cal:supported-calendar-component-set><cal:comp name="VTODO"/></cal:supported-calendar-component-set>
+    <x1:calendar-color>#795AAB</x1:calendar-color>
+    <cs:getctag>http://sabre.io/ns/sync/7</cs:getctag>
+    <d:sync-token>http://sabre.io/ns/sync/7</d:sync-token>
+    <oc:owner-principal>principals/users/alice</oc:owner-principal>
+    <d:current-user-privilege-set>
+     <d:privilege><d:all/></d:privilege>
+    </d:current-user-privilege-set>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+ <d:response>
+  <d:href>/remote.php/dav/calendars/alice/team-calendar_shared_by_bob/</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:resourcetype><d:collection/><cal:calendar/><cs:shared/></d:resourcetype>
+    <d:displayname>Team calendar (Bob)</d:displayname>
+    <cal:supported-calendar-component-set><cal:comp name="VEVENT"/><cal:comp name="VTODO"/></cal:supported-calendar-component-set>
+    <x1:calendar-color>#E9322D</x1:calendar-color>
+    <cs:getctag>http://sabre.io/ns/sync/3</cs:getctag>
+    <d:sync-token>http://sabre.io/ns/sync/3</d:sync-token>
+    <oc:owner-principal>principals/users/bob</oc:owner-principal>
+    <nc:owner-displayname>Bob Builder</nc:owner-displayname>
+    <oc:read-only>1</oc:read-only>
+    <d:current-user-privilege-set>
+     <d:privilege><d:read/></d:privilege>
+     <d:privilege><d:read-current-user-privilege-set/></d:privilege>
+    </d:current-user-privilege-set>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+ <d:response>
+  <d:href>/remote.php/dav/calendars/alice/inbox/</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:resourcetype><d:collection/><cal:schedule-inbox/></d:resourcetype>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+ <d:response>
+  <d:href>/remote.php/dav/calendars/alice/outbox/</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:resourcetype><d:collection/><cal:schedule-outbox/></d:resourcetype>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+ <d:response>
+  <d:href>/remote.php/dav/calendars/alice/trashbin/</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:resourcetype><d:collection/><nc:trash-bin/></d:resourcetype>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+</d:multistatus>

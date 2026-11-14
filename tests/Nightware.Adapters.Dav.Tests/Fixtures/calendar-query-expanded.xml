@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.com/ns">
+ <d:response>
+  <d:href>/remote.php/dav/calendars/alice/personal/7F1C2E9A-weekly.ics</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:getetag>&quot;3f2b8c0d9e1a&quot;</d:getetag>
+    <cal:calendar-data>BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Sabre//Sabre VObject 4.5.6//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:7F1C2E9A-weekly
+DTSTAMP:20261101T090000Z
+SUMMARY:Weekly sync
+DTSTART:20261116T230000Z
+DTEND:20261117T000000Z
+RECURRENCE-ID:20261116T230000Z
+ORGANIZER;CN=Alice Example:mailto:alice@example.com
+ATTENDEE;CN=Bob Builder;PARTSTAT=ACCEPTED;ROLE=REQ-PARTICIPANT:mailto:bob@example.com
+END:VEVENT
+BEGIN:VEVENT
+UID:7F1C2E9A-weekly
+DTSTAMP:20261101T090000Z
+SUMMARY:Weekly sync (moved)
+DTSTART:20261119T000000Z
+DTEND:20261119T010000Z
+RECURRENCE-ID:20261118T230000Z
+SEQUENCE:1
+END:VEVENT
+END:VCALENDAR
+</cal:calendar-data>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+ <d:response>
+  <d:href>/remote.php/dav/calendars/alice/personal/single.ics</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:getetag>&quot;99aa&quot;</d:getetag>
+    <cal:calendar-data>BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Sabre//Sabre VObject 4.5.6//EN
+BEGIN:VEVENT
+UID:single
+DTSTAMP:20261101T090000Z
+SUMMARY:Lunch
+DTSTART:20261117T013000Z
+DTEND:20261117T023000Z
+END:VEVENT
+END:VCALENDAR
+</cal:calendar-data>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+</d:multistatus>
