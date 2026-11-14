@@ -132,3 +132,37 @@ anything contradictory in `architecture.md` or the phase docs.
 34. `BackendAuthFailed` (→ 401, client re-auths) is reserved for a rejected
     *subject* token. Façade misconfiguration (bad client secret, unknown
     audience) is `BackendUnavailable` (→ 503).
+
+## Addendum — pre-fan-out review (2026-11-15)
+
+35. Mail write ports return ids (`Result`, `Result<MessageId>`), not messages.
+    Use cases re-read via `IMailMessageReader` for response bodies, so the JMAP
+    `Email → MailMessage` mapping exists once (Phase 2).
+36. `IMailImporter` imports migrated mail (`POST mailFolders/{id}/messages` with
+    MAPI 0x0E06/0x0039/0x0E07) via JMAP `Email/import`.
+37. `ISchedulingActions.RespondAsync` takes `TimeSlot? proposedNewTime`.
+38. `default(Result)`/`default(Result<T>)` are failures (`Result.Uninitialised`),
+    so an unconfigured mock can never produce a false green.
+39. Self-authorising URLs (To Do `uploadUrl`): an `IRequestCredentialSource`
+    recovers the caller's token from the URL; `SelfAuthorisingUrlMiddleware`
+    sets `Authorization` before authentication, so validation and token
+    exchange are unchanged.
+40. The mailbox root has the synthetic id `msgfolderroot`
+    (`MailboxRoles.RootFolderId`): emitted as top-level `parentFolderId`,
+    accepted as a folder id.
+41. `IJmapMessageLocator` (Adapters.Jmap/Mail/Ids) resolves `e.`/`d.` ids to the
+    current JMAP id. Implemented by Phase 2, consumed by Phase 3.
+42. A backend 401 on a credential obtained by TokenExchange/ServiceAccount maps
+    to `BackendUnavailable` (façade misconfiguration); only a PassThrough 401 is
+    `BackendAuthFailed`.
+43. Threat submission and `/shares` stay 501 stubs: the client gates them off
+    for NightMail Server accounts.
+
+### Domain file ownership during the parallel phases
+`Kernel/*` and every port interface: frozen (coordinator only).
+`Mail/MailMessage|MailFolder|MailAttachment` → Phase 2; `Mail/MailWrites` → Phase 3
+(additive); `Calendar/*`, `Rooms/*` → Phase 4; `Contacts/*`, `Directory/*` → 5A;
+`Tasks/*`, `MailboxSettings/*`, `Files/*`, `Security/*` → 5B.
+`Api/Features/Mail/Dto/*` → Phase 2 only; Phase 3 request DTOs go in
+`Api/Features/Mail/Write/Dto/`. `Adapters.Dav/Calendar/ICal/IcsEditor` may be
+extended by Phase 4 only.

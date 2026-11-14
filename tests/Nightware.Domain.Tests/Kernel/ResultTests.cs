@@ -99,11 +99,27 @@ public sealed class ResultTests
     }
 
     [Fact]
-    public void Default_results_are_successes()
+    public void Default_result_is_an_uninitialised_failure()
     {
-        // Documented hazard: an unconfigured fake returning default(Result<T>) reports success.
-        default(Result).IsSuccess.ShouldBeTrue();
-        default(Result<string>).IsSuccess.ShouldBeTrue();
-        default(Result<string>).Value.ShouldBeNull();
+        // An unconfigured fake returns default(Result); it must never read as success.
+        default(Result).IsSuccess.ShouldBeFalse();
+        default(Result).Error.ShouldBe(Result.Uninitialised);
+    }
+
+    [Fact]
+    public void Default_generic_result_is_an_uninitialised_failure()
+    {
+        default(Result<string>).IsSuccess.ShouldBeFalse();
+        default(Result<string>).Error.ShouldBe(Result.Uninitialised);
+        Should.Throw<InvalidOperationException>(() => default(Result<string>).Value);
+    }
+
+    [Fact]
+    public void Success_with_a_null_value_is_still_a_success()
+    {
+        Result<string?> result = Result<string?>.Success(null);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Error.ShouldBeNull();
     }
 }

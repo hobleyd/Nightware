@@ -28,7 +28,8 @@ public interface ICalendarWriter
 
 public interface ISchedulingActions
 {
-    Task<Result> RespondAsync(MailboxRef mailbox, EventId id, RsvpResponse response, string? comment, bool sendResponse, CancellationToken cancellationToken);
+    /// <param name="proposedNewTime">Only with decline/tentative: the attendee's counter-proposal (iTIP COUNTER semantics).</param>
+    Task<Result> RespondAsync(MailboxRef mailbox, EventId id, RsvpResponse response, string? comment, bool sendResponse, TimeSlot? proposedNewTime, CancellationToken cancellationToken);
 
     /// <summary>Organizer cancels and notifies attendees (iTIP CANCEL).</summary>
     Task<Result> CancelAsync(MailboxRef mailbox, EventId id, string? comment, CancellationToken cancellationToken);

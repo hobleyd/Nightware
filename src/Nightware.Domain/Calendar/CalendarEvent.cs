@@ -8,6 +8,9 @@ public sealed record DateTimeTimeZone(DateTime DateTime, string TimeZone)
     public static DateTimeTimeZone Utc(DateTimeOffset value) => new(value.UtcDateTime, "UTC");
 }
 
+/// <summary>A start/end pair (Graph <c>timeSlot</c>), e.g. a proposed new meeting time.</summary>
+public sealed record TimeSlot(DateTimeTimeZone Start, DateTimeTimeZone End);
+
 public enum EventType
 {
     SingleInstance,

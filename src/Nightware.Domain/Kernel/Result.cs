@@ -5,12 +5,24 @@ namespace Nightware.Domain.Kernel;
 /// <summary>Outcome of an operation that produces no value.</summary>
 public readonly record struct Result
 {
-    private Result(Error? error) => Error = error;
+    // Success must be constructed explicitly: default(Result) — e.g. what an unconfigured
+    // mock returns — is a failure, so a missing arrangement can never pass as a green test.
+    private readonly bool _ok;
+    private readonly Error? _error;
 
-    public Error? Error { get; }
+    private Result(Error? error)
+    {
+        _ok = error is null;
+        _error = error;
+    }
+
+    public Error? Error => _ok ? null : _error ?? Uninitialised;
 
     [MemberNotNullWhen(false, nameof(Error))]
-    public bool IsSuccess => Error is null;
+    public bool IsSuccess => _ok;
+
+    /// <summary>The error carried by a <c>default</c> result that was never assigned a value.</summary>
+    public static Error Uninitialised { get; } = new(ErrorKind.Unknown, "generalException", "Uninitialised Result.");
 
     public static Result Success() => new(null);
 
@@ -30,23 +42,28 @@ public readonly record struct Result
 public readonly record struct Result<T>
 {
     private readonly T? _value;
+    private readonly bool _ok;
+    private readonly Error? _error;
 
     private Result(T value)
     {
         _value = value;
-        Error = null;
+        _ok = true;
+        _error = null;
     }
 
     private Result(Error error)
     {
         _value = default;
-        Error = error;
+        _ok = false;
+        _error = error;
     }
 
-    public Error? Error { get; }
+    /// <summary>The failure; <see cref="Result.Uninitialised"/> for a <c>default</c> result.</summary>
+    public Error? Error => _ok ? null : _error ?? Result.Uninitialised;
 
     [MemberNotNullWhen(false, nameof(Error))]
-    public bool IsSuccess => Error is null;
+    public bool IsSuccess => _ok;
 
     /// <summary>The value. Throws when the result is a failure — check <see cref="IsSuccess"/> first.</summary>
     public T Value => IsSuccess

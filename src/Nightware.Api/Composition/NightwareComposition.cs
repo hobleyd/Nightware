@@ -87,6 +87,7 @@ public static class NightwareComposition
         app.UseForwardedHeaders();
         app.UseMiddleware<RequestCorrelationMiddleware>();
         app.UseMiddleware<GraphExceptionMiddleware>();
+        app.UseMiddleware<SelfAuthorisingUrlMiddleware>();
         app.UseAuthentication();
         app.UseAuthorization();
 

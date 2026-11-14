@@ -1,3 +1,4 @@
+using Nightware.Domain.Kernel;
 using Nightware.Adapters.Jmap.Core.Protocol;
 using Nightware.Domain.Mail;
 
@@ -65,6 +66,21 @@ internal static class MailboxRoles
     }
 
     public static bool IsRoot(WellKnownFolder folder) => folder == WellKnownFolder.MsgFolderRoot;
+
+    /// <summary>
+    /// The synthetic id of the mailbox root (JMAP has no root object). Emitted as <c>id</c> by
+    /// <c>GET mailFolders/msgfolderroot</c> and as <c>parentFolderId</c> of top-level mailboxes;
+    /// accepted wherever a folder id is (e.g. <c>move {destinationId: "msgfolderroot"}</c>).
+    /// </summary>
+    public static readonly FolderId RootFolderId = new("msgfolderroot");
+
+    /// <summary>True for the root, by synthetic id or by well-known name.</summary>
+    public static bool IsRoot(FolderRef folder) => folder switch
+    {
+        FolderRef.WellKnown w => IsRoot(w.Name),
+        FolderRef.ById b => string.Equals(b.Id.Value, RootFolderId.Value, StringComparison.OrdinalIgnoreCase),
+        _ => false,
+    };
 
     /// <summary>The mailbox carrying the role of <paramref name="folder"/>, or null (also for the root).</summary>
     public static Mailbox? Find(IEnumerable<Mailbox> mailboxes, WellKnownFolder folder)
