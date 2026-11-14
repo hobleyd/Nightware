@@ -163,6 +163,43 @@ well-known names:
 | outbox | `outbox` (not created by Stalwart) |
 | msgfolderroot | — (null `parentId`) |
 
+## Mail read side (`Mail/Read`, Phase 2)
+
+`IMailFolderReader`, `IMailMessageReader`, `IMailDeltaReader`, `IRecentCorrespondents` and the
+shared `IJmapMessageLocator` are registered by `AddJmapMailRead`.
+
+- **Every `Email/get`** uses `EmailProperties`: `keywords`/`messageId` (for `e.`/`d.` ids),
+  `mailboxIds`, `threadId`, `bodyStructure` and `header:Importance`/`header:X-Priority`. Body parts
+  are fetched with `header:Content-Type`, because the iTIP `method` lives in its parameters and
+  `type` drops them. A `text/calendar` part with a `method` is the message's `CalendarPart`; one
+  without is an ordinary file.
+- **`parentFolderId`.** The listed folder when the Email is in it, otherwise the ordinally smallest
+  mailbox id. Top-level mailboxes report `msgfolderroot`.
+- **Lists.** Folder pages and `GET /messages` page by offset; the skip token is the next position
+  (`calculateTotal`). `GET /messages` has no `inMailbox`, so it spans Deleted Items and Junk.
+  `$search` (KQL → `EmailFilter`) is unpaged. Untranslatable `$filter`s are `Validation` (400),
+  which the client's fallbacks expect.
+- **Conversations.** `Email/query` has no thread filter. The reader runs `Thread/get`, then
+  `Email/get` with explicit ids (so long threads are chunked), drops Emails filed in a
+  `parentFolderId ne` folder, sorts newest first and caps at `$top`. There is no nextLink.
+- **Bodies.** The type comes from the parts. HTML is used when there is an HTML part; plain-text
+  mail is a `text` body. `Prefer: outlook.body-content-type="text"` returns the `text/plain`
+  alternative, or `HtmlToText` when there is none.
+- **Attachments.** The id is the JMAP `partId`, looked up across the whole `bodyStructure`. An
+  `message/rfc822` part is an item attachment with no `contentBytes`; its `$value` is the part blob.
+  Inline means "has a Content-ID".
+- **Delta.** The initial sync captures the Email state first (`Email/get ids:[]`), then pages
+  `Email/query inMailbox` newest first by position. The last page hands over to `Email/changes`
+  from that state. Upserts are whole messages (JMAP does not say which properties changed).
+  Known limits:
+  - `Email/changes` does not say where an updated Email was before. An update to a message
+    outside the folder is therefore reported as `@removed: changed`; the client drops that id from
+    its cache and re-lists the other folder when it is shown.
+  - Position paging can skip a message that is deleted above the cursor while the initial sync is
+    still paging.
+- **Recent correspondents.** Recipients of the newest 200 Sent Items and senders of the newest 200
+  Inbox messages, ranked by count, then recency.
+
 ## Delta tokens (`Core/JmapDeltaTokenCodec.cs`)
 
 A token is the unpadded base64url of `{"v":1,"m":mailboxId,"p":"i"|"c","o":position,"s":state,"sel":[…],"top":n}`.
