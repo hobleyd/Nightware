@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+ <d:response>
+  <d:href>/remote.php/dav/calendars/alice/tasks/0f1e2d3c4b5a69788796a5b4c3d2e1f0.ics</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:getetag>"etag-open"</d:getetag>
+    <cal:calendar-data>BEGIN:VCALENDAR&#13;
+VERSION:2.0&#13;
+PRODID:-//Nightware//EN&#13;
+BEGIN:VTODO&#13;
+UID:0f1e2d3c4b5a69788796a5b4c3d2e1f0&#13;
+CREATED:20261101T080000Z&#13;
+LAST-MODIFIED:20261101T080000Z&#13;
+DTSTAMP:20261101T080000Z&#13;
+SUMMARY:Reply to Alex about Q2 numbers&#13;
+DESCRIPTION:See the email from Alex.&#13;
+STATUS:NEEDS-ACTION&#13;
+DUE;VALUE=DATE:20261105&#13;
+END:VTODO&#13;
+END:VCALENDAR&#13;
+</cal:calendar-data>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+ <d:response>
+  <d:href>/remote.php/dav/calendars/alice/tasks/a1b2c3d4e5f60718293a4b5c6d7e8f90.ics</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:getetag>"etag-done"</d:getetag>
+    <cal:calendar-data>BEGIN:VCALENDAR&#13;
+VERSION:2.0&#13;
+PRODID:-//Nextcloud Tasks v0.18.1&#13;
+BEGIN:VTODO&#13;
+UID:a1b2c3d4e5f60718293a4b5c6d7e8f90&#13;
+CREATED:20261103T080000Z&#13;
+LAST-MODIFIED:20261104T080000Z&#13;
+DTSTAMP:20261104T080000Z&#13;
+SUMMARY:Book flights&#13;
+STATUS:COMPLETED&#13;
+COMPLETED:20261104T080000Z&#13;
+PERCENT-COMPLETE:100&#13;
+END:VTODO&#13;
+END:VCALENDAR&#13;
+</cal:calendar-data>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+ <d:response>
+  <d:href>/remote.php/dav/calendars/alice/tasks/c0ffee00c0ffee00c0ffee00c0ffee00.ics</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:getetag>"etag-third"</d:getetag>
+    <cal:calendar-data>BEGIN:VCALENDAR&#13;
+VERSION:2.0&#13;
+PRODID:-//Nextcloud Tasks v0.18.1&#13;
+BEGIN:VTODO&#13;
+UID:c0ffee00c0ffee00c0ffee00c0ffee00&#13;
+CREATED:20261102T080000Z&#13;
+LAST-MODIFIED:20261102T080000Z&#13;
+DTSTAMP:20261102T080000Z&#13;
+SUMMARY:Water the plants&#13;
+STATUS:IN-PROCESS&#13;
+END:VTODO&#13;
+END:VCALENDAR&#13;
+</cal:calendar-data>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+</d:multistatus>
