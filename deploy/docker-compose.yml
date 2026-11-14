@@ -44,6 +44,7 @@ services:
     environment:
       BASE_DOMAIN: ${BASE_DOMAIN:-nightware.localhost}
       HTTPS_PORT: ${HTTPS_PORT:-443}
+      CADDY_TLS: ${CADDY_TLS:-internal}
     ports:
       # Caddy listens on the same port inside the container as on the host, so
       # https://auth.${BASE_DOMAIN}:${HTTPS_PORT} is the same URL everywhere.
@@ -110,6 +111,7 @@ services:
       BASE_DOMAIN: ${BASE_DOMAIN:-nightware.localhost}
       PUBLIC_PORT_SUFFIX: ${PUBLIC_PORT_SUFFIX:-}
       TEST_USER_PASSWORD: ${TEST_USER_PASSWORD:?set in .env}
+      NIGHTMAIL_WEB_ORIGIN: ${NIGHTMAIL_WEB_ORIGIN:-http://localhost:34572}
       NIGHTWARE_API_CLIENT_SECRET: ${NIGHTWARE_API_CLIENT_SECRET:?set in .env}
       NIGHTWARE_DEV_CLIENT_SECRET: ${NIGHTWARE_DEV_CLIENT_SECRET:?set in .env}
       NEXTCLOUD_OIDC_CLIENT_SECRET: ${NEXTCLOUD_OIDC_CLIENT_SECRET:?set in .env}

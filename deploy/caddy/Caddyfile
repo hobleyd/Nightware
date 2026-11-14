@@ -1,8 +1,8 @@
-# Local TLS for the Nightware dev stack. Every site uses Caddy's internal CA
-# (root at /data/caddy/pki/authorities/local/root.crt; bootstrap.sh exports
-# it to deploy/.certs/caddy-root.crt).
+# TLS for the Nightware dev stack. With CADDY_TLS=internal (default) every
+# site uses Caddy's local CA (root at /data/caddy/pki/authorities/local/root.crt;
+# bootstrap.sh exports it to deploy/.certs/caddy-root.crt). Set CADDY_TLS to an
+# ACME email to get publicly trusted certificates for a real BASE_DOMAIN.
 {
-	local_certs
 	https_port {$HTTPS_PORT:443}
 	auto_https disable_redirects
 	admin 127.0.0.1:2019
@@ -10,7 +10,7 @@
 }
 
 (common) {
-	tls internal
+	tls {$CADDY_TLS:internal}
 	encode gzip
 }
 

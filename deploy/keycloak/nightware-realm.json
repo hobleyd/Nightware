@@ -19,7 +19,7 @@
     {
       "clientId": "nightmail",
       "name": "NightMail",
-      "description": "NightMail desktop/mobile client: public, authorization code + PKCE (S256).",
+      "description": "NightMail client: public, authorization code + PKCE (S256), response_mode=query. Redirects: nightmail://auth-callback (macOS/iOS/Android), http://localhost:34571 exactly (Windows/Linux), <web origin>/callback.html (web).",
       "enabled": true,
       "publicClient": true,
       "protocol": "openid-connect",
@@ -29,12 +29,11 @@
       "serviceAccountsEnabled": false,
       "frontchannelLogout": true,
       "redirectUris": [
-        "http://127.0.0.1/*",
-        "http://localhost/*",
-        "http://[::1]/*",
-        "au.com.sharpblue.nightmail:/oauth2redirect"
+        "nightmail://auth-callback",
+        "http://localhost:34571",
+        "${NIGHTMAIL_WEB_ORIGIN}/callback.html"
       ],
-      "webOrigins": ["+"],
+      "webOrigins": ["+", "${NIGHTMAIL_WEB_ORIGIN}"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "oauth2.device.authorization.grant.enabled": "true",
