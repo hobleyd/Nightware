@@ -1,13 +1,15 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Nightware.Adapters.Directory\Nightware.Adapters.Directory.csproj" />
   </ItemGroup>
 
-  <PropertyGroup>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="WireMock.Net" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Fixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
