@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:card="urn:ietf:params:xml:ns:carddav">
+ <d:response>
+  <d:href>/remote.php/dav/addressbooks/users/alice/team_shared_by_bob/0f%20sam.vcf</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:getetag>&quot;t1&quot;</d:getetag>
+    <card:address-data>BEGIN:VCARD&#13;
+VERSION:3.0&#13;
+UID:0f-sam&#13;
+FN:Sam Attendee&#13;
+EMAIL:sam@example.com&#13;
+END:VCARD&#13;
+</card:address-data>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+</d:multistatus>

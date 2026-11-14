@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:card="urn:ietf:params:xml:ns:carddav" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+ <d:response>
+  <d:href>/remote.php/dav/addressbooks/users/alice/contacts/a-jane.vcf</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:getetag>&quot;e1&quot;</d:getetag>
+    <card:address-data>BEGIN:VCARD&#13;
+VERSION:3.0&#13;
+PRODID:-//Sabre//Sabre VObject 4.5.6//EN&#13;
+UID:a-jane&#13;
+FN:Jane Smith&#13;
+N:Smith;Jane;;;&#13;
+ORG:Example Org&#13;
+EMAIL;TYPE=INTERNET,WORK:jane.smith@example.org&#13;
+EMAIL;TYPE=INTERNET,HOME,PREF:jane@example.net&#13;
+END:VCARD&#13;
+</card:address-data>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+ <d:response>
+  <d:href>/remote.php/dav/addressbooks/users/alice/contacts/b-pat.vcf</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:getetag>&quot;e2&quot;</d:getetag>
+    <card:address-data>BEGIN:VCARD&#13;
+VERSION:4.0&#13;
+UID:b-pat&#13;
+FN:Pat Contact&#13;
+EMAIL:pat@example.com&#13;
+END:VCARD&#13;
+</card:address-data>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+ <d:response>
+  <d:href>/remote.php/dav/addressbooks/users/alice/contacts/c-broken.vcf</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:getetag>&quot;e3&quot;</d:getetag>
+    <card:address-data>this is not a vcard</card:address-data>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+</d:multistatus>

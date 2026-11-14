@@ -75,7 +75,10 @@ public sealed record Person(string Id, string DisplayName, IReadOnlyList<EmailAd
 
     public string? JobTitle { get; init; }
 
-    /// <summary>Relevance score in [0, 1]; higher is more relevant.</summary>
+    /// <summary>
+    /// Relevance score on Graph's open-ended scale (Graph emits values such as <c>20.0</c>); higher is
+    /// more relevant. Only the order between people is meaningful.
+    /// </summary>
     public double RelevanceScore { get; init; }
 
     public PersonSource Source { get; init; }
