@@ -1,0 +1,21 @@
+{
+  "operationId": "mail.attachments.get-value",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_download_attachment_test.dart:61 'falls back to $value when contentBytes is absent'; body constructed with example.com data",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=/attachments/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAABEgAQAKz6Oe_TU0RIs2Gu-ZyqAQs=/$value",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "message/rfc822"
+    },
+    "body": "From: Alex Sender <alex@example.com>\r\nTo: Me <me@example.com>\r\nSubject: Quarterly numbers\r\nDate: Mon, 01 Jun 2026 10:00:00 +0000\r\nMessage-ID: <a1b2c3@example.com>\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nNumbers attached.\r\n"
+  }
+}

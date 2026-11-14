@@ -1,0 +1,37 @@
+{
+  "operationId": "mail.folders.list-children",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_folders_test.dart:68 'getChildFolders returns the children on every page'; body constructed with example.com data",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/mailFolders/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAA=/childFolders",
+    "query": {
+      "$select": "id,displayName,totalItemCount,unreadItemCount,parentFolderId,isHidden,childFolderCount",
+      "$top": "100"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/mailFolders('AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAA=')/childFolders(id,displayName,totalItemCount,unreadItemCount,parentFolderId,isHidden,childFolderCount)",
+      "value": [
+        {
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAYbvZFAAA=",
+          "displayName": "Projects",
+          "parentFolderId": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAA=",
+          "childFolderCount": 0,
+          "unreadItemCount": 1,
+          "totalItemCount": 12,
+          "isHidden": false
+        }
+      ]
+    }
+  }
+}

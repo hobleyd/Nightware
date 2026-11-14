@@ -1,0 +1,127 @@
+{
+  "operationId": "calendar.events.create",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_rooms_test.dart:197-345 ('createCalendarEvent with rooms': attendees/locations body); response Constructed from the Graph v1.0 resource shape (event) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads; body constructed with example.com data",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/events",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "subject": "Quarterly review",
+      "isAllDay": false,
+      "isReminderOn": true,
+      "reminderMinutesBeforeStart": 15,
+      "body": {
+        "contentType": "text",
+        "content": "Agenda: Q2 numbers."
+      },
+      "start": {
+        "dateTime": "2026-06-10T19:00:00",
+        "timeZone": "Australia/Sydney"
+      },
+      "end": {
+        "dateTime": "2026-06-10T20:00:00",
+        "timeZone": "Australia/Sydney"
+      },
+      "locations": [
+        {
+          "displayName": "Boardroom",
+          "locationEmailAddress": "boardroom@example.com",
+          "locationType": "conferenceRoom"
+        }
+      ],
+      "location": {
+        "displayName": "Boardroom",
+        "locationEmailAddress": "boardroom@example.com",
+        "locationType": "conferenceRoom"
+      },
+      "attendees": [
+        {
+          "emailAddress": {
+            "address": "sam@example.com"
+          },
+          "type": "required"
+        },
+        {
+          "emailAddress": {
+            "address": "boardroom@example.com",
+            "name": "Boardroom"
+          },
+          "type": "resource"
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/events/$entity",
+      "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAENAAAiIsqMbYjsT5e-T7KzowPTAAAYbwXuAAA=",
+      "iCalUId": "040000008200E00074C5B7101A82E00800000000A1B2C3D4E5F6D901000000000000000010000000F1E2D3C4B5A69788",
+      "subject": "Quarterly review",
+      "bodyPreview": "Agenda: Q2 numbers.",
+      "isAllDay": false,
+      "showAs": "busy",
+      "isOrganizer": true,
+      "isReminderOn": true,
+      "reminderMinutesBeforeStart": 15,
+      "seriesMasterId": null,
+      "responseStatus": {
+        "response": "organizer",
+        "time": "0001-01-01T00:00:00Z"
+      },
+      "start": {
+        "dateTime": "2026-06-10T19:00:00.0000000",
+        "timeZone": "Australia/Sydney"
+      },
+      "end": {
+        "dateTime": "2026-06-10T20:00:00.0000000",
+        "timeZone": "Australia/Sydney"
+      },
+      "location": {
+        "displayName": "Boardroom",
+        "locationType": "conferenceRoom",
+        "locationEmailAddress": "boardroom@example.com"
+      },
+      "recurrence": null,
+      "attendees": [
+        {
+          "type": "required",
+          "status": {
+            "response": "none",
+            "time": "0001-01-01T00:00:00Z"
+          },
+          "emailAddress": {
+            "name": "sam@example.com",
+            "address": "sam@example.com"
+          }
+        },
+        {
+          "type": "resource",
+          "status": {
+            "response": "none",
+            "time": "0001-01-01T00:00:00Z"
+          },
+          "emailAddress": {
+            "name": "Boardroom",
+            "address": "boardroom@example.com"
+          }
+        }
+      ],
+      "organizer": {
+        "emailAddress": {
+          "name": "Me Example",
+          "address": "me@example.com"
+        }
+      },
+      "onlineMeeting": null
+    }
+  }
+}

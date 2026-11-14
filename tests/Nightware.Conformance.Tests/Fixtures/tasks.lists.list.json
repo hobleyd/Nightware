@@ -1,0 +1,43 @@
+{
+  "operationId": "tasks.lists.list",
+  "provenance": "client code lib/data/models/todo_task_list_model.dart; Constructed from the Graph v1.0 resource shape (todoTaskList) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/todo/lists",
+    "query": {
+      "$top": "100"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/todo/lists",
+      "value": [
+        {
+          "@odata.etag": "W/\"IiLKjG2I7E+Xvk+ys6MD0wAAGG8dEA==\"",
+          "displayName": "Tasks",
+          "isOwner": true,
+          "isShared": false,
+          "wellknownListName": "defaultList",
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAA="
+        },
+        {
+          "@odata.etag": "W/\"IiLKjG2I7E+Xvk+ys6MD0wAAGG8dEQ==\"",
+          "displayName": "Follow-ups",
+          "isOwner": true,
+          "isShared": false,
+          "wellknownListName": "none",
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAETAAA="
+        }
+      ]
+    }
+  }
+}

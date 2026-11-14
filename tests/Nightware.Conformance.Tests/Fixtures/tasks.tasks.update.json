@@ -1,0 +1,47 @@
+{
+  "operationId": "tasks.tasks.update",
+  "provenance": "client code graph_api_datasource_impl.dart:2882-2936; Constructed from the Graph v1.0 resource shape (todoTask) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
+  "request": {
+    "method": "PATCH",
+    "path": "/v1.0/me/todo/lists/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAA=/tasks/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAAiIsqMbYjsT5e-T7KzowPTAAAYbx0QAAA=",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "status": "completed"
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/todo/lists('AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAA=')/tasks/$entity",
+      "@odata.etag": "W/\"IiLKjG2I7E+Xvk+ys6MD0wAAGG8dEA==\"",
+      "importance": "normal",
+      "isReminderOn": false,
+      "status": "completed",
+      "title": "Reply to Alex about Q2 numbers",
+      "createdDateTime": "2026-06-01T10:05:00.1234567Z",
+      "lastModifiedDateTime": "2026-06-01T10:05:00.1234567Z",
+      "hasAttachments": false,
+      "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAAiIsqMbYjsT5e-T7KzowPTAAAYbx0QAAA=",
+      "body": {
+        "content": "See the email from Alex.",
+        "contentType": "text"
+      },
+      "dueDateTime": {
+        "dateTime": "2026-06-05T00:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "completedDateTime": {
+        "dateTime": "2026-06-02T00:00:00.0000000",
+        "timeZone": "UTC"
+      }
+    }
+  }
+}

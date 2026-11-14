@@ -1,0 +1,29 @@
+{
+  "operationId": "calendar.events.forward",
+  "provenance": "client code graph_api_datasource_impl.dart:1313-1335 (PascalCase keys); Constructed from the Graph v1.0 resource shape (event: forward, 202) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/events/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAENAAAiIsqMbYjsT5e-T7KzowPTAAAYbwXuAAA=/forward",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "ToRecipients": [
+        {
+          "emailAddress": {
+            "address": "pat@example.com"
+          }
+        }
+      ],
+      "Comment": "Can you join?"
+    }
+  },
+  "response": {
+    "status": 202,
+    "headers": {},
+    "body": null
+  }
+}

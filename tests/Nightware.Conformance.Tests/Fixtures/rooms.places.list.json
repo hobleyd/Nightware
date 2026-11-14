@@ -1,0 +1,37 @@
+{
+  "operationId": "rooms.places.list",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_rooms_test.dart:72 'maps displayName, capacity, building and floor', :129 'follows @odata.nextLink'; body constructed with example.com data",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/places/microsoft.graph.room",
+    "query": {
+      "$top": "500"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#places/microsoft.graph.room",
+      "value": [
+        {
+          "id": "3162F1E1-C4C0-604B-51D8-91DA78989EB1",
+          "emailAddress": "boardroom@example.com",
+          "displayName": "Boardroom",
+          "capacity": 14,
+          "building": "SYD",
+          "floorNumber": 3,
+          "isWheelChairAccessible": true,
+          "bookingType": "standard"
+        }
+      ]
+    }
+  }
+}

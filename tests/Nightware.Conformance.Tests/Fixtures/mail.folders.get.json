@@ -1,0 +1,26 @@
+{
+  "operationId": "mail.folders.get",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_shared_mailbox_test.dart:83 'returns true on 200 — the mailbox is reachable' (probe); graph_api_get_emails_test.dart:340 (well-known lookup); body constructed with example.com data",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/users/shared%40example.com/mailFolders/inbox",
+    "query": {
+      "$select": "id"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('shared%40example.com')/mailFolders(id)/$entity",
+      "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAA="
+    }
+  }
+}
