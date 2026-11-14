@@ -1,3 +1,7 @@
+using Nightware.Adapters.Jmap.Security;
+using Nightware.Adapters.Jmap.MailboxSettings;
+using Nightware.Adapters.Jmap.Mail.Write;
+using Nightware.Adapters.Jmap.Mail.Read;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -36,8 +40,12 @@ public static class JmapAdapterServiceCollectionExtensions
 
         services.AddHealthChecks().AddCheck<JmapSessionHealthCheck>(JmapSessionHealthCheck.Name, tags: JmapSessionHealthCheck.Tags);
 
-        // Feature phases register their port implementations from their own folders here.
-        return services;
+        // Each feature registers its ports from its own folder, so phases never edit this file.
+        return services
+            .AddJmapMailRead()
+            .AddJmapMailWrite()
+            .AddJmapMailboxSettings()
+            .AddJmapSecurity();
     }
 
     private static void AddHttpClients(IServiceCollection services)

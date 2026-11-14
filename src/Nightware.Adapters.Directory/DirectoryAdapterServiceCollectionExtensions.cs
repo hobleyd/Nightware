@@ -1,3 +1,5 @@
+using Nightware.Adapters.Directory.Directory;
+using Nightware.Adapters.Directory.MailboxSettings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -42,8 +44,9 @@ public static class DirectoryAdapterServiceCollectionExtensions
 
         services.AddHealthChecks().AddCheck<KeycloakRealmHealthCheck>(KeycloakRealmHealthCheck.Name, tags: [BackendHealthTag]);
 
-        // Feature ports (IUserDirectory, IUserPhotoReader, IUserPreferencesStore) are added by the
-        // Directory/People phase in its own Add* method, called from here.
-        return services;
+        // Each feature registers its ports from its own folder, so phases never edit this file.
+        return services
+            .AddDirectoryUsers()
+            .AddDirectoryPreferences();
     }
 }
