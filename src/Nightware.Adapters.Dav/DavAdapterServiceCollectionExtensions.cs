@@ -1,3 +1,8 @@
+using Nightware.Adapters.Dav.Calendar;
+using Nightware.Adapters.Dav.Contacts;
+using Nightware.Adapters.Dav.Files;
+using Nightware.Adapters.Dav.Rooms;
+using Nightware.Adapters.Dav.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -22,9 +27,13 @@ public static class DavAdapterServiceCollectionExtensions
         AddDavCore(services, configuration);
         AddDavCodecs(services);
 
-        // Feature phases register their port implementations from their own folders
-        // (Calendar/, Contacts/, Tasks/, Rooms/, Files/) here.
-        return services;
+        // Each feature registers its ports from its own folder, so phases never edit this file.
+        return services
+            .AddDavCalendar()
+            .AddDavRooms()
+            .AddDavContacts()
+            .AddDavTasks()
+            .AddDavFiles();
     }
 
     private static void AddDavCore(IServiceCollection services, IConfiguration configuration)

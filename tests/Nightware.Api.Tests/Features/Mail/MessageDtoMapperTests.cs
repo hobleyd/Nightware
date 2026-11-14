@@ -164,9 +164,18 @@ public sealed class MessageDtoMapperTests
     }
 
     [Fact]
+    public void Reply_with_unknown_partstat_stays_a_plain_message()
+    {
+        var dto = MessageDtoMapper.ToDto(Message() with { CalendarPart = new CalendarPart("REPLY", new AttachmentId("P2")) });
+
+        dto.ShouldNotBeOfType<EventMessageDto>();
+    }
+
+    [Fact]
     public void Reply_is_an_event_message_response()
     {
-        var dto = (EventMessageDto)MessageDtoMapper.ToDto(Message() with { CalendarPart = new CalendarPart("REPLY", new AttachmentId("P2")) });
+        var reply = new CalendarPart("REPLY", new AttachmentId("P2")) { ReplyPartStat = "ACCEPTED" };
+        var dto = (EventMessageDto)MessageDtoMapper.ToDto(Message() with { CalendarPart = reply });
 
         dto.ODataType.ShouldBe(EventMessageDto.ResponseODataType);
         dto.MeetingMessageType.ShouldBe("meetingAccepted");

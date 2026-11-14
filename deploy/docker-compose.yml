@@ -255,7 +255,7 @@ services:
       BackendCredentials__Groupware__Audience: nextcloud
       # Proposed for the JMAP/DAV adapters (they own the option names).
       Jmap__SessionUrl: http://stalwart:8080/jmap/session
-      Dav__BaseUrl: http://nextcloud/remote.php/dav
+      Dav__BaseUrl: http://nextcloud/
       # Caddy's local CA root, exported by bootstrap.sh, for calls via public names.
       SSL_CERT_FILE: /certs/caddy-root.crt
     volumes:
