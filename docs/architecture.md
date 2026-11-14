@@ -15,6 +15,10 @@ NightMail ──HTTPS + OIDC bearer──▶ Nightware.Api (Graph façade)
                                   tasks, files, rooms
 ```
 
+> **Read [`docs/adr/0001-skeleton-decisions.md`](adr/0001-skeleton-decisions.md) too** — it
+> fixes ids, delta, auth and parallelisation decisions and overrides this file
+> where they differ.
+
 ## Non-negotiable rules
 
 1. **Implement only what NightMail calls.** The endpoint inventory in
@@ -33,7 +37,7 @@ NightMail ──HTTPS + OIDC bearer──▶ Nightware.Api (Graph façade)
 ## Layers (Clean Architecture)
 
 Dependencies point inward only. Enforced by `tests/Nightware.Architecture.Tests`
-(NetArchTest).
+(ArchUnitNET).
 
 | Project | Depends on | Owns |
 |---|---|---|
@@ -63,10 +67,12 @@ code depends on Application use cases, never on adapters.
 - Message ids are stable across moves (Graph's "immutable id" behaviour).
 
 ### Delta
-- A delta token is `base64url(json{v, state, ...})` produced and consumed by
-  the adapter that owns the collection (`DeltaToken` value object in Domain
-  carries it opaquely). `@odata.deltaLink`/`@odata.nextLink` are assembled by
-  the Api from the token.
+- Two layers of token. The adapter owns backend state: its `DeltaToken` is
+  `base64url(json{v, ...})` that only it decodes. The Api owns Graph query
+  options: the link it emits wraps the adapter token together with the frozen
+  `$select`/`$top` (Graph freezes them into delta links and the client relies on
+  that), so follow-up calls with only `$deltatoken`/`$skiptoken` are projected
+  exactly like the first call. See ADR 0001 §6–8.
 
 ### OData
 - The Api parses `$select/$filter/$orderby/$top/$skip/$search/$expand/$count`
@@ -114,7 +120,7 @@ add configuration options).
 - `Microsoft.AspNetCore.Mvc.Testing` for endpoint and conformance tests.
 - `Nightware.Integration.Tests` runs against `deploy/docker-compose.yml`; it is
   skipped unless `NIGHTWARE_INTEGRATION=1`.
-- NetArchTest for layer rules.
+- ArchUnitNET for layer rules; Testcontainers for the integration suite.
 
 ## Backends
 - **Stalwart** — mail store, JMAP, SMTP submission, spam filter, Sieve,

@@ -10,7 +10,6 @@ Depends on: phases 2–5 substantially complete.
   backends → `401` with `InvalidAuthenticationToken` so NightMail re-auths.
 - Resilience (`Microsoft.Extensions.Http.Resilience`): retries for idempotent
   backend calls only, circuit breakers per backend.
-- `$batch` (JSON batching) — only if Phase 0 inventory shows the client needs it.
 - OpenTelemetry traces/metrics/logs; correlation via `request-id` /
   `client-request-id` headers (Graph behaviour).
 - Security: strict audience/issuer validation, CORS off, request size limits,
@@ -18,7 +17,7 @@ Depends on: phases 2–5 substantially complete.
 - CI (GitHub Actions or local `make ci`): build, test, coverage gate, container
   image build, integration suite against compose.
 - Ops docs: backup/restore for Stalwart, Nextcloud, Keycloak; upgrade policy.
-- Optional: Graph `subscriptions` (webhooks) for mobile push.
+- Out of scope (ADR 0001 §21): `$batch`, Graph `subscriptions`.
 
 ## Acceptance
 - Load test (k6) of a NightMail-shaped poll cycle sustains target users with

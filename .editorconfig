@@ -387,3 +387,12 @@ dotnet_naming_style.s_camelcase.required_suffix =
 dotnet_naming_style.s_camelcase.word_separator = 
 dotnet_naming_style.s_camelcase.capitalization = camel_case
 
+
+# --- Nightware analyzer policy ---------------------------------------------
+# Nightware is a service, not a reusable library consumed from other .NET
+# languages, so the public-API design rules below cost more than they protect.
+[*.cs]
+# Type names that are keywords in VB (Error) are fine for us.
+dotnet_diagnostic.CA1716.severity = none
+# Static factories on generic types (Result<T>.Success, Page<T>.Empty) are the point.
+dotnet_diagnostic.CA1000.severity = none
