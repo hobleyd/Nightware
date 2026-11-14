@@ -1,0 +1,5 @@
+REPORT /remote.php/dav/calendars/alice/personal/
+Depth: 1
+Content-Type: application/xml; charset=utf-8
+
+<c:calendar-multiget xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><d:getetag/><c:calendar-data/></d:prop><d:href>/remote.php/dav/calendars/alice/personal/nightware-imip-1794691557-32407.ics</d:href></c:calendar-multiget>
