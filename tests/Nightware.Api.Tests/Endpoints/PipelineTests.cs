@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 
+using Nightware.Api.Composition;
 using Nightware.Api.Features.Mail.Dto;
 using Nightware.Api.Graph;
 using Nightware.Api.Graph.OData;
@@ -25,6 +26,8 @@ public sealed class PipelineTests : IAsyncLifetime
     private readonly IMailFolderReader _folders = Substitute.For<IMailFolderReader>();
     private TestHost _host = null!;
 
+    // Test-only routes live under /pipelineFolders: the real mailFolders routes (Phase 2) would
+    // otherwise be ambiguous with them.
     public async ValueTask InitializeAsync()
     {
         _host = await TestHost.StartAsync(
@@ -37,11 +40,11 @@ public sealed class PipelineTests : IAsyncLifetime
                     prefer.MarkTimeZoneApplied(http.Response);
                     return Results.Json(new { mailbox = mailbox.Ref.Address, isMe = mailbox.IsMe, top = odata.Query.Top });
                 });
-                graph.MapMailboxGet("/mailFolders", static async (Mailbox mailbox, ODataQuery odata, IMailFolderReader reader, CancellationToken ct) =>
+                graph.MapMailboxGet("/pipelineFolders", static async (Mailbox mailbox, ODataQuery odata, IMailFolderReader reader, CancellationToken ct) =>
                     GraphResults.Match(
                         await reader.ListAsync(mailbox.Ref, null, odata.Query, ct),
                         page => GraphResults.Page(page, MessageDtoMapper.ToDto, $"{mailbox.ContextSegment}/mailFolders", odata.Query)));
-                graph.MapMailboxGet("/mailFolders/{folderId}", static async (Mailbox mailbox, string folderId, ODataQuery odata, IMailFolderReader reader, CancellationToken ct) =>
+                graph.MapMailboxGet("/pipelineFolders/{folderId}", static async (Mailbox mailbox, string folderId, ODataQuery odata, IMailFolderReader reader, CancellationToken ct) =>
                     GraphResults.Match(
                         await reader.GetAsync(mailbox.Ref, new FolderRef.ById(new FolderId(folderId)), ct),
                         folder => GraphResults.Entity(MessageDtoMapper.ToDto(folder), $"{mailbox.ContextSegment}/mailFolders", odata.Query.Select)));
@@ -177,13 +180,16 @@ public sealed class PipelineTests : IAsyncLifetime
     [Fact]
     public async Task A_stub_port_is_a_501()
     {
-        var host = await TestHost.StartAsync(map: app =>
+        // IMailFolderReader has a real (JMAP) implementation now; the stub is what is under test.
+        var host = await TestHost.StartAsync(
+            services => services.AddSingleton(NotImplementedPort<IMailFolderReader>.Create()),
+            app =>
             app.MapGroup(GraphPaths.V1).RequireAuthorization().AddEndpointFilter<GraphBindingFilter>()
-                .MapMailboxGet("/mailFolders", static async (Mailbox mailbox, IMailFolderReader reader, CancellationToken ct) =>
+                .MapMailboxGet("/pipelineFolders", static async (Mailbox mailbox, IMailFolderReader reader, CancellationToken ct) =>
                     GraphResults.Match(await reader.ListAsync(mailbox.Ref, null, ItemQuery.Default, ct), _ => Results.Ok())));
         await using var _ = host;
 
-        var response = await host.AuthorizedClient().GetAsync("/v1.0/me/mailFolders", Ct);
+        var response = await host.AuthorizedClient().GetAsync("/v1.0/me/pipelineFolders", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotImplemented);
         var body = await response.ReadObjectAsync();
@@ -196,7 +202,7 @@ public sealed class PipelineTests : IAsyncLifetime
     {
         _folders.ListAsync(default, default, default!, Arg.Any<CancellationToken>()).ReturnsForAnyArgs(new Error(ErrorKind.Throttled, "x", "slow") { RetryAfterSeconds = 7 });
 
-        var response = await _host.AuthorizedClient().GetAsync("/v1.0/me/mailFolders", Ct);
+        var response = await _host.AuthorizedClient().GetAsync("/v1.0/me/pipelineFolders", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
         response.Headers.RetryAfter!.Delta.ShouldBe(TimeSpan.FromSeconds(7));
@@ -251,13 +257,13 @@ public sealed class PipelineTests : IAsyncLifetime
         _folders.ListAsync(new MailboxRef("me@example.com"), null, Arg.Any<ItemQuery>(), Arg.Any<CancellationToken>())
             .Returns(new Page<MailFolder>([new MailFolder(new FolderId("F1"), "Inbox", new FolderId("R"), 1, 3, 120)], "adapter-page-2"));
 
-        var response = await _host.AuthorizedClient().GetAsync("/v1.0/me/mailFolders?%24select=id%2CdisplayName&%24top=100&%24skip=0", Ct);
+        var response = await _host.AuthorizedClient().GetAsync("/v1.0/me/pipelineFolders?%24select=id%2CdisplayName&%24top=100&%24skip=0", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         response.Content.Headers.ContentType!.MediaType.ShouldBe("application/json");
         var body = await response.ReadObjectAsync();
         body["@odata.context"]!.GetValue<string>().ShouldBe("https://graph.test.example/v1.0/$metadata#users('me%40example.com')/mailFolders(id,displayName)");
-        body["@odata.nextLink"]!.GetValue<string>().ShouldBe("https://graph.test.example/v1.0/me/mailFolders?$select=id%2CdisplayName&$top=100&$skiptoken=adapter-page-2");
+        body["@odata.nextLink"]!.GetValue<string>().ShouldBe("https://graph.test.example/v1.0/me/pipelineFolders?$select=id%2CdisplayName&$top=100&$skiptoken=adapter-page-2");
         body["value"]![0]!.AsObject().Select(p => p.Key).ShouldBe(["id", "displayName"]);
     }
 
@@ -266,7 +272,7 @@ public sealed class PipelineTests : IAsyncLifetime
     {
         _folders.ListAsync(default, default, default!, Arg.Any<CancellationToken>()).ReturnsForAnyArgs(Page<MailFolder>.Empty);
 
-        var response = await _host.AuthorizedClient().GetAsync("https://graph.test.example/v1.0/me/mailFolders?$select=id%2CdisplayName&$top=100&$skiptoken=adapter-page-2", Ct);
+        var response = await _host.AuthorizedClient().GetAsync("https://graph.test.example/v1.0/me/pipelineFolders?$select=id%2CdisplayName&$top=100&$skiptoken=adapter-page-2", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await response.ReadObjectAsync()).ContainsKey("@odata.nextLink").ShouldBeFalse();
@@ -278,7 +284,7 @@ public sealed class PipelineTests : IAsyncLifetime
     {
         _folders.GetAsync(default, default!, Arg.Any<CancellationToken>()).ReturnsForAnyArgs(new MailFolder(new FolderId("F9"), "Deleted Items", null, 0, 0, 7));
 
-        var response = await _host.AuthorizedClient().GetAsync("/v1.0/users/shared@example.com/mailFolders/deleteditems?$select=id", Ct);
+        var response = await _host.AuthorizedClient().GetAsync("/v1.0/users/shared@example.com/pipelineFolders/deleteditems?$select=id", Ct);
 
         var body = await response.ReadObjectAsync();
         body["@odata.context"]!.GetValue<string>().ShouldBe("https://graph.test.example/v1.0/$metadata#users('shared%40example.com')/mailFolders(id)/$entity");
