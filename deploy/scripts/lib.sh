@@ -28,7 +28,7 @@ export_ca() {
   mkdir -p "${DEPLOY_DIR}/.certs"
   local i
   for i in $(seq 1 30); do
-    if dc cp caddy:/data/caddy/pki/authorities/local/root.crt "$CA_FILE" >/dev/null 2>&1; then
+    if dc exec -T caddy cat /data/caddy/pki/authorities/local/root.crt > "$CA_FILE" 2>/dev/null && [[ -s "$CA_FILE" ]]; then
       return 0
     fi
     sleep 2
@@ -80,10 +80,12 @@ exchange_token() {
     -d "audience=${audience}" | jq -er .access_token
 }
 
-# Client-credentials token for the nightware-api service account.
+# Client-credentials token for the nightware-api service account. Keycloak
+# >= 26.8 only accepts admin-API calls from tokens carrying the `kc-admin-api`
+# scope (its mapper adds the admin-API audience), an optional scope here.
 service_token() {
   ccurl "$TOKEN_URL" -u "nightware-api:${NIGHTWARE_API_CLIENT_SECRET}" \
-    -d grant_type=client_credentials | jq -er .access_token
+    -d grant_type=client_credentials -d scope=kc-admin-api | jq -er .access_token
 }
 
 # Keycloak master-realm admin token (bootstrap only).

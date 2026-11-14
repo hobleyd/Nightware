@@ -69,7 +69,7 @@ DIR_BODY=$(jq -cn --arg iss "$ISSUER" '{
 DIR_ID=$(call '[["x:Directory/query",{},"c"]]' | jq -r '.methodResponses[0][1].ids[0] // empty')
 if [[ -z "$DIR_ID" ]]; then
   log "Stalwart: creating OIDC directory -> ${ISSUER}"
-  DIR_ID=$(call "[[\"x:Directory/set\",{\"create\":{\"d\":${DIR_BODY}}},\"c\"]]" | tee /dev/stderr | jq -er '.methodResponses[0][1].created.d.id')
+  DIR_ID=$(call "[[\"x:Directory/set\",{\"create\":{\"d\":${DIR_BODY}}},\"c\"]]" | jq -er '.methodResponses[0][1].created.d.id')
 else
   log "Stalwart: updating OIDC directory ${DIR_ID}"
   call "[[\"x:Directory/set\",{\"update\":{\"${DIR_ID}\":$(jq -c 'del(."@type")' <<<"$DIR_BODY")}},\"c\"]]" \
@@ -78,7 +78,18 @@ fi
 call "[[\"x:Authentication/set\",{\"update\":{\"singleton\":{\"directoryId\":\"${DIR_ID}\"}}},\"c\"]]" \
   | jq -e '.methodResponses[0][1].updated' >/dev/null
 
-# ------------------------------------------------------------------ 4. reload
+# ------------------------------------------- 4. trusted compose network (iMIP)
+# Nextcloud cannot SMTP-AUTH (accounts live in Keycloak, no passwords), so it
+# delivers invitations unauthenticated to port 25 like any inbound MX. Mail to
+# local recipients is accepted that way, but the spam filter would file it as
+# Junk (no SPF/DKIM for *.localhost). Skip the spam filter for the stack's own
+# Docker subnet; everything else keeps the default rule.
+SUBNET="${DOCKER_SUBNET:-172.31.250.0/24}"
+call "$(jq -cn --arg net "$SUBNET" '[["x:MtaStageData/set",{"update":{"singleton":{
+  enableSpamFilter:{"else":("is_empty(authenticated_as) && !is_ip_in_cidr(remote_ip, \u0027" + $net + "\u0027)")}}}},"c"]]')" \
+  | jq -e '.methodResponses[0][1].updated' >/dev/null
+
+# ------------------------------------------------------------------ 5. reload
 call '[["x:Action/set",{"create":{"r":{"@type":"ReloadSettings"}}},"c"]]' \
   | jq -e '.methodResponses[0][1].created' >/dev/null
 log "Stalwart: configured (directory ${DIR_ID} is the default directory)"

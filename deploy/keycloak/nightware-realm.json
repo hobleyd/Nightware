@@ -106,7 +106,7 @@
         "standard.token.exchange.enableRefreshRequestedTokenType": "NO"
       },
       "defaultClientScopes": ["web-origins", "acr", "basic", "profile", "email", "roles"],
-      "optionalClientScopes": ["offline_access"],
+      "optionalClientScopes": ["offline_access", "kc-admin-api"],
       "protocolMappers": [
         {
           "name": "audience stalwart",
@@ -178,6 +178,7 @@
       "firstName": "Alice",
       "lastName": "Anderson",
       "enabled": true,
+      "realmRoles": ["default-roles-nightware"],
       "credentials": [{ "type": "password", "value": "${TEST_USER_PASSWORD}", "temporary": false }]
     },
     {
@@ -187,6 +188,7 @@
       "firstName": "Bob",
       "lastName": "Brown",
       "enabled": true,
+      "realmRoles": ["default-roles-nightware"],
       "credentials": [{ "type": "password", "value": "${TEST_USER_PASSWORD}", "temporary": false }]
     },
     {

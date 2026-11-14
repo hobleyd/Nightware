@@ -21,6 +21,11 @@ x-restart: &restart
 
 networks:
   nightware:
+    ipam:
+      config:
+        # Pinned so Stalwart can treat this network as trusted (Nextcloud's
+        # iMIP mail skips the spam filter; see stalwart/configure.sh).
+        - subnet: ${DOCKER_SUBNET:-172.31.250.0/24}
 
 volumes:
   caddy-data:
@@ -91,6 +96,11 @@ services:
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       # Fixed front-end URL: `iss` is always https://auth.${BASE_DOMAIN}/realms/nightware
       KC_HOSTNAME: https://auth.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
+      # Requests that reach Keycloak directly on http://keycloak:8080 get
+      # backchannel endpoints (token, jwks, userinfo) on that internal URL,
+      # while `issuer` and the browser-facing endpoints stay public. Nextcloud
+      # uses this (its libcurl resolves *.localhost to its own loopback).
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
       KC_HTTP_ENABLED: "true"
       KC_PROXY_HEADERS: xforwarded
       KC_HEALTH_ENABLED: "true"
