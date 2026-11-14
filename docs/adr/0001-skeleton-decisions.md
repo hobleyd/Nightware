@@ -117,3 +117,18 @@ anything contradictory in `architecture.md` or the phase docs.
     the `nightware-api` service account.
 30. `dotnet test` runs on Microsoft.Testing.Platform, opted in via `global.json`
     (`"test": {"runner": "Microsoft.Testing.Platform"}`).
+31. Unknown routes under `/v1.0` and `/beta` return Graph's own
+    `400 BadRequest` ("Resource not found for the segment …"), not 501 — the
+    client's fallbacks (cast spellings, RSVP routes, delta reset) key on 400/404.
+    A *mapped* route whose port is still unimplemented returns 501.
+32. The `$filter` parser accepts the general grammar (or/not/functions/lambdas);
+    adapters reject what they cannot translate with `Error.Validation` (400).
+33. A REPLY's meeting type comes from the attendee PARTSTAT
+    (`CalendarPart.ReplyPartStat`); unknown → `None`. Meeting facts the client
+    needs on invitation mail (start/end/location/all-day/proposed time) are
+    filled by the Phase 2 get-message use case: it reads the `text/calendar`
+    part through `IMailMessageReader` and parses it with `IICalendarCodec`,
+    passing the result to `MessageDtoMapper` as `MeetingMessageDetails`.
+34. `BackendAuthFailed` (→ 401, client re-auths) is reserved for a rejected
+    *subject* token. Façade misconfiguration (bad client secret, unknown
+    audience) is `BackendUnavailable` (→ 503).

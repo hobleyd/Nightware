@@ -48,11 +48,24 @@ public enum MeetingMessageType
 /// </summary>
 public sealed record CalendarPart(string Method, AttachmentId PartId)
 {
+    /// <summary>
+    /// For a REPLY, the replying attendee's PARTSTAT (ACCEPTED, TENTATIVE, DECLINED).
+    /// Only known once the iCalendar body has been parsed; until then a REPLY maps to
+    /// <see cref="MeetingMessageType.None"/> rather than guessing "accepted".
+    /// </summary>
+    public string? ReplyPartStat { get; init; }
+
     public MeetingMessageType MessageType => Method.ToUpperInvariant() switch
     {
         "REQUEST" => MeetingMessageType.MeetingRequest,
         "CANCEL" => MeetingMessageType.MeetingCancelled,
-        "REPLY" => MeetingMessageType.MeetingAccepted, // refined by PARTSTAT where known
+        "REPLY" => ReplyPartStat?.ToUpperInvariant() switch
+        {
+            "ACCEPTED" => MeetingMessageType.MeetingAccepted,
+            "TENTATIVE" => MeetingMessageType.MeetingTentativelyAccepted,
+            "DECLINED" => MeetingMessageType.MeetingDeclined,
+            _ => MeetingMessageType.None,
+        },
         _ => MeetingMessageType.None,
     };
 

@@ -9,8 +9,7 @@ public sealed class CalendarPartTests
     [InlineData("REQUEST", MeetingMessageType.MeetingRequest, true)]
     [InlineData("request", MeetingMessageType.MeetingRequest, true)]
     [InlineData("CANCEL", MeetingMessageType.MeetingCancelled, true)]
-    [InlineData("REPLY", MeetingMessageType.MeetingAccepted, false)]
-    [InlineData("Reply", MeetingMessageType.MeetingAccepted, false)]
+    [InlineData("REPLY", MeetingMessageType.None, false)]
     [InlineData("PUBLISH", MeetingMessageType.None, true)]
     [InlineData("COUNTER", MeetingMessageType.None, true)]
     public void Maps_itip_methods(string method, MeetingMessageType type, bool isRequest)
@@ -19,6 +18,18 @@ public sealed class CalendarPartTests
 
         part.MessageType.ShouldBe(type);
         part.IsRequest.ShouldBe(isRequest);
+    }
+
+    [Theory]
+    [InlineData("ACCEPTED", MeetingMessageType.MeetingAccepted)]
+    [InlineData("tentative", MeetingMessageType.MeetingTentativelyAccepted)]
+    [InlineData("DECLINED", MeetingMessageType.MeetingDeclined)]
+    [InlineData("NEEDS-ACTION", MeetingMessageType.None)]
+    public void Reply_type_follows_the_attendee_partstat(string partStat, MeetingMessageType type)
+    {
+        var part = new CalendarPart("Reply", new AttachmentId("2")) { ReplyPartStat = partStat };
+
+        part.MessageType.ShouldBe(type);
     }
 
     [Fact]
