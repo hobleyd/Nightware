@@ -3,7 +3,7 @@
 Keycloak integration for Nightware. The project has two parts:
 
 - **Identity infrastructure** (`Core/`, `Credentials/`). This is the token client, the backend credential strategies (`IBackendCredentials`), the Keycloak admin REST client and the realm health check.
-- **Directory feature ports** (`Directory/`, `People/`, phase 5A). These are `IUserDirectory`, `IUserPhotoReader` and `IUserPreferencesStore`, built on top of the admin client.
+- **Directory feature ports**, built on top of the admin client: `IUserDirectory` (`Directory/`, phase 5A) and `IUserPreferencesStore` (`MailboxSettings/`, phase 5B). User photos live in Nextcloud, so `IUserPhotoReader` is in `Adapters.Dav/Directory`.
 
 `AddDirectoryAdapter(services, configuration)` registers everything. The host must also register a scoped `IUserContext`; the Api does this.
 
@@ -127,6 +127,28 @@ Errors map as follows:
 | 5xx, timeout | `BackendUnavailable` |
 
 GETs are retried on transient failures other than 429; PUTs are not.
+
+## User directory (`IUserDirectory`)
+
+`KeycloakUserDirectory` serves `/me`, `/users` and `/users/{id|upn}` as the service account.
+
+- **Lookup.** An address is tried as an exact email, then as an exact username, because a username can look like an address. A UUID is tried as a Keycloak id. Anything else is tried as a username. Service-account users (`service-account-*`) are never people: a lookup of one is `NotFound`.
+- **Listing.** Only enabled users are listed, with `briefRepresentation=false` so that attributes come back. The page asks Keycloak for `$top + 1` rows to learn whether another page exists. The `$skiptoken` is the next `first` offset, and it advances by the rows Keycloak returned, not by the rows kept after filtering, so a dropped service account never pushes a person off a page. The default page size is 100, Graph's default. `$filter`, `$search`, `$orderby`, `$skip` and `$expand` are a `Validation` error (400); the contract sends none of them.
+- **Mapping.** `displayName` is first name plus last name, falling back to the username and then the email. `userPrincipalName` is the username when it is an address; otherwise it is the email, because Graph's UPN is always an address and the client reads it as one.
+
+Graph profile properties that Keycloak has no field for come from user attributes:
+
+| Attribute | Graph property |
+|---|---|
+| `phoneNumber` (Keycloak's own, used by the `phone` scope) | `mobilePhone` |
+| `nightware_job_title` | `jobTitle` |
+| `nightware_department` | `department` |
+| `nightware_company_name` | `companyName` |
+| `nightware_office_location` | `officeLocation` |
+| `nightware_business_phones` (multi-valued) | `businessPhones` |
+| `nightware_aliases` (multi-valued) | `proxyAddresses` `smtp:` entries; `mail` is the `SMTP:` entry |
+
+Keycloak 24+ silently drops attributes its realm user profile does not declare. A deployment that wants these properties filled must declare them, admin-editable, the way `deploy/keycloak/configure.sh` declares the mailboxSettings attributes. The dev realm does not declare them, so there these properties are null and `proxyAddresses` is just `SMTP:<mail>`.
 
 ## Health check
 

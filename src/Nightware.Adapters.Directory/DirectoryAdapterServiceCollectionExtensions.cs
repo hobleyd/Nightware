@@ -35,9 +35,10 @@ public static class DirectoryAdapterServiceCollectionExtensions
         services.AddMemoryCache();
 
         // Core: token endpoint (singleton, owns the service-account token) and the admin REST client.
-        services.AddHttpClient(KeycloakHttp.TokenClientName).AddKeycloakResilience();
+        // Cookie-free: pooled handlers are shared across callers, so cookies must never persist.
+        services.AddHttpClient(KeycloakHttp.TokenClientName).ConfigurePrimaryHttpMessageHandler(CookieFreeHandler).AddKeycloakResilience();
         services.TryAddSingleton<IKeycloakTokenClient, KeycloakTokenClient>();
-        services.AddHttpClient<IKeycloakAdminClient, KeycloakAdminClient>().AddKeycloakResilience();
+        services.AddHttpClient<IKeycloakAdminClient, KeycloakAdminClient>().ConfigurePrimaryHttpMessageHandler(CookieFreeHandler).AddKeycloakResilience();
 
         // Credentials: per request, because it reads the caller's IUserContext.
         services.AddScoped<IBackendCredentials, BackendCredentials>();
@@ -49,4 +50,6 @@ public static class DirectoryAdapterServiceCollectionExtensions
             .AddDirectoryUsers()
             .AddDirectoryPreferences();
     }
+
+    internal static SocketsHttpHandler CookieFreeHandler() => new() { UseCookies = false };
 }
