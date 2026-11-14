@@ -1,0 +1,12 @@
+{
+  "accountId": "c",
+  "oldState": "sdq",
+  "newState": "sdq",
+  "notUpdated": {
+    "a": {
+      "type": "alreadyExists",
+      "description": "A mailbox with name 'Sent Items' already exists.",
+      "existingId": "e"
+    }
+  }
+}

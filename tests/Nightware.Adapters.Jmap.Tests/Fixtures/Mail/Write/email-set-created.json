@@ -1,0 +1,13 @@
+{
+  "accountId": "c",
+  "oldState": "sc2",
+  "newState": "sda",
+  "created": {
+    "draft": {
+      "id": "bqaaaaam",
+      "threadId": "m",
+      "blobId": "cawdz0t3bjmyvkh3zjnen3jr1ikivvczslnk9eohpb9rkuvlqsgjaaqabq",
+      "size": 1309
+    }
+  }
+}
