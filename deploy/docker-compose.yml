@@ -222,6 +222,8 @@ services:
     networks: [nightware]
 
   # ---------------------------------------------------- Nightware Graph façade
+  # Only the façade is (re)built:  docker compose -p nightware --profile api up -d --build --no-deps nightware-api
+  # Every key is documented in docs/operations/configuration.md.
   nightware-api:
     profiles: [api]
     <<: *restart
@@ -230,8 +232,8 @@ services:
       dockerfile: src/Nightware.Api/Dockerfile
     image: nightware/api:dev
     environment:
-      ASPNETCORE_URLS: http://+:8080
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ASPNETCORE_ENVIRONMENT: ${NIGHTWARE_ENVIRONMENT:-Development}
       # Bearer validation: public issuer, keys fetched over the internal network.
       Auth__Authority: https://auth.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/realms/nightware
       Auth__MetadataAddress: http://keycloak:8080/realms/nightware/.well-known/openid-configuration
@@ -253,9 +255,14 @@ services:
       BackendCredentials__Mail__Audience: stalwart
       BackendCredentials__Groupware__Strategy: TokenExchange
       BackendCredentials__Groupware__Audience: nextcloud
-      # Proposed for the JMAP/DAV adapters (they own the option names).
       Jmap__SessionUrl: http://stalwart:8080/jmap/session
       Dav__BaseUrl: http://nextcloud/
+      # Caddy is the only proxy; trust X-Forwarded-* from this network alone.
+      ForwardedHeaders__KnownNetworks__0: ${DOCKER_SUBNET:-172.31.250.0/24}
+      # The NightMail web build calls discovery and Graph cross-origin.
+      Cors__AllowedOrigins__0: ${NIGHTMAIL_WEB_ORIGIN:-http://localhost:34572}
+      # Off unless set, e.g. http://otel-collector:4317 (see docs/operations/monitoring.md).
+      Telemetry__Otlp__Endpoint: ${NIGHTWARE_OTLP_ENDPOINT:-}
       # Caddy's local CA root, exported by bootstrap.sh, for calls via public names.
       SSL_CERT_FILE: /certs/caddy-root.crt
     volumes:
@@ -264,3 +271,10 @@ services:
       keycloak:
         condition: service_healthy
     networks: [nightware]
+    healthcheck:
+      # Liveness only (no backend checks); the image has no curl, so bash's /dev/tcp speaks HTTP.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /healthz/live HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && grep -q ' 200 ' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s

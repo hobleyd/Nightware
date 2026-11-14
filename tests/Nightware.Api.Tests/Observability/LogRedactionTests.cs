@@ -152,6 +152,8 @@ public sealed class LogRedactionTests(LogRedactionTests.Scenario scenario) : ICl
                 ["Logging:LogLevel:Microsoft.AspNetCore"] = "Trace",
                 ["Logging:LogLevel:Microsoft.AspNetCore.Hosting.Diagnostics"] = "Trace",
                 ["Logging:LogLevel:System"] = "Trace",
+                ["Logging:LogLevel:System.Net.Http.HttpClient"] = "Trace",
+                ["Logging:LogLevel:Microsoft.AspNetCore.DataProtection"] = "Trace",
                 ["Telemetry:Otlp:Endpoint"] = "http://127.0.0.1:9",
                 ["Directory:KeycloakBaseUrl"] = _backend.Url,
                 ["Directory:ClientSecret"] = ClientSecret,

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,7 +40,11 @@ namespace Nightware.Api.Composition;
 /// </summary>
 public static class NightwareComposition
 {
+    /// <summary>Readiness: the process and every backend health check (Stalwart, Nextcloud, Keycloak).</summary>
     public const string HealthPath = "/healthz";
+
+    /// <summary>Liveness: the process answers HTTP. No backend is consulted, so a backend outage never restarts the façade.</summary>
+    public const string LivenessPath = "/healthz/live";
 
     public static IServiceCollection AddNightware(this IServiceCollection services, IConfiguration configuration)
     {
@@ -105,6 +110,7 @@ public static class NightwareComposition
 
         app.MapDiscovery().RequireNightMailCors();
         app.MapHealthChecks(HealthPath).AllowAnonymous();
+        app.MapHealthChecks(LivenessPath, new HealthCheckOptions { Predicate = static _ => false }).AllowAnonymous();
         app.MapGraph();
         return app;
     }
