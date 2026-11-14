@@ -38,7 +38,7 @@ public sealed class IcsEditor
             var instant = occurrence.ToUtc();
             foreach (var exception in calendar.Events.Where(e => e.RecurrenceIdentifier?.StartTime is not null && SameInstance(zones, e.RecurrenceIdentifier!.StartTime, occurrence)).ToList())
             {
-                calendar.Events.Remove(exception);
+                RemoveByReference(calendar, exception);
             }
 
             var value = master.DtStart.HasTime
@@ -136,6 +136,25 @@ public sealed class IcsEditor
         var now = IcalNetCalendarCodec.Utc(_timeProvider.GetUtcNow());
         vevent.DtStamp = now;
         vevent.LastModified = now;
+    }
+
+    /// <summary>
+    /// VEVENTs compare equal by UID, so <c>Events.Remove</c>/<c>Children.Remove</c> would drop the
+    /// master instead of the exception; remove the exact instance by position.
+    /// </summary>
+    private static void RemoveByReference(IcalCalendar calendar, IcalEvent component)
+    {
+        if (calendar.Children is IList<ICalendarObject> children)
+        {
+            for (var i = 0; i < children.Count; i++)
+            {
+                if (ReferenceEquals(children[i], component))
+                {
+                    children.RemoveAt(i);
+                    return;
+                }
+            }
+        }
     }
 
     private static IcalEvent? Master(IcalCalendar calendar) => calendar.Events.FirstOrDefault(e => e.RecurrenceIdentifier?.StartTime is null);

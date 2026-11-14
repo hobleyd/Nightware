@@ -185,11 +185,14 @@ public sealed class VTodoCodec
         else if (patch.ReminderDateTime is { } reminder)
         {
             todo.Alarms.Clear();
+            // Ical.Net writes an empty TRIGGER for absolute times unless VALUE=DATE-TIME is set explicitly.
+            var trigger = new Trigger { DateTime = IcalNetCalendarCodec.Utc(GraphTimeZone.ToInstant(reminder.DateTime, reminder.TimeZone)) };
+            trigger.Parameters.Set("VALUE", "DATE-TIME");
             todo.Alarms.Add(new Alarm
             {
                 Action = AlarmAction.Display,
                 Description = todo.Summary ?? "Reminder",
-                Trigger = new Trigger { DateTime = IcalNetCalendarCodec.Utc(GraphTimeZone.ToInstant(reminder.DateTime, reminder.TimeZone)) },
+                Trigger = trigger,
             });
         }
 
@@ -205,12 +208,10 @@ public sealed class VTodoCodec
         switch (status)
         {
             case DomainTaskStatus.Completed:
-                if (!string.Equals(todo.Status, TodoStatus.Completed, StringComparison.OrdinalIgnoreCase))
-                {
-                    todo.Completed = now;
-                }
-
+                // Ical.Net's Status setter stamps COMPLETED with local "now" (floating); set it ourselves afterwards.
+                var completedAt = string.Equals(todo.Status, TodoStatus.Completed, StringComparison.OrdinalIgnoreCase) ? todo.Completed : null;
                 todo.Status = TodoStatus.Completed;
+                todo.Completed = completedAt ?? now;
                 todo.PercentComplete = 100;
                 return;
             case DomainTaskStatus.InProgress:
