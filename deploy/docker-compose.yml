@@ -261,6 +261,8 @@ services:
       ForwardedHeaders__KnownNetworks__0: ${DOCKER_SUBNET:-172.31.250.0/24}
       # The NightMail web build calls discovery and Graph cross-origin.
       Cors__AllowedOrigins__0: ${NIGHTMAIL_WEB_ORIGIN:-http://localhost:34572}
+      # Per-user limiter; a load test with more virtual users than test accounts raises or disables it.
+      RateLimiting__Enabled: ${NIGHTWARE_RATE_LIMITING:-true}
       # Off unless set, e.g. http://otel-collector:4317 (see docs/operations/monitoring.md).
       Telemetry__Otlp__Endpoint: ${NIGHTWARE_OTLP_ENDPOINT:-}
       # Caddy's local CA root, exported by bootstrap.sh, for calls via public names.
