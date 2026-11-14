@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
 
 namespace Nightware.Api.Hosting;
@@ -36,6 +37,9 @@ public static class HostingServiceCollectionExtensions
         services.AddOptions<KestrelServerOptions>()
             .Configure<IOptions<RequestLimitOptions>>(static (kestrel, limits) =>
                 kestrel.Limits.MaxRequestBodySize = limits.Value.MaxRequestBodyBytes);
+
+        // Pooled primary handlers are shared across users: no client may keep cookies.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHttpMessageHandlerBuilderFilter, CookielessHttpClientsFilter>());
 
         services.AddGraphCors(configuration);
         return services;
