@@ -1,0 +1,132 @@
+{
+  "methodResponses": [
+    [
+      "Email/query",
+      {
+        "accountId": "c",
+        "queryState": "say",
+        "canCalculateChanges": true,
+        "position": 0,
+        "ids": [
+          "qaaaaae",
+          "maaaaad",
+          "iaaaaac",
+          "eaaaaab"
+        ]
+      },
+      "q"
+    ],
+    [
+      "Email/get",
+      {
+        "accountId": "c",
+        "state": "say",
+        "list": [
+          {
+            "threadId": "e",
+            "subject": "Lunch?",
+            "from": [
+              {
+                "name": "Bob Brown",
+                "email": "bob@nightware.localhost"
+              }
+            ],
+            "receivedAt": "2026-11-14T21:25:54Z",
+            "preview": "Free for lunch tomorrow? -- Bob",
+            "keywords": {
+              "$hasnoattachment": true
+            },
+            "id": "qaaaaae"
+          },
+          {
+            "threadId": "d",
+            "subject": "Quarterly planning",
+            "from": [
+              {
+                "name": "Bob Brown",
+                "email": "bob@nightware.localhost"
+              }
+            ],
+            "receivedAt": "2026-11-14T21:25:54Z",
+            "preview": "Hi Alice,\n\nCan we sync on the Q3 plan on Thursday?\n\nBob",
+            "keywords": {
+              "$hasnoattachment": true
+            },
+            "id": "maaaaad"
+          },
+          {
+            "threadId": "c",
+            "subject": "Lunch?",
+            "from": [
+              {
+                "name": "Bob Brown",
+                "email": "bob@nightware.localhost"
+              }
+            ],
+            "receivedAt": "2026-11-14T21:25:12Z",
+            "preview": "Free for lunch tomorrow? -- Bob",
+            "keywords": {
+              "$hasnoattachment": true,
+              "$seen": true
+            },
+            "id": "iaaaaac"
+          },
+          {
+            "threadId": "b",
+            "subject": "Quarterly planning",
+            "from": [
+              {
+                "name": "Bob Brown",
+                "email": "bob@nightware.localhost"
+              }
+            ],
+            "receivedAt": "2026-11-14T21:25:12Z",
+            "preview": "Hi Alice,\n\nCan we sync on the Q3 plan on Thursday?\n\nBob",
+            "keywords": {
+              "$hasnoattachment": true
+            },
+            "id": "eaaaaab"
+          }
+        ],
+        "notFound": []
+      },
+      "g"
+    ],
+    [
+      "Thread/get",
+      {
+        "accountId": "c",
+        "state": "say",
+        "list": [
+          {
+            "id": "e",
+            "emailIds": [
+              "qaaaaae"
+            ]
+          },
+          {
+            "id": "d",
+            "emailIds": [
+              "maaaaad"
+            ]
+          },
+          {
+            "id": "c",
+            "emailIds": [
+              "iaaaaac"
+            ]
+          },
+          {
+            "id": "b",
+            "emailIds": [
+              "eaaaaab"
+            ]
+          }
+        ],
+        "notFound": []
+      },
+      "t"
+    ]
+  ],
+  "sessionState": "9a59b346"
+}

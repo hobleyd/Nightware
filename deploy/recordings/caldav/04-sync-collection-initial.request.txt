@@ -1,0 +1,5 @@
+REPORT /remote.php/dav/calendars/alice/personal/
+Depth: 1
+Content-Type: application/xml; charset=utf-8
+
+<d:sync-collection xmlns:d="DAV:"><d:sync-token/><d:sync-level>1</d:sync-level><d:prop><d:getetag/></d:prop></d:sync-collection>

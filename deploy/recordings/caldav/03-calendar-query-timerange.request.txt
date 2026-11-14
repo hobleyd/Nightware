@@ -1,0 +1,5 @@
+REPORT /remote.php/dav/calendars/alice/personal/
+Depth: 1
+Content-Type: application/xml; charset=utf-8
+
+<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><d:getetag/><c:calendar-data/></d:prop><c:filter><c:comp-filter name="VCALENDAR"><c:comp-filter name="VEVENT"><c:time-range start="20261114T000000Z" end="20261121T000000Z"/></c:comp-filter></c:comp-filter></c:filter></c:calendar-query>

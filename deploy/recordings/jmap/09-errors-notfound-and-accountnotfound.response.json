@@ -1,0 +1,25 @@
+{
+  "methodResponses": [
+    [
+      "Email/get",
+      {
+        "accountId": "c",
+        "state": "sa2",
+        "list": [],
+        "notFound": [
+          "does-not-exist"
+        ]
+      },
+      "0"
+    ],
+    [
+      "error",
+      {
+        "type": "accountNotFound",
+        "description": "The accountId does not correspond to a valid account"
+      },
+      "1"
+    ]
+  ],
+  "sessionState": "9a59b346"
+}

@@ -1,0 +1,17 @@
+POST /remote.php/dav/calendars/alice/outbox/
+Content-Type: text/calendar; charset=utf-8
+
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Nightware//record//EN
+METHOD:REQUEST
+BEGIN:VFREEBUSY
+UID:nightware-fb-1794691558
+DTSTAMP:20261114T212558Z
+DTSTART:20261115T000000Z
+DTEND:20261116T000000Z
+ORGANIZER:mailto:alice@nightware.localhost
+ATTENDEE:mailto:boardroom@nightware.localhost
+ATTENDEE:mailto:bob@nightware.localhost
+END:VFREEBUSY
+END:VCALENDAR
