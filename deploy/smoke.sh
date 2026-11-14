@@ -36,8 +36,10 @@ ALICE_DAV=$(exchange_token "$ALICE" nextcloud 2>/dev/null)
 check "token exchange alice -> aud=nextcloud" \
   bash -c "jq -e '.aud==\"nextcloud\"' <<<'$(jwt_claims "${ALICE_DAV:-x.e30.x}")' >/dev/null"
 SVC=$(service_token 2>/dev/null)
-check "service account can read users (view-users)" \
-  bash -c "curl -sS --cacert '$CA_FILE' -H 'Authorization: Bearer $SVC' '${AUTH_URL}/admin/realms/nightware/users?username=alice&exact=true' | jq -e '.[0].attributes.zoneinfo[0]' >/dev/null"
+code=$(ccurl -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${SVC}" "${AUTH_URL}/admin/realms/nightware/users?max=1" 2>/dev/null)
+check "admin API GET /users?max=1 with service-account token (scope kc-admin-api) -> ${code}" test "$code" = 200
+check "service account sees mailboxSettings attributes (zoneinfo, nightware_working_hours)" \
+  bash -c "curl -sS --cacert '$CA_FILE' -H 'Authorization: Bearer $SVC' '${AUTH_URL}/admin/realms/nightware/users?username=alice&exact=true' | jq -e '.[0].attributes | .zoneinfo[0] and .nightware_working_hours[0]' >/dev/null"
 
 log "Stalwart (JMAP)"
 SESSION=$(ccurl -L -H "Authorization: Bearer ${ALICE_JMAP}" "${MAIL_URL}/.well-known/jmap" 2>/dev/null)

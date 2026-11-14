@@ -3,7 +3,7 @@
 A Docker Compose stack in which every backend trusts one OIDC issuer
 (Keycloak). The Nightware Graph façade runs in front of it:
 
-| Public URL | Service | Image (verified arm64 + amd64) |
+| Public URL | Service | Image (linux/arm64 + linux/amd64 manifests verified) |
 |---|---|---|
 | `https://auth.${BASE_DOMAIN}` | Keycloak, realm `nightware` (+ Postgres) | `quay.io/keycloak/keycloak:26.8.2`, `postgres:17.12-alpine` |
 | `https://mail.${BASE_DOMAIN}` | Stalwart: JMAP, WebDAV, WebUI, management API | `stalwartlabs/stalwart:v1.1.0` |
@@ -33,9 +33,9 @@ docker compose -p nightware up -d        # ~1-2 min until Keycloak + Nextcloud a
    with `curl --cacert`. Trust it in your OS or browser if you want to open
    the URLs without warnings. On macOS:
    `sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain .certs/caddy-root.crt`
-2. `keycloak/configure.sh` declares `zoneinfo` in the user profile and seeds
-   zoneinfo/locale for alice and bob, writing them through the
-   `nightware-api` service account.
+2. `keycloak/configure.sh` declares the mailboxSettings attributes in the
+   user profile (see "User → backend mapping"). It seeds them for alice and
+   bob through the `nightware-api` service account.
 3. `stalwart/configure.sh` runs Stalwart's first-start Bootstrap through the
    API and restarts the container. It then pre-creates alice and bob, creates
    the Keycloak OIDC directory and makes it the default, sets the trusted
@@ -131,18 +131,38 @@ Lifetime is 15 minutes (`accessTokenLifespan` 900). Refresh with
 - **Nextcloud uid = `preferred_username`** (user_oidc `--unique-uid=0
   --mapping-uid=preferred_username`). The uid for alice is `alice`, so her
   DAV paths are `/remote.php/dav/.../alice/`.
-- **Keycloak user lookups** (`/users`, `/users/{id}`): the façade uses the
-  `nightware-api` service account, with
-  `grant_type=client_credentials&scope=kc-admin-api`. It then calls the
-  admin API at `https://auth.../admin/realms/nightware/users?email=...`, with
-  `exact=true` and `briefRepresentation` as needed. Keycloak 26.8 rejects
-  admin-API calls from tokens without the `kc-admin-api` scope (HTTP 401).
-- **mailboxSettings.timeZone / language** map to the Keycloak user attributes
-  `zoneinfo` (declared in the user profile by `keycloak/configure.sh`;
-  Keycloak 26 drops undeclared attributes) and `locale` (built in, since the
-  realm has internationalization on). Write them with `PUT
-  /admin/realms/nightware/users/{id}`: GET the representation, change
-  `attributes`, and PUT it back. Both appear in tokens after the next refresh.
+- **Keycloak user lookups** (`/users`, `/users/{id}`) use the `nightware-api`
+  service account. Get its token with
+  `grant_type=client_credentials&scope=kc-admin-api` (Basic
+  `nightware-api:<secret>`). Then call
+  `https://auth.../admin/realms/nightware/users?email=...`, adding
+  `exact=true` and `briefRepresentation` as needed. Both the Caddy URL and
+  `http://keycloak:8080` work.
+  > **Without `scope=kc-admin-api` the admin API answers 401**, even though
+  > the token's `aud` includes `realm-management` and it carries
+  > `view-users`/`query-users`/`manage-users`. Keycloak 26.8 accepts
+  > admin-API calls only from tokens that carry its new `kc-admin-api` client
+  > scope, whose `oidc-admin-api-audience-mapper` adds the admin-API audience.
+  > It is an *optional* scope on `nightware-api`, so exchanged user tokens
+  > never get it. `smoke.sh` calls `GET /admin/realms/nightware/users?max=1`
+  > with this token.
+- **mailboxSettings** is backed by Keycloak user attributes. All of them are
+  declared in the realm's user profile by `keycloak/configure.sh`, because
+  Keycloak 26 silently drops undeclared attributes. Users can view them but
+  not edit them; only admins and the service account (`manage-users`) can:
+
+  | Attribute | Graph property | Example (alice) |
+  |---|---|---|
+  | `zoneinfo` | `timeZone` (IANA name) | `Australia/Sydney` |
+  | `locale` | `language.locale` | `en` |
+  | `nightware_working_hours` | `workingHours` (JSON string) | `{"daysOfWeek":["monday",…],"startTime":"09:00:00.0000000","endTime":"17:30:00.0000000","timeZone":{"name":"Australia/Sydney"}}` |
+  | `nightware_date_format` | `dateFormat` | `dd/MM/yyyy` |
+  | `nightware_time_format` | `timeFormat` | `h:mm tt` |
+
+  To write them, `GET /admin/realms/nightware/users/{id}`, change
+  `attributes` (every value is an array of strings), and `PUT` the whole
+  representation back. `zoneinfo` and `locale` also appear as token claims
+  after the next refresh.
 
 ## Backend facts for adapter developers
 
@@ -168,24 +188,15 @@ Lifetime is 15 minutes (`accessTokenLifespan` 900). Refresh with
   `Identity`; none exists until one is created
   (`Identity/set {email: <address>}`). `scripts/record.sh` shows the full
   sequence.
-- **Service-account fallback (master user).** Stalwart v1 has **no
-  `authentication.master` setting.** That was the v0.x TOML key, and v1 keeps
-  all config in its data store and manages it through the JMAP API. The v1
-  equivalent is the `impersonate` permission, which the recovery administrator
-  (`STALWART_RECOVERY_ADMIN`) holds. Two forms are verified:
-  - Master-user Basic auth, as `alice@nightware.localhost%admin:<STALWART_ADMIN_PASSWORD>`.
-    This opens alice's session.
-  - Basic `admin:<password>` plus an explicit `accountId` in JMAP method
-    calls, which works for any account.
-
-  Only the recovery admin can use passwords at all. With Keycloak as the
-  default directory there are no other password accounts, and in the
-  Community edition a dedicated impersonator account is not possible.
-- Mail ports on the host: SMTP `127.0.0.1:2525` (25), submissions
+- Mail ports on the host: SMTP `127.0.0.1:2525` (25), submission
   `127.0.0.1:1465` (465, implicit TLS, self-signed) and IMAPS
-  `127.0.0.1:1993` (993). Keycloak users authenticate there with
-  `OAUTHBEARER`/`XOAUTH2`, using an exchanged `aud: stalwart` token. They
-  have no passwords.
+  `127.0.0.1:1993` (993). **There is no port 587**, because Stalwart v1's
+  default listeners don't include it. Keycloak users authenticate with
+  `XOAUTH2`/`OAUTHBEARER` and an exchanged `aud: stalwart` token
+  (`user=alice@nightware.localhost^Aauth=Bearer <token>^A^A`). This is
+  verified: SMTP on 465 answered `235 2.7.0 Authentication succeeded` and
+  then sent mail alice→bob, and IMAP `AUTHENTICATE XOAUTH2` plus
+  `SELECT INBOX` succeeded. Users have no passwords.
 - DKIM keys (ed25519 and RSA) are generated for the domain. No DNS is
   published, so SPF and DMARC evaluate to `none`.
 
@@ -255,6 +266,54 @@ Lifetime is 15 minutes (`accessTokenLifespan` 900). Refresh with
 - Mail to external domains would be relayed by Stalwart's normal outbound
   queue. That is not configured or tested here (no outbound port 25).
 
+## Service-account fallback
+
+The primary design is that the façade acts **as the user**, with an
+exchanged token for each backend. The fallbacks below are for work done
+without a user token: background jobs, or a delegated or shared mailbox the
+backend's own ACLs don't cover.
+
+**Keycloak (directory).** Use the `nightware-api` service account, with
+client credentials and `scope=kc-admin-api`. See "User → backend mapping".
+
+**Stalwart (JMAP, IMAP, SMTP) has a master user.** Stalwart v1 has **no
+`authentication.master` setting**; that was the v0.x TOML key. v1 keeps all
+configuration in its data store and manages it through the JMAP API. The v1
+equivalent is an account with the `impersonate` permission, and in this
+stack that account is the **recovery administrator** from
+`STALWART_RECOVERY_ADMIN` (`${STALWART_ADMIN_USER}:${STALWART_ADMIN_PASSWORD}`,
+default `admin:nightware-stalwart-admin`). Two login forms are verified, and
+`smoke.sh` checks the first:
+
+- **Master-user login.** The username is `<target address>%<master user>`
+  and the password is the master user's own:
+
+  ```bash
+  curl -u 'alice@nightware.localhost%admin:nightware-stalwart-admin' \
+       https://mail.nightware.localhost/jmap/session
+  ```
+
+  The session that opens belongs to alice (`username` =
+  `alice@nightware.localhost`). The same `alice@nightware.localhost%admin`
+  works as an IMAP `LOGIN` or SASL `PLAIN` username. App passwords and API
+  keys cannot impersonate.
+- **Admin plus `accountId`.** Authenticate with Basic `admin:<password>` and
+  put the target's id in each method call, for example
+  `["Mailbox/get",{"accountId":"c"},"0"]`. The target's id comes from a
+  master-user session's `primaryAccounts`.
+
+Only the recovery admin can use a password while Keycloak is the default
+directory, because OIDC accounts have none. A dedicated internal
+impersonator account (`x:Account/set` with a password credential and the
+`impersonate` permission) was **not tested**. Password sign-in for accounts
+other than the recovery admin is not expected to work in this setup, since
+the Community edition has no per-domain directories. Treat the recovery
+admin as a dev-only, full-access credential (see Known limitations).
+
+**Nextcloud has no fallback configured.** Token exchange V2 cannot
+impersonate, and Nextcloud's admin cannot read another user's DAV data.
+See Known limitations.
+
 ## Getting a token
 
 `get-token.sh` wraps all the flows. Add `--claims` to print the decoded
@@ -303,7 +362,8 @@ bootstrapped stack and seeds a little more test data on each run.
    Stalwart and Nextcloud would accept it unchanged.
 2. **Keycloak token exchange V2 has no impersonation.** It cannot mint a
    user token from the service account alone. The verified fallback for
-   Stalwart is the recovery-admin master user described above. Nextcloud
+   Stalwart is the recovery-admin master user (see "Service-account
+   fallback"). Nextcloud
    has no equivalent configured: no service-account path to a user's DAV
    data exists yet. Options are the Nextcloud admin with per-user app
    passwords, or Keycloak legacy token exchange V1 with FGAP v1, which is
