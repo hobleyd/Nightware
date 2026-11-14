@@ -24,6 +24,10 @@ Do not edit `Program.cs` or `Composition/`.
   would collide.
 - Feature code must not reference `Nightware.Adapters.*`. An architecture test
   enforces this.
+- A route that must work without a bearer token needs `.AllowAnonymous()` and
+  must authorise itself. The To Do upload-session `PUT` is one: per
+  endpoints.md cross-cutting requirement 11 it arrives with no
+  `Authorization` header, so it has to check its own signed, short-lived URL.
 - Any port you do not implement resolves to `NotImplementedPort<T>`. Every
   method on it returns `ErrorKind.Unsupported`, which becomes a 501.
 
