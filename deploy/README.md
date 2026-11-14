@@ -52,10 +52,8 @@ docker compose -p nightware --profile api up -d --build   # once src/Nightware.A
 
 The API should listen on 8080 inside its container and serve `/healthz` and
 `/v1.0/*`. `smoke.sh` checks both when the container is running. The
-`Auth__*`, `Discovery__*`, `DeltaLinks__*`, `Directory__*` and
-`BackendCredentials__*` variables in `docker-compose.yml` are the façade's
-real configuration (see `docs/api-plumbing.md`); `Jmap__*` and `Dav__*` are
-proposals for the JMAP/DAV adapters to adopt or rename.
+`Auth__*`, `Jmap__*` and `Dav__*` variables in `docker-compose.yml` are
+proposals for phase 1.1 to adopt or rename.
 
 Tear down with `docker compose -p nightware down`. Add `-v` to also delete
 all data. A re-bootstrap from empty volumes is fully scripted.
