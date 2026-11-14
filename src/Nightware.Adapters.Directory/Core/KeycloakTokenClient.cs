@@ -39,6 +39,11 @@ internal sealed partial class KeycloakTokenClient(
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
     private CachedToken? _serviceAccountToken;
 
+    private static KeyValuePair<string, string>[] ClientCredentialsForm(string scope) =>
+        string.IsNullOrWhiteSpace(scope)
+            ? [new("grant_type", "client_credentials")]
+            : [new("grant_type", "client_credentials"), new("scope", scope)];
+
     public async Task<Result<AccessToken>> GetServiceAccountTokenAsync(CancellationToken cancellationToken)
     {
         if (TryGetFresh() is { } fresh)
@@ -56,7 +61,7 @@ internal sealed partial class KeycloakTokenClient(
             }
 
             Result<AccessToken> result = await RequestAsync(
-                    [new("grant_type", "client_credentials")],
+                    ClientCredentialsForm(options.Value.ServiceAccountScope),
                     retrySafe: true,
                     static (status, _) => KeycloakTokenErrorClassifier.ClassifyClientCredentials(status),
                     "client_credentials",
