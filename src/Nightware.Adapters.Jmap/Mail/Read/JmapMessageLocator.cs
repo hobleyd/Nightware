@@ -53,6 +53,14 @@ internal sealed class JmapMessageLocator(IJmapClient jmap) : IJmapMessageLocator
             new EmailGetRequest(account.AccountId) { Properties = ["id", "messageId", "receivedAt"] },
             query.Ref("ids", JmapPaths.Ids));
         var response = await jmap.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+        // The query's own error explains a failed back-reference better than the get's.
+        var queried = response.Bind(r => r.Get(query));
+        if (!queried.IsSuccess)
+        {
+            return queried.Error;
+        }
+
         var candidates = response.Bind(r => r.Get(get));
         if (!candidates.IsSuccess)
         {

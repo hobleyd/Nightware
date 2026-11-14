@@ -132,8 +132,10 @@ internal static class MimeParts
             : IsType(part, Calendar) ? "invite.ics"
             : "attachment";
         var cid = string.IsNullOrWhiteSpace(part.Cid) ? null : part.Cid.Trim().Trim('<', '>');
-        var isInline = string.Equals(part.Disposition, "inline", StringComparison.OrdinalIgnoreCase)
-            || (part.Disposition is null && cid is not null);
+        // Inline means "referenced from the body by cid:", as Exchange reports it. A Content-ID is
+        // required: Sabre marks its invitation .ics `inline` without one, and the client must treat
+        // that as a file, not an image to fetch for the body.
+        var isInline = cid is not null && !string.Equals(part.Disposition, "attachment", StringComparison.OrdinalIgnoreCase);
         return new MailAttachment(new AttachmentId(part.PartId!), name, type, part.Size ?? 0, isItem ? AttachmentKind.Item : AttachmentKind.File)
         {
             IsInline = isInline,

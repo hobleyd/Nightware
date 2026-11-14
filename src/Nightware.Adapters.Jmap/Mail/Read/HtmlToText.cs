@@ -53,7 +53,8 @@ internal static partial class HtmlToText
     [GeneratedRegex(@"<li\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex ListItem();
 
-    [GeneratedRegex(@"</(p|div|h[1-6]|tr|table|ul|ol|blockquote|pre)\s*>|<(p|div|h[1-6]|tr|table|hr)\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    // Only block *ends* break the line, so adjacent blocks are one line apart rather than two.
+    [GeneratedRegex(@"</(p|div|h[1-6]|tr|table|ul|ol|blockquote|pre)\s*>|<hr\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex BlockEnd();
 
     [GeneratedRegex(@"<[^>]*>", RegexOptions.CultureInvariant)]
