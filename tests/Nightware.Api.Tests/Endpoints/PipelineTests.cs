@@ -14,6 +14,7 @@ using Nightware.Api.Graph.OData;
 using Nightware.Api.Graph.Routing;
 using Nightware.Api.Tests.Support;
 using Nightware.Application.Common.Query;
+using Nightware.Application.Directory;
 using Nightware.Application.Mail;
 using Nightware.Domain.Kernel;
 using Nightware.Domain.Mail;
@@ -24,14 +25,17 @@ namespace Nightware.Api.Tests.Endpoints;
 public sealed class PipelineTests : IAsyncLifetime
 {
     private readonly IMailFolderReader _folders = Substitute.For<IMailFolderReader>();
+    private readonly IUserDirectory _directory = Substitute.For<IUserDirectory>();
     private TestHost _host = null!;
 
     // Test-only routes live under /pipelineFolders: the real mailFolders routes (Phase 2) would
     // otherwise be ambiguous with them.
     public async ValueTask InitializeAsync()
     {
+        // The real directory adapter (Keycloak) is unreachable here; ids it does not know are NotFound.
+        _directory.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Error.NotFound("unknown"));
         _host = await TestHost.StartAsync(
-            services => services.AddSingleton(_folders),
+            services => services.AddSingleton(_folders).AddSingleton(_directory),
             app =>
             {
                 var graph = app.MapGroup(GraphPaths.V1).RequireAuthorization().AddEndpointFilter<GraphBindingFilter>();
@@ -109,7 +113,7 @@ public sealed class PipelineTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_directory_id_is_not_found_while_the_directory_port_is_a_stub()
+    public async Task An_unknown_directory_id_is_not_found()
     {
         var response = await _host.AuthorizedClient().GetAsync("/v1.0/users/1234-5678/probe", Ct);
 
