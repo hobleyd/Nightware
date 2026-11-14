@@ -1,0 +1,28 @@
+{
+  "using": [
+    "urn:ietf:params:jmap:core",
+    "urn:ietf:params:jmap:mail",
+    "urn:ietf:params:jmap:submission"
+  ],
+  "methodCalls": [
+    [
+      "Email/query",
+      {
+        "accountId": "c",
+        "filter": {
+          "inMailbox": "a"
+        },
+        "sort": [
+          {
+            "property": "receivedAt",
+            "isAscending": false
+          }
+        ],
+        "position": 0,
+        "limit": 25,
+        "calculateTotal": true
+      },
+      "0"
+    ]
+  ]
+}

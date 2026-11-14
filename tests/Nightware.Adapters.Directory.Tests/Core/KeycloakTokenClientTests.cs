@@ -30,7 +30,7 @@ public sealed class KeycloakTokenClientTests : IDisposable
         token.Value.Value.ShouldBe("sa-token-1");
         WireMock.RequestMessage request = (WireMock.RequestMessage)_keycloak.TokenRequests.Single().RequestMessage!;
         request.Method.ShouldBe("POST");
-        request.Body.ShouldBe("grant_type=client_credentials");
+        request.Body.ShouldBe("grant_type=client_credentials&scope=kc-admin-api");
         string expected = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{KeycloakStub.ClientId}:{KeycloakStub.ClientSecret}"));
         request.Headers!["Authorization"].ShouldHaveSingleItem().ShouldBe($"Basic {expected}");
     }
