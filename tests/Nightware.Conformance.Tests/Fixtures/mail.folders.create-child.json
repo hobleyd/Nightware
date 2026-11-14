@@ -1,6 +1,6 @@
 {
   "operationId": "mail.folders.create-child",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_folders_test.dart (createFolder, 409 fallback); Graph docs example (create child folder)",
+  "provenance": "client code graph_api_datasource_impl.dart:3426-3460 (msgfolderroot, 409 fallback); Constructed from the Graph v1.0 resource shape (mailFolder) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
   "request": {
     "method": "POST",
     "path": "/v1.0/me/mailFolders/msgfolderroot/childFolders",

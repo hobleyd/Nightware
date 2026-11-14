@@ -61,14 +61,16 @@ CONFIGURED_ROOT = re.compile(r"^\$\{?([A-Za-z_][\w.]*)\}?")
 # MicrosoftAuthService's `_baseUrl` is the login authority, not Graph.
 ROOT_NAME = re.compile(r"(?i)graph\w*baseurl|betabase|graphbase|v1base|graphroot")
 
-# Lines that construct or test the mailbox base rather than request a path:
+# Lines that construct the mailbox base rather than request a path:
 # `_base = mailboxAddress == null ? '/me' : '/users/$x'`,
-# `[String mailboxBase = '/me']`, `_base.startsWith('/users/')`.
-NOT_A_REQUEST_LINE = re.compile(
-    r"[Bb]ase\s*=\s*|\.startsWith\(|\.substring\(|\.replaceAll\(")
+# `[String mailboxBase = '/me']`.
+NOT_A_REQUEST_LINE = re.compile(r"[Bb]ase\s*=\s*")
+# A literal that is the argument of a string test, not a request target:
+# `_base.startsWith('/users/')`, `_base.substring('/users/'.length)`.
+STRING_TEST_ARG = re.compile(r"\.(?:startsWith|substring|endsWith|contains)\(\s*$")
 
-# Single-quoted Dart string literals, optionally raw.
-DART_LITERAL = re.compile(r"(r?)'((?:[^'\\\n]|\\.)*)'")
+# Dart string literals (single- or double-quoted), optionally raw.
+DART_LITERAL = re.compile(r"(r?)(['\"])((?:(?!\2)[^\\\n]|\\.)*)\2")
 # `_dio.get(_base, ...)`: the mailbox root itself, passed as a bare identifier.
 BARE_BASE_CALL = re.compile(r"_dio\.\w+(?:<[^>]*>)?\(\s*$|^\s*_base\s*,\s*$")
 
@@ -155,6 +157,28 @@ GET_HELPERS = re.compile(
 CONST_PATH = re.compile(r"\b(?:const|final)\s+(?:String\s+)?(\w+)\s*=\s*r?'")
 
 
+def collapse_interpolations(line: str) -> str:
+    """Replace each `${...}` (balanced braces, nested quotes allowed) with
+    `${_}`, so a literal such as '$_base/m/${id.replaceAll('x', 'y')}/e' is
+    read as one string rather than split at its inner quotes. Root-like
+    names are kept so a configurable Graph root is still recognised."""
+    out, i = [], 0
+    while i < len(line):
+        if line.startswith("${", i):
+            depth, j = 1, i + 2
+            while j < len(line) and depth:
+                depth += {"{": 1, "}": -1}.get(line[j], 0)
+                j += 1
+            inner = line[i + 2:j - 1]
+            keep = inner if re.fullmatch(r"[A-Za-z_][\w.]*", inner) else "_"
+            out.append("${" + keep + "}")
+            i = j
+        else:
+            out.append(line[i])
+            i += 1
+    return "".join(out)
+
+
 def const_version(text: str, line: str) -> str | None:
     """Version of a path held in a named constant (`_fooPath = '/x'`), read
     from where it is joined onto a root: `'$_betaBase$_fooPath'` → beta."""
@@ -204,7 +228,11 @@ def extract_calls(src: Source) -> list[tuple[str | None, str, str, str]]:
             stripped = line.lstrip()
             if stripped.startswith("//") or NOT_A_REQUEST_LINE.search(line):
                 continue
-            for raw_flag, body in DART_LITERAL.findall(line):
+            line = collapse_interpolations(line)
+            for lit in DART_LITERAL.finditer(line):
+                raw_flag, body = lit.group(1), lit.group(3)
+                if STRING_TEST_ARG.search(line[:lit.start()]):
+                    continue
                 raw = raw_flag == "r"
                 candidate = body if raw else body.replace("\\$", "$")
                 if SCOPE_STRING.match(candidate):

@@ -1,6 +1,6 @@
 {
   "operationId": "mail.messages.get-mime",
-  "provenance": "Graph docs example (get MIME content of a message), example.com data",
+  "provenance": "client code graph_api_datasource_impl.dart:2943-2953; Constructed from the Graph v1.0 resource shape (message $value MIME) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
   "request": {
     "method": "GET",
     "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=/$value",

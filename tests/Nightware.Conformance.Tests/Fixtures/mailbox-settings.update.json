@@ -1,6 +1,6 @@
 {
   "operationId": "mailbox-settings.update",
-  "provenance": "nightmail test/data/datasources/remote/out_of_office_test.dart:50-70, :90-150 (PATCH body asserted)",
+  "provenance": "Shape after nightmail test/data/datasources/remote/out_of_office_test.dart:164 'writes the bounds in the mailbox timezone, not UTC', :185 'sends both messages'; body constructed with example.com data",
   "request": {
     "method": "PATCH",
     "path": "/v1.0/me/mailboxSettings",

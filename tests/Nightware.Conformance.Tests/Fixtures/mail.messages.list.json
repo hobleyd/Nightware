@@ -1,6 +1,6 @@
 {
   "operationId": "mail.messages.list",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_get_emails_test.dart (_messageJson); filter from lib/domain/usecases/ai/agent/email_agent_tools.dart:68",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_shared_mailbox_test.dart:32 'getEmails hits /me/messages by default'; filter from lib/domain/usecases/ai/agent/email_agent_tools.dart:68; body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/me/messages",

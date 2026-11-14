@@ -1,6 +1,6 @@
 {
   "operationId": "mail.folders.move",
-  "provenance": "Graph docs example (mailFolder: move)",
+  "provenance": "Constructed from the Graph v1.0 resource shape (mailFolder) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
   "request": {
     "method": "POST",
     "path": "/v1.0/me/mailFolders/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAYbvZFAAA=/move",

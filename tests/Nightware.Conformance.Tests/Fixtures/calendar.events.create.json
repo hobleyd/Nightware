@@ -1,6 +1,6 @@
 {
   "operationId": "calendar.events.create",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_rooms_test.dart:250-300 (event body with rooms/locations asserted); Graph docs example (create event)",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_rooms_test.dart:197-345 ('createCalendarEvent with rooms': attendees/locations body); response Constructed from the Graph v1.0 resource shape (event) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads; body constructed with example.com data",
   "request": {
     "method": "POST",
     "path": "/v1.0/me/events",

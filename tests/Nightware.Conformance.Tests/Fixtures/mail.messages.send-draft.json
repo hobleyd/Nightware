@@ -1,6 +1,6 @@
 {
   "operationId": "mail.messages.send-draft",
-  "provenance": "Graph docs example (message: send)",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_send_email_test.dart:668 (draft1/send after attachment changes); body constructed with example.com data",
   "request": {
     "method": "POST",
     "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZEAAA=/send",

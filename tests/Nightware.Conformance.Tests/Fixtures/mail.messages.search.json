@@ -1,6 +1,6 @@
 {
   "operationId": "mail.messages.search",
-  "provenance": "Graph docs example (list messages with $search), trimmed to the list projection; KQL rewrite from graph_api_datasource_impl.dart:462",
+  "provenance": "client code graph_api_datasource_impl.dart:456-488 (no NightMail test covers searchEmails); Constructed from the Graph v1.0 resource shape (message collection) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
   "request": {
     "method": "GET",
     "path": "/v1.0/me/messages",

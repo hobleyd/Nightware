@@ -1,6 +1,6 @@
 {
   "operationId": "mail.folders.get",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_shared_mailbox_test.dart:30-45 (probe answers 200 with an id); body is the Graph v1.0 entity shape trimmed to $select",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_shared_mailbox_test.dart:83 'returns true on 200 — the mailbox is reachable' (probe); graph_api_get_emails_test.dart:340 (well-known lookup); body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/users/shared%40example.com/mailFolders/inbox",

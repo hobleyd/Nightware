@@ -1,6 +1,6 @@
 {
   "operationId": "mail.attachments.get",
-  "provenance": "nightmail test/data/datasources/remote/message_parser_isolate_test.dart:470-480 (ICS attachment contentBytes) and graph_api_download_attachment_test.dart:49",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_download_attachment_test.dart:48 'decodes contentBytes for an ordinary file attachment'; message_parser_isolate_test.dart:464 (parseGraphIcsAttachment); body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=/attachments/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAABEgAQAB2nJ2D2OlBJopWQ8IC1ngE=",

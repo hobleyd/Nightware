@@ -1,6 +1,6 @@
 {
   "operationId": "mail.send-mail",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_send_email_test.dart:10-15 (202), body shape asserted throughout",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_send_email_test.dart:28-75 ('sendEmail — request structure': saveToSentItems, bare toRecipients), :187 (body content type); body constructed with example.com data",
   "request": {
     "method": "POST",
     "path": "/v1.0/me/sendMail",

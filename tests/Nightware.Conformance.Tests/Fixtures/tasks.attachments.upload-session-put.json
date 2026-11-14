@@ -1,6 +1,6 @@
 {
   "operationId": "tasks.attachments.upload-session-put",
-  "provenance": "Graph docs example (upload to an upload session, final chunk), trimmed; client sends one chunk",
+  "provenance": "client code graph_api_datasource_impl.dart:3034-3056 (single PUT, no bearer); Constructed from the Graph v1.0 resource shape (taskFileAttachment) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
   "request": {
     "method": "PUT",
     "path": "/v1.0/users/me@example.com/todo/lists/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAA=/tasks/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAAiIsqMbYjsT5e-T7KzowPTAAAYbx0QAAA=/attachmentSessions/AAMkAGVmMDEzMTM4-session=/content",

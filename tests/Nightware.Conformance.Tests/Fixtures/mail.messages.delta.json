@@ -1,6 +1,6 @@
 {
   "operationId": "mail.messages.delta",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_delta_test.dart:12-28 (_emailJson), :114-127 (@removed deleted), :136-170 (partial items); deltaLink shape from Graph docs",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_delta_test.dart:12-28 (_emailJson), :116 'separates @removed items into removedIds', :136 'items carrying only the properties that changed', :218 '@odata.deltaLink'; body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/me/mailFolders/inbox/messages/delta",

@@ -1,6 +1,6 @@
 {
   "operationId": "mail.messages.forward",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_send_email_test.dart:570-590 (forward 202, toRecipients top-level)",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_send_email_test.dart:376 'forwardEmail — To recipients' (top-level toRecipients, 202); body constructed with example.com data",
   "request": {
     "method": "POST",
     "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=/forward",

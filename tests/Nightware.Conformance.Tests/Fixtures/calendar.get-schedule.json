@@ -1,6 +1,6 @@
 {
   "operationId": "calendar.get-schedule",
-  "provenance": "Graph docs example (calendar: getSchedule), example.com data; fields per graph_api_datasource_impl.dart:3228-3258",
+  "provenance": "client code graph_api_datasource_impl.dart:3207-3263; Constructed from the Graph v1.0 resource shape (scheduleInformation) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
   "request": {
     "method": "POST",
     "path": "/v1.0/me/calendar/getSchedule",

@@ -1,6 +1,6 @@
 {
   "operationId": "calendar.events.decline",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_calendar_test.dart:650-670 (event RSVP 202)",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_calendar_test.dart:650 'labels the proposed time with the zone it is actually in' (decline + proposedNewTime, 202); body constructed with example.com data",
   "request": {
     "method": "POST",
     "path": "/v1.0/me/events/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAENAAAiIsqMbYjsT5e-T7KzowPTAAAYbwXuAAA=/decline",

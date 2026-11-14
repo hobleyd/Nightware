@@ -1,6 +1,6 @@
 {
   "operationId": "calendar.calendar-view.list",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_calendar_test.dart:15-23 (_tEventJson) and :150-160; fields per CalendarEventModel.fromJson",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_calendar_test.dart:15-23 (_tEventJson), :36-160 ('getCalendarEvents': query, Prefer header, parsing); body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/me/calendarView",

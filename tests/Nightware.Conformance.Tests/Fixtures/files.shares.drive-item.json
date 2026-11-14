@@ -1,6 +1,6 @@
 {
   "operationId": "files.shares.drive-item",
-  "provenance": "nightmail test/data/datasources/remote/graph_drive_datasource_test.dart (encodeSharingUrl); Graph docs example (shares: driveItem)",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_drive_datasource_test.dart:10 'encodeSharingUrl'; response Constructed from the Graph v1.0 resource shape (driveItem) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads; body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/shares/u!aHR0cHM6Ly9maWxlcy5leGFtcGxlLmNvbS9zL0FiQ2RFZkdo/driveItem",

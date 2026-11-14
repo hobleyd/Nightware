@@ -1,6 +1,6 @@
 {
   "operationId": "calendar.events.update",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_calendar_test.dart:420-470 (acceptProposedTimeFromEmail PATCH start/end)",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_calendar_test.dart:499 'sends the new time as UTC wall-clock labelled UTC'; body constructed with example.com data",
   "request": {
     "method": "PATCH",
     "path": "/v1.0/me/events/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAENAAAiIsqMbYjsT5e-T7KzowPTAAAYbwXuAAA=",

@@ -1,6 +1,6 @@
 {
   "operationId": "mail.folders.list",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_folders_test.dart:20-32 (_page/_folderJson shape incl. @odata.nextLink); values expanded to Graph v1.0 naming",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_folders_test.dart:11-32 (_folderJson/_page with @odata.nextLink), :51 'getMailFolders returns the folders on every page'; body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/me/mailFolders",

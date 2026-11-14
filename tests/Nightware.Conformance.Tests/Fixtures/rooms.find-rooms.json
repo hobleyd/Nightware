@@ -1,6 +1,6 @@
 {
   "operationId": "rooms.find-rooms",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_rooms_test.dart:160-180 (findRooms fallback)",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_rooms_test.dart:155 'falls back to beta findRooms on 403'; body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/beta/me/findRooms",

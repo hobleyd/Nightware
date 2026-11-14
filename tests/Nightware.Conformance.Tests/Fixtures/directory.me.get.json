@@ -1,6 +1,6 @@
 {
   "operationId": "directory.me.get",
-  "provenance": "nightmail test/infrastructure/auth/signed_in_mailbox_lookup_test.dart:140-150, :190 (proxyAddresses)",
+  "provenance": "Shape after nightmail test/infrastructure/auth/signed_in_mailbox_lookup_test.dart:136 'mail first, then the UPN, then smtp proxy addresses'; body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/me",

@@ -1,6 +1,6 @@
 {
   "operationId": "tasks.lists.list",
-  "provenance": "Graph docs example (list todoTaskLists)",
+  "provenance": "client code lib/data/models/todo_task_list_model.dart; Constructed from the Graph v1.0 resource shape (todoTaskList) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
   "request": {
     "method": "GET",
     "path": "/v1.0/me/todo/lists",

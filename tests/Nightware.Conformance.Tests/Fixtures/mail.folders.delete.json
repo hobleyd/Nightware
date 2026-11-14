@@ -1,6 +1,6 @@
 {
   "operationId": "mail.folders.delete",
-  "provenance": "Graph docs example (delete mailFolder)",
+  "provenance": "Constructed from the Graph v1.0 resource shape (delete mailFolder, 204) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
   "request": {
     "method": "DELETE",
     "path": "/v1.0/me/mailFolders/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAYbvZFAAA=",

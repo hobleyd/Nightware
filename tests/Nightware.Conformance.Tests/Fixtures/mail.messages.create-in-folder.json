@@ -1,6 +1,6 @@
 {
   "operationId": "mail.messages.create-in-folder",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_insert_raw_message_test.dart:15-25 (201 with id), :190-200 (extended properties)",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_insert_raw_message_test.dart:15-25 (201 with id), :50 'sets the structured from field', :179 (delivery/submit properties), :210 (PR_MESSAGE_FLAGS); body constructed with example.com data",
   "request": {
     "method": "POST",
     "path": "/v1.0/me/mailFolders/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAYbvZFAAA=/messages",

@@ -1,6 +1,6 @@
 {
   "operationId": "files.shares.drive-item-content",
-  "provenance": "Graph docs example (download driveItem content: 302 to a pre-authenticated URL); client behaviour graph_drive_datasource_impl.dart:126-160",
+  "provenance": "client code graph_drive_datasource_impl.dart:126-160 (followRedirects false, Location → unauthenticated GET); Constructed from the Graph v1.0 resource shape (302 redirect) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
   "request": {
     "method": "GET",
     "path": "/v1.0/shares/u!aHR0cHM6Ly9maWxlcy5leGFtcGxlLmNvbS9zL0FiQ2RFZkdo/driveItem/content",

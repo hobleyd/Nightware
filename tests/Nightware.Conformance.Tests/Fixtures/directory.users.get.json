@@ -1,6 +1,6 @@
 {
   "operationId": "directory.users.get",
-  "provenance": "Graph docs example (get user with $select), example.com data",
+  "provenance": "client code graph_api_datasource_impl.dart:2106-2142; Constructed from the Graph v1.0 resource shape (user) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
   "request": {
     "method": "GET",
     "path": "/v1.0/users/sam%40example.com",

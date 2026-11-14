@@ -1,6 +1,6 @@
 {
   "operationId": "mail.messages.list-by-conversation",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_get_emails_test.dart:240-270 (conversation expansion, filter shape asserted); lib/presentation/blocs/email_list/CLAUDE.md",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_get_emails_test.dart:141 'one page of threads costs one request per chunk', :393 'the expansion filter names both excluded folders'; body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/me/messages",

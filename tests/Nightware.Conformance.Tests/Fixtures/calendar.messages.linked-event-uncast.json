@@ -1,6 +1,6 @@
 {
   "operationId": "calendar.messages.linked-event-uncast",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_calendar_test.dart:380-460 (linked event navigation, cast segments)",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_calendar_test.dart:488 'still accepts a mailbox that only answers the uncast path'; body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=/event",

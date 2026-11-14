@@ -19,7 +19,7 @@ markers is written by hand.
 
 | Key | Meaning |
 |---|---|
-| `id` | Stable kebab-case id. It is also the fixture's file name. |
+| `id` | Stable kebab-case id. It is also the fixture's file name. **An id is not a route.** Where the client uses one route in materially different ways, there is one id per variant, each with its own fixture. These ids share a (method, version, path), so the router and the 501 fallback must key on the route and dispatch on the query or body:<br>• `mail.messages.list` / `mail.messages.list-by-conversation` / `mail.messages.search` (GET `{mailbox}/messages`)<br>• `mail.messages.get` / `mail.messages.get-plain-text-body` (GET `{mailbox}/messages/{id}`)<br>• `mail.messages.update-read-state` / `mail.drafts.update` (PATCH `{mailbox}/messages/{id}`)<br>• `directory.me.get` in its `users` form / `directory.users.get` (GET `/users/{x}`) |
 | `phase` | `2`, `3`, `4`, `"5A"` or `"5B"`. |
 | `version` | `v1.0` or `beta`. The client's Dio base URL is the v1.0 root. Beta calls are absolute URLs. |
 | `path` | Path template relative to the version root. `{mailbox}` is the client's `_base` (see below). `{fooId}` is an opaque id segment. `{folderIdOrWellKnownName}` also accepts `inbox`, `sentitems`, `deleteditems`, `junkemail`, `archive` and `msgfolderroot`. |
@@ -239,10 +239,15 @@ operation:
   `uploadUrl`, `messageUrl`, `@odata.context`) use Graph's host. Conformance
   tests should compare them **modulo the configured base URL**, and treat ids,
   etags, tokens and `@odata.context` as opaque.
-- All data is synthetic (`example.com`). Bodies are taken from the client's
-  tests where they exist (see `provenance`). Otherwise they are realistic Graph
-  v1.0 shapes trimmed to what the client reads, keeping Graph's casing and
-  annotations.
+- All data is synthetic (`example.com`).
+- Where a NightMail test exercises the call, the body follows that test's
+  shape, and `provenance` cites the test as `file:line 'test name'`.
+- Otherwise the body is a realistic Graph v1.0 shape, keeping Graph's casing
+  and annotations and trimmed to what the client reads. Its `provenance`
+  cites the client code that consumes it.
+- None of the bodies is a verbatim copy of Microsoft's documentation. They are
+  hand-built and should be checked against a live Graph response if one is
+  ever available.
 
 ## Operations
 

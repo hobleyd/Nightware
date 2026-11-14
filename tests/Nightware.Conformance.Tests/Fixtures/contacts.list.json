@@ -1,6 +1,6 @@
 {
   "operationId": "contacts.list",
-  "provenance": "nightmail test/data/datasources/remote/contact_bulk_parser_test.dart:165-180 (Outlook contacts page)",
+  "provenance": "Shape after nightmail test/data/datasources/remote/contact_bulk_parser_test.dart:168 'reads Outlook contacts, the directory and /me/people'; body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/me/contacts",

@@ -1,6 +1,6 @@
 {
   "operationId": "rooms.places.list",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_rooms_test.dart:70-95 (_place: email/displayName/capacity/building/floorNumber)",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_rooms_test.dart:72 'maps displayName, capacity, building and floor', :129 'follows @odata.nextLink'; body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/places/microsoft.graph.room",

@@ -1,6 +1,6 @@
 {
   "operationId": "mail.folders.list-children",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_folders_test.dart (childFolders paging tests); Graph v1.0 mailFolder shape",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_folders_test.dart:68 'getChildFolders returns the children on every page'; body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/me/mailFolders/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAA=/childFolders",

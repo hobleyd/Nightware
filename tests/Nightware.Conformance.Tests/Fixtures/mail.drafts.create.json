@@ -1,6 +1,6 @@
 {
   "operationId": "mail.drafts.create",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_send_email_test.dart (createServerDraft); Graph docs example (create message), trimmed",
+  "provenance": "client code graph_api_datasource_impl.dart:3661-3697; Constructed from the Graph v1.0 resource shape (message) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
   "request": {
     "method": "POST",
     "path": "/v1.0/me/messages",

@@ -1,6 +1,6 @@
 {
   "operationId": "mail.messages.get",
-  "provenance": "nightmail test/data/datasources/remote/message_parser_isolate_test.dart (parseGraphFullMessage cases) + graph_api_calendar_test.dart:433 (@odata.type eventMessage*); Graph v1.0 eventMessageRequest shape",
+  "provenance": "Shape after nightmail test/data/datasources/remote/message_parser_isolate_test.dart:384-460 (parseGraphFullMessage: inline attachments, .ics); graph_api_calendar_test.dart:433 (@odata.type eventMessageResponse); body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=",

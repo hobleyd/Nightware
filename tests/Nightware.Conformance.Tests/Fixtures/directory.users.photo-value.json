@@ -1,6 +1,6 @@
 {
   "operationId": "directory.users.photo-value",
-  "provenance": "Graph docs example (get photo $value); bytes are a 1x1 PNG",
+  "provenance": "client code graph_api_datasource_impl.dart:2307-2318; body is a synthetic 1x1 PNG",
   "request": {
     "method": "GET",
     "path": "/v1.0/users/sam%40example.com/photo/$value",

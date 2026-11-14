@@ -1,6 +1,6 @@
 {
   "operationId": "mail.messages.get-plain-text-body",
-  "provenance": "nightmail test/data/datasources/remote/message_parser_isolate_test.dart:240-250 (plain-text header case) and graph_api_datasource_impl.dart:64 declaresPlainTextBody",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_get_emails_test.dart:644-760 ('getEmail — body type', declaresPlainTextBody); body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=",

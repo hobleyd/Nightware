@@ -1,6 +1,6 @@
 {
   "operationId": "mail.messages.delete",
-  "provenance": "Graph docs example (delete message)",
+  "provenance": "Constructed from the Graph v1.0 resource shape (delete message, 204) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
   "request": {
     "method": "DELETE",
     "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZEAAA=",

@@ -1,6 +1,6 @@
 {
   "operationId": "calendar.events.list-by-ical-uid",
-  "provenance": "nightmail test/data/datasources/remote/graph_api_calendar_test.dart:340-370 (proposal resolved by iCalUId)",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_calendar_test.dart:341 'finds the meeting by the UID in the calendar attachment'; body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/me/events",

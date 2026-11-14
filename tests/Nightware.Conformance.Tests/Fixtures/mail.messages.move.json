@@ -1,6 +1,6 @@
 {
   "operationId": "mail.messages.move",
-  "provenance": "Graph docs example (message: move), trimmed; client reads response.id (graph_api_datasource_impl.dart:2609)",
+  "provenance": "client code graph_api_datasource_impl.dart:2599-2613 (reads response id); Constructed from the Graph v1.0 resource shape (message) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
   "request": {
     "method": "POST",
     "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=/move",
