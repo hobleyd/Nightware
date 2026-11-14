@@ -73,7 +73,9 @@ public static class JmapAdapterServiceCollectionExtensions
     }
 
     // The primary handler strips Authorization on redirects; the session fetch follows them itself.
-    private static SocketsHttpHandler NoRedirects() => new() { AllowAutoRedirect = false };
+    // Cookies are off: pooled handlers are shared across callers, so a session cookie set for one
+    // user's request would otherwise be replayed on the next user's request.
+    private static SocketsHttpHandler NoRedirects() => new() { AllowAutoRedirect = false, UseCookies = false };
 
     /// <summary>Total timeout → retry (safe requests, transient failures, honours Retry-After) → per-attempt timeout.</summary>
     internal static void ConfigurePipeline(ResiliencePipelineBuilder<HttpResponseMessage> pipeline, TimeSpan total, TimeSpan attempt, int maxRetryAttempts)
