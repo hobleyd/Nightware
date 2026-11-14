@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 
 using Nightware.Domain.Kernel;
@@ -38,7 +39,7 @@ public sealed partial class GraphExceptionMiddleware(RequestDelegate next, ILogg
         catch (Exception ex) when (!context.Response.HasStarted)
 #pragma warning restore CA1031
         {
-            LogUnhandled(logger, ex, context.Request.Method, context.Request.Path);
+            LogUnhandled(logger, ex, context.Request.Method, RouteOf(context));
             context.Response.Clear();
             await GraphErrorWriter.WriteAsync(context, new Error(ErrorKind.Unknown, "generalException", string.Empty)).ConfigureAwait(false);
             return;
@@ -53,6 +54,13 @@ public sealed partial class GraphExceptionMiddleware(RequestDelegate next, ILogg
                 null)).ConfigureAwait(false);
         }
     }
+
+    /// <summary>
+    /// The matched route template, never the raw path: a self-authorising URL carries a credential
+    /// in its path or query (see <c>Observability/LogRedaction</c>).
+    /// </summary>
+    internal static string RouteOf(HttpContext context) =>
+        (context.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText ?? "(unmatched route)";
 
     private static bool ShouldWrapBodilessError(HttpContext context) =>
         !context.Response.HasStarted
@@ -85,8 +93,8 @@ public sealed partial class GraphExceptionMiddleware(RequestDelegate next, ILogg
         _ => "The request is invalid.",
     };
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception for {Method} {Path}")]
-    private static partial void LogUnhandled(ILogger logger, Exception exception, string method, PathString path);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception for {Method} {Route}")]
+    private static partial void LogUnhandled(ILogger logger, Exception exception, string method, string route);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Bad request ({Status}): {Reason}")]
     private static partial void LogBadRequest(ILogger logger, int status, string reason);
