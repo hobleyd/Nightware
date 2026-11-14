@@ -1,0 +1,56 @@
+{
+  "using": [
+    "urn:ietf:params:jmap:core",
+    "urn:ietf:params:jmap:mail",
+    "urn:ietf:params:jmap:submission"
+  ],
+  "methodCalls": [
+    [
+      "Email/query",
+      {
+        "accountId": "c",
+        "sort": [
+          {
+            "property": "receivedAt",
+            "isAscending": false
+          }
+        ],
+        "collapseThreads": true,
+        "limit": 10
+      },
+      "q"
+    ],
+    [
+      "Email/get",
+      {
+        "accountId": "c",
+        "#ids": {
+          "resultOf": "q",
+          "name": "Email/query",
+          "path": "/ids"
+        },
+        "properties": [
+          "threadId",
+          "subject",
+          "from",
+          "receivedAt",
+          "preview",
+          "keywords"
+        ]
+      },
+      "g"
+    ],
+    [
+      "Thread/get",
+      {
+        "accountId": "c",
+        "#ids": {
+          "resultOf": "g",
+          "name": "Email/get",
+          "path": "/list/*/threadId"
+        }
+      },
+      "t"
+    ]
+  ]
+}

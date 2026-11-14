@@ -1,0 +1,26 @@
+{
+  "methodResponses": [
+    [
+      "Mailbox/changes",
+      {
+        "accountId": "c",
+        "oldState": "say",
+        "newState": "sa2",
+        "hasMoreChanges": false,
+        "created": [],
+        "updated": [
+          "a"
+        ],
+        "destroyed": [],
+        "updatedProperties": [
+          "totalEmails",
+          "unreadEmails",
+          "totalThreads",
+          "unreadThreads"
+        ]
+      },
+      "0"
+    ]
+  ],
+  "sessionState": "9a59b346"
+}

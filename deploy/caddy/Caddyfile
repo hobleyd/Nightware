@@ -1,0 +1,43 @@
+# TLS for the Nightware dev stack. With CADDY_TLS=internal (default) every
+# site uses Caddy's local CA (root at /data/caddy/pki/authorities/local/root.crt;
+# bootstrap.sh exports it to deploy/.certs/caddy-root.crt). Set CADDY_TLS to an
+# ACME email to get publicly trusted certificates for a real BASE_DOMAIN.
+{
+	https_port {$HTTPS_PORT:443}
+	auto_https disable_redirects
+	admin 127.0.0.1:2019
+	skip_install_trust
+}
+
+(common) {
+	tls {$CADDY_TLS:internal}
+	encode gzip
+}
+
+auth.{$BASE_DOMAIN:nightware.localhost} {
+	import common
+	reverse_proxy keycloak:8080
+}
+
+mail.{$BASE_DOMAIN:nightware.localhost} {
+	import common
+	# Stalwart's plain-HTTP listener (8080): JMAP (/jmap, /.well-known/jmap),
+	# WebDAV, WebUI (/admin, /account) and the management API.
+	reverse_proxy stalwart:8080
+}
+
+cloud.{$BASE_DOMAIN:nightware.localhost} {
+	import common
+	request_body {
+		max_size 1GB
+	}
+	redir /.well-known/carddav /remote.php/dav/ 301
+	redir /.well-known/caldav /remote.php/dav/ 301
+	reverse_proxy nextcloud:80
+}
+
+graph.{$BASE_DOMAIN:nightware.localhost} {
+	import common
+	# Only answers when the `api` compose profile is up; 502 otherwise.
+	reverse_proxy nightware-api:8080
+}

@@ -1,0 +1,17 @@
+{
+  "methodResponses": [
+    [
+      "Email/set",
+      {
+        "accountId": "c",
+        "oldState": "say",
+        "newState": "sa2",
+        "updated": {
+          "qaaaaae": null
+        }
+      },
+      "0"
+    ]
+  ],
+  "sessionState": "9a59b346"
+}

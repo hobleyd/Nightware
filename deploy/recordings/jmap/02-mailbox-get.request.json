@@ -1,0 +1,17 @@
+{
+  "using": [
+    "urn:ietf:params:jmap:core",
+    "urn:ietf:params:jmap:mail",
+    "urn:ietf:params:jmap:submission"
+  ],
+  "methodCalls": [
+    [
+      "Mailbox/get",
+      {
+        "accountId": "c",
+        "ids": null
+      },
+      "0"
+    ]
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "methodResponses": [
+    [
+      "Email/query",
+      {
+        "accountId": "c",
+        "queryState": "say",
+        "canCalculateChanges": true,
+        "position": 0,
+        "ids": [
+          "qaaaaae",
+          "maaaaad",
+          "iaaaaac",
+          "eaaaaab"
+        ],
+        "total": 4
+      },
+      "0"
+    ]
+  ],
+  "sessionState": "9a59b346"
+}
