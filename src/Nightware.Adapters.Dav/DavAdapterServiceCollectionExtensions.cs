@@ -1,3 +1,4 @@
+using Nightware.Adapters.Dav.Directory;
 using Nightware.Adapters.Dav.Calendar;
 using Nightware.Adapters.Dav.Contacts;
 using Nightware.Adapters.Dav.Files;
@@ -32,6 +33,7 @@ public static class DavAdapterServiceCollectionExtensions
             .AddDavCalendar()
             .AddDavRooms()
             .AddDavContacts()
+            .AddDavDirectory()
             .AddDavTasks()
             .AddDavFiles();
     }
