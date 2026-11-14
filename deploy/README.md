@@ -44,16 +44,30 @@ docker compose -p nightware up -d        # ~1-2 min until Keycloak + Nextcloud a
    user_oidc with bearer validation, mail through Stalwart, and rooms.
 5. Has alice and bob sign in once on each backend, which provisions them.
 
-The façade itself:
+The façade itself (`api` profile; only this container is built and replaced, the backends are
+left alone):
 
 ```bash
-docker compose -p nightware --profile api up -d --build   # once src/Nightware.Api/Dockerfile exists
+docker compose -p nightware --profile api up -d --build --no-deps nightware-api   # or: make api
 ```
 
-The API should listen on 8080 inside its container and serve `/healthz` and
-`/v1.0/*`. `smoke.sh` checks both when the container is running. The
-`Auth__*`, `Jmap__*` and `Dav__*` variables in `docker-compose.yml` are
-proposals for phase 1.1 to adopt or rename.
+It listens on 8080 inside its container, behind Caddy at `https://graph.${BASE_DOMAIN}`, and has a
+liveness healthcheck on `/healthz/live`. `/healthz` is readiness (every backend). `smoke.sh` checks
+`/healthz` and `GET /v1.0/me` with alice's token. Settings it takes from `.env`:
+
+| `.env` | Façade setting | Default |
+|---|---|---|
+| `NIGHTWARE_ENVIRONMENT` | `ASPNETCORE_ENVIRONMENT` | `Development` (use `Production` outside dev) |
+| `NIGHTWARE_DELTA_LINK_KEY` | `DeltaLinks:SigningKey` | a dev-only constant |
+| `NIGHTWARE_API_CLIENT_SECRET` | `Directory:ClientSecret` | required |
+| `DOCKER_SUBNET` | `ForwardedHeaders:KnownNetworks:0` (only Caddy may set `X-Forwarded-*`) | `172.31.250.0/24` |
+| `NIGHTMAIL_WEB_ORIGIN` | `Cors:AllowedOrigins:0` | `http://localhost:34572` |
+| `NIGHTWARE_RATE_LIMITING` | `RateLimiting:Enabled` | `true` |
+| `NIGHTWARE_OTLP_ENDPOINT` | `Telemetry:Otlp:Endpoint` | empty (no export) |
+
+Every other key, production deployment, monitoring, backups and the runbook are in
+[`docs/operations/`](../docs/operations/README.md). Building images fills Docker's build cache;
+reclaim it with `docker builder prune` (never prune volumes).
 
 Tear down with `docker compose -p nightware down`. Add `-v` to also delete
 all data. A re-bootstrap from empty volumes is fully scripted.
