@@ -1,0 +1,36 @@
+{
+  "operationId": "mail.messages.create-reply-all",
+  "provenance": "nightmail test/data/datasources/remote/graph_api_send_email_test.dart:480-500 (createReply → draft id → attachments → send)",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=/createReplyAll",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "message": {
+        "subject": "RE: Quarterly numbers",
+        "body": {
+          "contentType": "text",
+          "content": "Revised file attached.\n\n> Hi, the Q2 numbers are attached."
+        }
+      }
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/messages/$entity",
+      "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZEAAA=",
+      "isDraft": true,
+      "subject": "RE: Quarterly numbers",
+      "conversationId": "AAQkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAQAO8aPpjxtUhAlI2JxnVmPSI="
+    }
+  }
+}

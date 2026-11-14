@@ -1,0 +1,21 @@
+{
+  "operationId": "tasks.attachments.get-value",
+  "provenance": "Graph docs example (get taskFileAttachment $value)",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/todo/lists/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAA=/tasks/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAAiIsqMbYjsT5e-T7KzowPTAAAYbx0QAAA=/attachments/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAYbx0QAAABEgAQAPsGU-q5x0BMtIaiI4ZjN1Y=/$value",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "message/rfc822"
+    },
+    "body": "From: Alex Sender <alex@example.com>\r\nTo: Me <me@example.com>\r\nSubject: Quarterly numbers\r\nDate: Mon, 01 Jun 2026 10:00:00 +0000\r\nMessage-ID: <a1b2c3@example.com>\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nNumbers attached.\r\n"
+  }
+}

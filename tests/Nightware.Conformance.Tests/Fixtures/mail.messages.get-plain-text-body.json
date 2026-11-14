@@ -1,0 +1,50 @@
+{
+  "operationId": "mail.messages.get-plain-text-body",
+  "provenance": "nightmail test/data/datasources/remote/message_parser_isolate_test.dart:240-250 (plain-text header case) and graph_api_datasource_impl.dart:64 declaresPlainTextBody",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=",
+    "query": {
+      "$select": "internetMessageHeaders,body"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Prefer": "outlook.body-content-type=\"text\""
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/messages(internetMessageHeaders,body)/$entity",
+      "@odata.etag": "W/\"DAAAABYAAAAiIsqMbYjsT5e+T7KzowPTAAAYbwXu\"",
+      "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=",
+      "body": {
+        "contentType": "text",
+        "content": "Hi,\r\n\r\nThe Q2 numbers are attached.\r\n\r\nAlex"
+      },
+      "internetMessageHeaders": [
+        {
+          "name": "Received",
+          "value": "from mx.example.com by mail.example.com; Mon, 1 Jun 2026 10:00:00 +0000"
+        },
+        {
+          "name": "From",
+          "value": "Alex Sender <alex@example.com>"
+        },
+        {
+          "name": "Subject",
+          "value": "Quarterly numbers"
+        },
+        {
+          "name": "Content-Type",
+          "value": "text/plain; charset=\"utf-8\""
+        }
+      ]
+    }
+  }
+}

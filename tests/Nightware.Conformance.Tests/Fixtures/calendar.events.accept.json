@@ -1,0 +1,23 @@
+{
+  "operationId": "calendar.events.accept",
+  "provenance": "nightmail test/data/datasources/remote/graph_api_calendar_test.dart:650-670 (event RSVP 202)",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/events/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAENAAAiIsqMbYjsT5e-T7KzowPTAAAYbwXuAAA=/accept",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "sendResponse": true,
+      "comment": "See you there"
+    }
+  },
+  "response": {
+    "status": 202,
+    "headers": {},
+    "body": null
+  }
+}

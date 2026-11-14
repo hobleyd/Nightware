@@ -1,0 +1,23 @@
+{
+  "operationId": "calendar.messages.tentatively-accept",
+  "provenance": "nightmail test/data/datasources/remote/graph_api_calendar_test.dart (respondToMeetingInvite message-level first attempt)",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=/tentativelyAccept",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "sendResponse": true,
+      "comment": ""
+    }
+  },
+  "response": {
+    "status": 202,
+    "headers": {},
+    "body": null
+  }
+}

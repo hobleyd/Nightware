@@ -1,0 +1,21 @@
+{
+  "operationId": "directory.users.photo-value",
+  "provenance": "Graph docs example (get photo $value); bytes are a 1x1 PNG",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/users/sam%40example.com/photo/$value",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "image/png"
+    },
+    "bodyBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+  }
+}

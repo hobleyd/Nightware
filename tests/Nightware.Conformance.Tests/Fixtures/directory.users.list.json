@@ -1,0 +1,39 @@
+{
+  "operationId": "directory.users.list",
+  "provenance": "nightmail test/data/datasources/remote/contact_bulk_parser_test.dart:180-200 (directory users page)",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/users",
+    "query": {
+      "$select": "displayName,mail,userPrincipalName",
+      "$top": "999"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users(displayName,mail,userPrincipalName)",
+      "@odata.nextLink": "https://graph.microsoft.com/v1.0/users?%24select=displayName%2cmail%2cuserPrincipalName&%24top=999&%24skiptoken=RFNwdAIAAQAAABg6c2FtQGV4YW1wbGUuY29t",
+      "value": [
+        {
+          "displayName": "Sam Attendee",
+          "mail": "sam@example.com",
+          "userPrincipalName": "sam@example.com"
+        },
+        {
+          "displayName": "Boardroom",
+          "mail": "boardroom@example.com",
+          "userPrincipalName": "boardroom@example.com"
+        }
+      ]
+    }
+  }
+}

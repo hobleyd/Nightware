@@ -1,0 +1,83 @@
+{
+  "operationId": "mail.messages.delta",
+  "provenance": "nightmail test/data/datasources/remote/graph_api_delta_test.dart:12-28 (_emailJson), :114-127 (@removed deleted), :136-170 (partial items); deltaLink shape from Graph docs",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/mailFolders/inbox/messages/delta",
+    "query": {
+      "$select": "id,subject,from,toRecipients,ccRecipients,bccRecipients,bodyPreview,isRead,flag,receivedDateTime,sentDateTime,importance,conversationId,hasAttachments,parentFolderId",
+      "$top": "50"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(message)",
+      "@odata.deltaLink": "https://graph.microsoft.com/v1.0/me/mailFolders('inbox')/messages/delta?$deltatoken=LztZwWjo5IivWBhyxw5rACKxf7mPm0oW6JZZ7fvKxYPS_67JnEYmfQQMPccy6FRun0DWJF5775dvuXxlZnMYhBubC1v4SBVT9ZjO8f7acZI.uCdGKSBS4YxPEbn_Q5zxLSq91WhpGeT9IoQBYi3x4PRp2cNYnQVkr91ou9_P2E3WOs",
+      "value": [
+        {
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=",
+          "receivedDateTime": "2026-06-01T10:00:00Z",
+          "sentDateTime": "2026-06-01T09:59:58Z",
+          "hasAttachments": false,
+          "subject": "Quarterly numbers",
+          "bodyPreview": "Hi, the Q2 numbers are attached.",
+          "importance": "normal",
+          "parentFolderId": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAA=",
+          "conversationId": "AAQkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAQAO8aPpjxtUhAlI2JxnVmPSI=",
+          "isRead": false,
+          "from": {
+            "emailAddress": {
+              "name": "Alex Sender",
+              "address": "alex@example.com"
+            }
+          },
+          "toRecipients": [
+            {
+              "emailAddress": {
+                "name": "Me Example",
+                "address": "me@example.com"
+              }
+            }
+          ],
+          "ccRecipients": [],
+          "bccRecipients": [],
+          "flag": {
+            "flagStatus": "notFlagged"
+          }
+        },
+        {
+          "@odata.type": "#microsoft.graph.message",
+          "@odata.etag": "W/\"CQAAABYAAAAiIsqMbYjsT5e+T7KzowPTAAAYbwXy\"",
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZEAAA=",
+          "isRead": true,
+          "flag": {
+            "flagStatus": "flagged"
+          }
+        },
+        {
+          "@odata.type": "#microsoft.graph.message",
+          "id": "AAMkAGVmMDEzMTM4-deleted-0001=",
+          "@removed": {
+            "reason": "deleted"
+          }
+        },
+        {
+          "@odata.type": "#microsoft.graph.message",
+          "id": "AAMkAGVmMDEzMTM4-moved-0001=",
+          "@removed": {
+            "reason": "changed"
+          }
+        }
+      ]
+    }
+  }
+}

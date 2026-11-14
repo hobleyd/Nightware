@@ -1,0 +1,34 @@
+{
+  "operationId": "mail.messages.forward",
+  "provenance": "nightmail test/data/datasources/remote/graph_api_send_email_test.dart:570-590 (forward 202, toRecipients top-level)",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=/forward",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "message": {
+        "body": {
+          "contentType": "html",
+          "content": "<p>FYI</p><hr><p>Hi, the Q2 numbers are attached.</p>"
+        }
+      },
+      "toRecipients": [
+        {
+          "emailAddress": {
+            "address": "sam@example.com"
+          }
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 202,
+    "headers": {},
+    "body": null
+  }
+}

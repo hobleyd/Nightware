@@ -1,0 +1,38 @@
+{
+  "operationId": "security.threat-submission.email-threats.create",
+  "provenance": "nightmail test/data/datasources/remote/graph_api_report_phishing_test.dart:50-80 (201, body fields asserted)",
+  "request": {
+    "method": "POST",
+    "path": "/beta/security/threatSubmission/emailThreats",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "@odata.type": "#microsoft.graph.security.emailUrlThreatSubmission",
+      "category": "phishing",
+      "recipientEmailAddress": "me@example.com",
+      "messageUrl": "https://graph.microsoft.com/beta/users/4a7c1f9e-2b3d-4e5f-8a9b-0c1d2e3f4a5b/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA="
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/beta/$metadata#security/threatSubmission/emailThreats/$entity",
+      "@odata.type": "#microsoft.graph.security.emailUrlThreatSubmission",
+      "category": "phishing",
+      "recipientEmailAddress": "me@example.com",
+      "id": "49c5ef5b-1f65-444a-e6b9-08d772ea2059",
+      "createdDateTime": "2026-06-01T10:10:00Z",
+      "contentType": "email",
+      "status": "pending",
+      "source": "user",
+      "messageUrl": "https://graph.microsoft.com/beta/users/4a7c1f9e-2b3d-4e5f-8a9b-0c1d2e3f4a5b/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA="
+    }
+  }
+}

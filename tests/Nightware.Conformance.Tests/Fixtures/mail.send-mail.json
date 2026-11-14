@@ -1,0 +1,51 @@
+{
+  "operationId": "mail.send-mail",
+  "provenance": "nightmail test/data/datasources/remote/graph_api_send_email_test.dart:10-15 (202), body shape asserted throughout",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/sendMail",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "message": {
+        "subject": "Q2 numbers",
+        "body": {
+          "contentType": "html",
+          "content": "<p>See attached.</p>"
+        },
+        "toRecipients": [
+          {
+            "emailAddress": {
+              "address": "alex@example.com"
+            }
+          }
+        ],
+        "ccRecipients": [
+          {
+            "emailAddress": {
+              "address": "sam@example.com"
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "@odata.type": "#microsoft.graph.fileAttachment",
+            "name": "q2.csv",
+            "contentType": "text/csv",
+            "contentBytes": "cSxyZXZlbnVlCjIsMTAwCg=="
+          }
+        ]
+      },
+      "saveToSentItems": true
+    }
+  },
+  "response": {
+    "status": 202,
+    "headers": {},
+    "body": null
+  }
+}

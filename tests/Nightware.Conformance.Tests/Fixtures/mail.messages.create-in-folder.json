@@ -1,0 +1,64 @@
+{
+  "operationId": "mail.messages.create-in-folder",
+  "provenance": "nightmail test/data/datasources/remote/graph_api_insert_raw_message_test.dart:15-25 (201 with id), :190-200 (extended properties)",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/mailFolders/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAYbvZFAAA=/messages",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "subject": "Archived: Quarterly numbers",
+      "body": {
+        "contentType": "text",
+        "content": "Numbers attached."
+      },
+      "from": {
+        "emailAddress": {
+          "address": "alex@example.com",
+          "name": "Alex Sender"
+        }
+      },
+      "toRecipients": [
+        {
+          "emailAddress": {
+            "address": "me@example.com"
+          }
+        }
+      ],
+      "singleValueExtendedProperties": [
+        {
+          "id": "SystemTime 0x0E06",
+          "value": "2026-03-04T05:06:07.000Z"
+        },
+        {
+          "id": "SystemTime 0x0039",
+          "value": "2026-03-04T05:06:07.000Z"
+        },
+        {
+          "id": "Integer 0x0E07",
+          "value": "1"
+        }
+      ],
+      "isRead": true
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/mailFolders('AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAYbvZFAAA=')/messages/$entity",
+      "id": "AAMkAGVmMDEzMTM4-imported-0001=",
+      "subject": "Archived: Quarterly numbers",
+      "isDraft": false,
+      "isRead": true,
+      "receivedDateTime": "2026-03-04T05:06:07Z",
+      "parentFolderId": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAYbvZFAAA="
+    }
+  }
+}

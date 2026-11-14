@@ -1,0 +1,36 @@
+{
+  "operationId": "tasks.attachments.create",
+  "provenance": "Graph docs example (create taskFileAttachment)",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/todo/lists/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAA=/tasks/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAAiIsqMbYjsT5e-T7KzowPTAAAYbx0QAAA=/attachments",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "@odata.type": "#microsoft.graph.taskFileAttachment",
+      "name": "Quarterly numbers.eml",
+      "contentType": "message/rfc822",
+      "contentBytes": "RnJvbTogQWxleCBTZW5kZXIgPGFsZXhAZXhhbXBsZS5jb20+DQpUbzogTWUgPG1lQGV4YW1wbGUuY29tPg0KU3ViamVjdDogUXVhcnRlcmx5IG51bWJlcnMNCkRhdGU6IE1vbiwgMDEgSnVuIDIwMjYgMTA6MDA6MDAgKzAwMDANCk1lc3NhZ2UtSUQ6IDxhMWIyYzNAZXhhbXBsZS5jb20+DQpNSU1FLVZlcnNpb246IDEuMA0KQ29udGVudC1UeXBlOiB0ZXh0L3BsYWluOyBjaGFyc2V0PXV0Zi04DQoNCk51bWJlcnMgYXR0YWNoZWQuDQo=",
+      "size": 245
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/todo/lists('AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAA=')/tasks('AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAAiIsqMbYjsT5e-T7KzowPTAAAYbx0QAAA=')/attachments/$entity",
+      "@odata.type": "#microsoft.graph.taskFileAttachment",
+      "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAYbx0QAAABEgAQAPsGU-q5x0BMtIaiI4ZjN1Y=",
+      "name": "Quarterly numbers.eml",
+      "contentType": "message/rfc822",
+      "size": 245,
+      "lastModifiedDateTime": "2026-06-01T10:06:00Z"
+    }
+  }
+}

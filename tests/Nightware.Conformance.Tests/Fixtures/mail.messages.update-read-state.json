@@ -1,0 +1,58 @@
+{
+  "operationId": "mail.messages.update-read-state",
+  "provenance": "Graph docs example (update message), trimmed to the list projection; client parses with parseGraphMessage",
+  "request": {
+    "method": "PATCH",
+    "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=",
+    "query": {
+      "$select": "id,subject,from,toRecipients,ccRecipients,bccRecipients,bodyPreview,isRead,flag,receivedDateTime,sentDateTime,importance,conversationId,hasAttachments,parentFolderId"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "isRead": true
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/messages(id,subject,from,toRecipients,ccRecipients,bccRecipients,bodyPreview,isRead,flag,receivedDateTime,sentDateTime,importance,conversationId,hasAttachments,parentFolderId)/$entity",
+      "@odata.etag": "W/\"CQAAABYAAAAiIsqMbYjsT5e+T7KzowPTAAAYbwXz\"",
+      "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=",
+      "receivedDateTime": "2026-06-01T10:00:00Z",
+      "sentDateTime": "2026-06-01T09:59:58Z",
+      "hasAttachments": false,
+      "subject": "Quarterly numbers",
+      "bodyPreview": "Hi, the Q2 numbers are attached.",
+      "importance": "normal",
+      "parentFolderId": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAA=",
+      "conversationId": "AAQkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAQAO8aPpjxtUhAlI2JxnVmPSI=",
+      "isRead": true,
+      "from": {
+        "emailAddress": {
+          "name": "Alex Sender",
+          "address": "alex@example.com"
+        }
+      },
+      "toRecipients": [
+        {
+          "emailAddress": {
+            "name": "Me Example",
+            "address": "me@example.com"
+          }
+        }
+      ],
+      "ccRecipients": [],
+      "bccRecipients": [],
+      "flag": {
+        "flagStatus": "notFlagged"
+      }
+    }
+  }
+}

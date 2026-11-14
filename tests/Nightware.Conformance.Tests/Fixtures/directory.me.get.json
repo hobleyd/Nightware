@@ -1,0 +1,32 @@
+{
+  "operationId": "directory.me.get",
+  "provenance": "nightmail test/infrastructure/auth/signed_in_mailbox_lookup_test.dart:140-150, :190 (proxyAddresses)",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me",
+    "query": {
+      "$select": "mail,userPrincipalName,proxyAddresses"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users(mail,userPrincipalName,proxyAddresses)/$entity",
+      "mail": "me@example.com",
+      "userPrincipalName": "me@corp.example.com",
+      "proxyAddresses": [
+        "SMTP:me@example.com",
+        "smtp:me.alias@example.com",
+        "SIP:me@example.com"
+      ]
+    }
+  }
+}

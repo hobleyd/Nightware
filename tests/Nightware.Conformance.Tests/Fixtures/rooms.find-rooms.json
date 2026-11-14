@@ -1,0 +1,33 @@
+{
+  "operationId": "rooms.find-rooms",
+  "provenance": "nightmail test/data/datasources/remote/graph_api_rooms_test.dart:160-180 (findRooms fallback)",
+  "request": {
+    "method": "GET",
+    "path": "/beta/me/findRooms",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/beta/$metadata#Collection(microsoft.graph.emailAddress)",
+      "value": [
+        {
+          "name": "Boardroom",
+          "address": "boardroom@example.com"
+        },
+        {
+          "name": "Huddle 2",
+          "address": "huddle2@example.com"
+        }
+      ]
+    }
+  }
+}

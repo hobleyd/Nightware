@@ -1,0 +1,43 @@
+{
+  "operationId": "contacts.list",
+  "provenance": "nightmail test/data/datasources/remote/contact_bulk_parser_test.dart:165-180 (Outlook contacts page)",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/contacts",
+    "query": {
+      "$select": "displayName,emailAddresses",
+      "$top": "999"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/contacts(displayName,emailAddresses)",
+      "value": [
+        {
+          "@odata.etag": "W/\"EQAAABYAAAAiIsqMbYjsT5e+T7KzowPTAAAYbx0Q\"",
+          "id": "AAMkAGVmMDEzMTM4-contact-0001=",
+          "displayName": "Pat Contact",
+          "emailAddresses": [
+            {
+              "name": "Pat Contact",
+              "address": "pat@example.com"
+            },
+            {
+              "name": "pat.home@example.net",
+              "address": "pat.home@example.net"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

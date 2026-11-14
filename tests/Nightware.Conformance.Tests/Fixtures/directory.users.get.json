@@ -1,0 +1,36 @@
+{
+  "operationId": "directory.users.get",
+  "provenance": "Graph docs example (get user with $select), example.com data",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/users/sam%40example.com",
+    "query": {
+      "$select": "displayName,jobTitle,department,companyName,mobilePhone,businessPhones,officeLocation,mail,userPrincipalName"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users(displayName,jobTitle,department,companyName,mobilePhone,businessPhones,officeLocation,mail,userPrincipalName)/$entity",
+      "displayName": "Sam Attendee",
+      "jobTitle": "Analyst",
+      "department": "Finance",
+      "companyName": "Example Pty Ltd",
+      "mobilePhone": "+61 400 000 000",
+      "businessPhones": [
+        "+61 2 9000 0000"
+      ],
+      "officeLocation": "Sydney",
+      "mail": "sam@example.com",
+      "userPrincipalName": "sam@example.com"
+    }
+  }
+}

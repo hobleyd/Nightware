@@ -1,0 +1,34 @@
+{
+  "operationId": "files.shares.drive-item",
+  "provenance": "nightmail test/data/datasources/remote/graph_drive_datasource_test.dart (encodeSharingUrl); Graph docs example (shares: driveItem)",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/shares/u!aHR0cHM6Ly9maWxlcy5leGFtcGxlLmNvbS9zL0FiQ2RFZkdo/driveItem",
+    "query": {
+      "$select": "id,name,size,file,folder"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#shares('u%21aHR0cHM6Ly9maWxlcy5leGFtcGxlLmNvbS9zL0FiQ2RFZkdo')/driveItem(id,name,size,file,folder)/$entity",
+      "id": "01BYE5RZ6QN3ZWBTUFOFD3GSPGOHDJD36K",
+      "name": "Budget.xlsx",
+      "size": 24576,
+      "file": {
+        "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "hashes": {
+          "quickXorHash": "AAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        }
+      }
+    }
+  }
+}

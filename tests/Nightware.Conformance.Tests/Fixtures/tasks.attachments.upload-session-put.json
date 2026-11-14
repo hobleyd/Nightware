@@ -1,0 +1,30 @@
+{
+  "operationId": "tasks.attachments.upload-session-put",
+  "provenance": "Graph docs example (upload to an upload session, final chunk), trimmed; client sends one chunk",
+  "request": {
+    "method": "PUT",
+    "path": "/v1.0/users/me@example.com/todo/lists/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAA=/tasks/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAAiIsqMbYjsT5e-T7KzowPTAAAYbx0QAAA=/attachmentSessions/AAMkAGVmMDEzMTM4-session=/content",
+    "query": {},
+    "headers": {
+      "Content-Range": "bytes 0-4194303/4194304",
+      "Content-Length": "4194304",
+      "Content-Type": "message/rfc822"
+    },
+    "bodyNote": "4194304 raw bytes (elided)",
+    "body": null
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#microsoft.graph.taskFileAttachment",
+      "@odata.type": "#microsoft.graph.taskFileAttachment",
+      "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAYbx0QAAABEgAQAPsGU-q5x0BMtIaiI4ZjN1Y=",
+      "name": "Large thread.eml",
+      "contentType": "message/rfc822",
+      "size": 4194304
+    }
+  }
+}

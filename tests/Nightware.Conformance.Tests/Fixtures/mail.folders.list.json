@@ -1,0 +1,47 @@
+{
+  "operationId": "mail.folders.list",
+  "provenance": "nightmail test/data/datasources/remote/graph_api_folders_test.dart:20-32 (_page/_folderJson shape incl. @odata.nextLink); values expanded to Graph v1.0 naming",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/mailFolders",
+    "query": {
+      "$select": "id,displayName,totalItemCount,unreadItemCount,parentFolderId,isHidden,childFolderCount",
+      "$top": "100"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/mailFolders(id,displayName,totalItemCount,unreadItemCount,parentFolderId,isHidden,childFolderCount)",
+      "@odata.nextLink": "https://graph.microsoft.com/v1.0/me/mailFolders?%24select=id%2cdisplayName&%24top=100&%24skip=100",
+      "value": [
+        {
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAA=",
+          "displayName": "Inbox",
+          "parentFolderId": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEIAAA=",
+          "childFolderCount": 1,
+          "unreadItemCount": 3,
+          "totalItemCount": 120,
+          "isHidden": false
+        },
+        {
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEKAAA=",
+          "displayName": "Deleted Items",
+          "parentFolderId": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEIAAA=",
+          "childFolderCount": 0,
+          "unreadItemCount": 0,
+          "totalItemCount": 7,
+          "isHidden": false
+        }
+      ]
+    }
+  }
+}

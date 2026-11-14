@@ -1,0 +1,34 @@
+{
+  "operationId": "mail.messages.reply-all",
+  "provenance": "nightmail test/data/datasources/remote/graph_api_send_email_test.dart:360-380 (reply 202, body shape)",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=/replyAll",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "message": {
+        "body": {
+          "contentType": "html",
+          "content": "<p>Thanks Alex.</p><hr><p>Hi, the Q2 numbers are attached.</p>"
+        },
+        "toRecipients": [
+          {
+            "emailAddress": {
+              "address": "alex@example.com"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "response": {
+    "status": 202,
+    "headers": {},
+    "body": null
+  }
+}
