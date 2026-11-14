@@ -106,3 +106,14 @@ anything contradictory in `architecture.md` or the phase docs.
 27. ArchUnitNET (maintained) instead of NetArchTest; Testcontainers for the
     opt-in integration suite; `JsonNode.DeepEquals` for fixture comparison.
 28. WireMock fixtures are recorded from the real stack (`deploy/recordings/`).
+
+## Addendum (2026-11-15)
+
+29. Keycloak user-profile attributes backing `mailboxSettings`: `zoneinfo`
+    (Windows or IANA id, normalised to Windows on read), `locale`,
+    `nightware_working_hours` (JSON of `WorkingHours`), `nightware_date_format`,
+    `nightware_time_format`. All are declared in the realm user profile
+    (Keycloak 26 drops undeclared attributes) and writable only by admins and
+    the `nightware-api` service account.
+30. `dotnet test` runs on Microsoft.Testing.Platform, opted in via `global.json`
+    (`"test": {"runner": "Microsoft.Testing.Platform"}`).
