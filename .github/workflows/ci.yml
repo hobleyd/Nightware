@@ -1,0 +1,113 @@
+# Build, test, coverage gate, vulnerability check and container image on every push and PR.
+# The live integration suite (deploy/ compose stack) runs only on demand:
+#   Actions → ci → Run workflow → integration: true
+# Every step calls a Makefile target, so `make ci` locally reproduces the build job.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      integration:
+        description: Bring up deploy/ and run bootstrap + smoke + the NIGHTWARE_INTEGRATION=1 suite
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+jobs:
+  build:
+    name: build, test, coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - name: Build (warnings are errors)
+        run: make build
+      - name: Vulnerable packages
+        run: make vulnerable
+      - name: Architecture tests
+        run: make test-architecture
+      - name: Unit, endpoint, adapter and conformance tests with coverage gate
+        run: make coverage
+      - name: Upload test results and coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: artifacts/test-results
+          if-no-files-found: ignore
+          retention-days: 14
+
+  image:
+    name: container image
+    runs-on: ubuntu-24.04
+    needs: build
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the API image (not pushed)
+        run: make image IMAGE=nightware/api:ci-${{ github.sha }}
+      - name: Image starts and answers liveness
+        run: |
+          # Discovery/Auth need only syntactically valid config to start; backends are not contacted for liveness.
+          docker run -d --name nightware-api -p 8080:8080 \
+            -e Auth__Authority=https://auth.example.test/realms/nightware \
+            -e Discovery__GraphBaseUrl=https://graph.example.test/v1.0 \
+            -e Discovery__GraphBetaBaseUrl=https://graph.example.test/beta \
+            -e Discovery__AuthorizationEndpoint=https://auth.example.test/auth \
+            -e Discovery__TokenEndpoint=https://auth.example.test/token \
+            -e Directory__ClientSecret=ci-only \
+            nightware/api:ci-${{ github.sha }}
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8080/healthz/live && exit 0
+            sleep 1
+          done
+          docker logs nightware-api
+          exit 1
+
+  integration:
+    name: integration (compose stack)
+    if: github.event_name == 'workflow_dispatch' && inputs.integration
+    runs-on: ubuntu-24.04
+    needs: build
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Resolve the stack's public names to loopback
+        # curl resolves *.localhost itself; .NET asks the system resolver, so make it explicit.
+        run: echo "127.0.0.1 auth.nightware.localhost mail.nightware.localhost cloud.nightware.localhost graph.nightware.localhost" | sudo tee -a /etc/hosts
+      - name: Stack, bootstrap, façade, smoke, live tests
+        # The live tests trust deploy/.certs/caddy-root.crt for their own clients (LiveStack).
+        run: make integration
+      - name: Compose logs
+        if: failure()
+        working-directory: deploy
+        run: docker compose -p nightware --profile api logs --no-color --tail 300
+      - name: Tear down (ephemeral runner only)
+        if: always()
+        working-directory: deploy
+        run: docker compose -p nightware --profile api down -v

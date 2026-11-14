@@ -10,7 +10,7 @@ CONFIGURATION ?= Release
 SOLUTION := Nightware.slnx
 RESULTS := $(CURDIR)/artifacts/test-results
 COVERAGE_SETTINGS := $(CURDIR)/scripts/ci/coverage.settings.xml
-# Gate, measured 2026-11-15 at 96.5% line / 89.3% branch; see docs/operations/ci.md for the reasoning.
+# Gate; measured 2026-11-15 at 96.9% line / 91.0% branch; see docs/operations/ci.md for the reasoning.
 COVERAGE_LINE ?= 90
 COVERAGE_BRANCH ?= 80
 IMAGE ?= nightware/api:dev
@@ -43,7 +43,7 @@ coverage: build ## Unit, endpoint, adapter and conformance tests with coverage, 
 	rm -rf $(RESULTS)
 	dotnet test --solution scripts/ci/coverage.slnf --no-build -c $(CONFIGURATION) \
 		--coverage --coverage-output-format cobertura --coverage-settings $(COVERAGE_SETTINGS) \
-		--results-directory $(RESULTS) --report-trx
+		--results-directory $(RESULTS)
 	python3 scripts/ci/coverage-gate.py $$(ls $(RESULTS)/merged/*.cobertura.xml) $(COVERAGE_LINE) $(COVERAGE_BRANCH)
 
 .PHONY: vulnerable
