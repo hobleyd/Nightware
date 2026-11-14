@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cal:schedule-response xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.com/ns">
+ <cal:response>
+  <cal:recipient>
+   <d:href>mailto:bob@example.com</d:href>
+  </cal:recipient>
+  <cal:request-status>2.0;Success</cal:request-status>
+  <cal:calendar-data>BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Sabre//Sabre VObject 4.5.6//EN
+CALSCALE:GREGORIAN
+METHOD:REPLY
+BEGIN:VFREEBUSY
+DTSTART:20261116T000000Z
+DTEND:20261117T000000Z
+DTSTAMP:20261115T000000Z
+FREEBUSY:20261116T010000Z/20261116T020000Z
+FREEBUSY;FBTYPE=BUSY-TENTATIVE:20261116T030000Z/PT30M
+FREEBUSY;FBTYPE=BUSY-UNAVAILABLE:20261116T050000Z/20261116T060000Z,20261116T070000Z/20261116T073000Z
+ATTENDEE:mailto:bob@example.com
+UID:fb-1
+ORGANIZER:mailto:alice@example.com
+END:VFREEBUSY
+END:VCALENDAR
+</cal:calendar-data>
+ </cal:response>
+ <cal:response>
+  <cal:recipient>
+   <d:href>mailto:nobody@example.com</d:href>
+  </cal:recipient>
+  <cal:request-status>3.7;Could not find principal</cal:request-status>
+ </cal:response>
+</cal:schedule-response>

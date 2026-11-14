@@ -131,14 +131,23 @@ public readonly record struct DavItemId
     public static bool TryParse(string? value, [NotNullWhen(true)] out DavItemId? id)
     {
         id = null;
-        if (string.IsNullOrEmpty(value) || value.Length > MaxEncodedLength)
+        if (string.IsNullOrEmpty(value) || value.Length > MaxEncodedLength || !IsBase64UrlAlphabet(value))
         {
             return false;
         }
 
         var bytes = new byte[Base64Url.GetMaxDecodedLength(value.Length)];
-        if (!Base64Url.TryDecodeFromChars(value, bytes, out var written))
+        int written;
+        try
         {
+            if (!Base64Url.TryDecodeFromChars(value, bytes, out written))
+            {
+                return false;
+            }
+        }
+        catch (FormatException)
+        {
+            // Thrown (not reported) for impossible lengths and foreign characters.
             return false;
         }
 
@@ -221,6 +230,10 @@ public readonly record struct DavItemId
             : $"{OccurrencePrefix}{RecurrenceId!.Value.Value}:{Href}";
         return Base64Url.EncodeToString(Encoding.UTF8.GetBytes(payload));
     }
+
+    // Base64Url.TryDecodeFromChars throws (rather than returning false) on foreign characters.
+    private static bool IsBase64UrlAlphabet(string value) =>
+        value.All(c => c is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z') or (>= '0' and <= '9') or '-' or '_');
 
     private static void EnsureSafe(string relativeHref)
     {

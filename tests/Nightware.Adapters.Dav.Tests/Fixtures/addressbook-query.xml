@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:card="urn:ietf:params:xml:ns:carddav" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.com/ns">
+ <d:response>
+  <d:href>/remote.php/dav/addressbooks/users/alice/contacts/9B1E-smith.vcf</d:href>
+  <d:propstat>
+   <d:prop>
+    <d:getetag>&quot;c0ffee&quot;</d:getetag>
+    <card:address-data>BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Sabre//Sabre VObject 4.5.6//EN
+UID:9B1E-smith
+FN:Jane Smith
+N:Smith;Jane;;;
+EMAIL;TYPE=INTERNET,WORK:jane.smith@example.org
+END:VCARD
+</card:address-data>
+   </d:prop>
+   <d:status>HTTP/1.1 200 OK</d:status>
+  </d:propstat>
+ </d:response>
+</d:multistatus>

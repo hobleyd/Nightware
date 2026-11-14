@@ -1,19 +1,19 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\Nightware.Application\Nightware.Application.csproj" />
   </ItemGroup>
 
-  <PropertyGroup>
-  </PropertyGroup>
+  <ItemGroup>
+    <!-- Health checks (IHealthCheck, AddHealthChecks) are not in Directory.Packages.props as a
+         standalone package; the shared framework (which the Api host runs on anyway) provides them,
+         and with it Microsoft.Extensions.Http / Caching.Memory / Options.ConfigurationExtensions.
+         Same approach as Adapters.Directory. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Http" />
-    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="Ical.Net" />
   </ItemGroup>
 </Project>

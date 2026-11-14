@@ -53,6 +53,7 @@ public static class DavAdapterServiceCollectionExtensions
 
         services.AddHttpClient(DavHealthProbe.HttpClientName);
         services.TryAddSingleton<DavHealthProbe>();
+        services.AddHealthChecks().AddCheck<DavHealthCheck>(DavHealthProbe.Name, tags: [DavHealthProbe.Tag]);
     }
 
     private static void AddDavCodecs(IServiceCollection services)
