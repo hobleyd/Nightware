@@ -8,7 +8,7 @@ namespace Nightware.Adapters.Jmap.Core.Auth;
 /// <summary>
 /// Turns a <see cref="BackendCredential"/> into the <c>Authorization</c> header Stalwart expects.
 /// <list type="bullet">
-/// <item><c>Bearer</c>: the token as-is. <see cref="BackendCredential.ActAs"/> is ignored (the token names its subject).</item>
+/// <item><c>Bearer</c>: the token as-is. A Bearer credential with <see cref="BackendCredential.ActAs"/> is refused earlier, by <c>JmapConnectionProvider</c>.</item>
 /// <item><c>Basic</c>: <see cref="BackendCredential.Parameter"/> is either the raw <c>user:password</c>
 /// (contains a <c>:</c>) or its base64 form (never contains <c>:</c>), so the two cannot be confused.</item>
 /// <item><c>Basic</c> with <see cref="BackendCredential.ActAs"/>: Stalwart master-user impersonation,

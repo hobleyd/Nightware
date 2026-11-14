@@ -1,3 +1,4 @@
+using Nightware.Adapters.Jmap.Core.Errors;
 using Nightware.Application.Common.Identity;
 using Nightware.Domain.Kernel;
 
@@ -48,11 +49,22 @@ internal sealed class JmapConnectionProvider(IBackendCredentials credentials, IJ
         }
 
         var result = await credentials.ForAsync(Backend.Mail, cancellationToken).ConfigureAwait(false);
-        if (result.IsSuccess)
+        if (!result.IsSuccess)
         {
-            _credential = result.Value;
+            return result;
         }
 
+        // Stalwart can only impersonate through a Basic master-user login. A bearer token
+        // "acting as" someone would open the token owner's (service account's) mailbox
+        // instead of the caller's, so fail closed rather than serve the wrong mailbox.
+        if (!string.IsNullOrWhiteSpace(result.Value.ActAs)
+            && !string.Equals(result.Value.Scheme, "Basic", StringComparison.OrdinalIgnoreCase))
+        {
+            return JmapErrors.Unexpected(
+                $"Stalwart impersonation requires the Basic master-user strategy; a {result.Value.Scheme} credential cannot act as another mailbox.");
+        }
+
+        _credential = result.Value;
         return result;
     }
 }

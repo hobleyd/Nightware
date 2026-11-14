@@ -143,6 +143,20 @@ public sealed class JmapSessionTests
     }
 
     [Fact]
+    public async Task Bearer_credentials_acting_as_someone_are_refused_before_any_request()
+    {
+        await using var host = new JmapTestHost();
+        host.StubSession();
+        host.UseCredential(new BackendCredential("Bearer", "service-token", CredentialStrategy.ServiceAccount, JmapTestHost.AliceAddress));
+
+        var session = await host.Client().GetSessionAsync(Ct);
+
+        session.Error!.Kind.ShouldBe(ErrorKind.Unknown);
+        session.Error.Message.ShouldContain("Basic master-user");
+        host.Server.LogEntries.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task The_credential_is_requested_once_per_scope()
     {
         await using var host = new JmapTestHost();

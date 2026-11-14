@@ -144,6 +144,11 @@ The format is frozen because clients store these ids. ADR 0001 §1.
   `InternetMessageIds.Mint(mailbox)` → `<uuid>@<mailbox domain>`, without
   brackets. Use `ToHeaderValue` to get the header form.
 
+Phase 3 note: Stalwart creates Inbox, Drafts, Sent Items, Junk Mail and
+Deleted Items, with roles inbox/drafts/sent/junk/trash. It creates **no
+Identity**. Sending needs one, so create it with `Identity/set` when
+`Identity/get` returns none.
+
 Folder ids are JMAP mailbox ids, used as-is. `MailboxRoles` maps the Graph
 well-known names:
 
@@ -174,7 +179,11 @@ A token is the unpadded base64url of `{"v":1,"m":mailboxId,"p":"i"|"c","o":posit
 Every request carries the credential from `IBackendCredentials.ForAsync(Backend.Mail)`,
 fetched once per DI scope. `JmapAuthenticationHandler` applies it.
 
-- **Bearer.** Sent as-is. `ActAs` is ignored.
+- **Bearer.** Sent as-is.
+- **Bearer with `ActAs`.** Refused before any request is sent, as `Unknown`
+  (500). An example is Adapters.Directory's `ServiceAccount`/`ClientCredentials`
+  mode. Stalwart cannot impersonate with a token, so the request would open
+  the service account's mailbox instead of the caller's.
 - **Basic.** `Parameter` is `base64(user:password)`, as Adapters.Directory
   produces it, or raw `user:password`. A value containing `:` is raw.
 - **Basic with `ActAs`.** This is a Stalwart master-user login:
@@ -185,8 +194,10 @@ fetched once per DI scope. `JmapAuthenticationHandler` applies it.
   - Stalwart reportedly refuses app passwords here.
   - The master account must resolve in the active directory.
   - Group mailboxes cannot be impersonated.
-  - The syntax is documented for Stalwart 0.15/0.16. Check it against the
-    deployed v1.1.
+  - Stalwart v1 has no `authentication.master` setting. In the compose stack
+    the master is the recovery administrator, verified with `curl -u
+    'alice@nightware.localhost%admin:…'`; see `deploy/README.md`
+    "Service-account fallback".
 - **No credential.** A request without a credential throws, because Stalwart
   answers anonymous session fetches with 200 and no accounts. The only
   deliberately anonymous request is the health check.
