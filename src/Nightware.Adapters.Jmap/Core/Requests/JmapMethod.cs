@@ -29,7 +29,14 @@ internal sealed record JmapMethod<TArgs, TResponse>(
     /// Safe methods have no side effects, so a request made only of them may be
     /// retried after a transport failure. <c>/set</c>, <c>/import</c>, <c>/copy</c> are not.
     /// </summary>
-    public bool IsSafe => Kind is JmapMethodKind.Get or JmapMethodKind.Changes or JmapMethodKind.Query or JmapMethodKind.QueryChanges;
+    public bool IsSafe => Kind.IsSafe();
+}
+
+internal static class JmapMethodKindExtensions
+{
+    /// <summary>True for read-only kinds (/get, /changes, /query, /queryChanges).</summary>
+    public static bool IsSafe(this JmapMethodKind kind) =>
+        kind is JmapMethodKind.Get or JmapMethodKind.Changes or JmapMethodKind.Query or JmapMethodKind.QueryChanges;
 }
 
 /// <summary>The method descriptors feature phases use. Add new ones here (with their JSON context entries).</summary>
