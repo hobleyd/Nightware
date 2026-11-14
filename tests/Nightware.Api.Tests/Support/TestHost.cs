@@ -82,6 +82,10 @@ internal sealed class TestHost : IAsyncDisposable
         ["Discovery:Scopes:0"] = "openid",
         ["Discovery:Scopes:1"] = "email",
         ["DeltaLinks:SigningKey"] = "test-delta-key",
+        ["Directory:KeycloakBaseUrl"] = "https://auth.test.example",
+        ["Directory:Realm"] = "nightware",
+        ["Directory:ClientId"] = "nightware-api",
+        ["Directory:ClientSecret"] = "test-secret",
     };
 
     /// <summary>Mints an access token the host accepts.</summary>

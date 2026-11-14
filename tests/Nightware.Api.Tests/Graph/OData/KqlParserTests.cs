@@ -172,7 +172,7 @@ public sealed class KqlParserTests
     private static SearchQuery Parse(string value)
     {
         var result = KqlParser.Parse(value);
-        result.IsSuccess.ShouldBeTrue(() => result.Error!.Message);
+        result.IsSuccess.ShouldBeTrue(result.Error?.Message);
         return result.Value;
     }
 }

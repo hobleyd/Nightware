@@ -4,6 +4,8 @@ using Nightware.Api.Graph.OData;
 using Nightware.Application.Common.Query;
 using Nightware.Domain.Kernel;
 
+using SortDirection = Nightware.Application.Common.Query.SortDirection;
+
 namespace Nightware.Api.Tests.Graph.OData;
 
 public sealed class ODataQueryParserTests
@@ -125,7 +127,7 @@ public sealed class ODataQueryParserTests
     private static ItemQuery Parse(string queryString)
     {
         var result = ODataQueryParser.Parse(QueryHelpers.ParseQuery(queryString));
-        result.IsSuccess.ShouldBeTrue(() => result.Error!.Message);
+        result.IsSuccess.ShouldBeTrue(result.Error?.Message);
         return result.Value;
     }
 }

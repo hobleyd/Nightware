@@ -197,7 +197,7 @@ public sealed class FilterParserTests
     private static FilterNode Parse(string filter)
     {
         var result = FilterParser.Parse(filter);
-        result.IsSuccess.ShouldBeTrue(() => result.Error!.Message);
+        result.IsSuccess.ShouldBeTrue(result.Error?.Message);
         return result.Value;
     }
 }

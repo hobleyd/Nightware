@@ -16,7 +16,7 @@ namespace Nightware.Api.Graph.OData;
 /// <para>Supported: free-text words and <c>"quoted phrases"</c> (implicit AND), field terms
 /// <c>from: to: cc: participants: subject: body: attachment: hasAttachments: received: sent:</c>
 /// (field names case-insensitive; <c>:</c> = contains, <c>=</c> = equals; dates also take
-/// <c>&gt;= &lt;= &gt; &lt;</c>), upper-case <c>AND</c>/<c>OR</c>/<c>NOT</c> and parentheses.</para>
+/// <c>&gt;= &lt;= &gt; &lt;</c>), upper-case <c>AND</c>/<c>OR</c>/<c>NOT</c> and parentheses (<c>OR</c> binds tighter than <c>AND</c>/adjacency, as in Outlook search).</para>
 /// <para>Because the text is the user's, the parser is lenient: an unknown <c>prop:value</c>
 /// (<c>re:</c>, <c>10:30</c>, a pasted URL), a malformed date, a stray operator or an unbalanced
 /// quote or parenthesis is read as free text rather than rejected. The boolean structure is
@@ -270,7 +270,7 @@ public static class KqlParser
     private sealed record NotNode(Node Operand) : Node;
 
     /// <summary>
-    /// <c>or = and *("OR" and); and = unary *(["AND"] unary); unary = "NOT" unary / "(" or ")" / term</c>,
+    /// <c>and = or *(["AND"] or); or = unary *("OR" unary); unary = "NOT" unary / "(" and ")" / term</c>,
     /// reading anything out of place as free text.
     /// </summary>
     private sealed class Parser(List<Token> tokens)
@@ -282,7 +282,7 @@ public static class KqlParser
             Node? result = null;
             while (_index < tokens.Count)
             {
-                var next = ParseOr();
+                var next = ParseAnd();
                 if (next is not null)
                 {
                     result = result is null ? next : new AndNode(result, next);
@@ -296,36 +296,38 @@ public static class KqlParser
             return result;
         }
 
-        private Node? ParseOr()
-        {
-            var left = ParseAnd();
-            while (left is not null && Is(TokenKind.Or) && HasOperandAfterOperator())
-            {
-                _index++;
-                var right = ParseAnd();
-                left = right is null ? left : new OrNode(left, right);
-            }
-
-            return left;
-        }
-
+        /// <summary>Terms joined by adjacency or <c>AND</c>; binds looser than <c>OR</c>.</summary>
         private Node? ParseAnd()
         {
-            var left = ParseUnary();
-            while (left is not null && _index < tokens.Count && !Is(TokenKind.Close) && !(Is(TokenKind.Or) && HasOperandAfterOperator()))
+            var left = ParseOr();
+            while (left is not null && _index < tokens.Count && !Is(TokenKind.Close))
             {
                 if (Is(TokenKind.And) && HasOperandAfterOperator())
                 {
                     _index++;
                 }
 
-                var right = ParseUnary();
+                var right = ParseOr();
                 if (right is null)
                 {
                     break;
                 }
 
                 left = new AndNode(left, right);
+            }
+
+            return left;
+        }
+
+        /// <summary><c>a OR b</c>: binds tighter than adjacency, so <c>from:a OR from:b budget</c> is <c>(from:a OR from:b) AND budget</c>.</summary>
+        private Node? ParseOr()
+        {
+            var left = ParseUnary();
+            while (left is not null && Is(TokenKind.Or) && HasOperandAfterOperator())
+            {
+                _index++;
+                var right = ParseUnary();
+                left = right is null ? left : new OrNode(left, right);
             }
 
             return left;
@@ -347,7 +349,7 @@ public static class KqlParser
                     return operand is null ? null : new NotNode(operand);
                 case TokenKind.Open:
                     _index++;
-                    var inner = ParseOr();
+                    var inner = ParseAnd();
                     if (Is(TokenKind.Close))
                     {
                         _index++;

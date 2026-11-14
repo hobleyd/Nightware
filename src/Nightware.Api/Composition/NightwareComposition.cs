@@ -7,6 +7,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 using Nightware.Adapters.Dav;
 using Nightware.Adapters.Directory;
+using Nightware.Adapters.Directory.Core;
+using Nightware.Adapters.Directory.Credentials;
 using Nightware.Adapters.Jmap;
 using Nightware.Api.Auth;
 using Nightware.Api.Discovery;
@@ -69,6 +71,10 @@ public static class NightwareComposition
             .AddJmapAdapter(configuration)
             .AddDavAdapter(configuration)
             .AddDirectoryAdapter(configuration);
+
+        // Fail fast on bad adapter configuration rather than on the first request that needs it.
+        services.AddOptions<DirectoryOptions>().ValidateOnStart();
+        services.AddOptions<BackendCredentialOptions>().ValidateOnStart();
 
         // Last: anything still unregistered answers 501.
         services.AddNotImplementedPortFallbacks();
