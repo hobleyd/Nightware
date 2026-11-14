@@ -232,15 +232,30 @@ services:
     environment:
       ASPNETCORE_URLS: http://+:8080
       ASPNETCORE_ENVIRONMENT: Development
-      Nightware__PublicBaseUrl: https://graph.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
+      # Bearer validation: public issuer, keys fetched over the internal network.
       Auth__Authority: https://auth.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/realms/nightware
+      Auth__MetadataAddress: http://keycloak:8080/realms/nightware/.well-known/openid-configuration
+      Auth__RequireHttpsMetadata: "false"
       Auth__Audience: nightware-api
-      Auth__ClientId: nightware-api
-      Auth__ClientSecret: ${NIGHTWARE_API_CLIENT_SECRET}
+      # /.well-known/nightware — every URL is public; links (@odata.nextLink/deltaLink) are built on GraphBaseUrl.
+      Discovery__GraphBaseUrl: https://graph.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/v1.0
+      Discovery__GraphBetaBaseUrl: https://graph.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/beta
+      Discovery__AuthorizationEndpoint: https://auth.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/realms/nightware/protocol/openid-connect/auth
+      Discovery__TokenEndpoint: https://auth.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/realms/nightware/protocol/openid-connect/token
+      Discovery__ClientId: nightmail
+      DeltaLinks__SigningKey: ${NIGHTWARE_DELTA_LINK_KEY:-dev-only-delta-link-signing-key}
+      Directory__KeycloakBaseUrl: http://keycloak:8080
+      Directory__Realm: nightware
+      Directory__ClientId: nightware-api
+      Directory__ClientSecret: ${NIGHTWARE_API_CLIENT_SECRET}
+      Directory__ServiceAccountScope: kc-admin-api
+      BackendCredentials__Mail__Strategy: TokenExchange
+      BackendCredentials__Mail__Audience: stalwart
+      BackendCredentials__Groupware__Strategy: TokenExchange
+      BackendCredentials__Groupware__Audience: nextcloud
+      # Proposed for the JMAP/DAV adapters (they own the option names).
       Jmap__SessionUrl: http://stalwart:8080/jmap/session
-      Jmap__Audience: stalwart
       Dav__BaseUrl: http://nextcloud/remote.php/dav
-      Dav__Audience: nextcloud
       # Caddy's local CA root, exported by bootstrap.sh, for calls via public names.
       SSL_CERT_FILE: /certs/caddy-root.crt
     volumes:

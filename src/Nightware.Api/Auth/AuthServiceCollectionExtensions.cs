@@ -32,6 +32,11 @@ public static class AuthServiceCollectionExtensions
     {
         options.MapInboundClaims = false;
         options.Authority = string.IsNullOrWhiteSpace(auth.Authority) ? null : auth.Authority;
+        if (!string.IsNullOrWhiteSpace(auth.MetadataAddress))
+        {
+            options.MetadataAddress = auth.MetadataAddress;
+        }
+
         options.RequireHttpsMetadata = auth.RequireHttpsMetadata;
         options.TokenValidationParameters.NameClaimType = HttpUserContext.UsernameClaim;
         if (string.IsNullOrWhiteSpace(auth.Audience))
