@@ -116,10 +116,24 @@ public static class NightwareComposition
                 .MapMailboxSettingsEndpoints()
                 .MapFilesEndpoints()
                 .MapSecurityEndpoints();
+            foreach (var contributor in endpoints.ServiceProvider.GetServices<IGraphEndpointContributor>())
+            {
+                contributor.Map(graph);
+            }
 
             endpoints.MapFallback(version + "/{**path}", UnknownGraphRoute.HandleAsync).RequireAuthorization();
         }
 
         return endpoints;
     }
+}
+
+/// <summary>
+/// Extra endpoints resolved from DI and mapped into every Graph version group (so they get auth, the
+/// binding filter and the fallback ordering). Feature code does not use this — it fills its own
+/// <c>Map*Endpoints</c>; test hosts use it to add probe routes to the real <c>Program</c>.
+/// </summary>
+public interface IGraphEndpointContributor
+{
+    void Map(RouteGroupBuilder graph);
 }

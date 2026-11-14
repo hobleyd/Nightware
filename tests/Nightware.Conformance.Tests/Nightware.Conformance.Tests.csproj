@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Nightware.Api\Nightware.Api.csproj" />
@@ -9,5 +9,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Golden fixtures (docs/contract) and the harness's own worked examples, read at run time. -->
+    <None Include="Fixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Examples\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

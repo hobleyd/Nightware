@@ -1,0 +1,50 @@
+{
+  "operationId": "example.mail-folders.list",
+  "provenance": "Harness worked example (not a contract fixture): a folder page with a nextLink, served by an example-only route that mirrors how Phase 2 will implement mail.folders.list. See docs/api-plumbing.md.",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/users/shared%40example.com/conformanceExample/mailFolders",
+    "query": {
+      "$select": "id,displayName,totalItemCount,unreadItemCount,parentFolderId,isHidden,childFolderCount",
+      "$top": "2"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('shared%40example.com')/mailFolders(id,displayName,totalItemCount,unreadItemCount,parentFolderId,isHidden,childFolderCount)",
+      "@odata.nextLink": "https://graph.microsoft.com/v1.0/users/shared%40example.com/mailFolders?%24select=id%2cdisplayName&%24top=2&%24skip=2",
+      "value": [
+        {
+          "@odata.etag": "W/\"ignored by the comparison\"",
+          "id": "mbx-inbox",
+          "displayName": "Inbox",
+          "parentFolderId": "mbx-root",
+          "childFolderCount": 1,
+          "unreadItemCount": 3,
+          "totalItemCount": 120,
+          "isHidden": false,
+          "wellKnownName": "inbox"
+        },
+        {
+          "id": "mbx-trash",
+          "displayName": "Deleted Items",
+          "parentFolderId": "mbx-root",
+          "childFolderCount": 0,
+          "unreadItemCount": 0,
+          "totalItemCount": 7,
+          "isHidden": false,
+          "wellKnownName": "deleteditems"
+        }
+      ]
+    }
+  }
+}
