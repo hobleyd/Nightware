@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;
 using Polly.Retry;
@@ -24,11 +25,18 @@ public static class DavResilience
         return RetryableMethods.Contains(method.Method);
     }
 
-    /// <summary>Transient failure (5xx, 408, 429, network error, attempt timeout) of a safe method.</summary>
+    /// <summary>Transient failure (5xx, 408, network error, attempt timeout) of a safe method; never 429.</summary>
     public static ValueTask<bool> ShouldRetry(RetryPredicateArguments<HttpResponseMessage> args)
     {
         var request = args.Context.GetRequestMessage() ?? args.Outcome.Result?.RequestMessage;
         if (request is null || !IsRetryable(request.Method))
+        {
+            return ValueTask.FromResult(false);
+        }
+
+        // 429 is surfaced (Throttled + Retry-After), never replayed: honouring a long Retry-After here
+        // would stall the caller until the total timeout and lose the throttling signal.
+        if (args.Outcome.Result?.StatusCode == HttpStatusCode.TooManyRequests)
         {
             return ValueTask.FromResult(false);
         }
@@ -51,6 +59,7 @@ public static class DavResilience
                 UseJitter = true,
                 Delay = TimeSpan.FromMilliseconds(200),
                 ShouldHandle = ShouldRetry,
+                ShouldRetryAfterHeader = false, // short backoff only; Retry-After is reported to the caller
             });
         }
 

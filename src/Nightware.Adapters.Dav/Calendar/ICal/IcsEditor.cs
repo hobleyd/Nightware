@@ -41,11 +41,21 @@ public sealed class IcsEditor
                 RemoveByReference(calendar, exception);
             }
 
-            var value = master.DtStart.HasTime
-                ? master.DtStart is { IsUtc: false, IsFloating: false } zoned
-                    ? new Ical.Net.DataTypes.CalDateTime(IcalZoneContext.ToWallClock(instant, zones.ZoneNameOf(zoned) ?? "UTC"), zoned.TzId, true)
-                    : IcalNetCalendarCodec.Utc(instant)
-                : new Ical.Net.DataTypes.CalDateTime(occurrence.IsDate ? occurrence.ToDate() : DateOnly.FromDateTime(instant.UtcDateTime));
+            Ical.Net.DataTypes.CalDateTime value;
+            if (!master.DtStart.HasTime)
+            {
+                value = new Ical.Net.DataTypes.CalDateTime(occurrence.IsDate ? occurrence.ToDate() : DateOnly.FromDateTime(instant.UtcDateTime));
+            }
+            else if (master.DtStart is { IsUtc: false, IsFloating: false } zoned && zones.ZoneNameOf(zoned) is { } zoneName)
+            {
+                value = new Ical.Net.DataTypes.CalDateTime(IcalZoneContext.ToWallClock(instant, zoneName), zoned.TzId, true);
+            }
+            else
+            {
+                // UTC, floating, or a TZID we cannot resolve (e.g. Outlook display names): UTC is always exact.
+                value = IcalNetCalendarCodec.Utc(instant);
+            }
+
             master.ExceptionDates.Add(value);
             Touch(master);
             return Result.Success();
@@ -72,19 +82,26 @@ public sealed class IcsEditor
             var changed = false;
             foreach (var vevent in targets)
             {
+                var matched = false;
                 foreach (var attendee in vevent.Attendees.Where(a => string.Equals(IcalNetCalendarCodec.AddressOf(a.Value), attendeeAddress.Trim(), StringComparison.OrdinalIgnoreCase)))
                 {
                     attendee.ParticipationStatus = partStat;
                     attendee.Rsvp = false;
-                    changed = true;
+                    matched = true;
                 }
 
-                if (changed && comment is not null)
+                if (!matched)
+                {
+                    continue;
+                }
+
+                if (comment is not null)
                 {
                     vevent.Comments = [comment];
                 }
 
                 Touch(vevent);
+                changed = true;
             }
 
             return changed ? Result.Success() : Error.NotFound("The mailbox is not an attendee of this event.");

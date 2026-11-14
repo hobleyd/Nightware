@@ -115,6 +115,7 @@ Rules:
   - empty segments, backslashes, `?`, `#` and control characters
   - ids longer than 4096 characters
 - An id only proves that its href is *inside the DAV root*. Feature code must still check that the href belongs to the mailbox or list being addressed, using `IsWithin(collectionHref)` or the home sets. Nextcloud's ACLs are the final authority.
+- **Mint ids only from hrefs Sabre returned** (multistatus `href`, PUT target you then re-list). When creating a resource, name it from `[A-Za-z0-9._-]` only (e.g. `{Guid:N}.ics`), never from a UID that may contain `@` or other characters Sabre would encode differently — otherwise one object could end up with two ids.
 - Conversions: `ToEventId/ToTaskId/ToTaskListId/ToContactId` and `EventId.ToDavItemId()` (and the equivalents).
 
 ## Errors
@@ -157,7 +158,7 @@ Only per-user credentials are supported: token exchange with audience `nextcloud
 | `DavRoot` | `/remote.php/dav` | |
 | `OcsRoot` | `/ocs/v2.php` | |
 | `AttemptTimeout` / `TotalTimeout` | 30 s / 90 s | |
-| `MaxRetryAttempts` | 2 | Applies only to GET, HEAD, OPTIONS, PROPFIND and REPORT. Unsafe methods (PUT, DELETE, POST, MKCOL, MKCALENDAR, MOVE, PROPPATCH) are never replayed |
+| `MaxRetryAttempts` | 2 | Applies only to GET, HEAD, OPTIONS, PROPFIND and REPORT, with short exponential backoff (Retry-After is not slept on). Unsafe methods (PUT, DELETE, POST, MKCOL, MKCALENDAR, MOVE, PROPPATCH) are never replayed, and 429 is never retried: it is surfaced as `Throttled` with `RetryAfterSeconds` |
 | `DiscoveryCacheDuration` | 10 min | Principal cache. The key is a SHA-256 of the credential and never contains the token |
 | `HealthCheckTimeout` | 5 s | |
 

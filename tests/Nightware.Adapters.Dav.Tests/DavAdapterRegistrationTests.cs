@@ -97,6 +97,40 @@ public sealed class DavAdapterRegistrationTests : IDisposable
         _server.LogEntries.Select(e => e.RequestMessage!.Body).Distinct().ShouldHaveSingleItem()!.ShouldContain("calendar-multiget");
     }
 
+    [Fact]
+    public async Task Throttling_is_surfaced_not_retried()
+    {
+        _server.Given(Request.Create().WithPath("/remote.php/dav/x.ics").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(429).WithHeader("Retry-After", "30"));
+        using var provider = Build();
+        using var scope = provider.CreateScope();
+        var started = System.Diagnostics.Stopwatch.StartNew();
+
+        var result = await scope.ServiceProvider.GetRequiredService<IDavClient>().GetAsync("x.ics", Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.Throttled);
+        result.Error.RetryAfterSeconds.ShouldBe(30);
+        _server.LogEntries.Count.ShouldBe(1);
+        started.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(10));
+    }
+
+    [Fact]
+    public async Task Unavailable_with_retry_after_is_retried_briefly_and_reported()
+    {
+        _server.Given(Request.Create().WithPath("/remote.php/dav/x.ics").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(503).WithHeader("Retry-After", "120"));
+        using var provider = Build(retries: 1);
+        using var scope = provider.CreateScope();
+        var started = System.Diagnostics.Stopwatch.StartNew();
+
+        var result = await scope.ServiceProvider.GetRequiredService<IDavClient>().GetAsync("x.ics", Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+        result.Error.RetryAfterSeconds.ShouldBe(120);
+        _server.LogEntries.Count.ShouldBe(2);
+        started.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(10));
+    }
+
     [Theory]
     [InlineData("PUT")]
     [InlineData("DELETE")]

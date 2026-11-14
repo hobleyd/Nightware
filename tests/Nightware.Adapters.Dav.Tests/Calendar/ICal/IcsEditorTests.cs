@@ -42,6 +42,24 @@ public sealed class IcsEditorTests
     }
 
     [Fact]
+    public void Excluding_from_a_series_with_an_unresolvable_tzid_writes_utc()
+    {
+        var ics = Ics("outlook-display-name-tzid.ics").Replace("SEQUENCE:0", "SEQUENCE:0" + Environment.NewLine + "RRULE:FREQ=WEEKLY;COUNT=4", StringComparison.Ordinal);
+        var occurrence = new DateTimeOffset(2026, 7, 17, 0, 0, 0, TimeSpan.Zero); // 10:00 AEST a week later
+        var edited = _editor.ExcludeOccurrence(ics, DavRecurrenceId.FromUtc(occurrence)).Value;
+
+        edited.ShouldContain("EXDATE:20260717T000000Z");
+        _codec.Parse(edited).Value.Events.Single(e => e.IsCancelled).OriginalStart.ShouldBe(occurrence);
+    }
+
+    [Fact]
+    public void Participation_comment_only_lands_on_components_with_the_attendee()
+    {
+        var edited = _editor.SetParticipation(Ics("weekly-exception-exdate.ics"), "carol@example.com", RsvpResponse.Accept, comment: "ok").Value;
+        edited.Split("COMMENT:ok").Length.ShouldBe(2); // the master only; the exception has no Carol
+    }
+
+    [Fact]
     public void Excluding_from_a_single_event_is_not_found() =>
         _editor.ExcludeOccurrence(Ics("reply.ics"), DavRecurrenceId.FromDate(new DateOnly(2026, 1, 1))).Error!.Kind.ShouldBe(ErrorKind.NotFound);
 
