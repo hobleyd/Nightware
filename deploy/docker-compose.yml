@@ -1,0 +1,239 @@
+# Nightware development stack.
+#
+#   cd deploy && cp .env.example .env
+#   docker compose -p nightware up -d
+#   ./bootstrap.sh            # one-time: Stalwart + Nextcloud configuration
+#   ./smoke.sh
+#
+# The Nightware Graph façade itself is behind the `api` profile, because its
+# Dockerfile lives in src/ (phase 1.1):
+#   docker compose -p nightware --profile api up -d
+#
+# Every public hostname (auth./mail./cloud./graph.${BASE_DOMAIN}) is served by
+# Caddy. The same names are network aliases of the caddy container, so other
+# containers reach Keycloak etc. through exactly the URL a client sees: the
+# token issuer is identical inside and outside the Docker network.
+
+name: nightware
+
+x-restart: &restart
+  restart: unless-stopped
+
+networks:
+  nightware:
+
+volumes:
+  caddy-data:
+  caddy-config:
+  keycloak-db:
+  stalwart-etc:
+  stalwart-data:
+  nextcloud-db:
+  nextcloud-html:
+  nextcloud-data:
+
+services:
+  caddy:
+    <<: *restart
+    image: caddy:2.11.9-alpine
+    environment:
+      BASE_DOMAIN: ${BASE_DOMAIN:-nightware.localhost}
+      HTTPS_PORT: ${HTTPS_PORT:-443}
+    ports:
+      # Caddy listens on the same port inside the container as on the host, so
+      # https://auth.${BASE_DOMAIN}:${HTTPS_PORT} is the same URL everywhere.
+      - "${BIND_ADDRESS:-127.0.0.1}:${HTTPS_PORT:-443}:${HTTPS_PORT:-443}"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      nightware:
+        aliases:
+          - auth.${BASE_DOMAIN:-nightware.localhost}
+          - mail.${BASE_DOMAIN:-nightware.localhost}
+          - cloud.${BASE_DOMAIN:-nightware.localhost}
+          - graph.${BASE_DOMAIN:-nightware.localhost}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ---------------------------------------------------------------- Keycloak
+  keycloak-db:
+    <<: *restart
+    image: postgres:17.12-alpine
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?set in .env}
+    volumes:
+      - keycloak-db:/var/lib/postgresql/data
+    networks: [nightware]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  keycloak:
+    <<: *restart
+    image: quay.io/keycloak/keycloak:26.8.2
+    command: ["start", "--import-realm"]
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      # Fixed front-end URL: `iss` is always https://auth.${BASE_DOMAIN}/realms/nightware
+      KC_HOSTNAME: https://auth.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set in .env}
+      # Substituted into keycloak/nightware-realm.json at import time.
+      BASE_DOMAIN: ${BASE_DOMAIN:-nightware.localhost}
+      PUBLIC_PORT_SUFFIX: ${PUBLIC_PORT_SUFFIX:-}
+      TEST_USER_PASSWORD: ${TEST_USER_PASSWORD:?set in .env}
+      NIGHTWARE_API_CLIENT_SECRET: ${NIGHTWARE_API_CLIENT_SECRET:?set in .env}
+      NIGHTWARE_DEV_CLIENT_SECRET: ${NIGHTWARE_DEV_CLIENT_SECRET:?set in .env}
+      NEXTCLOUD_OIDC_CLIENT_SECRET: ${NEXTCLOUD_OIDC_CLIENT_SECRET:?set in .env}
+    volumes:
+      - ./keycloak/nightware-realm.json:/opt/keycloak/data/import/nightware-realm.json:ro
+    networks: [nightware]
+    healthcheck:
+      # The management interface (9000) serves /health/ready; the image has no curl.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # ---------------------------------------------------------------- Stalwart
+  stalwart:
+    <<: *restart
+    image: stalwartlabs/stalwart:v1.1.0
+    init: true
+    environment:
+      # Published URLs (JMAP session, OAuth metadata) — Caddy terminates TLS.
+      STALWART_PUBLIC_URL: https://mail.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
+      STALWART_HOSTNAME: mail.${BASE_DOMAIN:-nightware.localhost}
+      # Recovery administrator: authenticates locally even though the default
+      # directory is Keycloak. Also the master user / impersonation credential
+      # (see README "Service-account fallback"). Dev only.
+      STALWART_RECOVERY_ADMIN: ${STALWART_ADMIN_USER:-admin}:${STALWART_ADMIN_PASSWORD:?set in .env}
+      STALWART_HEALTHCHECK_URL: http://127.0.0.1:8080/healthz/live
+    ports:
+      # Mail protocols for desktop clients / manual testing (loopback only).
+      - "${BIND_ADDRESS:-127.0.0.1}:${SMTP_PORT:-2525}:25"
+      - "${BIND_ADDRESS:-127.0.0.1}:${SUBMISSIONS_PORT:-1465}:465"
+      - "${BIND_ADDRESS:-127.0.0.1}:${IMAPS_PORT:-1993}:993"
+    volumes:
+      - stalwart-etc:/etc/stalwart
+      - stalwart-data:/var/lib/stalwart
+    networks: [nightware]
+
+  # --------------------------------------------------------------- Nextcloud
+  nextcloud-db:
+    <<: *restart
+    image: postgres:17.12-alpine
+    environment:
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD: ${NEXTCLOUD_DB_PASSWORD:?set in .env}
+    volumes:
+      - nextcloud-db:/var/lib/postgresql/data
+    networks: [nightware]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nextcloud -d nextcloud"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  nextcloud-redis:
+    <<: *restart
+    image: redis:8.6.8-alpine
+    networks: [nightware]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  nextcloud:
+    <<: *restart
+    image: nextcloud:35.0.3-apache
+    depends_on:
+      nextcloud-db:
+        condition: service_healthy
+      nextcloud-redis:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: nextcloud-db
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD: ${NEXTCLOUD_DB_PASSWORD}
+      REDIS_HOST: nextcloud-redis
+      NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER:-admin}
+      NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD:?set in .env}
+      NEXTCLOUD_TRUSTED_DOMAINS: cloud.${BASE_DOMAIN:-nightware.localhost} nextcloud localhost
+      TRUSTED_PROXIES: 172.16.0.0/12 192.168.0.0/16 10.0.0.0/8
+      OVERWRITEPROTOCOL: https
+      OVERWRITEHOST: cloud.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
+      OVERWRITECLIURL: https://cloud.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
+      PHP_MEMORY_LIMIT: 1G
+      APACHE_DISABLE_REWRITE_IP: "1"
+    volumes:
+      - nextcloud-html:/var/www/html
+      - nextcloud-data:/var/www/html/data
+    networks: [nightware]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/status.php | grep -q '\"installed\":true'"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 60s
+
+  nextcloud-cron:
+    <<: *restart
+    image: nextcloud:35.0.3-apache
+    entrypoint: /cron.sh
+    depends_on: [nextcloud]
+    volumes:
+      - nextcloud-html:/var/www/html
+      - nextcloud-data:/var/www/html/data
+    networks: [nightware]
+
+  # ---------------------------------------------------- Nightware Graph façade
+  nightware-api:
+    profiles: [api]
+    <<: *restart
+    build:
+      context: ..
+      dockerfile: src/Nightware.Api/Dockerfile
+    image: nightware/api:dev
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_ENVIRONMENT: Development
+      Nightware__PublicBaseUrl: https://graph.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
+      Auth__Authority: https://auth.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/realms/nightware
+      Auth__Audience: nightware-api
+      Auth__ClientId: nightware-api
+      Auth__ClientSecret: ${NIGHTWARE_API_CLIENT_SECRET}
+      Jmap__SessionUrl: http://stalwart:8080/jmap/session
+      Jmap__Audience: stalwart
+      Dav__BaseUrl: http://nextcloud/remote.php/dav
+      Dav__Audience: nextcloud
+      # Caddy's local CA root, exported by bootstrap.sh, for calls via public names.
+      SSL_CERT_FILE: /certs/caddy-root.crt
+    volumes:
+      - ./.certs:/certs:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks: [nightware]
