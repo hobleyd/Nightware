@@ -1,0 +1,34 @@
+{
+  "operationId": "calendar.events.list-by-ical-uid",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_calendar_test.dart:341 'finds the meeting by the UID in the calendar attachment'; body constructed with example.com data",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/events",
+    "query": {
+      "$filter": "iCalUId eq '040000008200E00074C5B7101A82E00800000000A1B2C3D4E5F6D901000000000000000010000000F1E2D3C4B5A69788'",
+      "$select": "id,isOrganizer",
+      "$top": "5"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/events(id,isOrganizer)",
+      "value": [
+        {
+          "@odata.etag": "W/\"IiLKjG2I7E+Xvk+ys6MD0wAAGG8F7g==\"",
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAENAAAiIsqMbYjsT5e-T7KzowPTAAAYbwXuAAA=",
+          "isOrganizer": true
+        }
+      ]
+    }
+  }
+}

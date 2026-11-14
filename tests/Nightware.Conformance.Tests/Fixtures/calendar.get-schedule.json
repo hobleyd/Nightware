@@ -1,0 +1,78 @@
+{
+  "operationId": "calendar.get-schedule",
+  "provenance": "client code graph_api_datasource_impl.dart:3207-3263; Constructed from the Graph v1.0 resource shape (scheduleInformation) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/calendar/getSchedule",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "schedules": [
+        "sam@example.com",
+        "boardroom@example.com"
+      ],
+      "startTime": {
+        "dateTime": "2026-06-10T00:00:00.000",
+        "timeZone": "UTC"
+      },
+      "endTime": {
+        "dateTime": "2026-06-10T08:00:00.000",
+        "timeZone": "UTC"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(microsoft.graph.scheduleInformation)",
+      "value": [
+        {
+          "scheduleId": "sam@example.com",
+          "availabilityView": "0000220000000000",
+          "scheduleItems": [
+            {
+              "isPrivate": false,
+              "status": "busy",
+              "subject": "Customer call",
+              "location": "",
+              "start": {
+                "dateTime": "2026-06-10T02:00:00.0000000",
+                "timeZone": "UTC"
+              },
+              "end": {
+                "dateTime": "2026-06-10T03:00:00.0000000",
+                "timeZone": "UTC"
+              }
+            }
+          ],
+          "workingHours": {
+            "daysOfWeek": [
+              "monday",
+              "tuesday",
+              "wednesday",
+              "thursday",
+              "friday"
+            ],
+            "startTime": "08:00:00.0000000",
+            "endTime": "17:00:00.0000000",
+            "timeZone": {
+              "name": "AUS Eastern Standard Time"
+            }
+          }
+        },
+        {
+          "scheduleId": "boardroom@example.com",
+          "availabilityView": "0000000000000000",
+          "scheduleItems": []
+        }
+      ]
+    }
+  }
+}

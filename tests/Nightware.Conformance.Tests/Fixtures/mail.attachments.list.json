@@ -1,0 +1,41 @@
+{
+  "operationId": "mail.attachments.list",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_send_email_test.dart:667 'forwardEmail — removed attachments' (list by id,name,size); body constructed with example.com data",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=/attachments",
+    "query": {
+      "$select": "id,name,size"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/messages('AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=')/attachments(id,name,size)",
+      "value": [
+        {
+          "@odata.type": "#microsoft.graph.fileAttachment",
+          "@odata.mediaContentType": "application/pdf",
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAABEgAQAKz6Oe_TU0RIs2Gu-ZyqAQs=",
+          "name": "q2.pdf",
+          "size": 48213
+        },
+        {
+          "@odata.type": "#microsoft.graph.fileAttachment",
+          "@odata.mediaContentType": "text/calendar",
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAABEgAQAB2nJ2D2OlBJopWQ8IC1ngE=",
+          "name": "invite.ics",
+          "size": 912
+        }
+      ]
+    }
+  }
+}

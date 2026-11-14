@@ -1,0 +1,39 @@
+{
+  "operationId": "people.list",
+  "provenance": "Shape after nightmail test/data/datasources/remote/contact_bulk_parser_test.dart:168 'reads Outlook contacts, the directory and /me/people'; body constructed with example.com data",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/people",
+    "query": {
+      "$select": "displayName,scoredEmailAddresses",
+      "$top": "999"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/people(displayName,scoredEmailAddresses)",
+      "value": [
+        {
+          "id": "8CE6E1DE-CB84-4BF5-971D-D3ECF452E2B5",
+          "displayName": "Alex Sender",
+          "scoredEmailAddresses": [
+            {
+              "address": "alex@example.com",
+              "relevanceScore": 20.0,
+              "selectionLikelihood": "notSpecified"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
