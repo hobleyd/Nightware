@@ -89,7 +89,7 @@ internal sealed class JmapMailFolderReader(IJmapClient jmap) : IMailFolderReader
 
 | JMAP / HTTP | `ErrorKind` (code) |
 |---|---|
-| HTTP 401 | `BackendAuthFailed`. Drops the cached session and the scope's credential. |
+| HTTP 401 | `BackendAuthFailed` for a `PassThrough` credential (the client re-authenticates); `BackendUnavailable` for a `TokenExchange`/`ServiceAccount` one, which is façade misconfiguration (ADR 0001 §42). Either way drops the cached session and the scope's credential. |
 | HTTP 403 | `Forbidden` |
 | HTTP 404 (download) | `NotFound` |
 | HTTP 413 | `PayloadTooLarge` (`requestEntityTooLarge`) |

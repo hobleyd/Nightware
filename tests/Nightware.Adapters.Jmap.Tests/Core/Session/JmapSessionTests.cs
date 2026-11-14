@@ -96,15 +96,19 @@ public sealed class JmapSessionTests
         host.Server.LogEntries.Count.ShouldBe(4);
     }
 
-    [Fact]
-    public async Task Session_401_is_backend_auth_failed()
+    [Theory]
+    [InlineData(CredentialStrategy.PassThrough, ErrorKind.BackendAuthFailed)]
+    [InlineData(CredentialStrategy.TokenExchange, ErrorKind.BackendUnavailable)]
+    [InlineData(CredentialStrategy.ServiceAccount, ErrorKind.BackendUnavailable)]
+    public async Task Session_401_re_authenticates_only_a_passed_through_token(CredentialStrategy strategy, ErrorKind expected)
     {
         await using var host = new JmapTestHost();
+        host.UseCredential(new BackendCredential("Bearer", "token", strategy));
         host.Server.Given(Request.Create().WithPath("/jmap/session").UsingGet()).RespondWith(Response.Create().WithStatusCode(401));
 
         var session = await host.Client().GetSessionAsync(Ct);
 
-        session.Error!.Kind.ShouldBe(ErrorKind.BackendAuthFailed);
+        session.Error!.Kind.ShouldBe(expected);
     }
 
     [Fact]
