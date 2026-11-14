@@ -204,4 +204,28 @@ public sealed class MailReadLiveTests
             await host.SetAsync(account, id, null, Ct);
         }
     }
+
+    [Fact]
+    public async Task People_ranking_sees_whom_alice_recently_wrote_to()
+    {
+        await using var host = MailLiveHost.Start();
+        using var graph = await host.GraphAsync(Ct);
+        var (account, roles) = await host.MailboxesAsync(Ct);
+        var tag = TestMessages.Tag();
+        var recipient = $"{tag}@example.com";
+        var sent = await host.ImportAsync(account, roles["sent"], TestMessages.Sent(tag, recipient), Ct);
+
+        try
+        {
+            var people = await GetJsonAsync(graph, "/v1.0/me/people?$select=displayName,scoredEmailAddresses&$top=999");
+
+            people["value"]!.AsArray()
+                .SelectMany(p => p!["scoredEmailAddresses"]!.AsArray().Select(a => a!["address"]!.GetValue<string>()))
+                .ShouldContain(recipient, "IRecentCorrespondents feeds /people from Sent Items");
+        }
+        finally
+        {
+            await host.SetAsync(account, sent, null, Ct);
+        }
+    }
 }

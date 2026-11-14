@@ -38,4 +38,10 @@ internal static class TestMessages
         + "SUMMARY:Planning\r\nLOCATION:Boardroom\r\nORGANIZER;CN=Bob Brown:mailto:bob@nightware.localhost\r\n"
         + "ATTENDEE;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:alice@nightware.localhost\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
         + "--alt--\r\n";
+
+    /// <summary>A message alice sent to <paramref name="recipient"/> (as filed in Sent Items).</summary>
+    public static string Sent(string subject, string recipient) =>
+        $"From: Alice Anderson <alice@nightware.localhost>\r\nTo: Someone New <{recipient}>\r\nSubject: {subject}\r\n"
+        + $"Date: {DateTimeOffset.UtcNow:R}\r\nMessage-ID: <{Guid.NewGuid():N}@nightware.localhost>\r\nMIME-Version: 1.0\r\n"
+        + "Content-Type: text/plain; charset=utf-8\r\n\r\nHello.\r\n";
 }
