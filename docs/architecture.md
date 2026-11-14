@@ -1,0 +1,125 @@
+# Nightware architecture
+
+Nightware is a self-hosted, Microsoft Graph–compatible backend for the
+NightMail client. It is a **stateless façade**: it speaks the subset of Graph
+v1.0/beta that NightMail calls, and translates each request onto open-source
+servers that own the data.
+
+```
+NightMail ──HTTPS + OIDC bearer──▶ Nightware.Api (Graph façade)
+                                     │
+            ┌────────────────────────┼─────────────────────────┐
+            ▼ JMAP (RFC 8620/8621)   ▼ CalDAV/CardDAV/WebDAV   ▼ OIDC / admin API
+        Stalwart Mail Server      Nextcloud (Sabre/DAV)     Keycloak
+        mail, SMTP, spam, Sieve   calendar, contacts,       identity, directory
+                                  tasks, files, rooms
+```
+
+## Non-negotiable rules
+
+1. **Implement only what NightMail calls.** The endpoint inventory in
+   `docs/contract/` is the scope. Anything else returns a Graph-shaped
+   `501 notImplemented` (or `400 invalidRequest` for unsupported OData).
+2. **No data of record in the façade.** Delta tokens and IDs are
+   self-describing (encoded backend state), so the façade needs no database.
+   A cache, if ever added, must be disposable.
+3. **Graph fidelity is defined by golden fixtures**, not by reading docs.
+   `tests/Nightware.Conformance.Tests/Fixtures` holds request/response pairs;
+   a response shape change that breaks a fixture is a bug.
+4. **Every class has tests.** Unit tests for domain/application, HTTP-level
+   tests (WireMock.Net) for adapters, `WebApplicationFactory` tests for
+   endpoints, opt-in integration tests against the real stack.
+
+## Layers (Clean Architecture)
+
+Dependencies point inward only. Enforced by `tests/Nightware.Architecture.Tests`
+(NetArchTest).
+
+| Project | Depends on | Owns |
+|---|---|---|
+| `Nightware.Domain` | nothing | Entities, value objects, `Result<T>`/`Error`. No I/O, no framework types. |
+| `Nightware.Application` | Domain | Ports (interfaces) the adapters implement, use cases, the provider-neutral query model (`ItemQuery`, `FilterNode`), `IUserContext`. |
+| `Nightware.Adapters.Jmap` | Application | Stalwart JMAP client + mail/mailbox-settings/spam port implementations. |
+| `Nightware.Adapters.Dav` | Application | Nextcloud CalDAV/CardDAV/WebDAV/OCS client + calendar, contacts, tasks, rooms, file-share port implementations. |
+| `Nightware.Adapters.Directory` | Application | Keycloak admin/userinfo + Nextcloud avatar: user lookup, photos. |
+| `Nightware.Api` | Application, all Adapters (composition root only) | ASP.NET Core host, JWT auth, Graph routes, OData-subset parsing, `Prefer` header handling, Graph JSON DTOs + mappers, Graph error envelope. |
+
+The Api references adapters **only** in `Composition/` (DI wiring). Endpoint
+code depends on Application use cases, never on adapters.
+
+## Conventions
+
+### Results and errors
+- Use cases and ports return `Result<T>` (Domain). Exceptions are for bugs and
+  for adapter-internal transport failures, which adapters translate into
+  `Error` at their boundary.
+- `ErrorKind` → HTTP status + Graph `error.code` is mapped in exactly one
+  place: `Nightware.Api/Graph/GraphErrorMapper.cs`.
+
+### Identifiers
+- Each adapter emits **opaque, URL-safe, stable** ids for its objects and is
+  the only code that can decode them. JMAP ids are used as-is; DAV hrefs are
+  base64url-encoded by `DavId`. The Api never parses an id.
+- Message ids are stable across moves (Graph's "immutable id" behaviour).
+
+### Delta
+- A delta token is `base64url(json{v, state, ...})` produced and consumed by
+  the adapter that owns the collection (`DeltaToken` value object in Domain
+  carries it opaquely). `@odata.deltaLink`/`@odata.nextLink` are assembled by
+  the Api from the token.
+
+### OData
+- The Api parses `$select/$filter/$orderby/$top/$skip/$search/$expand/$count`
+  into `ItemQuery` (Application). Only the grammar in
+  `docs/contract/odata-subset.md` is accepted; anything else is
+  `400 invalidRequest` naming the unsupported construct.
+- `$select` is applied by the Api when serialising (projection of the DTO), so
+  adapters may return more than asked; adapters *may* use `Select` to fetch
+  less.
+
+### Per-request identity
+- `IUserContext` (Application) exposes the authenticated user's id, primary
+  SMTP address and the raw bearer token. Adapters pass the bearer token
+  through to Stalwart/Nextcloud (both trust the same Keycloak issuer). A
+  service-account fallback is per-adapter configuration, never the default.
+- `/users/{id|upn}/...` routes resolve the target mailbox through
+  `IMailboxResolver`; delegated (shared-mailbox) access is authorised by the
+  backend, not re-implemented in the façade.
+
+### Use cases
+- One class per use case, `sealed`, named as a verb phrase
+  (`ListMessagesInFolder`), with one public `ExecuteAsync`. No mediator
+  library. Registered by each feature's `AddXxxUseCases()`.
+
+### Features and file ownership
+Code is organised by feature folder in every project, so phases can be built
+in parallel without touching each other's files:
+
+`Mail/`, `Calendar/`, `Contacts/`, `People/`, `Directory/`, `Tasks/`,
+`MailboxSettings/`, `Files/`, `Security/` (threat submission), `Rooms/`.
+
+Each feature exposes, in its own files:
+- `Application/<Feature>/<Feature>ServiceCollectionExtensions.cs` → `Add<Feature>UseCases()`
+- `Adapters.*/<Feature>/...ServiceCollectionExtensions.cs` → `Add<Backend><Feature>()`
+- `Api/Features/<Feature>/<Feature>Endpoints.cs` → `Map<Feature>Endpoints()`
+
+`Program.cs` and `Composition/` already call every feature's registration
+method; phase work fills the bodies, never edits the shared wiring (except to
+add configuration options).
+
+## Testing stack
+- xUnit v3, Shouldly, NSubstitute.
+- WireMock.Net for adapter HTTP tests (record real JMAP/DAV responses as
+  fixtures under each adapter test project's `Fixtures/`).
+- `Microsoft.AspNetCore.Mvc.Testing` for endpoint and conformance tests.
+- `Nightware.Integration.Tests` runs against `deploy/docker-compose.yml`; it is
+  skipped unless `NIGHTWARE_INTEGRATION=1`.
+- NetArchTest for layer rules.
+
+## Backends
+- **Stalwart** — mail store, JMAP, SMTP submission, spam filter, Sieve,
+  `VacationResponse`.
+- **Nextcloud** — Calendar (CalDAV, iTIP/iMIP via Sabre), Contacts (CardDAV),
+  Tasks (CalDAV VTODO), `calendar_resource_management` (rooms), Files
+  (WebDAV), OCS Share API, avatars.
+- **Keycloak** — OIDC issuer trusted by Nightware, Stalwart and Nextcloud.
