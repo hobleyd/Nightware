@@ -1,3 +1,4 @@
+using Nightware.Adapters.Dav.Directory;
 using Nightware.Adapters.Dav.Calendar;
 using Nightware.Adapters.Dav.Contacts;
 using Nightware.Adapters.Dav.Files;
@@ -32,6 +33,7 @@ public static class DavAdapterServiceCollectionExtensions
             .AddDavCalendar()
             .AddDavRooms()
             .AddDavContacts()
+            .AddDavDirectory()
             .AddDavTasks()
             .AddDavFiles();
     }
@@ -53,6 +55,7 @@ public static class DavAdapterServiceCollectionExtensions
             http.BaseAddress = sp.GetRequiredService<DavPaths>().Origin;
             http.Timeout = Timeout.InfiniteTimeSpan; // the pipeline's timeouts govern
         });
+        client.ConfigurePrimaryHttpMessageHandler(CookieFreeHandler);
         client.AddResilienceHandler(DavResilience.PipelineName, (builder, context) =>
             DavResilience.Configure(builder, context.ServiceProvider.GetRequiredService<IOptions<DavOptions>>().Value));
         client.AddHttpMessageHandler<DavAuthenticationHandler>();
@@ -60,10 +63,15 @@ public static class DavAdapterServiceCollectionExtensions
         services.TryAddScoped<IDavPrincipalDiscovery, DavPrincipalDiscovery>();
         services.TryAddScoped<IDavCollectionCatalog, DavCollectionCatalog>();
 
-        services.AddHttpClient(DavHealthProbe.HttpClientName);
+        services.AddHttpClient(DavHealthProbe.HttpClientName).ConfigurePrimaryHttpMessageHandler(CookieFreeHandler);
         services.TryAddSingleton<DavHealthProbe>();
         services.AddHealthChecks().AddCheck<DavHealthCheck>(DavHealthProbe.Name, tags: [DavHealthProbe.Tag]);
     }
+
+    // Pooled handlers are shared across callers. Nextcloud answers a bearer request with a session
+    // cookie; with cookies on, that cookie would ride along on the next user's request (CSRF 401s at
+    // best, another user's data at worst). Every DAV client must stay cookie-free.
+    internal static SocketsHttpHandler CookieFreeHandler() => new() { UseCookies = false };
 
     private static void AddDavCodecs(IServiceCollection services)
     {

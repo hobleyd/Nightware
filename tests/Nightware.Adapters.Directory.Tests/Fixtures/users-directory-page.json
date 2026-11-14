@@ -1,0 +1,53 @@
+[
+  {
+    "id": "5d2c6a4e-2f0b-4a8e-9f3c-1b7e2d9a6c11",
+    "username": "alice",
+    "firstName": "Alice",
+    "lastName": "Anderson",
+    "email": "alice@nightware.localhost",
+    "emailVerified": true,
+    "attributes": {
+      "locale": ["en"],
+      "zoneinfo": ["Australia/Sydney"],
+      "phoneNumber": ["+61 400 000 001"],
+      "nightware_job_title": ["CTO"],
+      "nightware_department": ["Engineering"],
+      "nightware_company_name": ["Nightware Pty Ltd"],
+      "nightware_office_location": ["Sydney"],
+      "nightware_business_phones": ["+61 2 9000 0001", " ", "+61 2 9000 0002"],
+      "nightware_aliases": ["a.anderson@nightware.localhost", "ALICE@nightware.localhost", "a.anderson@nightware.localhost"]
+    },
+    "createdTimestamp": 1794690000123,
+    "enabled": true,
+    "totp": false,
+    "disableableCredentialTypes": [],
+    "requiredActions": [],
+    "notBefore": 0
+  },
+  {
+    "id": "e3f0b1a2-7c44-4f1e-9a51-0d2b8c6e4f10",
+    "username": "service-account-nightware-api",
+    "emailVerified": false,
+    "createdTimestamp": 1794690000000,
+    "enabled": true,
+    "totp": false,
+    "disableableCredentialTypes": [],
+    "requiredActions": [],
+    "notBefore": 0
+  },
+  {
+    "id": "5eef1c3f-a487-4fe8-8368-2aa725f9d8ff",
+    "username": "bob",
+    "firstName": "Bob",
+    "lastName": "Brown",
+    "email": "bob@nightware.localhost",
+    "emailVerified": true,
+    "attributes": { "locale": ["en"], "zoneinfo": ["Europe/London"] },
+    "createdTimestamp": 1794690000456,
+    "enabled": true,
+    "totp": false,
+    "disableableCredentialTypes": [],
+    "requiredActions": [],
+    "notBefore": 0
+  }
+]

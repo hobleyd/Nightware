@@ -259,6 +259,22 @@ Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf,
 | BUSY-UNAVAILABLE | oof |
 | FREE | free |
 
+## Contacts and user photos (phase 5A)
+
+**`DavContactStore` (`IContactStore`, `Contacts/`)** serves `{mailbox}/contacts`. It is read-only, as the contract requires: create, update and delete return `Unsupported`.
+
+- It reads the mailbox's own address books and the ones shared with it. It skips the books Nextcloud generates into every home: `z-server-generated--system` (every account, already served by `/users`) and `z-app-generated--*` (for example Contacts Interaction's "Recently contacted").
+- Paging is stateless. Each page sends one `addressbook-query` per book without data, orders the cards by (book href, card href), slices at the offset in the `$skiptoken` (versioned base64url) and fetches only that slice with `addressbook-multiget`. A multiget must name server-absolute hrefs, because Sabre refuses hrefs outside its base URI. The default page size is 10, Graph's default.
+- A card that cannot be parsed is logged and left out, but it still takes its place in the paging order. `$filter`, `$search`, `$orderby`, `$skip` and `$expand` are a 400.
+
+**`NextcloudAvatarReader` (`IUserPhotoReader`, `Directory/`)** serves `/users/{addr}/photo/$value`. It is registered from the Contacts hook, because `AddDavAdapter` has no Directory hook.
+
+- The uid comes from `IDavPrincipalDiscovery` (`…/principals/users/{uid}/`). Rooms, resources and unknown addresses have no photo.
+- It sends `GET {BaseUrl}index.php/avatar/{uid}/512` with the caller's Groupware credential. This route is outside the DAV root, so it uses its own typed `HttpClient` with the same resilience and auth handlers, and it never follows redirects.
+- Nextcloud draws a letter avatar for users who never uploaded one, and the response marks it with `X-NC-IsCustomAvatar: 0`. That counts as **no photo** (`NotFound`), so the client draws its own initials, as it does with Graph.
+- The image is buffered, capped at 4 MiB.
+- A backend 401 maps to `BackendUnavailable`, never to 401: on a best-effort call, a 401 would make the client refresh its token and could flag the account for re-authentication.
+
 ## Known gaps
 
 - `CalendarDocument` and `CalendarEvent` have no slot for a resource href. The port's `Parse` therefore leaves `EventId` empty, and callers either use `CalendarParseOptions.Href` or fill the id with `with { Id = … }`.
