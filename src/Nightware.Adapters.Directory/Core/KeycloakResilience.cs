@@ -1,3 +1,5 @@
+using System.Net;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
@@ -9,7 +11,7 @@ namespace Nightware.Adapters.Directory.Core;
 /// <summary>
 /// The resilience pipeline on every Keycloak client: an outer retry for <b>safe</b> requests only
 /// (GET/HEAD, or explicitly marked with <see cref="KeycloakHttp.RetrySafe"/> — the client-credentials
-/// grant), and an inner per-attempt timeout. Token exchange is never marked, so a failing exchange is
+/// grant) on transient failures other than 429, and an inner per-attempt timeout. Token exchange is never marked, so a failing exchange is
 /// not replayed with the same input.
 /// </summary>
 internal static class KeycloakResilience
@@ -27,8 +29,12 @@ internal static class KeycloakResilience
                     Delay = options.RetryBaseDelay,
                     BackoffType = DelayBackoffType.Exponential,
                     UseJitter = true,
+                    // 429 is surfaced (Throttled / BackendUnavailable with Retry-After), not replayed:
+                    // honouring Retry-After here would stall the caller — and, for client-credentials,
+                    // every caller queued behind the single-flight refresh.
                     ShouldHandle = static args => ValueTask.FromResult(
                         args.Context.GetRequestMessage().IsRetrySafe()
+                        && args.Outcome.Result?.StatusCode != HttpStatusCode.TooManyRequests
                         && HttpClientResiliencePredicates.IsTransient(args.Outcome)),
                 });
             }

@@ -134,6 +134,20 @@ public sealed class KeycloakTokenClientTests : IDisposable
     }
 
     [Fact]
+    public async Task Throttled_client_credentials_is_not_retried()
+    {
+        _keycloak.Server.Given(WireMock.RequestBuilders.Request.Create().WithPath(KeycloakStub.TokenPath).UsingPost())
+            .RespondWith(WireMock.ResponseBuilders.Response.Create().WithStatusCode(429).WithHeader("Retry-After", "30"));
+        await using AdapterHost host = Host(retries: 2);
+
+        Result<AccessToken> token = await host.Get<IKeycloakTokenClient>().GetServiceAccountTokenAsync(TestContext.Current.CancellationToken);
+
+        token.Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+        token.Error.RetryAfterSeconds.ShouldBe(30);
+        _keycloak.ClientCredentialsHits.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task Failed_client_credentials_is_not_cached()
     {
         _keycloak.Server.Given(WireMock.RequestBuilders.Request.Create().WithPath(KeycloakStub.TokenPath).UsingPost())

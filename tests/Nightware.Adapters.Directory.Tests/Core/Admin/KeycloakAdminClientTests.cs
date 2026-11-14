@@ -321,6 +321,19 @@ public sealed class KeycloakAdminClientTests : IDisposable
     }
 
     [Fact]
+    public async Task Throttling_is_surfaced_not_retried_with_default_retries()
+    {
+        _keycloak.Server.Given(Request.Create().WithPath($"{KeycloakStub.AdminPath}/users").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(429).WithHeader("Retry-After", "12"));
+        await using AdapterHost host = Host(); // MaxRetryAttempts 2
+
+        Result<IReadOnlyList<KeycloakUser>> result = await host.Get<IKeycloakAdminClient>().FindUsersAsync(new KeycloakUserQuery(), Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.Throttled);
+        _keycloak.AdminRequests.Count().ShouldBe(1);
+    }
+
+    [Fact]
     public async Task Malformed_body_is_backend_unavailable()
     {
         GivenAdmin($"/users/{AliceId}", 200, "<html>proxy error</html>");

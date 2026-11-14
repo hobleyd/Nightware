@@ -91,7 +91,7 @@ The reference realm is `deploy/keycloak/nightware-realm.json`.
 
 ## Admin client
 
-`IKeycloakAdminClient` (scoped typed client) wraps `/admin/realms/{realm}/users`. It authenticates with the cached service-account token. On a 401 it refreshes the token and retries once.
+`IKeycloakAdminClient` (a typed `HttpClient`, transient) wraps `/admin/realms/{realm}/users`. It authenticates with the cached service-account token. On a 401 it refreshes the token and retries once.
 
 ```csharp
 Result<KeycloakUser> byId    = await admin.GetUserAsync(id, ct);
@@ -126,7 +126,7 @@ Errors map as follows:
 | 429 | `Throttled` (with `RetryAfterSeconds`) |
 | 5xx, timeout | `BackendUnavailable` |
 
-GETs are retried on transient failures; PUTs are not.
+GETs are retried on transient failures other than 429; PUTs are not.
 
 ## Health check
 
