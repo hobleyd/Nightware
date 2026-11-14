@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Nightware.Adapters.Jmap\Nightware.Adapters.Jmap.csproj" />
@@ -9,5 +9,11 @@
 
   <ItemGroup>
     <PackageReference Include="WireMock.Net" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Fixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Real Stalwart v1.1.0 exchanges recorded by deploy/scripts/record.sh. -->
+    <None Include="..\..\deploy\recordings\jmap\*.json" LinkBase="Fixtures\recorded" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
