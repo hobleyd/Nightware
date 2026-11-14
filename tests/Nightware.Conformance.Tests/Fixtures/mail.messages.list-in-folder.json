@@ -1,0 +1,93 @@
+{
+  "operationId": "mail.messages.list-in-folder",
+  "provenance": "Shape after nightmail test/data/datasources/remote/graph_api_get_emails_test.dart:12 (_messageJson) and :58-110 (getEmails request shape); body constructed with example.com data",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/mailFolders/inbox/messages",
+    "query": {
+      "$top": "25",
+      "$skip": "0",
+      "$select": "id,subject,from,toRecipients,ccRecipients,bccRecipients,bodyPreview,isRead,flag,receivedDateTime,sentDateTime,importance,conversationId,hasAttachments,parentFolderId",
+      "$orderby": "receivedDateTime desc"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/mailFolders('inbox')/messages(id,subject,from,toRecipients,ccRecipients,bccRecipients,bodyPreview,isRead,flag,receivedDateTime,sentDateTime,importance,conversationId,hasAttachments,parentFolderId)",
+      "@odata.nextLink": "https://graph.microsoft.com/v1.0/me/mailFolders('inbox')/messages?%24top=25&%24skip=25&%24select=id%2csubject&%24orderby=receivedDateTime+desc",
+      "value": [
+        {
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=",
+          "receivedDateTime": "2026-06-01T10:00:00Z",
+          "sentDateTime": "2026-06-01T09:59:58Z",
+          "hasAttachments": false,
+          "subject": "Quarterly numbers",
+          "bodyPreview": "Hi, the Q2 numbers are attached.",
+          "importance": "normal",
+          "parentFolderId": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAA=",
+          "conversationId": "AAQkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAQAO8aPpjxtUhAlI2JxnVmPSI=",
+          "isRead": false,
+          "from": {
+            "emailAddress": {
+              "name": "Alex Sender",
+              "address": "alex@example.com"
+            }
+          },
+          "toRecipients": [
+            {
+              "emailAddress": {
+                "name": "Me Example",
+                "address": "me@example.com"
+              }
+            }
+          ],
+          "ccRecipients": [],
+          "bccRecipients": [],
+          "flag": {
+            "flagStatus": "notFlagged"
+          }
+        },
+        {
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZEAAA=",
+          "receivedDateTime": "2026-06-01T10:00:00Z",
+          "sentDateTime": "2026-06-01T09:59:58Z",
+          "hasAttachments": false,
+          "subject": "Lunch?",
+          "bodyPreview": "Hi, the Q2 numbers are attached.",
+          "importance": "normal",
+          "parentFolderId": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAA=",
+          "conversationId": "AAQkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAQAKF3YB0e1kBVtXQUq0f7Iks=",
+          "isRead": true,
+          "from": {
+            "emailAddress": {
+              "name": "Alex Sender",
+              "address": "alex@example.com"
+            }
+          },
+          "toRecipients": [
+            {
+              "emailAddress": {
+                "name": "Me Example",
+                "address": "me@example.com"
+              }
+            }
+          ],
+          "ccRecipients": [],
+          "bccRecipients": [],
+          "flag": {
+            "flagStatus": "flagged"
+          }
+        }
+      ]
+    }
+  }
+}

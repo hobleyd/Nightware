@@ -1,0 +1,60 @@
+{
+  "operationId": "mail.messages.search",
+  "provenance": "client code graph_api_datasource_impl.dart:456-488 (no NightMail test covers searchEmails); Constructed from the Graph v1.0 resource shape (message collection) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/messages",
+    "query": {
+      "$top": "50",
+      "$select": "id,subject,from,toRecipients,ccRecipients,bccRecipients,bodyPreview,isRead,flag,receivedDateTime,sentDateTime,importance,conversationId,hasAttachments,parentFolderId",
+      "$search": "\"from:alex@example.com hasAttachments:true\""
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/messages(id,subject,from,toRecipients,ccRecipients,bccRecipients,bodyPreview,isRead,flag,receivedDateTime,sentDateTime,importance,conversationId,hasAttachments,parentFolderId)",
+      "value": [
+        {
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=",
+          "receivedDateTime": "2026-06-01T10:00:00Z",
+          "sentDateTime": "2026-06-01T09:59:58Z",
+          "hasAttachments": true,
+          "subject": "Quarterly numbers",
+          "bodyPreview": "Hi, the Q2 numbers are attached.",
+          "importance": "normal",
+          "parentFolderId": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAA=",
+          "conversationId": "AAQkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAQAO8aPpjxtUhAlI2JxnVmPSI=",
+          "isRead": false,
+          "from": {
+            "emailAddress": {
+              "name": "Alex Sender",
+              "address": "alex@example.com"
+            }
+          },
+          "toRecipients": [
+            {
+              "emailAddress": {
+                "name": "Me Example",
+                "address": "me@example.com"
+              }
+            }
+          ],
+          "ccRecipients": [],
+          "bccRecipients": [],
+          "flag": {
+            "flagStatus": "notFlagged"
+          }
+        }
+      ]
+    }
+  }
+}

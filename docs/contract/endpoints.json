@@ -1,0 +1,3411 @@
+[
+  {
+    "id": "mail.folders.list",
+    "phase": 2,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "displayName",
+          "totalItemCount",
+          "unreadItemCount",
+          "parentFolderId",
+          "isHidden",
+          "childFolderCount"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [
+        100
+      ],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].displayName",
+      "value[].totalItemCount",
+      "value[].unreadItemCount",
+      "value[].parentFolderId",
+      "value[].isHidden",
+      "value[].childFolderCount",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:750"
+    ],
+    "notes": "Top-level folders only (children come from childFolders). Follows @odata.nextLink for up to 25 pages via _fetchAllGraphPages; the link is read by regex from the raw body and must pass isGraphUrl (see endpoints.md, cross-cutting requirement 1) or paging silently stops. totalItemCount/unreadItemCount drive the folder badges."
+  },
+  {
+    "id": "mail.folders.get",
+    "phase": 2,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderIdOrWellKnownName}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Well-known lookups: any failure → lookup treated as incomplete and retried next time (no exception). Probe: 403 or 404 → 'no access' (false); anything else → _mapDioException.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:304",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2154",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3489"
+    ],
+    "notes": "Resolves well-known names to ids: inbox, sentitems, deleteditems, junkemail, archive (getSpecialFolderIds, _fetchExpansionExcludedIds). Also the shared-mailbox access probe GET /users/{address}/mailFolders/inbox?$select=id (users form, address percent-encoded by Uri.encodeComponent, i.e. '@' → %40). The returned id must compare equal (string) to the parentFolderId the same server stamps on messages in that folder — Graph itself fails this (AQMk vs AAMk), which is why the client also sends parentFolderId ne '<id>' server-side."
+  },
+  {
+    "id": "mail.folders.list-children",
+    "phase": 2,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/childFolders",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "displayName",
+          "totalItemCount",
+          "unreadItemCount",
+          "parentFolderId",
+          "isHidden",
+          "childFolderCount"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [
+        100
+      ],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].displayName",
+      "value[].totalItemCount",
+      "value[].unreadItemCount",
+      "value[].parentFolderId",
+      "value[].isHidden",
+      "value[].childFolderCount",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:771"
+    ],
+    "notes": "Same projection and paging as mail.folders.list, one parent at a time (the client walks the tree level by level). Also used after a 409 on folder create to find the existing folder by displayName."
+  },
+  {
+    "id": "mail.messages.list-in-folder",
+    "phase": 2,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderIdOrWellKnownName}/messages",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "subject",
+          "from",
+          "toRecipients",
+          "ccRecipients",
+          "bccRecipients",
+          "bodyPreview",
+          "isRead",
+          "flag",
+          "receivedDateTime",
+          "sentDateTime",
+          "importance",
+          "conversationId",
+          "hasAttachments",
+          "parentFolderId"
+        ],
+        [
+          "id"
+        ]
+      ],
+      "filter": [
+        "isRead eq false"
+      ],
+      "orderby": [
+        "receivedDateTime desc"
+      ],
+      "top": [
+        25,
+        10,
+        5,
+        100,
+        "1..100"
+      ],
+      "search": [],
+      "expand": [],
+      "other": {
+        "$skip": [
+          0,
+          25,
+          50
+        ]
+      }
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].subject",
+      "value[].from.emailAddress.address",
+      "value[].from.emailAddress.name",
+      "value[].toRecipients[].emailAddress.{address,name}",
+      "value[].ccRecipients[].emailAddress.{address,name}",
+      "value[].bccRecipients[].emailAddress.{address,name}",
+      "value[].bodyPreview",
+      "value[].isRead",
+      "value[].flag.flagStatus",
+      "value[].receivedDateTime",
+      "value[].sentDateTime",
+      "value[].importance",
+      "value[].conversationId",
+      "value[].hasAttachments",
+      "value[].parentFolderId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:145",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2729"
+    ],
+    "notes": "Folder page (getEmails): always sends $top, $skip (0 on the first page — offset paging, not nextLink), $select=list projection, $orderby=receivedDateTime desc; $filter only from the AI agent tool (isRead eq false). @odata.nextLink is ignored here. emptyFolder sends only $top=100&$select=id and loops until a page has < 100 rows (it deletes as it goes, so it always re-reads page 1). After each page the client expands every conversationId on it via mail.messages.list-by-conversation."
+  },
+  {
+    "id": "mail.messages.list",
+    "phase": 2,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/messages",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "subject",
+          "from",
+          "toRecipients",
+          "ccRecipients",
+          "bccRecipients",
+          "bodyPreview",
+          "isRead",
+          "flag",
+          "receivedDateTime",
+          "sentDateTime",
+          "importance",
+          "conversationId",
+          "hasAttachments",
+          "parentFolderId"
+        ]
+      ],
+      "filter": [
+        "isRead eq false"
+      ],
+      "orderby": [
+        "receivedDateTime desc"
+      ],
+      "top": [
+        25,
+        "1..100"
+      ],
+      "search": [],
+      "expand": [],
+      "other": {
+        "$skip": [
+          0,
+          25
+        ]
+      }
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].subject",
+      "value[].from.emailAddress.address",
+      "value[].from.emailAddress.name",
+      "value[].toRecipients[].emailAddress.{address,name}",
+      "value[].ccRecipients[].emailAddress.{address,name}",
+      "value[].bccRecipients[].emailAddress.{address,name}",
+      "value[].bodyPreview",
+      "value[].isRead",
+      "value[].flag.flagStatus",
+      "value[].receivedDateTime",
+      "value[].sentDateTime",
+      "value[].importance",
+      "value[].conversationId",
+      "value[].hasAttachments",
+      "value[].parentFolderId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:146"
+    ],
+    "notes": "getEmails with folderId == null (the AI agent tool without a folder): the newest mail of the whole mailbox. Same parameters as mail.messages.list-in-folder."
+  },
+  {
+    "id": "mail.messages.list-by-conversation",
+    "phase": 2,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/messages",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "subject",
+          "from",
+          "toRecipients",
+          "ccRecipients",
+          "bccRecipients",
+          "bodyPreview",
+          "isRead",
+          "flag",
+          "receivedDateTime",
+          "sentDateTime",
+          "importance",
+          "conversationId",
+          "hasAttachments",
+          "parentFolderId"
+        ],
+        [
+          "id"
+        ]
+      ],
+      "filter": [
+        "conversationId in ('AAQkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAQAO8aPpjxtUhAlI2JxnVmPSI=','AAQkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAQAKF3YB0e1kBVtXQUq0f7Iks=')",
+        "conversationId in ('AAQkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAQAO8aPpjxtUhAlI2JxnVmPSI=','AAQkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAQAKF3YB0e1kBVtXQUq0f7Iks=') and parentFolderId ne 'AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEKAAA=' and parentFolderId ne 'AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEiAAA='",
+        "conversationId eq 'AAQkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAQAO8aPpjxtUhAlI2JxnVmPSI='",
+        "conversationId eq 'AAQkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAQAO8aPpjxtUhAlI2JxnVmPSI=' and parentFolderId ne 'AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEKAAA=' and parentFolderId ne 'AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEiAAA='"
+      ],
+      "orderby": [],
+      "top": [
+        200,
+        10
+      ],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].subject",
+      "value[].from.emailAddress.address",
+      "value[].from.emailAddress.name",
+      "value[].toRecipients[].emailAddress.{address,name}",
+      "value[].ccRecipients[].emailAddress.{address,name}",
+      "value[].bccRecipients[].emailAddress.{address,name}",
+      "value[].bodyPreview",
+      "value[].isRead",
+      "value[].flag.flagStatus",
+      "value[].receivedDateTime",
+      "value[].sentDateTime",
+      "value[].importance",
+      "value[].conversationId",
+      "value[].hasAttachments",
+      "value[].parentFolderId",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "Expansion failures are swallowed (the folder page is returned without cross-folder rows). _conversationMessageIds: 401/403 → AuthException path, others recorded and ignored.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:354",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:439",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1778"
+    ],
+    "notes": "Cross-folder thread expansion. Chunked: up to 15 quoted conversation ids per `in (...)` (the URL is ~2.5 KB); the `in` form follows @odata.nextLink (up to 25 pages), the `eq` forms read one page. If the `in` request fails the client falls back to one `eq` request per id; if a filter with `parentFolderId ne` clauses fails it retries without them. No $orderby, no $skip. The meeting-invite path (_conversationMessageIds) sends $filter=conversationId eq '...'&$select=id&$top=10 and must NOT be asked for eventMessage-only properties. Server must support `in` over conversationId and `ne` over parentFolderId combined with `and`."
+  },
+  {
+    "id": "mail.messages.search",
+    "phase": 2,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/messages",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "subject",
+          "from",
+          "toRecipients",
+          "ccRecipients",
+          "bccRecipients",
+          "bodyPreview",
+          "isRead",
+          "flag",
+          "receivedDateTime",
+          "sentDateTime",
+          "importance",
+          "conversationId",
+          "hasAttachments",
+          "parentFolderId"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [
+        50,
+        "1..100"
+      ],
+      "search": [
+        "\"quarterly numbers\"",
+        "\"from:alex@example.com\"",
+        "\"subject:invoice hasAttachments:true\"",
+        "\"to:sam@example.com budget\""
+      ],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].subject",
+      "value[].from.emailAddress.address",
+      "value[].from.emailAddress.name",
+      "value[].toRecipients[].emailAddress.{address,name}",
+      "value[].ccRecipients[].emailAddress.{address,name}",
+      "value[].bccRecipients[].emailAddress.{address,name}",
+      "value[].bodyPreview",
+      "value[].isRead",
+      "value[].flag.flagStatus",
+      "value[].receivedDateTime",
+      "value[].sentDateTime",
+      "value[].importance",
+      "value[].conversationId",
+      "value[].hasAttachments",
+      "value[].parentFolderId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:474"
+    ],
+    "notes": "Always mailbox-wide (never per folder). $search is the user's text wrapped in double quotes; the only rewrite is has:attachment → hasAttachments:true. Embedded double quotes are not escaped. No $orderby/$skip; nextLink ignored. See odata-subset.md §$search."
+  },
+  {
+    "id": "mail.messages.delta",
+    "phase": 2,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderIdOrWellKnownName}/messages/delta",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "subject",
+          "from",
+          "toRecipients",
+          "ccRecipients",
+          "bccRecipients",
+          "bodyPreview",
+          "isRead",
+          "flag",
+          "receivedDateTime",
+          "sentDateTime",
+          "importance",
+          "conversationId",
+          "hasAttachments",
+          "parentFolderId"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [
+        50
+      ],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].subject",
+      "value[].from.emailAddress.address",
+      "value[].from.emailAddress.name",
+      "value[].toRecipients[].emailAddress.{address,name}",
+      "value[].ccRecipients[].emailAddress.{address,name}",
+      "value[].bccRecipients[].emailAddress.{address,name}",
+      "value[].bodyPreview",
+      "value[].isRead",
+      "value[].flag.flagStatus",
+      "value[].receivedDateTime",
+      "value[].sentDateTime",
+      "value[].importance",
+      "value[].conversationId",
+      "value[].hasAttachments",
+      "value[].parentFolderId",
+      "value[].@removed.reason",
+      "@odata.nextLink",
+      "@odata.deltaLink"
+    ],
+    "successStatus": 200,
+    "paging": "deltaLink",
+    "clientErrorHandling": "ServerException with 400, 404 or 410 (or DeltaResyncRequiredException) → the stored token is discarded and the next cycle re-bootstraps with an initial delta. Other failures count toward a 3-strike streak.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3135"
+    ],
+    "notes": "Initial request: $select=list projection&$top=50, never a $filter (a date filter would be frozen into the token). Subsequent pages and later syncs GET the absolute @odata.nextLink / @odata.deltaLink verbatim (after unescaping \\/ and \\u0026), so the link must carry its own state, and must pass isGraphUrl (at 39ab812: https on *.graph.microsoft.com; after the 0.4 hook: same scheme/host/port as the account's Graph base URL) or the client drops it. Client follows at most 20 pages per call, then stores the nextLink as the cursor. The folder is always the well-known name 'inbox' (mail_poller_cubit.dart:524, :1399); other folders are re-listed with mail.messages.list-in-folder instead. Item kinds: whole message (has receivedDateTime) → upsert; `@removed: {reason: 'deleted'}` → removed; `@removed: {reason: 'changed'}` → moved out of folder; item WITHOUT receivedDateTime → partial update, only isRead and flag.flagStatus are read from it. Ending without a deltaLink → DeltaResyncRequiredException."
+  },
+  {
+    "id": "mail.messages.get",
+    "phase": 2,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [
+        "attachments($select=id,name,contentType,size,isInline)"
+      ],
+      "other": {}
+    },
+    "headers": {
+      "Prefer": [
+        "outlook.timezone=\"UTC\""
+      ]
+    },
+    "requestBody": null,
+    "responseFields": [
+      "@odata.type",
+      "id",
+      "subject",
+      "from.emailAddress.{address,name}",
+      "{toRecipients|ccRecipients|bccRecipients}[].emailAddress.address",
+      "body.content",
+      "body.contentType",
+      "bodyPreview",
+      "isRead",
+      "flag.flagStatus",
+      "receivedDateTime",
+      "sentDateTime",
+      "importance",
+      "conversationId",
+      "hasAttachments",
+      "parentFolderId",
+      "meetingMessageType (eventMessage)",
+      "startDateTime.{dateTime,timeZone} (eventMessage)",
+      "endDateTime.{dateTime,timeZone} (eventMessage)",
+      "location.displayName (eventMessage)",
+      "isAllDay (eventMessage)",
+      "proposedNewTime.{start,end}.dateTime (eventMessageResponse)",
+      "attachments[].{id,name,contentType,size,isInline,@odata.type}"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:501",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1541"
+    ],
+    "notes": "Reading-pane fetch: NO $select (Graph omits @odata.type on derived types when $select is present, and the client keys meeting UI off @odata.type/meetingMessageType). Must return the derived type's properties for eventMessage/eventMessageRequest/eventMessageResponse. With Prefer outlook.timezone=\"UTC\" the eventMessage startDateTime/endDateTime are UTC wall-clock without 'Z'. Inline attachments (isInline true) are then fetched one by one via mail.attachments.get for contentId/contentBytes; a non-inline text/calendar or *.ics attachment on a non-eventMessage is fetched for a 'published event' banner. The meeting-update path (:1541) GETs the message with no query/headers and reads conversationId, startDateTime and @odata.type."
+  },
+  {
+    "id": "mail.messages.get-plain-text-body",
+    "phase": 2,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "internetMessageHeaders",
+          "body"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {
+      "Prefer": [
+        "outlook.body-content-type=\"text\""
+      ]
+    },
+    "requestBody": null,
+    "responseFields": [
+      "internetMessageHeaders[].{name,value}",
+      "body.content"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "All failures swallowed (falls back to the HTML body).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:623"
+    ],
+    "notes": "Issued in parallel with mail.messages.get. If the first Content-Type header in internetMessageHeaders starts with text/plain, body.content (rendered as text because of the Prefer header) replaces the HTML body. Any failure → ignored."
+  },
+  {
+    "id": "mail.messages.get-mime",
+    "phase": 2,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/$value",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "<raw RFC 822 bytes>"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2946"
+    ],
+    "notes": "Raw MIME (forward-as-attachment, phishing inbox report, account migration). Read as bytes; Content-Type not inspected."
+  },
+  {
+    "id": "mail.attachments.list",
+    "phase": 2,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/attachments",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "name",
+          "contentType"
+        ],
+        [
+          "id",
+          "name",
+          "size"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].name",
+      "value[].contentType",
+      "value[].size"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1650",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2516",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2562"
+    ],
+    "notes": "$select uses only base `attachment` properties (selecting isInline/contentId here is a 400 on Graph). Used to find a text/calendar part (name *.ics or contentType text/calendar) and to reconcile draft / forward-draft attachments by name+size."
+  },
+  {
+    "id": "mail.attachments.get",
+    "phase": 2,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/attachments/{attachmentId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "@odata.type",
+      "id",
+      "name",
+      "contentType",
+      "size",
+      "isInline",
+      "contentId",
+      "contentBytes"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:536",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:596",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1672",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2760"
+    ],
+    "notes": "Full attachment, no query. fileAttachment must carry contentBytes (base64) and contentId for inline images. For an itemAttachment (attached email) contentBytes is absent and the client falls back to mail.attachments.get-value."
+  },
+  {
+    "id": "mail.attachments.get-value",
+    "phase": 2,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/attachments/{attachmentId}/$value",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "<raw bytes>"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2787"
+    ],
+    "notes": "Only reached for attachments whose GET has no contentBytes — an itemAttachment (attached email), served as raw MIME (.eml). Empty body → error."
+  },
+  {
+    "id": "mail.messages.update-read-state",
+    "phase": 3,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "subject",
+          "from",
+          "toRecipients",
+          "ccRecipients",
+          "bccRecipients",
+          "bodyPreview",
+          "isRead",
+          "flag",
+          "receivedDateTime",
+          "sentDateTime",
+          "importance",
+          "conversationId",
+          "hasAttachments",
+          "parentFolderId"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "isRead"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "subject",
+      "from.emailAddress.address",
+      "from.emailAddress.name",
+      "toRecipients[].emailAddress.{address,name}",
+      "ccRecipients[].emailAddress.{address,name}",
+      "bccRecipients[].emailAddress.{address,name}",
+      "bodyPreview",
+      "isRead",
+      "flag.flagStatus",
+      "receivedDateTime",
+      "sentDateTime",
+      "importance",
+      "conversationId",
+      "hasAttachments",
+      "parentFolderId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:694"
+    ],
+    "notes": "Only isRead is ever PATCHed on a received message (no flag or categories PATCH exists in the client). Response must be 200 with the updated message (honouring $select); an empty body is an error."
+  },
+  {
+    "id": "mail.drafts.create",
+    "phase": 3,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "subject",
+        "body.contentType ('Html'|'Text', capitalised)",
+        "body.content",
+        "{toRecipients|ccRecipients|bccRecipients}[].emailAddress.address"
+      ]
+    },
+    "responseFields": [
+      "id"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3674"
+    ],
+    "notes": "Server-side draft for autosave. contentType is sent capitalised ('Html'/'Text') — accept case-insensitively. cc/bcc omitted when empty. Attachments then added via mail.attachments.create."
+  },
+  {
+    "id": "mail.drafts.update",
+    "phase": 3,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{draftId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "subject",
+        "body.contentType ('Html'|'Text')",
+        "body.content",
+        "toRecipients",
+        "ccRecipients",
+        "bccRecipients"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3716"
+    ],
+    "notes": "Every field always sent (empty arrays clear). Response body ignored; the draft id is assumed unchanged — the server must keep a draft's id stable across PATCH (phase 3 'replacement + destroy' must preserve the Graph id). Followed by mail.attachments.list + create/delete to reconcile attachments."
+  },
+  {
+    "id": "mail.messages.delete",
+    "phase": 3,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3740"
+    ],
+    "notes": "Only used to delete a server draft (deleteServerDraft). Deleting received mail is a move to deleteditems (mail.messages.move)."
+  },
+  {
+    "id": "mail.messages.move",
+    "phase": 3,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/move",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "destinationId (folder id or well-known name: deleteditems, junkemail, inbox)"
+      ]
+    },
+    "responseFields": [
+      "id"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2606",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2619",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2632",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2712",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2742"
+    ],
+    "notes": "Delete = move to 'deleteditems'; report junk = move to 'junkemail'; not junk = move to 'inbox'. Response is 201 with the moved message; the client reads the NEW id from it (Graph assigns a new id on move; Nightware's stable ids may return the same id, which the client accepts)."
+  },
+  {
+    "id": "mail.messages.permanent-delete",
+    "phase": 3,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/permanentDelete",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2739"
+    ],
+    "notes": "emptyFolder(permanentDelete: true), one message at a time. No request body."
+  },
+  {
+    "id": "mail.messages.create-in-folder",
+    "phase": 3,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "subject",
+        "body.{contentType,content}",
+        "from.emailAddress.{address,name} (first attempt only)",
+        "toRecipients[].emailAddress.address",
+        "ccRecipients[].emailAddress.address",
+        "singleValueExtendedProperties[] {id:'SystemTime 0x0E06'|'SystemTime 0x0039'|'Integer 0x0E07', value}",
+        "isRead"
+      ]
+    },
+    "responseFields": [
+      "id"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "400 or 403 → retried once without `from`; 401 → AuthException; anything else → ServerException.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3567",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3586"
+    ],
+    "notes": "Account migration import. receivedDateTime/sentDateTime are conveyed via MAPI extended properties (0x0E06 PR_MESSAGE_DELIVERY_TIME, 0x0039 PR_CLIENT_SUBMIT_TIME, ISO-8601 UTC with ms) and PR_MESSAGE_FLAGS 0x0E07 ('1' read, '0' unread; clears MSGFLAG_UNSENT so it is not a draft). The façade must honour these three ids. body.contentType is 'html' or 'text'."
+  },
+  {
+    "id": "mail.attachments.create",
+    "phase": 3,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/attachments",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "@odata.type ('#microsoft.graph.fileAttachment')",
+        "name",
+        "contentType",
+        "contentBytes (base64)",
+        "isInline (only when true)",
+        "contentId (inline only)"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2539",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2587"
+    ],
+    "notes": "Adds a file to a draft (create-draft, createReply/createForward drafts, migration import). Response body ignored. No upload session is used for mail attachments (large files go inline too)."
+  },
+  {
+    "id": "mail.attachments.delete",
+    "phase": 3,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/attachments/{attachmentId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2531",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2577"
+    ],
+    "notes": "Removes a draft attachment (autosave reconciliation; attachments the user dropped from a createForward draft)."
+  },
+  {
+    "id": "mail.messages.send-draft",
+    "phase": 3,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/send",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2421",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2487"
+    ],
+    "notes": "Sends a createReply/createReplyAll/createForward draft after attachments were added. No body."
+  },
+  {
+    "id": "mail.send-mail",
+    "phase": 3,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/sendMail",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "message.subject",
+        "message.body.contentType ('html'|'text')",
+        "message.body.content",
+        "message.toRecipients[].emailAddress.address",
+        "message.ccRecipients (when non-empty)",
+        "message.bccRecipients (when non-empty)",
+        "message.attachments[] {@odata.type fileAttachment, name, contentType, contentBytes, isInline?, contentId?}",
+        "saveToSentItems (always true)"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2333"
+    ],
+    "notes": "New message send (no draft). Addresses are bare (\"Name <a@b>\" stripped to a@b). Inline images carry isInline+contentId and are referenced from the HTML as cid:."
+  },
+  {
+    "id": "mail.messages.reply",
+    "phase": 3,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/reply",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "message.subject (optional; Graph builds 'RE: …' when absent)",
+        "message.body.{contentType,content}",
+        "message.toRecipients / ccRecipients / bccRecipients (each only when non-empty)"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2406",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2405"
+    ],
+    "notes": "Sends a reply with no new attachments. The client sends the whole body it composed (quoted original included) in message.body and no `comment`; the server must NOT append the original again. Recipients, when given, replace Graph's defaults. Reply must thread: same conversationId, In-Reply-To/References set."
+  },
+  {
+    "id": "mail.messages.reply-all",
+    "phase": 3,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/replyAll",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "message.subject (optional; Graph builds 'RE: …' when absent)",
+        "message.body.{contentType,content}",
+        "message.toRecipients / ccRecipients / bccRecipients (each only when non-empty)"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2406",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2404"
+    ],
+    "notes": "Sends a reply-all with no new attachments. The client sends the whole body it composed (quoted original included) in message.body and no `comment`; the server must NOT append the original again. Recipients, when given, replace Graph's defaults. Reply must thread: same conversationId, In-Reply-To/References set."
+  },
+  {
+    "id": "mail.messages.create-reply",
+    "phase": 3,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/createReply",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "message.subject?",
+        "message.body.{contentType,content}",
+        "message.{to,cc,bcc}Recipients?"
+      ]
+    },
+    "responseFields": [
+      "id"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2412",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2411"
+    ],
+    "notes": "Reply that carries new attachments: create the reply draft (body as composed — not to be re-quoted by the server), add attachments, then mail.messages.send-draft. Only `id` is read."
+  },
+  {
+    "id": "mail.messages.create-reply-all",
+    "phase": 3,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/createReplyAll",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "message.subject?",
+        "message.body.{contentType,content}",
+        "message.{to,cc,bcc}Recipients?"
+      ]
+    },
+    "responseFields": [
+      "id"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2412",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2410"
+    ],
+    "notes": "Reply that carries new attachments: create the reply draft (body as composed — not to be re-quoted by the server), add attachments, then mail.messages.send-draft. Only `id` is read."
+  },
+  {
+    "id": "mail.messages.forward",
+    "phase": 3,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/forward",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "message.subject?",
+        "message.body.{contentType,content}",
+        "message.ccRecipients?",
+        "message.bccRecipients?",
+        "toRecipients[].emailAddress.address (top level, not inside message)"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2465"
+    ],
+    "notes": "Forward with all original attachments and none added. No `comment`: the composed body already embeds the original, so the server must not append it again. toRecipients is a TOP-LEVEL property; cc/bcc are inside message. The server copies the original's attachments."
+  },
+  {
+    "id": "mail.messages.create-forward",
+    "phase": 3,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/createForward",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "message.subject?",
+        "message.body.{contentType,content}",
+        "message.ccRecipients?",
+        "message.bccRecipients?",
+        "toRecipients (top level)"
+      ]
+    },
+    "responseFields": [
+      "id"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2475"
+    ],
+    "notes": "Forward that removes some original attachments and/or adds new ones: creates the draft (with copies of every original attachment, matched afterwards by name+size via mail.attachments.list), deletes excluded copies, adds new files, then send-draft."
+  },
+  {
+    "id": "mail.folders.create-child",
+    "phase": 3,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{parentFolderIdOrWellKnownName}/childFolders",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "displayName"
+      ]
+    },
+    "responseFields": [
+      "id"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "409 (duplicate name) → client lists childFolders and returns the existing folder's id; anything else → ServerException.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3439"
+    ],
+    "notes": "Top-level folders are created under the well-known name 'msgfolderroot'. Never uses POST {mailbox}/mailFolders."
+  },
+  {
+    "id": "mail.folders.update",
+    "phase": 3,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "displayName"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3612"
+    ],
+    "notes": "Rename. Response ignored; the folder id must survive the rename."
+  },
+  {
+    "id": "mail.folders.delete",
+    "phase": 3,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3625"
+    ],
+    "notes": "Deletes the folder and its contents."
+  },
+  {
+    "id": "mail.folders.move",
+    "phase": 3,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/move",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "destinationId (folder id or 'msgfolderroot')"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3643"
+    ],
+    "notes": "Response ignored; the client assumes the folder id is preserved by the move (it returns the input id)."
+  },
+  {
+    "id": "calendar.calendar-view.list",
+    "phase": 4,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendarView",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "iCalUId",
+          "subject",
+          "start",
+          "end",
+          "isAllDay",
+          "location",
+          "onlineMeeting",
+          "bodyPreview",
+          "showAs",
+          "isOrganizer",
+          "organizer",
+          "responseStatus",
+          "attendees",
+          "recurrence",
+          "isReminderOn",
+          "reminderMinutesBeforeStart",
+          "seriesMasterId"
+        ],
+        [
+          "id",
+          "isOrganizer",
+          "responseStatus"
+        ],
+        [
+          "id",
+          "isOrganizer"
+        ],
+        [
+          "id",
+          "start"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [
+        100,
+        50,
+        5
+      ],
+      "search": [],
+      "expand": [],
+      "other": {
+        "startDateTime": [
+          "2026-06-01T00:00:00.000Z"
+        ],
+        "endDateTime": [
+          "2026-07-01T00:00:00.000Z"
+        ]
+      }
+    },
+    "headers": {
+      "Prefer": [
+        "outlook.timezone=\"UTC\""
+      ]
+    },
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].iCalUId",
+      "value[].subject",
+      "value[].start.dateTime",
+      "value[].start.timeZone",
+      "value[].end.dateTime",
+      "value[].end.timeZone",
+      "value[].isAllDay",
+      "value[].location.displayName",
+      "value[].onlineMeeting.joinUrl",
+      "value[].onlineMeetingUrl (fallback, not selected)",
+      "value[].bodyPreview",
+      "value[].showAs",
+      "value[].isOrganizer",
+      "value[].responseStatus.response",
+      "value[].organizer.emailAddress.{address,name}",
+      "value[].attendees[].emailAddress.{address,name}",
+      "value[].attendees[].status.response",
+      "value[].attendees[].type",
+      "value[].recurrence.pattern.{type,interval,daysOfWeek}",
+      "value[].recurrence.range.{type,endDate,numberOfOccurrences}",
+      "value[].isReminderOn",
+      "value[].reminderMinutesBeforeStart",
+      "value[].seriesMasterId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:794",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1029",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1120",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1199",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1262",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1473",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1745"
+    ],
+    "notes": "Expanded occurrences in [startDateTime, endDateTime). Both bounds are Dart toIso8601String() in UTC: 'YYYY-MM-DDTHH:MM:SS.mmmZ' (milliseconds, Z). The client NEVER follows @odata.nextLink here — the server should return every event in the window up to $top (100 for the calendar view) in one page. Occurrences have recurrence null and carry seriesMasterId; the client then GETs the master's recurrence (calendar.events.get). The small-window variants locate a meeting from an invitation (±30 min / +2 h, or ±1 min with $top=5). With Prefer UTC the start/end are {dateTime without Z, timeZone:'UTC'}; the client appends Z when timeZone is UTC."
+  },
+  {
+    "id": "calendar.events.get",
+    "phase": 4,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "iCalUId",
+          "subject",
+          "start",
+          "end",
+          "isAllDay",
+          "location",
+          "onlineMeeting",
+          "bodyPreview",
+          "showAs",
+          "isOrganizer",
+          "organizer",
+          "responseStatus",
+          "attendees",
+          "recurrence",
+          "isReminderOn",
+          "reminderMinutesBeforeStart",
+          "seriesMasterId"
+        ],
+        [
+          "recurrence"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {
+      "Prefer": [
+        "outlook.timezone=\"UTC\""
+      ]
+    },
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "iCalUId",
+      "subject",
+      "start.dateTime",
+      "start.timeZone",
+      "end.dateTime",
+      "end.timeZone",
+      "isAllDay",
+      "location.displayName",
+      "onlineMeeting.joinUrl",
+      "onlineMeetingUrl (fallback, not selected)",
+      "bodyPreview",
+      "showAs",
+      "isOrganizer",
+      "responseStatus.response",
+      "organizer.emailAddress.{address,name}",
+      "attendees[].emailAddress.{address,name}",
+      "attendees[].status.response",
+      "attendees[].type",
+      "recurrence.pattern.{type,interval,daysOfWeek}",
+      "recurrence.range.{type,endDate,numberOfOccurrences}",
+      "isReminderOn",
+      "reminderMinutesBeforeStart",
+      "seriesMasterId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:840",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:875"
+    ],
+    "notes": "Full event (with Prefer UTC), or a series master's recurrence only ($select=recurrence, no Prefer). recurrence.pattern.type ∈ daily|weekly|absoluteMonthly|relativeMonthly|absoluteYearly|relativeYearly; range.type ∈ endDate|numbered|noEnd."
+  },
+  {
+    "id": "calendar.events.list-by-ical-uid",
+    "phase": 4,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/events",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id"
+        ],
+        [
+          "id",
+          "isOrganizer"
+        ]
+      ],
+      "filter": [
+        "iCalUId eq '040000008200E00074C5B7101A82E00800000000A1B2C3D4E5F6D901000000000000000010000000F1E2D3C4B5A69788'"
+      ],
+      "orderby": [],
+      "top": [
+        1,
+        5
+      ],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].isOrganizer"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1430",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1620"
+    ],
+    "notes": "Finds the user's own copy of a meeting by the UID from an invitation's text/calendar part. Single quotes inside the literal are doubled. Must match the series master (not occurrences)."
+  },
+  {
+    "id": "calendar.events.create",
+    "phase": 4,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/events",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "subject",
+        "isAllDay",
+        "isReminderOn",
+        "reminderMinutesBeforeStart?",
+        "isOnlineMeeting (only when true)",
+        "onlineMeetingProvider ('teamsForBusiness', only when online)",
+        "body {contentType:'text', content}?",
+        "start {dateTime 'YYYY-MM-DDTHH:MM:SS' local wall-clock, timeZone IANA e.g. 'Australia/Sydney'}",
+        "end {dateTime, timeZone}",
+        "locations[] {displayName, locationEmailAddress?, locationType 'conferenceRoom'?} (always sent, may be [])",
+        "location {displayName, …} (always sent; {displayName:''} when none)",
+        "attendees[] {emailAddress{address,name?}, type 'required'|'resource'} (always sent)",
+        "recurrence? {pattern{type daily|weekly|absoluteMonthly|absoluteYearly, interval, daysOfWeek?}, range{type endDate|numbered|noEnd, startDate 'YYYY-MM-DD', endDate?|numberOfOccurrences?}}"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "iCalUId",
+      "subject",
+      "start.dateTime",
+      "start.timeZone",
+      "end.dateTime",
+      "end.timeZone",
+      "isAllDay",
+      "location.displayName",
+      "onlineMeeting.joinUrl",
+      "onlineMeetingUrl (fallback, not selected)",
+      "bodyPreview",
+      "showAs",
+      "isOrganizer",
+      "responseStatus.response",
+      "organizer.emailAddress.{address,name}",
+      "attendees[].emailAddress.{address,name}",
+      "attendees[].status.response",
+      "attendees[].type",
+      "recurrence.pattern.{type,interval,daysOfWeek}",
+      "recurrence.range.{type,endDate,numberOfOccurrences}",
+      "isReminderOn",
+      "reminderMinutesBeforeStart",
+      "seriesMasterId"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:915"
+    ],
+    "notes": "start/end timeZone is an IANA zone name (from the device) — not a Windows name. The response is parsed as a full event (no Prefer header, so start/end come back in the given zone). Rooms are attendees of type 'resource' and also locations[] entries."
+  },
+  {
+    "id": "calendar.events.update",
+    "phase": 4,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "subject",
+        "isAllDay",
+        "isReminderOn",
+        "reminderMinutesBeforeStart?",
+        "isOnlineMeeting (only when true)",
+        "onlineMeetingProvider ('teamsForBusiness', only when online)",
+        "body {contentType:'text', content}?",
+        "start {dateTime 'YYYY-MM-DDTHH:MM:SS' local wall-clock, timeZone IANA e.g. 'Australia/Sydney'}",
+        "end {dateTime, timeZone}",
+        "locations[] {displayName, locationEmailAddress?, locationType 'conferenceRoom'?} (always sent, may be [])",
+        "location {displayName, …} (always sent; {displayName:''} when none)",
+        "attendees[] {emailAddress{address,name?}, type 'required'|'resource'} (always sent)",
+        "recurrence? {pattern{type daily|weekly|absoluteMonthly|absoluteYearly, interval, daysOfWeek?}, range{type endDate|numbered|noEnd, startDate 'YYYY-MM-DD', endDate?|numberOfOccurrences?}}",
+        "— or, accepting a proposed time: start/end only, {dateTime 'YYYY-MM-DDTHH:MM:SS.mmm' (no Z), timeZone:'UTC'}"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "iCalUId",
+      "subject",
+      "start.dateTime",
+      "start.timeZone",
+      "end.dateTime",
+      "end.timeZone",
+      "isAllDay",
+      "location.displayName",
+      "onlineMeeting.joinUrl",
+      "onlineMeetingUrl (fallback, not selected)",
+      "bodyPreview",
+      "showAs",
+      "isOrganizer",
+      "responseStatus.response",
+      "organizer.emailAddress.{address,name}",
+      "attendees[].emailAddress.{address,name}",
+      "attendees[].status.response",
+      "attendees[].type",
+      "recurrence.pattern.{type,interval,daysOfWeek}",
+      "recurrence.range.{type,endDate,numberOfOccurrences}",
+      "isReminderOn",
+      "reminderMinutesBeforeStart",
+      "seriesMasterId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:951",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1302"
+    ],
+    "notes": "Full edit sends every field (empty location/attendees clear them). Updating start/end on a meeting must notify attendees (Graph does; the client sends no separate update). Response parsed as a full event for the edit path; ignored for accept-proposal."
+  },
+  {
+    "id": "calendar.events.delete",
+    "phase": 4,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1180",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1214"
+    ],
+    "notes": "Removes a cancelled meeting from the attendee's calendar ('Remove from calendar' on a cancellation)."
+  },
+  {
+    "id": "calendar.events.accept",
+    "phase": 4,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}/accept",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "sendResponse (always true)",
+        "comment (string, may be '')"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "Inside the invitation fallback chain: 401/403 → AuthException/ServerException surfaced; other failures fall through to the next locator. Direct calls: _mapDioException.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1007",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1052"
+    ],
+    "notes": "RSVP on the user's copy of an event."
+  },
+  {
+    "id": "calendar.events.tentatively-accept",
+    "phase": 4,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}/tentativelyAccept",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "sendResponse (always true)",
+        "comment (string, may be '')"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "Inside the invitation fallback chain: 401/403 → AuthException/ServerException surfaced; other failures fall through to the next locator. Direct calls: _mapDioException.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1007",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1052"
+    ],
+    "notes": "RSVP on the user's copy of an event."
+  },
+  {
+    "id": "calendar.events.decline",
+    "phase": 4,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}/decline",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "sendResponse (always true)",
+        "comment (string, may be '')",
+        "proposedNewTime? {start,end: {dateTime, timeZone}} — propose-new-time is a decline carrying this"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "Inside the invitation fallback chain: 401/403 → AuthException/ServerException surfaced; other failures fall through to the next locator. Direct calls: _mapDioException.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1007",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1052",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1102",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1138",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1869",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1893"
+    ],
+    "notes": "RSVP on the user's copy of an event. Propose-new-time is sent as decline + proposedNewTime: from the event screen with local wall-clock + IANA zone, from an invitation with UTC ('YYYY-MM-DDTHH:MM:SS.mmm', timeZone 'UTC')."
+  },
+  {
+    "id": "calendar.messages.accept",
+    "phase": 4,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/accept",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "sendResponse (true)",
+        "comment"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "400 or 404 → 'action not available on this message type': client falls back to messages/{id}/microsoft.graph.eventMessage/event then events/{id}/accept, then a calendarView search. 401/403 → surfaced. So a façade that cannot RSVP via the message should answer 400/404, never 5xx.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:982"
+    ],
+    "notes": "First attempt when answering an invitation from the mail (eventMessageRequest). The action segment is interpolated (`$endpoint`)."
+  },
+  {
+    "id": "calendar.messages.tentatively-accept",
+    "phase": 4,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/tentativelyAccept",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "sendResponse (true)",
+        "comment"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "400 or 404 → 'action not available on this message type': client falls back to messages/{id}/microsoft.graph.eventMessage/event then events/{id}/tentativelyAccept, then a calendarView search. 401/403 → surfaced. So a façade that cannot RSVP via the message should answer 400/404, never 5xx.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:982"
+    ],
+    "notes": "First attempt when answering an invitation from the mail (eventMessageRequest). The action segment is interpolated (`$endpoint`)."
+  },
+  {
+    "id": "calendar.messages.decline",
+    "phase": 4,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/decline",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "sendResponse (true)",
+        "comment"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "400 or 404 → 'action not available on this message type': client falls back to messages/{id}/microsoft.graph.eventMessage/event then events/{id}/decline, then a calendarView search. 401/403 → surfaced. So a façade that cannot RSVP via the message should answer 400/404, never 5xx.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:982"
+    ],
+    "notes": "First attempt when answering an invitation from the mail (eventMessageRequest). The action segment is interpolated (`$endpoint`)."
+  },
+  {
+    "id": "calendar.events.cancel",
+    "phase": 4,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}/cancel",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "comment (always '')"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1244",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1279",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1831",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1854"
+    ],
+    "notes": "Organizer cancels (sends cancellation to attendees). 'Cancel this and following' cancels the whole series master."
+  },
+  {
+    "id": "calendar.events.forward",
+    "phase": 4,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}/forward",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "ToRecipients[].emailAddress.address (PascalCase key)",
+        "Comment (PascalCase key, may be '')"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "400 or 403 → MeetingForwardUnsupportedException (client then emails the invitation itself); 401 → AuthException; others → ServerException.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1321"
+    ],
+    "notes": "Body keys are PascalCase ('ToRecipients', 'Comment') — the server's JSON binding must be case-insensitive here."
+  },
+  {
+    "id": "calendar.messages.linked-event",
+    "phase": 4,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/microsoft.graph.eventMessage/event",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "isOrganizer"
+        ],
+        [
+          "id"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "isOrganizer"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-auth failure (400 'Resource not found for the segment', 404) → client tries the next spelling, then iCalUId lookup, then calendarView search. 401/403 → surfaced.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:52",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:994",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1090",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1170",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1229",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1401",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1705"
+    ],
+    "notes": "The calendar event an invitation/response message is about. The client tries several spellings in turn because Exchange builds disagree: eventMessageRequest cast → eventMessage cast → uncast (attendee forward), and eventMessageResponse cast → eventMessage cast → uncast (organizer resolving a proposal; this path sends no $select). All spellings should resolve to the same event. isOrganizer is read to refuse organizer-only actions (isOrganizer false → 'not the organizer')."
+  },
+  {
+    "id": "calendar.messages.linked-event-request-cast",
+    "phase": 4,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/microsoft.graph.eventMessageRequest/event",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "isOrganizer"
+        ],
+        [
+          "id"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "isOrganizer"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-auth failure (400 'Resource not found for the segment', 404) → client tries the next spelling, then iCalUId lookup, then calendarView search. 401/403 → surfaced.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1400"
+    ],
+    "notes": "The calendar event an invitation/response message is about. The client tries several spellings in turn because Exchange builds disagree: eventMessageRequest cast → eventMessage cast → uncast (attendee forward), and eventMessageResponse cast → eventMessage cast → uncast (organizer resolving a proposal; this path sends no $select). All spellings should resolve to the same event. isOrganizer is read to refuse organizer-only actions (isOrganizer false → 'not the organizer')."
+  },
+  {
+    "id": "calendar.messages.linked-event-response-cast",
+    "phase": 4,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/microsoft.graph.eventMessageResponse/event",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "isOrganizer"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-auth failure (400 'Resource not found for the segment', 404) → client tries the next spelling, then iCalUId lookup, then calendarView search. 401/403 → surfaced.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1704"
+    ],
+    "notes": "The calendar event an invitation/response message is about. The client tries several spellings in turn because Exchange builds disagree: eventMessageRequest cast → eventMessage cast → uncast (attendee forward), and eventMessageResponse cast → eventMessage cast → uncast (organizer resolving a proposal; this path sends no $select). All spellings should resolve to the same event. isOrganizer is read to refuse organizer-only actions (isOrganizer false → 'not the organizer')."
+  },
+  {
+    "id": "calendar.messages.linked-event-uncast",
+    "phase": 4,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/event",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "isOrganizer"
+        ],
+        [
+          "id"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "isOrganizer"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-auth failure (400 'Resource not found for the segment', 404) → client tries the next spelling, then iCalUId lookup, then calendarView search. 401/403 → surfaced.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1402",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:1706"
+    ],
+    "notes": "The calendar event an invitation/response message is about. The client tries several spellings in turn because Exchange builds disagree: eventMessageRequest cast → eventMessage cast → uncast (attendee forward), and eventMessageResponse cast → eventMessage cast → uncast (organizer resolving a proposal; this path sends no $select). All spellings should resolve to the same event. isOrganizer is read to refuse organizer-only actions (isOrganizer false → 'not the organizer')."
+  },
+  {
+    "id": "calendar.get-schedule",
+    "phase": 4,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/getSchedule",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "schedules[] (email addresses, ≤ 20 per call)",
+        "startTime {dateTime 'YYYY-MM-DDTHH:MM:SS.mmm' (no Z), timeZone 'UTC'}",
+        "endTime {…}"
+      ]
+    },
+    "responseFields": [
+      "value[].scheduleId",
+      "value[].availabilityView",
+      "value[].scheduleItems[].status",
+      "value[].scheduleItems[].start.dateTime",
+      "value[].scheduleItems[].end.dateTime",
+      "value[].scheduleItems[].subject",
+      "value[].scheduleItems[].isPrivate"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3214"
+    ],
+    "notes": "Free/busy for people and rooms; batches of 20 run concurrently. No availabilityViewInterval is sent (Graph default 30 min). availabilityView digits: 0 free,1 tentative,2 busy,3 oof,4 workingElsewhere. scheduleItems times are read as UTC (client strips fractional seconds and appends Z) — return them in UTC. status ∈ free|tentative|busy|oof|workingElsewhere."
+  },
+  {
+    "id": "rooms.places.list",
+    "phase": 4,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/places/microsoft.graph.room",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [
+        500
+      ],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].emailAddress",
+      "value[].displayName",
+      "value[].capacity",
+      "value[].building",
+      "value[].floorNumber",
+      "value[].isWheelChairAccessible",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "401/403/404 → falls back to rooms.find-rooms (beta). Other errors on page 1 → fallback; on later pages → keep what was read.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3299"
+    ],
+    "notes": "Tenant room directory. $top is embedded in the path string ('/places/microsoft.graph.room?$top=500'). Follows @odata.nextLink up to 10 pages — read as data['@odata.nextLink'] WITHOUT the graph.microsoft.com host check that other paging applies. floorNumber is an int; capacity int."
+  },
+  {
+    "id": "rooms.find-rooms",
+    "phase": 4,
+    "method": "GET",
+    "version": "beta",
+    "path": "/me/findRooms",
+    "forms": [
+      "me"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].address",
+      "value[].name"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any failure → empty room list.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3345"
+    ],
+    "notes": "Fallback room list. Absolute URL https://graph.microsoft.com/beta/me/findRooms — ALWAYS /me, even for a shared-mailbox account. No paging."
+  },
+  {
+    "id": "directory.me.get",
+    "phase": "5A",
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "displayName",
+          "mail",
+          "userPrincipalName"
+        ],
+        [
+          "givenName",
+          "surname",
+          "jobTitle",
+          "mobilePhone",
+          "businessPhones"
+        ],
+        [
+          "id",
+          "mail",
+          "userPrincipalName"
+        ],
+        [
+          "mail",
+          "userPrincipalName",
+          "proxyAddresses"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "displayName",
+      "mail",
+      "userPrincipalName",
+      "givenName",
+      "surname",
+      "jobTitle",
+      "mobilePhone",
+      "businessPhones[]",
+      "proxyAddresses[] ('SMTP:'/'smtp:' prefixed; only smtp entries used)"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Signature prefill: 403 → null. Sign-in lookup: any failure → empty list ('could not tell', token accepted). Others → _mapDioException.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2087",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2180",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2672",
+      "lib/infrastructure/auth/signed_in_mailbox_lookup.dart:87"
+    ],
+    "notes": "The signed-in user (or, through _base, the shared mailbox's user object). Variants: account setup profile (displayName,mail,userPrincipalName); signature prefill (givenName,surname,jobTitle,mobilePhone,businessPhones); threat-submission identity (/me only: id,mail,userPrincipalName — id is used as users/{id}); sign-in verification (absolute https://graph.microsoft.com/v1.0/me with an explicit bearer for the token under test: mail,userPrincipalName,proxyAddresses)."
+  },
+  {
+    "id": "directory.users.get",
+    "phase": "5A",
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/users/{userIdOrUpn}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [
+        [
+          "displayName",
+          "jobTitle",
+          "department",
+          "companyName",
+          "mobilePhone",
+          "businessPhones",
+          "officeLocation",
+          "mail",
+          "userPrincipalName"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "displayName",
+      "jobTitle",
+      "department",
+      "companyName",
+      "mobilePhone",
+      "businessPhones[]",
+      "officeLocation",
+      "mail",
+      "userPrincipalName"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "404 (not in directory) or 403 → null, silently. Others → _mapDioException.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2109"
+    ],
+    "notes": "Contact card lookup by email address; the address is Uri.encodeComponent-ed ('@' → '%40'). Note the mailbox base (`/users/{address}`, raw '@') resolves to the same route — the server must accept both encodings."
+  },
+  {
+    "id": "directory.users.list",
+    "phase": "5A",
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/users",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [
+        [
+          "displayName",
+          "mail",
+          "userPrincipalName"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [
+        999
+      ],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].displayName",
+      "value[].mail",
+      "value[].userPrincipalName",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "Failure recorded as a partial sync ('directory: HTTP 403'), not thrown.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2249"
+    ],
+    "notes": "Whole directory for the daily contact-cache refresh. No $filter/$search. Follows nextLink up to 25 pages (host-checked)."
+  },
+  {
+    "id": "directory.users.photo-value",
+    "phase": "5A",
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/users/{userIdOrUpn}/photo/$value",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "<image bytes>"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "All failures swallowed.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2310"
+    ],
+    "notes": "Contact-card avatar; address percent-encoded. Any failure (404 no photo, 403) → no photo."
+  },
+  {
+    "id": "contacts.list",
+    "phase": "5A",
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/contacts",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "displayName",
+          "emailAddresses"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [
+        999
+      ],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].displayName",
+      "value[].emailAddresses[].address",
+      "value[].emailAddresses[].name",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "Failure recorded as partial sync.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2245"
+    ],
+    "notes": "Personal contacts for the typeahead cache (read-only: the client never creates/updates contacts). Follows nextLink up to 25 pages."
+  },
+  {
+    "id": "people.list",
+    "phase": "5A",
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/people",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "displayName",
+          "scoredEmailAddresses"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [
+        999
+      ],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].displayName",
+      "value[].scoredEmailAddresses[].address",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "Failure recorded as partial sync.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2253"
+    ],
+    "notes": "Relevance-ranked people for the typeahead cache. No $search (the phase-5 plan's `people?$search` is not used by the client). Graph clamps $top itself."
+  },
+  {
+    "id": "tasks.lists.list",
+    "phase": "5B",
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [
+        100
+      ],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].displayName",
+      "value[].wellknownListName ('defaultList' marks the default)"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2802"
+    ],
+    "notes": "No paging followed (first 100 lists only)."
+  },
+  {
+    "id": "tasks.tasks.list",
+    "phase": "5B",
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [
+        "status ne 'completed'"
+      ],
+      "orderby": [
+        "createdDateTime desc"
+      ],
+      "top": [
+        200
+      ],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].title",
+      "value[].status",
+      "value[].importance",
+      "value[].body.content",
+      "value[].dueDateTime.dateTime",
+      "value[].completedDateTime.dateTime",
+      "value[].isReminderOn",
+      "value[].reminderDateTime.dateTime",
+      "value[].createdDateTime",
+      "value[].lastModifiedDateTime",
+      "value[].hasAttachments"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2828"
+    ],
+    "notes": "$filter present unless completed tasks are included. No paging followed. Task datetimes ({dateTime,timeZone}) are parsed with DateTime.tryParse(dateTime) and converted to local — dateTime without Z is read as LOCAL time, so return dueDateTime in the form Graph does ('YYYY-MM-DDT00:00:00.0000000', timeZone 'UTC')."
+  },
+  {
+    "id": "tasks.tasks.create",
+    "phase": "5B",
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "title",
+        "importance ('low'|'normal'|'high')",
+        "body {content, contentType 'text'}?",
+        "dueDateTime {dateTime 'YYYY-MM-DDT00:00:00', timeZone 'UTC'}?"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "title",
+      "status",
+      "importance",
+      "body.content",
+      "dueDateTime.dateTime",
+      "completedDateTime.dateTime",
+      "isReminderOn",
+      "reminderDateTime.dateTime",
+      "createdDateTime",
+      "lastModifiedDateTime",
+      "hasAttachments"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2870"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "tasks.tasks.update",
+    "phase": "5B",
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "status ('notStarted'|'inProgress'|'completed'|'waitingOnOthers'|'deferred')",
+        "— or — dueDateTime {dateTime, timeZone 'UTC'} | null (null clears)"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "title",
+      "status",
+      "importance",
+      "body.content",
+      "dueDateTime.dateTime",
+      "completedDateTime.dateTime",
+      "isReminderOn",
+      "reminderDateTime.dateTime",
+      "createdDateTime",
+      "lastModifiedDateTime",
+      "hasAttachments"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2897",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2926"
+    ],
+    "notes": "Two shapes: status only, or dueDateTime only (explicit JSON null clears the due date). Response parsed as the full task; empty body is an error. The client never deletes tasks."
+  },
+  {
+    "id": "tasks.attachments.list",
+    "phase": "5B",
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/attachments",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].name",
+      "value[].contentType",
+      "value[].size"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3066"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "tasks.attachments.create",
+    "phase": "5B",
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/attachments",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "@odata.type '#microsoft.graph.taskFileAttachment'",
+        "name",
+        "contentType 'message/rfc822'",
+        "contentBytes (base64)",
+        "size"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "name",
+      "contentType",
+      "size"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2996"
+    ],
+    "notes": "Attach an email (.eml) ≤ 3 MB inline. Larger goes through createUploadSession."
+  },
+  {
+    "id": "tasks.attachments.create-upload-session",
+    "phase": "5B",
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/attachments/createUploadSession",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "attachmentItem.@odata.type '#microsoft.graph.fileAttachmentUploadProperties'",
+        "attachmentItem.attachmentType 'file'",
+        "attachmentItem.contentType",
+        "attachmentItem.name",
+        "attachmentItem.size"
+      ]
+    },
+    "responseFields": [
+      "uploadUrl"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3018"
+    ],
+    "notes": "Attachments > 3 MB. The returned uploadUrl is PUT to by a separate Dio WITHOUT the bearer token (tasks.attachments.upload-session-put), so it must be pre-authorised (signed/opaque) and must accept the whole file in one PUT."
+  },
+  {
+    "id": "tasks.attachments.upload-session-put",
+    "phase": "5B",
+    "method": "PUT",
+    "version": "v1.0",
+    "path": "{uploadUrl}",
+    "forms": [
+      "external"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "<raw bytes, whole file in one request>"
+      ],
+      "headers": [
+        "Content-Range: bytes 0-{size-1}/{size}",
+        "Content-Length",
+        "Content-Type: message/rfc822"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "name",
+      "contentType",
+      "size"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3040"
+    ],
+    "notes": "Not a Graph route: the absolute uploadUrl from createUploadSession, called with NO Authorization header and a 60 s timeout. Single PUT of the entire file; the final response must be the created attachment (JSON) — the client parses it as a taskFileAttachment."
+  },
+  {
+    "id": "tasks.attachments.get-value",
+    "phase": "5B",
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/attachments/{attachmentId}/$value",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "<raw bytes>"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3086"
+    ],
+    "notes": ""
+  },
+  {
+    "id": "mailbox-settings.get",
+    "phase": "5B",
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailboxSettings",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "automaticRepliesSetting",
+          "timeZone"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "timeZone (Windows zone name, e.g. 'AUS Eastern Standard Time')",
+      "automaticRepliesSetting.status ('disabled'|'scheduled'|'alwaysEnabled')",
+      "automaticRepliesSetting.externalAudience ('none'|'contactsOnly'|'all')",
+      "automaticRepliesSetting.internalReplyMessage",
+      "automaticRepliesSetting.externalReplyMessage",
+      "automaticRepliesSetting.scheduledStartDateTime.dateTime",
+      "automaticRepliesSetting.scheduledEndDateTime.dateTime"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3804"
+    ],
+    "notes": "Read before every write (the zone the schedule is expressed in is the mailbox's). scheduled*DateTime are read as wall-clock in the mailbox zone with NO conversion; year < 1900 (Graph's 0001-01-01) means unset. language/workingHours are never read."
+  },
+  {
+    "id": "mailbox-settings.update",
+    "phase": "5B",
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/mailboxSettings",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "automaticRepliesSetting.status ('scheduled'|'disabled')",
+        "automaticRepliesSetting.externalAudience ('all'|'contactsOnly'|'none')",
+        "automaticRepliesSetting.internalReplyMessage (HTML)",
+        "automaticRepliesSetting.externalReplyMessage (HTML)",
+        "automaticRepliesSetting.scheduledStartDateTime? {dateTime 'YYYY-MM-DDTHH:MM:SS.0000000', timeZone (mailbox's Windows zone, or 'UTC')}",
+        "automaticRepliesSetting.scheduledEndDateTime? {…}"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:3778"
+    ],
+    "notes": "automaticRepliesSetting is sent whole (Graph replaces complex properties). Response ignored. Needs MailboxSettings.ReadWrite (incremental scope on Microsoft)."
+  },
+  {
+    "id": "files.shares.drive-item",
+    "phase": "5B",
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/shares/{shareId}/driveItem",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "name",
+          "size",
+          "file",
+          "folder"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "name",
+      "size",
+      "file.mimeType",
+      "folder (presence → not previewable)"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_drive_datasource_impl.dart:64"
+    ],
+    "notes": "shareId = 'u!' + unpadded base64url of the sharing URL found in a message body (SharePoint/OneDrive link). Nightware must decode it and map a Nextcloud share link. Microsoft-only in the client today (GraphEndpoints.isMicrosoft) — may be gated off for Nightware accounts."
+  },
+  {
+    "id": "files.shares.drive-item-content",
+    "phase": "5B",
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/shares/{shareId}/driveItem/content",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {
+        "format": [
+          "pdf"
+        ]
+      }
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "Location header (302) or body bytes (200)"
+    ],
+    "successStatus": 302,
+    "paging": "none",
+    "clientErrorHandling": "Conversion request: any failure → fall back to raw download. Raw: 401 → AuthException; other ≥400 → ServerException.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_drive_datasource_impl.dart:135"
+    ],
+    "notes": "Requested with followRedirects:false. 302 + Location → the client GETs the Location with a separate Dio and NO Authorization header (so it must be pre-authorised); 200 with the bytes inline is also accepted. ?format=pdf asks for a server-side PDF conversion of Office documents; any failure there falls back to the raw file. Size cap 40 MB."
+  },
+  {
+    "id": "security.threat-submission.email-threats.create",
+    "phase": "5B",
+    "method": "POST",
+    "version": "beta",
+    "path": "/security/threatSubmission/emailThreats",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "@odata.type '#microsoft.graph.security.emailUrlThreatSubmission'",
+        "category 'phishing'",
+        "recipientEmailAddress (mailbox's mail/UPN)",
+        "messageUrl 'https://graph.microsoft.com/beta/users/{userIdOrAddress}/messages/{messageId}' (absolute, hardcoded host)"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "_mapDioException; the presentation layer maps a missing grant to PhishingReportAccessNotGranted before calling.",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2650",
+      "lib/data/datasources/remote/graph_api_datasource_impl.dart:2692"
+    ],
+    "notes": "Absolute URL https://graph.microsoft.com/beta/security/threatSubmission/emailThreats. The message is named by messageUrl, an absolute Graph BETA URL whose host is hardcoded to graph.microsoft.com and whose user segment is the directory id (own mailbox, from GET /me?$select=id,mail,userPrincipalName) or the shared mailbox address. The server must parse users/{id}/messages/{id} out of it. Submitted BEFORE the junk move (move changes the Graph id). Response body ignored. Microsoft-only in the client (needs ThreatSubmission.ReadWrite); likely gated off for Nightware accounts."
+  }
+]

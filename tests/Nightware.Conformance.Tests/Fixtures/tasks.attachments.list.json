@@ -1,0 +1,33 @@
+{
+  "operationId": "tasks.attachments.list",
+  "provenance": "client code lib/data/models/todo_task_attachment_model.dart; Constructed from the Graph v1.0 resource shape (taskFileAttachment) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/todo/lists/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAA=/tasks/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAAiIsqMbYjsT5e-T7KzowPTAAAYbx0QAAA=/attachments",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/todo/lists('AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAA=')/tasks('AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAESAAAiIsqMbYjsT5e-T7KzowPTAAAYbx0QAAA=')/attachments",
+      "value": [
+        {
+          "@odata.type": "#microsoft.graph.taskFileAttachment",
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAYbx0QAAABEgAQAPsGU-q5x0BMtIaiI4ZjN1Y=",
+          "name": "Quarterly numbers.eml",
+          "contentType": "message/rfc822",
+          "size": 2048,
+          "lastModifiedDateTime": "2026-06-01T10:06:00Z"
+        }
+      ]
+    }
+  }
+}

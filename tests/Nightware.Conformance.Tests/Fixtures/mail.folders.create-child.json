@@ -1,0 +1,33 @@
+{
+  "operationId": "mail.folders.create-child",
+  "provenance": "client code graph_api_datasource_impl.dart:3426-3460 (msgfolderroot, 409 fallback); Constructed from the Graph v1.0 resource shape (mailFolder) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/mailFolders/msgfolderroot/childFolders",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "displayName": "Projects"
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/mailFolders('msgfolderroot')/childFolders/$entity",
+      "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAYbvZFAAA=",
+      "displayName": "Projects",
+      "parentFolderId": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEIAAA=",
+      "childFolderCount": 0,
+      "unreadItemCount": 0,
+      "totalItemCount": 0,
+      "isHidden": false
+    }
+  }
+}

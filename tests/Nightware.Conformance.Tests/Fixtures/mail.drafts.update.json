@@ -1,0 +1,42 @@
+{
+  "operationId": "mail.drafts.update",
+  "provenance": "client code graph_api_datasource_impl.dart:3699-3735; Constructed from the Graph v1.0 resource shape (message) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
+  "request": {
+    "method": "PATCH",
+    "path": "/v1.0/me/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZEAAA=",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "subject": "Draft: Q2 follow-up",
+      "body": {
+        "contentType": "Text",
+        "content": "Updated draft text"
+      },
+      "toRecipients": [
+        {
+          "emailAddress": {
+            "address": "alex@example.com"
+          }
+        }
+      ],
+      "ccRecipients": [],
+      "bccRecipients": []
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/messages/$entity",
+      "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZEAAA=",
+      "isDraft": true,
+      "subject": "Draft: Q2 follow-up"
+    }
+  }
+}
