@@ -36,6 +36,13 @@ public sealed class DirectoryOptions
     /// <summary>The service-account token is refreshed this long before it expires.</summary>
     public TimeSpan ServiceAccountTokenRefreshSkew { get; set; } = TimeSpan.FromSeconds(30);
 
+    /// <summary>
+    /// Space-separated scopes requested with the service-account token. Keycloak 26.8+
+    /// only lets tokens carrying the <c>kc-admin-api</c> scope call the admin REST API —
+    /// the realm-management audience and roles alone get a 401.
+    /// </summary>
+    public string ServiceAccountScope { get; set; } = "kc-admin-api";
+
     internal Uri RealmUrl => new($"{BaseUrlWithoutSlash}/realms/{Uri.EscapeDataString(Realm)}");
 
     internal Uri TokenEndpoint => new($"{RealmUrl}/protocol/openid-connect/token");

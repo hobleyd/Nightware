@@ -1,0 +1,202 @@
+{
+  "realm": "nightware",
+  "displayName": "Nightware",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["en", "de", "fr", "es", "it", "nl", "pt-BR", "ja"],
+  "defaultLocale": "en",
+  "accessTokenLifespan": 900,
+  "ssoSessionIdleTimeout": 86400,
+  "ssoSessionMaxLifespan": 864000,
+  "offlineSessionIdleTimeout": 2592000,
+  "oauth2DeviceCodeLifespan": 600,
+  "oauth2DevicePollingInterval": 5,
+  "clients": [
+    {
+      "clientId": "nightmail",
+      "name": "NightMail",
+      "description": "NightMail client: public, authorization code + PKCE (S256), response_mode=query. Redirects: nightmail://auth-callback (macOS/iOS/Android), http://localhost:34571 exactly (Windows/Linux), <web origin>/callback.html (web).",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "redirectUris": [
+        "nightmail://auth-callback",
+        "http://localhost:34571",
+        "${NIGHTMAIL_WEB_ORIGIN}/callback.html"
+      ],
+      "webOrigins": ["+", "${NIGHTMAIL_WEB_ORIGIN}"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "oauth2.device.authorization.grant.enabled": "true",
+        "post.logout.redirect.uris": "+",
+        "use.refresh.tokens": "true"
+      },
+      "defaultClientScopes": ["web-origins", "acr", "basic", "profile", "email", "roles"],
+      "optionalClientScopes": ["offline_access", "address", "phone", "microprofile-jwt"],
+      "protocolMappers": [
+        {
+          "name": "audience nightware-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "nightware-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "nightware-dev",
+      "name": "Nightware dev/test client",
+      "description": "DEV ONLY. Confidential client with the password grant, so scripts (smoke.sh, integration tests) can get a user token without a browser. Tokens look like NightMail's (aud nightware-api).",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${NIGHTWARE_DEV_CLIENT_SECRET}",
+      "clientAuthenticatorType": "client-secret",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "defaultClientScopes": ["web-origins", "acr", "basic", "profile", "email", "roles"],
+      "optionalClientScopes": ["offline_access"],
+      "protocolMappers": [
+        {
+          "name": "audience nightware-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "nightware-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "nightware-api",
+      "name": "Nightware Graph API",
+      "description": "The façade. Resource server for NightMail tokens (aud nightware-api); confidential client that exchanges inbound user tokens (RFC 8693) for tokens audienced to stalwart / nextcloud; service account for Keycloak admin-API directory lookups.",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${NIGHTWARE_API_CLIENT_SECRET}",
+      "clientAuthenticatorType": "client-secret",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "attributes": {
+        "standard.token.exchange.enabled": "true",
+        "standard.token.exchange.enableRefreshRequestedTokenType": "NO"
+      },
+      "defaultClientScopes": ["web-origins", "acr", "basic", "profile", "email", "roles"],
+      "optionalClientScopes": ["offline_access", "kc-admin-api"],
+      "protocolMappers": [
+        {
+          "name": "audience stalwart",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "stalwart",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "audience nextcloud",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "nextcloud",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "stalwart",
+      "name": "Stalwart Mail Server",
+      "description": "Audience-only client: Stalwart's OIDC directory accepts tokens with aud=stalwart (acceptedAudiences). No flows enabled.",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": false,
+      "secret": "unused-audience-only-client",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "nextcloud",
+      "name": "Nextcloud",
+      "description": "Nextcloud user_oidc provider client. Browser login to Nextcloud, and the audience Nextcloud requires on bearer tokens (CalDAV/CardDAV/WebDAV/OCS).",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${NEXTCLOUD_OIDC_CLIENT_SECRET}",
+      "clientAuthenticatorType": "client-secret",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["https://cloud.${BASE_DOMAIN}${PUBLIC_PORT_SUFFIX:}/*"],
+      "webOrigins": ["+"],
+      "attributes": {
+        "post.logout.redirect.uris": "+"
+      },
+      "defaultClientScopes": ["web-origins", "acr", "basic", "profile", "email", "roles"],
+      "optionalClientScopes": ["offline_access"]
+    }
+  ],
+  "users": [
+    {
+      "username": "alice",
+      "email": "alice@${BASE_DOMAIN}",
+      "emailVerified": true,
+      "firstName": "Alice",
+      "lastName": "Anderson",
+      "enabled": true,
+      "realmRoles": ["default-roles-nightware"],
+      "credentials": [{ "type": "password", "value": "${TEST_USER_PASSWORD}", "temporary": false }]
+    },
+    {
+      "username": "bob",
+      "email": "bob@${BASE_DOMAIN}",
+      "emailVerified": true,
+      "firstName": "Bob",
+      "lastName": "Brown",
+      "enabled": true,
+      "realmRoles": ["default-roles-nightware"],
+      "credentials": [{ "type": "password", "value": "${TEST_USER_PASSWORD}", "temporary": false }]
+    },
+    {
+      "username": "service-account-nightware-api",
+      "enabled": true,
+      "serviceAccountClientId": "nightware-api",
+      "clientRoles": {
+        "realm-management": ["view-users", "query-users", "manage-users"]
+      }
+    }
+  ]
+}

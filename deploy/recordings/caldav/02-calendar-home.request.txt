@@ -1,0 +1,5 @@
+PROPFIND /remote.php/dav/calendars/alice/
+Depth: 1
+Content-Type: application/xml; charset=utf-8
+
+<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:ic="http://apple.com/ns/ical/" xmlns:oc="http://owncloud.org/ns"><d:prop><d:resourcetype/><d:displayname/><cs:getctag/><d:sync-token/><c:supported-calendar-component-set/><ic:calendar-color/><d:current-user-privilege-set/><oc:owner-principal/></d:prop></d:propfind>

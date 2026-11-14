@@ -1,0 +1,5 @@
+PROPFIND /remote.php/dav/principals/users/alice/
+Depth: 0
+Content-Type: application/xml; charset=utf-8
+
+<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:card="urn:ietf:params:xml:ns:carddav"><d:prop><d:current-user-principal/><d:displayname/><c:calendar-home-set/><c:calendar-user-address-set/><c:schedule-inbox-URL/><c:schedule-outbox-URL/><card:addressbook-home-set/></d:prop></d:propfind>

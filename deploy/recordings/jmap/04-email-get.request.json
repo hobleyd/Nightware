@@ -1,0 +1,53 @@
+{
+  "using": [
+    "urn:ietf:params:jmap:core",
+    "urn:ietf:params:jmap:mail",
+    "urn:ietf:params:jmap:submission"
+  ],
+  "methodCalls": [
+    [
+      "Email/get",
+      {
+        "accountId": "c",
+        "ids": [
+          "qaaaaae",
+          "maaaaad",
+          "iaaaaac",
+          "eaaaaab"
+        ],
+        "properties": [
+          "id",
+          "blobId",
+          "threadId",
+          "mailboxIds",
+          "keywords",
+          "size",
+          "receivedAt",
+          "messageId",
+          "inReplyTo",
+          "references",
+          "sender",
+          "from",
+          "to",
+          "cc",
+          "bcc",
+          "replyTo",
+          "subject",
+          "sentAt",
+          "hasAttachment",
+          "preview",
+          "bodyStructure",
+          "bodyValues",
+          "textBody",
+          "htmlBody",
+          "attachments",
+          "headers"
+        ],
+        "fetchTextBodyValues": true,
+        "fetchHTMLBodyValues": true,
+        "maxBodyValueBytes": 262144
+      },
+      "0"
+    ]
+  ]
+}

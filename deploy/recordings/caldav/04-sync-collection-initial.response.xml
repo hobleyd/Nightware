@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+  <d:response>
+    <d:href>/remote.php/dav/calendars/alice/personal/cZVdGon9U23ve7Xvfn2Z14AoiuAyfh9N.ics</d:href>
+    <d:propstat>
+      <d:prop>
+        <d:getetag>"03aa63e0511952f95d8df221aa796866"</d:getetag>
+      </d:prop>
+      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+  <d:response>
+    <d:href>/remote.php/dav/calendars/alice/personal/nightware-imip-1794691379-21016.ics</d:href>
+    <d:propstat>
+      <d:prop>
+        <d:getetag>"630849b5c8b7fd6ddcdb8054e541a94b"</d:getetag>
+      </d:prop>
+      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+  <d:response>
+    <d:href>/remote.php/dav/calendars/alice/personal/nightware-imip-1794691430-21645.ics</d:href>
+    <d:propstat>
+      <d:prop>
+        <d:getetag>"dbae21a7f6045d2a6369627a2c268117"</d:getetag>
+      </d:prop>
+      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+  <d:response>
+    <d:href>/remote.php/dav/calendars/alice/personal/nightware-imip-1794691515-5982.ics</d:href>
+    <d:propstat>
+      <d:prop>
+        <d:getetag>"84636c274d2fc79504d29d434a9bcf0f"</d:getetag>
+      </d:prop>
+      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+  <d:response>
+    <d:href>/remote.php/dav/calendars/alice/personal/nightware-imip-1794691557-32407.ics</d:href>
+    <d:propstat>
+      <d:prop>
+        <d:getetag>"5ed7e80227329d56f757c794c5b21dac"</d:getetag>
+      </d:prop>
+      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+  <d:sync-token>http://sabre.io/ns/sync/10</d:sync-token>
+</d:multistatus>
