@@ -38,7 +38,7 @@ public static class FilesEndpoints
         graph.MapGet(DriveItem + "/content", RedirectToContentAsync);
 
         // Fetched without a bearer: SelfAuthorisingUrlMiddleware recovers the caller's token from the URL
-        // (DownloadUrlCredentialSource) before authentication, so the route is authorised like any other.
+        // (DownloadUrl.Kind) before authentication, so the route is authorised like any other.
         graph.MapGet(DownloadUrl.RoutePattern, DownloadAsync).AuthorisedBy(DownloadUrl.Kind);
         return graph;
     }
