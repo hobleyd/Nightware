@@ -200,6 +200,24 @@ shared `IJmapMessageLocator` are registered by `AddJmapMailRead`.
 - **Recent correspondents.** Recipients of the newest 200 Sent Items and senders of the newest 200
   Inbox messages, ranked by count, then recency.
 
+## Automatic replies (`MailboxSettings`, Phase 5B)
+
+`JmapAutoReplyStore` implements `IAutoReplyStore` on the `VacationResponse` singleton, resolving the
+account with the `vacationresponse` capability (a shared account without it is 403; a read-only one is
+refused before any request).
+
+| Graph | VacationResponse |
+|---|---|
+| `disabled` | `isEnabled: false` (message and dates kept as sent) |
+| `alwaysEnabled` | `isEnabled: true`, `fromDate`/`toDate` null |
+| `scheduled` | `isEnabled: true`, `fromDate`/`toDate` from the schedule (converted to UTC) |
+| message | `htmlBody` = the **external** message (internal only when external is empty), `textBody` = its plain-text rendering |
+
+On read the status is derived back (enabled with any date is `scheduled`), both message fields carry
+`htmlBody` (or the HTML-escaped `textBody`) and `externalAudience` is `all`: VacationResponse has one
+message and answers every sender, so that is what the server does. The set and a fresh get go in one
+request.
+
 ## Delta tokens (`Core/JmapDeltaTokenCodec.cs`)
 
 A token is the unpadded base64url of `{"v":1,"m":mailboxId,"p":"i"|"c","o":position,"s":state,"sel":[…],"top":n}`.

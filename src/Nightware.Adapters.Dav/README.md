@@ -275,11 +275,38 @@ Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf,
 - The image is buffered, capped at 4 MiB.
 - A backend 401 maps to `BackendUnavailable`, never to 401: on a best-effort call, a 401 would make the client refresh its token and could flag the account for re-authentication.
 
+## Tasks and task attachments (phase 5B)
+
+`Tasks/` implements `ITaskListReader`, `ITaskStore` and `ITaskAttachmentStore`.
+
+- **Lists** are the VTODO-capable calendars in the mailbox's calendar home (`DavTaskCollections`). The
+  default list is the caller's own `tasks/` collection, else one holding only VTODO, else the first by
+  calendar order. When the caller owns no task collection, the first listing creates `tasks/` ("Tasks",
+  VTODO only) with MKCALENDAR, as the Nextcloud Tasks app would. Never for another user's home.
+- **Ids**: a list id must lie in the mailbox's calendar home; a task id must name a resource directly
+  inside that list. Anything else is `NotFound` before any request.
+- **Listing** is one `calendar-query` (VTODO) per list; `$filter` (`status eq|ne`), `$orderby`
+  (`createdDateTime`, `lastModifiedDateTime`, `title`, `dueDateTime/dateTime`) and paging are applied in
+  memory (`TaskQueryEvaluator`, offset `$skiptoken`). Other filters are `Validation` (400).
+- **Writes**: create PUTs `{uuid}.ics` with `If-None-Match: *`; updates are `VTodoCodec.Apply` under
+  `If-Match`, retried once on 412.
+- **Attachments** go to the mailbox owner's Files: `files/{uid}/Nightware/Task attachments/{uuid}/{name}`
+  (uid from the discovered principal; the name made safe by `TaskAttachmentFiles.SafeName`). The VTODO
+  gets `ATTACH;FMTTYPE=…;FILENAME=…;SIZE=…:{Dav:BaseUrl}remote.php/dav/files/…`. On read only the path
+  counts, so a host-name change does not orphan them. Attachment ids are the file's `DavItemId`, and
+  only files the task's own `ATTACH` list names are served. A failed task update deletes the uploaded
+  folder again.
+- **Upload sessions** are stateless: the session token (`TaskUploadToken`) is base64url JSON of mailbox,
+  list, task, name, content type, size and expiry (15 min). Every field is re-checked on the PUT, whose
+  body is streamed to Nextcloud and must be exactly the declared size (`CountingReadStream` stops at the
+  limit: more is 413, less is 400, and the file is removed).
+
 ## Known gaps
 
 - `CalendarDocument` and `CalendarEvent` have no slot for a resource href. The port's `Parse` therefore leaves `EventId` empty, and callers either use `CalendarParseOptions.Href` or fill the id with `with { Id = … }`.
 - Floating times and RDATE have no Domain representation. Floating times use `FloatingTimeZone`, and RDATEs are ignored. RRULEs that Graph cannot express (BYHOUR, BYWEEKNO, BYYEARDAY, negative BYMONTHDAY, several BYMONTHs, setpos outside 1–4/-1, sub-daily) give `Recurrence = null` on a `SeriesMaster`.
 - Unresolvable TZIDs are reported in UTC, so the original wall-clock zone is lost. Server-side expansion is unaffected, because Sabre has its own Outlook zone table.
 - In expanded calendar-query output, every instance is typed `Occurrence`. Telling a modified instance (`Exception`) apart requires comparing it with the master, which is the feature's job.
+- Tasks: inline (BASE64) and non-Nextcloud `ATTACH` values count towards `hasAttachments` but are not listed. Attachments of a shared mailbox's task go to that mailbox's Files, which the delegate can write only if Nextcloud allows it.
 - vCard: `--MMDD` birthdays, PHOTO, URL, IMPP, other phone types and additional addresses beyond the first work and home ones are not mapped. `Apply` preserves all of them.
 - There is no Nextcloud service-account or impersonation path (see Credentials).
