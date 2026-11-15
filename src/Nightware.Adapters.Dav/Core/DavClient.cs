@@ -284,7 +284,10 @@ public sealed class DavClient : IDavClient
             if (ocs.TryGetProperty("meta", out var meta) && meta.TryGetProperty("statuscode", out var statusCode)
                 && statusCode.TryGetInt32(out var code) && code is not (100 or 200))
             {
-                return DavErrors.Map((HttpStatusCode)(code == 998 ? 404 : code == 997 ? 401 : code), null, null);
+                // The request succeeded, so the credential is cached and its strategy known.
+                var credential = await GetCredentialAsync(cancellationToken).ConfigureAwait(false);
+                var strategy = credential.IsSuccess ? credential.Value.Strategy : CredentialStrategy.PassThrough;
+                return DavErrors.Map((HttpStatusCode)(code == 998 ? 404 : code == 997 ? 401 : code), null, null, DavRequestIntent.Default, strategy);
             }
 
             return ocs.TryGetProperty("data", out var data) ? data.Clone() : default;
@@ -389,7 +392,7 @@ public sealed class DavClient : IDavClient
         using (message)
         {
             var body = await ReadErrorBodyAsync(message, cancellationToken).ConfigureAwait(false);
-            return new Outcome(DavErrors.Map(message.StatusCode, body, DavErrors.RetryAfterSeconds(message, _timeProvider), intent));
+            return new Outcome(DavErrors.Map(message.StatusCode, body, DavErrors.RetryAfterSeconds(message, _timeProvider), intent, credential.Value.Strategy));
         }
     }
 

@@ -60,6 +60,19 @@ public sealed class DavAdapterRegistrationTests : IDisposable
     }
 
     [Fact]
+    public void Registers_the_calendar_and_room_ports()
+    {
+        using var provider = Build();
+        using var scope = provider.CreateScope();
+        var services = scope.ServiceProvider;
+        services.GetRequiredService<ICalendarReader>().ShouldBeOfType<Nightware.Adapters.Dav.Calendar.DavCalendarReader>();
+        services.GetRequiredService<ICalendarWriter>().ShouldBeOfType<Nightware.Adapters.Dav.Calendar.DavCalendarWriter>();
+        services.GetRequiredService<ISchedulingActions>().ShouldBeOfType<Nightware.Adapters.Dav.Calendar.DavSchedulingActions>();
+        services.GetRequiredService<IFreeBusyReader>().ShouldBeOfType<Nightware.Adapters.Dav.Calendar.DavFreeBusyReader>();
+        services.GetRequiredService<Nightware.Application.Rooms.IRoomDirectory>().ShouldBeOfType<Nightware.Adapters.Dav.Rooms.DavRoomDirectory>();
+    }
+
+    [Fact]
     public void Invalid_options_fail_validation()
     {
         var services = new ServiceCollection();

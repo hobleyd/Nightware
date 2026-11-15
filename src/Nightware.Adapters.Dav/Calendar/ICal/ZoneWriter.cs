@@ -37,8 +37,20 @@ internal sealed class ZoneWriter
     {
         foreach (var (zone, earliest) in _earliestByZone)
         {
-            calendar.AddTimeZone(zone, earliest.AddDays(-1), false);
+            calendar.AddTimeZone(zone, SupportedFrom(earliest), false);
         }
+    }
+
+    /// <summary>
+    /// The earliest date a generated VTIMEZONE should cover. Ical.Net builds the zone's history from that date to
+    /// about a year from now and throws when it lies beyond (an event more than a year ahead); a VTIMEZONE starting
+    /// today still carries the recurring observances that apply later, so later dates are clamped to today.
+    /// </summary>
+    internal static DateTime SupportedFrom(DateTime earliest)
+    {
+        var dayBefore = earliest.AddDays(-1);
+        var today = DateTime.UtcNow.Date;
+        return dayBefore < today ? dayBefore : today;
     }
 
     /// <summary>The IANA id Ical.Net/NodaTime can generate a VTIMEZONE for, or null for UTC/unknown zones.</summary>

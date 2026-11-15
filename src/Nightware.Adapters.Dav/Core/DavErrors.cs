@@ -1,5 +1,6 @@
 using System.Net;
 using System.Xml.Linq;
+using Nightware.Application.Common.Identity;
 using Nightware.Domain.Kernel;
 
 namespace Nightware.Adapters.Dav.Core;
@@ -39,8 +40,19 @@ public static class DavErrors
     public static Error Unavailable(string message, int? retryAfterSeconds = null) =>
         Error.BackendUnavailable(message, retryAfterSeconds);
 
+    /// <summary>
+    /// A 401 from Nextcloud (ADR 0001 §42). Only a passed-through token is the caller's own, so only then does
+    /// the client have to sign in again (<see cref="ErrorKind.BackendAuthFailed"/>, 401). A credential the
+    /// façade obtained (token exchange) was minted from a subject token Keycloak had just accepted: its rejection
+    /// means the façade is misconfigured (audience mapper, client), a 503 rather than a re-auth banner.
+    /// </summary>
+    public static Error Unauthorized(CredentialStrategy credential) => credential == CredentialStrategy.PassThrough
+        ? Error.BackendAuthFailed("The groupware server rejected the credentials.")
+        : Unavailable("The groupware server rejected the credential the façade obtained for it; check the token-exchange configuration (audience 'nextcloud').");
+
     /// <summary>Maps a non-success response. <paramref name="body"/> is the (possibly empty) response text.</summary>
-    public static Error Map(HttpStatusCode status, string? body, int? retryAfterSeconds, DavRequestIntent intent = DavRequestIntent.Default)
+    /// <param name="credential">How the request's credential was obtained; decides what a 401 means (<see cref="Unauthorized"/>).</param>
+    public static Error Map(HttpStatusCode status, string? body, int? retryAfterSeconds, DavRequestIntent intent = DavRequestIntent.Default, CredentialStrategy credential = CredentialStrategy.PassThrough)
     {
         var conditions = DavXml.ParseErrorConditions(body);
         if (conditions.Contains(DavNames.ValidSyncToken))
@@ -62,7 +74,7 @@ public static class DavErrors
         return code switch
         {
             400 or 415 or 422 => Error.Validation($"The groupware server rejected the request ({code})."),
-            401 => Error.BackendAuthFailed("The groupware server rejected the credentials."),
+            401 => Unauthorized(credential),
             403 => Error.Forbidden("Access to the groupware resource is denied."),
             404 or 410 => Error.NotFound("The specified object was not found in the store."),
             405 => Error.Conflict("The resource already exists or does not allow this operation."),
