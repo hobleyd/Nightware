@@ -17,7 +17,10 @@ using Nightware.Domain.Mail;
 
 namespace Nightware.Api.Tests.Endpoints;
 
-/// <summary>The delta link envelope end to end, the way a phase wires <c>messages/delta</c>.</summary>
+/// <summary>
+/// The delta link envelope end to end, the way a phase wires <c>messages/delta</c> (mapped under
+/// <c>/testFolders</c> so it does not collide with the real Phase 2 route).
+/// </summary>
 public sealed class DeltaEndpointTests : IAsyncLifetime
 {
     private const string Select = "id,subject,isRead,receivedDateTime";
@@ -29,7 +32,7 @@ public sealed class DeltaEndpointTests : IAsyncLifetime
         _host = await TestHost.StartAsync(
             services => services.AddSingleton(_delta),
             app => app.MapGroup(GraphPaths.V1).RequireAuthorization().AddEndpointFilter<GraphBindingFilter>()
-                .MapMailboxGet("/mailFolders/{folderId}/messages/delta", static async (
+                .MapMailboxGet("/testFolders/{folderId}/messages/delta", static async (
                     Mailbox mailbox, string folderId, ODataQuery odata, HttpRequest request, DeltaLinkCodec links, IMailDeltaReader reader, CancellationToken ct) =>
                 {
                     var cursor = links.ReadCursor(request.Query, odata.Query);
@@ -68,12 +71,12 @@ public sealed class DeltaEndpointTests : IAsyncLifetime
                 new DeltaToken("state-9")));
         var client = _host.AuthorizedClient();
 
-        var first = await (await client.GetAsync($"/v1.0/me/mailFolders/inbox/messages/delta?%24select={Uri.EscapeDataString(Select)}&%24top=50", Ct)).ReadObjectAsync();
+        var first = await (await client.GetAsync($"/v1.0/me/testFolders/inbox/messages/delta?%24select={Uri.EscapeDataString(Select)}&%24top=50", Ct)).ReadObjectAsync();
 
         first["@odata.context"]!.GetValue<string>().ShouldBe("https://graph.test.example/v1.0/$metadata#Collection(message)");
         first["value"]![0]!.AsObject().Select(p => p.Key).ShouldBe(["id", "receivedDateTime", "subject", "isRead"]);
         var nextLink = first["@odata.nextLink"]!.GetValue<string>();
-        nextLink.ShouldStartWith("https://graph.test.example/v1.0/me/mailFolders/inbox/messages/delta?$skiptoken=");
+        nextLink.ShouldStartWith("https://graph.test.example/v1.0/me/testFolders/inbox/messages/delta?$skiptoken=");
         first.ContainsKey("@odata.deltaLink").ShouldBeFalse();
 
         // Replayed verbatim: no $select/$top on the wire, they come out of the link.
@@ -83,7 +86,7 @@ public sealed class DeltaEndpointTests : IAsyncLifetime
             Arg.Is<DeltaRequest>(r => r.PageSize == 50 && r.Select!.SetEquals(Select.Split(',', StringSplitOptions.None))), Arg.Any<CancellationToken>());
         second["value"]![0]!.ToJsonString().ShouldBe("""{"@odata.type":"#microsoft.graph.message","id":"e.2","@removed":{"reason":"deleted"}}""");
         second["value"]![1]!["@removed"]!["reason"]!.GetValue<string>().ShouldBe("changed");
-        second["@odata.deltaLink"]!.GetValue<string>().ShouldStartWith("https://graph.test.example/v1.0/me/mailFolders/inbox/messages/delta?$deltatoken=");
+        second["@odata.deltaLink"]!.GetValue<string>().ShouldStartWith("https://graph.test.example/v1.0/me/testFolders/inbox/messages/delta?$deltatoken=");
     }
 
     [Fact]
@@ -92,10 +95,10 @@ public sealed class DeltaEndpointTests : IAsyncLifetime
         _delta.DeltaAsync(default, default!, default, default!, Arg.Any<CancellationToken>())
             .ReturnsForAnyArgs(DeltaPage<MailMessage>.Done([], new DeltaToken("state-1")));
         var client = _host.AuthorizedClient();
-        var deltaLink = (await (await client.GetAsync("/v1.0/me/mailFolders/inbox/messages/delta", Ct)).ReadObjectAsync())["@odata.deltaLink"]!.GetValue<string>();
+        var deltaLink = (await (await client.GetAsync("/v1.0/me/testFolders/inbox/messages/delta", Ct)).ReadObjectAsync())["@odata.deltaLink"]!.GetValue<string>();
         var token = deltaLink[(deltaLink.IndexOf('=', StringComparison.Ordinal) + 1)..];
 
-        var response = await client.GetAsync($"/v1.0/me/mailFolders/inbox/messages/delta?$skiptoken={token}", Ct);
+        var response = await client.GetAsync($"/v1.0/me/testFolders/inbox/messages/delta?$skiptoken={token}", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         await _delta.Received().DeltaAsync(Arg.Any<MailboxRef>(), Arg.Any<FolderRef>(), new DeltaToken("state-1"), Arg.Any<DeltaRequest>(), Arg.Any<CancellationToken>());
@@ -108,7 +111,7 @@ public sealed class DeltaEndpointTests : IAsyncLifetime
         var link = codec.Encode(new DeltaLinkState(new DeltaToken("t"), null, 50));
         var tampered = "eyJ2IjoxLCJ0IjoieCIsImkiOjB9" + link[link.IndexOf('.', StringComparison.Ordinal)..];
 
-        var response = await _host.AuthorizedClient().GetAsync($"/v1.0/me/mailFolders/inbox/messages/delta?$deltatoken={tampered}", Ct);
+        var response = await _host.AuthorizedClient().GetAsync($"/v1.0/me/testFolders/inbox/messages/delta?$deltatoken={tampered}", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await response.ReadObjectAsync()).Str("error.code").ShouldBe("invalidRequest");
@@ -117,7 +120,7 @@ public sealed class DeltaEndpointTests : IAsyncLifetime
     [Fact]
     public async Task An_undecodable_link_is_a_410_sync_state_not_found()
     {
-        var response = await _host.AuthorizedClient().GetAsync("/v1.0/me/mailFolders/inbox/messages/delta?$deltatoken=LztZwWjo5IivWBhyxw5rACKxf7mPm0oW6JZZ7fvKxYPS_67JnEYmfQQMPccy6FRun0DWJF5775dvuXxlZnMYhBubC1v4SBVT9ZjO8f7acZI", Ct);
+        var response = await _host.AuthorizedClient().GetAsync("/v1.0/me/testFolders/inbox/messages/delta?$deltatoken=LztZwWjo5IivWBhyxw5rACKxf7mPm0oW6JZZ7fvKxYPS_67JnEYmfQQMPccy6FRun0DWJF5775dvuXxlZnMYhBubC1v4SBVT9ZjO8f7acZI", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Gone);
         (await response.ReadObjectAsync()).Str("error.code").ShouldBe("syncStateNotFound");
@@ -128,7 +131,7 @@ public sealed class DeltaEndpointTests : IAsyncLifetime
     {
         _delta.DeltaAsync(default, default!, default, default!, Arg.Any<CancellationToken>()).ReturnsForAnyArgs(Error.SyncStateGone("cannotCalculateChanges"));
 
-        var response = await _host.AuthorizedClient().GetAsync("/v1.0/me/mailFolders/inbox/messages/delta", Ct);
+        var response = await _host.AuthorizedClient().GetAsync("/v1.0/me/testFolders/inbox/messages/delta", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Gone);
     }

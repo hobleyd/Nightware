@@ -154,6 +154,6 @@ internal sealed class JmapBlobService(JmapConnectionProvider connections, IHttpC
             connections.Reject(connection.Credential);
         }
 
-        return await JmapHttp.ReadFailureAsync(response, time, context, cancellationToken).ConfigureAwait(false);
+        return await JmapHttp.ReadFailureAsync(response, time, context, connection.Credential.Strategy, cancellationToken).ConfigureAwait(false);
     }
 }
