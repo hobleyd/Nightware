@@ -8,6 +8,7 @@ A Docker Compose stack in which every backend trusts one OIDC issuer
 | `https://auth.${BASE_DOMAIN}` | Keycloak, realm `nightware` (+ Postgres) | `quay.io/keycloak/keycloak:26.8.2`, `postgres:17.12-alpine` |
 | `https://mail.${BASE_DOMAIN}` | Stalwart: JMAP, WebDAV, WebUI, management API | `stalwartlabs/stalwart:v1.1.0` |
 | `https://cloud.${BASE_DOMAIN}` | Nextcloud: CalDAV/CardDAV/WebDAV/OCS (+ Postgres, Redis, cron) | `nextcloud:35.0.3-apache`, `redis:8.6.8-alpine` |
+| `https://office.${BASE_DOMAIN}` | Collabora Online (Nextcloud Office) | `collabora/code:26.04.5.2.1` |
 | `https://graph.${BASE_DOMAIN}` | Nightware API (`api` profile) | built from `src/Nightware.Api/Dockerfile` |
 | (all of the above) | Caddy reverse proxy, TLS | `caddy:2.11.9-alpine` |
 
@@ -15,7 +16,8 @@ A Docker Compose stack in which every backend trusts one OIDC issuer
 `*.localhost` to 127.0.0.1, so no `/etc/hosts` entries are needed.
 
 Nextcloud apps installed by the bootstrap: calendar 6.6.5, contacts 8.10.0,
-tasks 0.18.1, user_oidc 8.13.0, calendar_resource_management 1.0.0.
+tasks 0.18.1, user_oidc 8.13.0, calendar_resource_management 1.0.0,
+richdocuments 12.0.2.
 
 ## Bring-up
 
@@ -41,7 +43,8 @@ docker compose -p nightware up -d        # ~1-2 min until Keycloak + Nextcloud a
    the Keycloak OIDC directory and makes it the default, sets the trusted
    network for iMIP, and finally reloads.
 4. `nextcloud/configure.sh` installs the apps and runs the `occ` setup:
-   user_oidc with bearer validation, mail through Stalwart, and rooms.
+   user_oidc with bearer validation, Nextcloud Office on Collabora, mail
+   through Stalwart, and rooms.
 5. Has alice and bob sign in once on each backend, which provisions them.
 
 The façade itself (`api` profile; only this container is built and replaced, the backends are
@@ -255,6 +258,51 @@ Lifetime is 15 minutes (`accessTokenLifespan` 900). Refresh with
   `aud` contains `nextcloud`. Unknown users are provisioned on their first
   bearer request (`--bearer-provisioning=1`).
 
+### Documents (Collabora)
+
+Nextcloud Office (`richdocuments`) edits documents in the browser through the
+`collabora` service, and the façade asks the same Collabora for PDFs of Office
+files when NightMail previews a Nextcloud link (Phase 7). Three URLs are
+involved, because `*.localhost` names do not work between containers:
+
+| Who | Calls | Configured by |
+|---|---|---|
+| Nextcloud (discovery, server-side) | `http://collabora:9980` | `richdocuments:setup --wopi-url` |
+| The browser (editor iframe) | `https://office.${BASE_DOMAIN}` | Collabora `server_name`; richdocuments reads it from discovery as `public_wopi_url` |
+| Collabora (WOPI callbacks) | `http://nextcloud` | `richdocuments:setup --callback-url`; Collabora's `aliasgroup1` allows only this host |
+| The façade (`convert-to/pdf`) | `http://collabora:9980/` (`Collabora__BaseUrl`); `http://127.0.0.1:9980/` from the host | Collabora's default `net.post_allow` (private addresses) |
+
+- Nextcloud accepts WOPI requests only from the compose subnet
+  (`wopi_allowlist = ${DOCKER_SUBNET}`), which is where Collabora's callbacks
+  come from.
+- Caddy answers `403` for `/cool/convert-to` on `office.` — through the proxy
+  every client would arrive from Caddy's private address and pass `post_allow`.
+- Collabora also fetches richdocuments' settings and templates on the public
+  `cloud.` name, whose Caddy-CA certificate it does not trust. Its outgoing
+  TLS verification is therefore **off** by default
+  (`COLLABORA_SSL_VERIFICATION=false`); turn it on with a publicly trusted
+  certificate (`CADDY_TLS=<acme email>`). Without this the editor closes with
+  `configfailed` right after loading.
+- The image has no shell or curl, so there is no compose healthcheck; the
+  image's own reports unhealthy. `nextcloud/configure.sh` waits for discovery.
+- **Brute-force protection sees every public-share lookup as the façade.**
+  The façade reads `/s/{token}` links anonymously from its own address, so a
+  password-protected or dead link counts as a failed attempt *from the
+  façade*; enough of them (any users, any links) and Nextcloud delays then
+  refuses every public share (`MaxDelayReached`, the façade answers 429/503).
+  Clear it with `occ security:bruteforce:reset <façade ip>`; for production,
+  pin the api container's address and add it to the `bruteforcesettings`
+  allow-list (not the whole subnet — Caddy's address carries all public
+  traffic). Share *creation* is also rate-limited per user (OCS 429), which
+  only matters to repeated live-test runs.
+- Port 9980 is published on `BIND_ADDRESS` (`COLLABORA_PORT`) so a façade run
+  on the host (`dotnet run`, the live integration tests) can convert.
+- Verified (2026-11-15, CODE 26.04.5.2 on arm64): alice's `.docx` opened
+  through richdocuments' direct-editing session, loaded in Collabora over
+  `wss://office.nightware.localhost` (WOPI CheckFileInfo/GetFile as alice,
+  `perm: edit`), was typed into and saved back (PutFile) — the file in
+  Nextcloud changed size and contains the typed text.
+
 ### iMIP (meeting invitations by mail)
 
 - **Nextcloud sends with Stalwart SMTP:** `mail_smtphost=stalwart`, port 25,
@@ -422,6 +470,7 @@ bootstrapped stack and seeds a little more test data on each run.
 
 ## Resource usage (Apple Silicon, Docker 29)
 
+- Collabora adds about 1.7 GB of image and about 500 MB of RAM.
 - Images: about 4.0 GB as `docker images` reports them. Nextcloud is
   2.14 GB, Keycloak 750 MB, Stalwart 474 MB, Postgres 416 MB (shared by both
   databases), Redis 134 MB and Caddy 88 MB.

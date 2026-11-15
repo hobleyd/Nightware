@@ -1,6 +1,6 @@
 {
   "operationId": "files.shares.drive-item",
-  "provenance": "Shape after nightmail test/data/datasources/remote/graph_drive_datasource_test.dart:10 'encodeSharingUrl'; response Constructed from the Graph v1.0 resource shape (driveItem) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads; body constructed with example.com data",
+  "provenance": "Phase 7: file.hashes dropped (Nextcloud has no quickXorHash; NightMail reads only file.mimeType). Shape after nightmail test/data/datasources/remote/graph_drive_datasource_test.dart:10 'encodeSharingUrl'; response Constructed from the Graph v1.0 resource shape (driveItem) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads; body constructed with example.com data",
   "request": {
     "method": "GET",
     "path": "/v1.0/shares/u!aHR0cHM6Ly9maWxlcy5leGFtcGxlLmNvbS9zL0FiQ2RFZkdo/driveItem",
@@ -24,10 +24,7 @@
       "name": "Budget.xlsx",
       "size": 24576,
       "file": {
-        "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "hashes": {
-          "quickXorHash": "AAAAAAAAAAAAAAAAAAAAAAAAAAA="
-        }
+        "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       }
     }
   }

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Configure Nextcloud with occ (idempotent):
-#   - apps: calendar, contacts, tasks, calendar_resource_management, user_oidc
+#   - apps: calendar, contacts, tasks, calendar_resource_management, user_oidc,
+#     richdocuments (Nextcloud Office, on the collabora service)
 #   - user_oidc provider "keycloak" with bearer-token validation, so
 #     CalDAV/CardDAV/WebDAV/OCS accept Keycloak access tokens whose aud
 #     contains "nextcloud" (the provider's client id)
@@ -12,7 +13,7 @@ log "Nextcloud: waiting for installation"
 wait_for "nextcloud installed" bash -c "docker compose -p nightware exec -T -u www-data nextcloud php occ status --output=json | grep -q '\"installed\":true'"
 
 # --------------------------------------------------------------------- apps
-for app in calendar contacts tasks user_oidc calendar_resource_management; do
+for app in calendar contacts tasks user_oidc calendar_resource_management richdocuments; do
   if occ app:list --output=json | jq -e --arg a "$app" '.enabled | has($a)' >/dev/null; then
     log "Nextcloud: app ${app} enabled"
   else
@@ -60,6 +61,22 @@ occ user_oidc:provider keycloak \
   --mapping-display-name=name \
   --check-bearer=1 \
   --bearer-provisioning=1 >/dev/null
+
+# --------------------------------------------------------- Nextcloud Office
+# richdocuments edits documents in the browser through Collabora (the
+# collabora service). Three URLs, because *.localhost names do not work
+# between containers (PHP's libcurl resolves them to its own loopback):
+#   - Nextcloud fetches Collabora's discovery on the internal network,
+#   - the browser loads the editor from https://office.${BASE_DOMAIN}
+#     (Collabora's server_name, so discovery already advertises it),
+#   - Collabora calls Nextcloud's WOPI endpoints back on http://nextcloud,
+#     the one host in its WOPI alias group (aliasgroup1).
+# Nextcloud accepts WOPI requests only from the compose subnet, which is where
+# Collabora's callbacks come from.
+log "Nextcloud: richdocuments -> collabora:9980 (browser: https://office.${BASE_DOMAIN}${PUBLIC_PORT_SUFFIX})"
+wait_for "collabora discovery" dc exec -T nextcloud curl -fsS -o /dev/null http://collabora:9980/hosting/discovery
+occ richdocuments:setup --wopi-url=http://collabora:9980 --callback-url=http://nextcloud >/dev/null
+occ config:app:set richdocuments wopi_allowlist --value="${DOCKER_SUBNET:-172.31.250.0/24}" >/dev/null
 
 # ------------------------------------------------------------- outgoing mail
 # iMIP invitations go to Stalwart's SMTP listener (port 25) inside the Docker

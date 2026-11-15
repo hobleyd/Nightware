@@ -210,19 +210,32 @@ The client wins. These are the differences from `docs/phases/*.md`.
     task.
   - Mailbox settings read and write only `automaticRepliesSetting` and
     `timeZone`; `language` and `workingHours` are never touched.
-  - Threat submission and `/shares` are Microsoft-only once the 0.4 hook lands.
+  - Threat submission is Microsoft-only once the 0.4 hook lands. `/shares` was
+    too, until Phase 7 (below).
 
 ### Phase 5B: deferred operations and backend decisions
 
-**Deferred (ADR 0001 §43).** `files.shares.drive-item`,
-`files.shares.drive-item-content` and
-`security.threat-submission.email-threats.create` are not implemented: the
-client gates them off for NightMail Server accounts. Their routes are mapped and
-answer a deliberate `501 notImplemented` (not the unknown-route `400`). The
-conformance harness has no "deferred" state, so their fixtures report as
-skipped ("no arrangement"); `Arrangements/DeferredOperationsTests.cs` replays
-each fixture, asserts the 501, and fails if one is ever arranged without being
-removed from that list.
+**Deferred (ADR 0001 §43).** `security.threat-submission.email-threats.create`
+is not implemented: the client gates it off for NightMail Server accounts. Its
+route is mapped and answers a deliberate `501 notImplemented` (not the
+unknown-route `400`). The conformance harness has no "deferred" state, so its
+fixture reports as skipped ("no arrangement");
+`Arrangements/DeferredOperationsTests.cs` replays it, asserts the 501, and fails
+if it is ever arranged without being removed from that list.
+
+**Phase 7: `/shares` for Nextcloud.** `files.shares.drive-item` and
+`files.shares.drive-item-content` are implemented for links below the server's
+advertised file sites (`filesBaseUrls` in discovery): `{site}/s/{token}` (public
+share, read anonymously through public-share WebDAV) and `{site}/f/{fileId}`
+(internal link, found by file id in the caller's Files). A link elsewhere is
+404, a malformed share id 400, a password-protected share 403, a folder a
+`driveItem` with the `folder` facet. `/content[?format=pdf]` answers **302** to
+`{graphBaseUrl}/shares/{id}/driveItem/$value[?format=pdf]&authtoken=…`, a
+self-authorising URL (ADR §39) valid for 5 minutes (or the token's remaining
+life) that streams the file, or the Collabora-rendered PDF of an Office file. A
+`format=pdf` the server cannot produce is 400 `notSupported` on the first leg.
+The `driveItem` fixture no longer carries `file.hashes` (Nextcloud has no
+`quickXorHash`; the client reads only `file.mimeType`).
 
 **Automatic replies → Stalwart `VacationResponse`.** It holds one message and
 answers every sender, so Graph's audience and internal/external split cannot be

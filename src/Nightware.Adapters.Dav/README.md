@@ -2,7 +2,7 @@
 
 Nextcloud (Sabre/DAV) adapter. It covers CalDAV (RFC 4791), CalDAV scheduling (RFC 6638), CardDAV (RFC 6352), WebDAV (RFC 4918) with sync-collection (RFC 6578), and the OCS API.
 
-The skeleton (S3) provides the **core** and the **codecs**. Feature phases add port implementations in their own folders: `Calendar/` (but not `Calendar/ICal`, which is skeleton-owned), `Contacts/`, `Tasks/`, `Rooms/` and `Files/`. Each phase registers its ports in `DavAdapterServiceCollectionExtensions.AddDavAdapter`.
+The skeleton (S3) provides the **core** and the **codecs**. Feature phases add port implementations in their own folders: `Calendar/` (but not `Calendar/ICal`, which is skeleton-owned), `Contacts/`, `Tasks/`, `Rooms/`, `Files/` and `Office/` (Collabora, Phase 7). Each phase registers its ports in `DavAdapterServiceCollectionExtensions.AddDavAdapter`.
 
 ```
 Core/                 options, DavPaths, DavItemId, IDavClient/DavClient, multistatus, errors,
@@ -317,6 +317,41 @@ Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf,
   list, task, name, content type, size and expiry (15 min). Every field is re-checked on the PUT, whose
   body is streamed to Nextcloud and must be exactly the declared size (`CountingReadStream` stops at the
   limit: more is 413, less is 400, and the file is removed).
+
+## Documents linked from mail (Phase 7)
+
+`Files/` implements `ISharedFileReader`; `Office/` implements `IDocumentConverter`.
+
+- **Input** is a `ShareLink` whose host the API has already matched to an advertised file site
+  (`Discovery:FilesBaseUrls`). Only `SitePath` is read (`NextcloudLink`): `s/{token}` and `f/{fileId}`,
+  optionally under `index.php/`, with or without a trailing slash. Anything else is `NotFound` without a
+  request. Every request goes to `Dav:BaseUrl`, never to the link.
+- **Public shares** (`NextcloudPublicShares`): `PROPFIND`/`GET {BaseUrl}public.php/dav/files/{token}`,
+  which serves a file share's one file at its root. **No credential** is sent (the link is the
+  authorisation), on a cookie-free, redirect-free client with the DAV resilience pipeline. Nextcloud 35
+  answers an unknown token with **503** carrying `Sabre\DAV\Exception\NotFound` (→ `NotFound`, or the client
+  retries a 503 five times) and a password-protected share with **401** (→ `Forbidden`: the client reads
+  401 as "sign in again"). A folder share is answered as a folder.
+- **Internal links** (`NextcloudFileIdSearch`): RFC 5323 `SEARCH` on the DAV root for `oc:fileid`, scoped to
+  the caller's own `/files/{uid}` (uid from the discovered principal), with the caller's credential. Shares
+  are mounted in the recipient's home with the same file id, so a file shared with the caller is found and
+  anything else is `NotFound`. The bytes come from the found href through `IDavClient.OpenReadAsync`.
+- **Ids** are Nextcloud's file id (`oc:fileid`), falling back to the token.
+- **Conversion** (`CollaboraDocumentConverter`): `POST {Collabora:BaseUrl}cool/convert-to/pdf`, multipart
+  field `data` named `document.{ext}` (Collabora detects the format by extension; the user's file name may
+  not survive a header). Never retried, streamed both ways. Collabora answers 400 for input it cannot read
+  (→ `Validation`/`notSupported`) and 403 to an address outside its `net.post_allow` (→ `BackendUnavailable`:
+  a deployment fault). Office and OpenDocument formats only (`OfficeFormats`) — images, text and PDFs are
+  previewed by the client as they are. It lives here because Collabora is Nextcloud Office's engine and is
+  only used for documents this adapter reads; a project of its own would add a composition seam for one class.
+- **Without `Collabora:BaseUrl`** the converter is `UnconfiguredDocumentConverter`: nothing is offered as PDF,
+  so `content?format=pdf` is refused on the first leg and NightMail downloads the original instead.
+
+| Key (`Collabora` section) | Default | Notes |
+|---|---|---|
+| `BaseUrl` | (none: conversion off) | Collabora's internal URL, e.g. `http://collabora:9980/`. Not the public `office.` name: Caddy refuses `convert-to` there |
+| `Timeout` | 90 s | Whole conversion, upload and download included |
+| `MaxSourceBytes` | 50 MB | Larger documents are `PayloadTooLarge` without a request |
 
 ## Known gaps
 

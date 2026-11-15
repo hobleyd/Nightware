@@ -26,6 +26,16 @@ anonymously.
 
 - All six fields required; strings non-empty; `scopes` a non-empty string list.
   Unknown fields are ignored.
+- **Optional `filesBaseUrls`** (Phase 7): a list of the public base URLs of the
+  server's file sites (Nextcloud), e.g. `["https://cloud.example.com"]`. Absent
+  means no Nextcloud link previews. The client claims a body link as a document
+  only when it is `{base}/s/{token}` or `{base}/f/{fileId}` (optionally
+  `{base}/index.php/…`, no query or fragment) below one of these, and fetches it
+  through this server's `GET /shares/{u!url}/driveItem[/content]`; the server
+  resolves sharing links only below the same list. The client drops malformed
+  entries rather than refusing the document. Configured as
+  `Discovery:FilesBaseUrls` (validated: absolute http(s), no query, fragment or
+  credentials).
 - URLs must be absolute `https` (`http` only for `localhost`/`127.0.0.1`/`::1`);
   trailing slashes are stripped; `authorizationEndpoint` must not carry a query.
 
@@ -52,8 +62,8 @@ anonymously.
   `graphBaseUrl`'s scheme, host and port exactly — otherwise the client ignores
   it (delta polls force a resync; contact paging stops at page 1).
 - For a NightMail Server account the client gates off: SharePoint/OneDrive
-  previews (`/shares`), threat submission (it only moves to Junk), and extra
-  consent scopes. `findRooms` (beta) and out-of-office remain in use.
+  previews (Nextcloud links on `filesBaseUrls` hosts do use `/shares`), threat
+  submission (it only moves to Junk), and extra consent scopes. `findRooms` (beta) and out-of-office remain in use.
 
 ## Operational caveat
 

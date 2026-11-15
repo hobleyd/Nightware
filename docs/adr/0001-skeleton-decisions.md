@@ -94,7 +94,10 @@ anything contradictory in `architecture.md` or the phase docs.
     No `$count`, no `ConsistencyLevel`.
 21. **Cut**: `$batch` and Graph `subscriptions` (zero client use).
 22. `GET /shares/{id}/driveItem/content?format=pdf` → 501 in v1 (no conversion
-    without Collabora).
+    without Collabora). *Amended (Phase 7):* Collabora Online renders Office
+    files to PDF through `IDocumentConverter`; without `Collabora:BaseUrl`
+    the request is refused (400 `notSupported`) and the client downloads the
+    original.
 23. `getSchedule.availabilityView` (bucketed 0–4 string) is Application logic.
 
 ## Parallelisation
@@ -165,7 +168,12 @@ anything contradictory in `architecture.md` or the phase docs.
     to `BackendUnavailable` (façade misconfiguration); only a PassThrough 401 is
     `BackendAuthFailed`.
 43. Threat submission and `/shares` stay 501 stubs: the client gates them off
-    for NightMail Server accounts.
+    for NightMail Server accounts. *Amended (Phase 7):* `/shares` is
+    implemented for Nextcloud links on the hosts the server advertises in
+    discovery (`filesBaseUrls`); any other link is 404. `/content` answers 302
+    to a self-authorising download URL (§39, its own key purpose, bound to
+    GET + share id + format, 5 minutes or the token's expiry). Threat
+    submission stays a 501 stub.
 
 ### Domain file ownership during the parallel phases
 `Kernel/*` and every port interface: frozen (coordinator only).

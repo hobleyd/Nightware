@@ -1,13 +1,8 @@
-using System.Buffers.Binary;
-using System.Buffers.Text;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
+using Nightware.Api.Auth;
 using Nightware.Api.Graph.Json;
 
 namespace Nightware.Api.Features.Tasks.Upload;
@@ -25,13 +20,10 @@ internal sealed record UploadTicket(string BearerToken, string Name, long Size, 
 /// </summary>
 /// <remarks>
 /// <list type="bullet">
-/// <item>AES-256-GCM. The key is HKDF-SHA256 of <c>DeltaLinks:SigningKey</c> (shared by every
-/// instance) with a purpose string of its own, so it never equals the delta-link HMAC key. With no
-/// key configured a random per-process key is used, as for delta links: URLs then die with the process.</item>
-/// <item>Wire form: <c>base64url(version ‖ nonce(12) ‖ tag(16) ‖ ciphertext)</c>, a fresh random nonce
-/// per URL. The plaintext is the token, file name, size and expiry; the associated data is the
-/// version, the method and the route's mailbox, list, task and session (each length-prefixed), so a
-/// URL works only for the request it was minted for and any change to it fails authentication.</item>
+/// <item>The cryptography is <see cref="SelfAuthorisingUrlSealer"/>'s, under this URL's own purpose
+/// string. The plaintext is the token, file name, size and expiry; the binding is the method and the
+/// route's mailbox (case-insensitively), list, task and session, so a URL works only for the request
+/// it was minted for.</item>
 /// <item>The expiry is the earlier of the session's and the access token's: a recovered token gets
 /// no extra life, and normal JWT validation still runs on it afterwards.</item>
 /// <item>Failure is a bare <c>false</c>: tampered, truncated, expired, wrong key and wrong route
@@ -40,47 +32,29 @@ internal sealed record UploadTicket(string BearerToken, string Name, long Size, 
 /// </remarks>
 internal sealed class UploadUrlProtector
 {
-    private const byte Version = 1;
-    private const int NonceSize = 12;
-    private const int TagSize = 16;
-    private const int KeySize = 32;
-    private const int HeaderSize = 1 + NonceSize + TagSize;
     private const string Method = "PUT";
 
     /// <summary>Longest sealed value accepted (a 4 KB access token fits several times over).</summary>
-    internal const int MaxSealedLength = 6000;
+    internal const int MaxSealedLength = SelfAuthorisingUrlSealer.MaxSealedLength;
 
-    private static readonly byte[] Purpose = "nightware/todo-upload-url/v1"u8.ToArray();
-    private static readonly Lazy<byte[]> EphemeralSecret = new(() => RandomNumberGenerator.GetBytes(KeySize));
+    private const string Purpose = "nightware/todo-upload-url/v1";
 
-    private readonly byte[] _key;
+    private readonly SelfAuthorisingUrlSealer _sealer;
     private readonly TimeProvider _clock;
 
     public UploadUrlProtector(IOptions<DeltaLinkOptions> options, TimeProvider clock)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(clock);
-        var secret = string.IsNullOrWhiteSpace(options.Value.SigningKey)
-            ? EphemeralSecret.Value
-            : Encoding.UTF8.GetBytes(options.Value.SigningKey);
-        _key = HKDF.DeriveKey(HashAlgorithmName.SHA256, secret, KeySize, salt: [], info: Purpose);
+        _sealer = new SelfAuthorisingUrlSealer(options.Value.SigningKey, Purpose);
         _clock = clock;
     }
-
 
     public string Seal(UploadTicket ticket, UploadUrlBinding binding)
     {
         ArgumentNullException.ThrowIfNull(ticket);
         ArgumentNullException.ThrowIfNull(binding);
-        var plaintext = JsonSerializer.SerializeToUtf8Bytes(Payload.From(ticket), UploadUrlJson.Default.Payload);
-        var sealedBytes = new byte[HeaderSize + plaintext.Length];
-        sealedBytes[0] = Version;
-        var nonce = sealedBytes.AsSpan(1, NonceSize);
-        RandomNumberGenerator.Fill(nonce);
-        using var aes = new AesGcm(_key, TagSize);
-        aes.Encrypt(nonce, plaintext, sealedBytes.AsSpan(HeaderSize), sealedBytes.AsSpan(1 + NonceSize, TagSize), AssociatedData(binding));
-        CryptographicOperations.ZeroMemory(plaintext);
-        return Base64Url.EncodeToString(sealedBytes);
+        return _sealer.Seal(Payload.From(ticket), UploadUrlJson.Default.Payload, BoundTo(binding));
     }
 
     /// <summary>The ticket, when <paramref name="sealedValue"/> was minted by this key for exactly <paramref name="binding"/> and has not expired.</summary>
@@ -88,57 +62,33 @@ internal sealed class UploadUrlProtector
     {
         ArgumentNullException.ThrowIfNull(binding);
         ticket = null!;
-        if (string.IsNullOrEmpty(sealedValue) || sealedValue.Length > MaxSealedLength || !Base64Url.IsValid(sealedValue))
+        if (!_sealer.TryOpen(sealedValue, UploadUrlJson.Default.Payload, BoundTo(binding), out var payload)
+            || string.IsNullOrEmpty(payload.Token))
         {
             return false;
         }
 
-        var sealedBytes = Base64Url.DecodeFromChars(sealedValue);
-        if (sealedBytes.Length <= HeaderSize || sealedBytes[0] != Version)
-        {
-            return false;
-        }
-
-        var plaintext = new byte[sealedBytes.Length - HeaderSize];
+        DateTimeOffset expiresAt;
         try
         {
-            using var aes = new AesGcm(_key, TagSize);
-            aes.Decrypt(sealedBytes.AsSpan(1, NonceSize), sealedBytes.AsSpan(HeaderSize), sealedBytes.AsSpan(1 + NonceSize, TagSize), plaintext, AssociatedData(binding));
-            var payload = JsonSerializer.Deserialize(plaintext, UploadUrlJson.Default.Payload);
-            if (payload is null || string.IsNullOrEmpty(payload.Token) || DateTimeOffset.FromUnixTimeSeconds(payload.ExpiresAt) <= _clock.GetUtcNow())
-            {
-                return false;
-            }
-
-            ticket = new UploadTicket(payload.Token, payload.Name, payload.Size, DateTimeOffset.FromUnixTimeSeconds(payload.ExpiresAt));
-            return true;
+            expiresAt = DateTimeOffset.FromUnixTimeSeconds(payload.ExpiresAt);
         }
-        catch (Exception e) when (e is AuthenticationTagMismatchException or CryptographicException or JsonException or ArgumentOutOfRangeException)
+        catch (ArgumentOutOfRangeException)
         {
             return false;
         }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(plaintext);
-        }
-    }
 
-    private static byte[] AssociatedData(UploadUrlBinding binding)
-    {
-        string[] fields = [Method, binding.Mailbox.ToLowerInvariant(), binding.ListId, binding.TaskId, binding.SessionId];
-        var encoded = fields.Select(Encoding.UTF8.GetBytes).ToArray();
-        var data = new byte[1 + encoded.Sum(f => 4 + f.Length)];
-        data[0] = Version;
-        var offset = 1;
-        foreach (var field in encoded)
+        if (expiresAt <= _clock.GetUtcNow())
         {
-            BinaryPrimitives.WriteInt32BigEndian(data.AsSpan(offset), field.Length);
-            field.CopyTo(data, offset + 4);
-            offset += 4 + field.Length;
+            return false;
         }
 
-        return data;
+        ticket = new UploadTicket(payload.Token, payload.Name, payload.Size, expiresAt);
+        return true;
     }
+
+    private static string[] BoundTo(UploadUrlBinding binding) =>
+        [Method, binding.Mailbox.ToLowerInvariant(), binding.ListId, binding.TaskId, binding.SessionId];
 
     internal sealed record Payload(
         [property: JsonPropertyName("t")] string Token,

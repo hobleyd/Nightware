@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
 
+using Nightware.Api.Auth;
 using Nightware.Api.Features.Tasks.Dto;
 using Nightware.Api.Features.Tasks.Upload;
 using Nightware.Api.Graph;
@@ -194,18 +195,7 @@ public static partial class TasksEndpoints
     }
 
     /// <summary>The access token's <c>exp</c>, when it is a readable JWT; validation happens elsewhere.</summary>
-    internal static DateTimeOffset? AccessTokenExpiry(string token)
-    {
-        try
-        {
-            var jwt = new Microsoft.IdentityModel.JsonWebTokens.JsonWebToken(token);
-            return jwt.ValidTo == DateTime.MinValue ? null : new DateTimeOffset(jwt.ValidTo, TimeSpan.Zero);
-        }
-        catch (ArgumentException)
-        {
-            return null;
-        }
-    }
+    internal static DateTimeOffset? AccessTokenExpiry(string token) => AccessTokens.ExpiryOf(token);
 
     [GeneratedRegex(@"^\s*bytes\s+(\d+)-(\d+)/(\d+)\s*$", RegexOptions.IgnoreCase)]
     private static partial Regex ContentRangePattern();

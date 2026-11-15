@@ -14,7 +14,7 @@ namespace Nightware.Api.Discovery;
 /// the scheme, host and port of <see cref="GraphBaseUrl"/> — so it must be the public URL of
 /// this service's <c>/v1.0</c> root.
 /// </remarks>
-public sealed class DiscoveryOptions
+public sealed class DiscoveryOptions : IValidatableObject
 {
     public const string SectionName = "Discovery";
 
@@ -40,4 +40,28 @@ public sealed class DiscoveryOptions
     [MinLength(1)]
     [JsonPropertyName("scopes")]
     public IList<string> Scopes { get; init; } = [];
+
+    /// <summary>
+    /// Optional. Public base URLs of this server's file sites (Nextcloud, e.g. <c>https://cloud.example.com</c>).
+    /// NightMail previews a <c>{base}/s/{token}</c> or <c>{base}/f/{fileId}</c> link in a body through
+    /// <c>/shares</c> only on these hosts, and the façade resolves sharing links only below them. Absent (not
+    /// configured) means the feature is off, and the member is left out of the document.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IList<string>? FilesBaseUrls { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        foreach (var url in FilesBaseUrls ?? [])
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
+                || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp)
+                || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment) || !string.IsNullOrEmpty(uri.UserInfo))
+            {
+                yield return new ValidationResult(
+                    $"Discovery:FilesBaseUrls entry '{url}' must be an absolute http(s) URL without a query, fragment or credentials.",
+                    [nameof(FilesBaseUrls)]);
+            }
+        }
+    }
 }

@@ -35,7 +35,7 @@ public static class DavAdapterServiceCollectionExtensions
             .AddDavContacts()
             .AddDavDirectory()
             .AddDavTasks()
-            .AddDavFiles();
+            .AddDavFiles(configuration);
     }
 
     private static void AddDavCore(IServiceCollection services, IConfiguration configuration)

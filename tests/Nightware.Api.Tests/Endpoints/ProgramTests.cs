@@ -48,6 +48,34 @@ public sealed class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
+    public async Task Discovery_advertises_file_sites_only_when_configured()
+    {
+        using var client = _factory.WithWebHostBuilder(static b => b.ConfigureAppConfiguration(static (_, c) =>
+            c.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Discovery:FilesBaseUrls:0"] = "https://cloud.nightware.localhost",
+                ["Discovery:FilesBaseUrls:1"] = "https://files.example.com/nextcloud",
+            }))).CreateClient();
+
+        var body = await (await client.GetAsync("/.well-known/nightware", Ct)).ReadObjectAsync();
+
+        body["filesBaseUrls"]!.AsArray().Select(s => s!.GetValue<string>()).ShouldBe(["https://cloud.nightware.localhost", "https://files.example.com/nextcloud"]);
+    }
+
+    [Theory]
+    [InlineData("cloud.example.com")]
+    [InlineData("ftp://cloud.example.com")]
+    [InlineData("https://cloud.example.com/?x=1")]
+    [InlineData("https://user:pw@cloud.example.com")]
+    public void An_invalid_file_site_fails_at_startup(string url)
+    {
+        var broken = _factory.WithWebHostBuilder(b => b.ConfigureAppConfiguration((_, c) =>
+            c.AddInMemoryCollection(new Dictionary<string, string?> { ["Discovery:FilesBaseUrls:0"] = url })));
+
+        Should.Throw<Exception>(() => broken.CreateClient()).ToString().ShouldContain("FilesBaseUrls");
+    }
+
+    [Fact]
     public async Task Health_is_anonymous()
     {
         using var client = _factory.CreateClient();
