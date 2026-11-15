@@ -3,6 +3,7 @@ using Nightware.Adapters.Jmap.Core;
 using Nightware.Adapters.Jmap.Core.Protocol;
 using Nightware.Adapters.Jmap.Core.Requests;
 using Nightware.Adapters.Jmap.Tests.Support;
+using Nightware.Application.Common.Identity;
 using Nightware.Domain.Kernel;
 using WireMock.Matchers;
 using WireMock.RequestBuilders;
@@ -254,14 +255,18 @@ public sealed class JmapClientTests
         host.Requests("/jmap/session", "GET").Count.ShouldBe(1);
     }
 
-    [Fact]
-    public async Task Api_401_is_auth_failed_and_drops_the_session()
+    [Theory]
+    [InlineData(CredentialStrategy.PassThrough, ErrorKind.BackendAuthFailed)]
+    [InlineData(CredentialStrategy.TokenExchange, ErrorKind.BackendUnavailable)]
+    [InlineData(CredentialStrategy.ServiceAccount, ErrorKind.BackendUnavailable)]
+    public async Task Api_401_drops_the_session_and_re_authenticates_only_a_passed_through_token(CredentialStrategy strategy, ErrorKind expected)
     {
         await using var host = new JmapTestHost();
+        host.UseCredential(new BackendCredential("Bearer", "token", strategy));
         host.StubSession();
         host.Server.Given(Request.Create().WithPath("/jmap/").UsingPost()).RespondWith(Response.Create().WithStatusCode(401));
 
-        (await host.Client().SendAsync(MailboxGet(out _), Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendAuthFailed);
+        (await host.Client().SendAsync(MailboxGet(out _), Ct)).Error!.Kind.ShouldBe(expected);
         await host.Client().GetSessionAsync(Ct);
 
         host.Requests("/jmap/session", "GET").Count.ShouldBe(2);

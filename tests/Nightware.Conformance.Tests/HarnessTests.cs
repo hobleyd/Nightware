@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 
+using Nightware.Api.Composition;
 using Nightware.Application.Mail;
 using Nightware.Conformance.Tests.Harness;
 
@@ -108,8 +109,10 @@ public sealed class HarnessTests
     }
 
     [Fact]
-    public async Task An_unarranged_port_answers_501_through_the_real_program()
+    public async Task A_stub_port_answers_501_through_the_real_program()
     {
+        // IMailFolderReader is implemented by the JMAP adapter now (Phase 2), so the stub is put in
+        // explicitly; what this pins is that a NotImplementedPort surfaces as Graph's 501 envelope.
         var fixture = new GraphFixture(
             "probe",
             null,
@@ -118,6 +121,9 @@ public sealed class HarnessTests
             "inline");
         var example = ArrangementRegistry.Find("example.mail-folders.list")!;
 
-        await ConformanceRunner.AssertConformsAsync(fixture, example with { Arrange = static _ => { } }, TestContext.Current.CancellationToken);
+        await ConformanceRunner.AssertConformsAsync(
+            fixture,
+            example with { Arrange = static fakes => fakes.Use(NotImplementedPort<IMailFolderReader>.Create()) },
+            TestContext.Current.CancellationToken);
     }
 }
