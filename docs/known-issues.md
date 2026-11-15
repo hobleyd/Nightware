@@ -56,6 +56,12 @@ what a fix needs. Ordered by impact within each section.
   they are null live and `proxyAddresses` is only `SMTP:<mail>`.
 
 ## Operations and security
+- **Stalwart's default inbound throttle (25 messages/hour per sender domain and
+  recipient)** would cap a whole single-domain organisation at 25 messages an
+  hour to any one colleague. `deploy/stalwart/configure.sh` scopes it to
+  unauthenticated inbound mail. It still limits Nextcloud's iMIP (sent
+  unauthenticated on port 25): a busy organiser's invitations to one person
+  could hit it. Review per deployment.
 - **Stalwart doesn't check From against the sender's Identity.** The façade
   enforces it (403 `ErrorSendAsDenied`), but other Stalwart clients (IMAP/SMTP)
   can still spoof. Harden Stalwart's submission policy.

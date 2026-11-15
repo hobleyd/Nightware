@@ -89,6 +89,22 @@ call "$(jq -cn --arg net "$SUBNET" '[["x:MtaStageData/set",{"update":{"singleton
   enableSpamFilter:{"else":("is_empty(authenticated_as) && !is_ip_in_cidr(remote_ip, \u0027" + $net + "\u0027)")}}}},"c"]]')" \
   | jq -e '.methodResponses[0][1].updated' >/dev/null
 
+# ------------------------------------------------- 4b. inbound throttle scope
+# Stalwart's default "sender domain to recipient" throttle allows 25 messages an
+# hour per (sender domain, recipient). In a single-domain organisation that caps
+# *all colleagues together* at 25 messages an hour to any one person. Authenticated
+# submissions are already accountable, so the throttle applies to unauthenticated
+# inbound mail only (which still covers Nextcloud's iMIP and external senders).
+THROTTLE_ID=$(call '[["x:MtaInboundThrottle/query",{},"q"],["x:MtaInboundThrottle/get",{"#ids":{"resultOf":"q","name":"x:MtaInboundThrottle/query","path":"/ids"},"properties":["key"]},"g"]]' \
+  | jq -r '.methodResponses[1][1].list[] | select(.key.rcpt == true and .key.senderDomain == true) | .id' | head -n1)
+if [[ -n "$THROTTLE_ID" ]]; then
+  log "Stalwart: scoping inbound throttle ${THROTTLE_ID} to unauthenticated senders"
+  call "$(jq -cn --arg id "$THROTTLE_ID" '[["x:MtaInboundThrottle/set",{"update":{($id):{
+      description:"Sender domain to recipient throttle (unauthenticated inbound only)",
+      match:{match:{},else:"is_empty(authenticated_as)"}}}},"c"]]')" \
+    | jq -e ".methodResponses[0][1].updated | has(\"${THROTTLE_ID}\")" >/dev/null
+fi
+
 # ------------------------------------------------------------------ 5. reload
 call '[["x:Action/set",{"create":{"r":{"@type":"ReloadSettings"}}},"c"]]' \
   | jq -e '.methodResponses[0][1].created' >/dev/null
