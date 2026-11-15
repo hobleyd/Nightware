@@ -101,7 +101,7 @@ internal sealed class JmapSessionProvider(
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                return await JmapHttp.ReadFailureAsync(response, time, "session", cancellationToken).ConfigureAwait(false);
+                return await JmapHttp.ReadFailureAsync(response, time, "session", credential.Strategy, cancellationToken).ConfigureAwait(false);
             }
 
             try

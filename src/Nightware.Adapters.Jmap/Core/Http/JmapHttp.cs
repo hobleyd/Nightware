@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Nightware.Adapters.Jmap.Core.Errors;
 using Nightware.Adapters.Jmap.Core.Protocol;
+using Nightware.Application.Common.Identity;
 using Nightware.Domain.Kernel;
 using Polly;
 
@@ -49,7 +50,8 @@ internal static class JmapHttp
     }
 
     /// <summary>Maps a failed response, reading a JMAP problem document when there is one.</summary>
-    public static async Task<Error> ReadFailureAsync(HttpResponseMessage response, TimeProvider time, string context, CancellationToken cancellationToken)
+    /// <param name="strategy">How the request's credential was obtained (a 401 means different things; see <see cref="JmapErrors.FromStatus"/>).</param>
+    public static async Task<Error> ReadFailureAsync(HttpResponseMessage response, TimeProvider time, string context, CredentialStrategy strategy, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(response);
         ArgumentNullException.ThrowIfNull(time);
@@ -63,7 +65,7 @@ internal static class JmapHttp
                 var problem = JsonSerializer.Deserialize(bytes, JmapJsonContext.Default.ProblemDetails);
                 if (problem?.Type is not null)
                 {
-                    return JmapErrors.FromProblem(problem, response.StatusCode, retryAfter);
+                    return JmapErrors.FromProblem(problem, response.StatusCode, retryAfter, strategy);
                 }
             }
             catch (JsonException)
@@ -72,7 +74,7 @@ internal static class JmapHttp
             }
         }
 
-        return JmapErrors.FromStatus(response.StatusCode, retryAfter, context);
+        return JmapErrors.FromStatus(response.StatusCode, retryAfter, context, strategy);
     }
 
     public static bool IsRedirect(HttpResponseMessage response) =>

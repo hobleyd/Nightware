@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using Nightware.Adapters.Jmap.Core.Errors;
 using Nightware.Adapters.Jmap.Core.Protocol;
+using Nightware.Application.Common.Identity;
 using Nightware.Domain.Kernel;
 
 namespace Nightware.Adapters.Jmap.Tests.Core.Errors;
@@ -105,6 +106,16 @@ public sealed class JmapErrorsTests
     public void Http_statuses_map_to_error_kinds(HttpStatusCode status, ErrorKind expected)
     {
         JmapErrors.FromStatus(status, 7, "ctx").Kind.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData(CredentialStrategy.PassThrough, ErrorKind.BackendAuthFailed)]
+    [InlineData(CredentialStrategy.TokenExchange, ErrorKind.BackendUnavailable)]
+    [InlineData(CredentialStrategy.ServiceAccount, ErrorKind.BackendUnavailable)]
+    public void A_401_is_re_authentication_only_for_a_passed_through_token(CredentialStrategy strategy, ErrorKind expected)
+    {
+        JmapErrors.FromStatus(HttpStatusCode.Unauthorized, null, "ctx", strategy).Kind.ShouldBe(expected);
+        JmapErrors.FromProblem(new ProblemDetails { Type = "urn:ietf:params:jmap:error:other" }, HttpStatusCode.Unauthorized, null, strategy).Kind.ShouldBe(expected);
     }
 
     [Fact]
