@@ -10,7 +10,8 @@
 #     cannot claim another mailbox's address in the account console; usernames
 #     are not editable and the UPDATE_EMAIL required action stays disabled.
 #   - seed them for the test users, writing as the nightware-api service
-#     account (realm-management manage-users) to prove that path.
+#     account (realm-management manage-users) to prove that path
+#     (NIGHTWARE_KC_SEED=0 skips this).
 # Every step reads the current state and writes only what differs (the user
 # profile is merged, never replaced wholesale).
 source "$(dirname "$0")/../scripts/lib.sh"
@@ -58,6 +59,13 @@ if [[ -n "$action" && "$(jq -r .enabled <<<"$action")" != "false" ]]; then
   jq '.enabled = false | .defaultAction = false' <<<"$action" \
     | ccurl -f -X PUT -H "Authorization: Bearer ${ADMIN}" -H 'Content-Type: application/json' \
         "${API}/authentication/required-actions/UPDATE_EMAIL" --data-binary @- >/dev/null
+fi
+
+# NIGHTWARE_KC_SEED=0 applies only the realm/user-profile steps above, leaving
+# the test users' attributes as they are (re-running on a live shared stack).
+if [[ "${NIGHTWARE_KC_SEED:-1}" == "0" ]]; then
+  log "Keycloak: NIGHTWARE_KC_SEED=0, not seeding the test users"
+  exit 0
 fi
 
 SVC=$(service_token)

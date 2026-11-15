@@ -84,7 +84,10 @@ invalidates:
   **full resync** of each folder: correct, but a burst of backend load as every device re-pulls.
 - **every in-flight upload and download URL.** An upload session `uploadUrl` or a 5-minute
   download redirect sealed with the old key no longer recovers a credential and answers `401`.
-  The client starts the upload or download again.
+  NightMail uses an upload URL right after creating the session and follows a download redirect
+  at once, so only operations in flight during the restart are hit. Each fails once: the attachment
+  upload errors, or the document preview shows "Authentication required" (the 401 on the redirect
+  leg). The user retries.
 
 ```bash
 cd deploy
