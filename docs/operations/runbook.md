@@ -29,7 +29,8 @@ after changing `BASE_DOMAIN` or `PUBLIC_PORT_SUFFIX`), the façade cannot fetch 
 skew** (below). NightMail answers a 401 by refreshing the token and retrying once, then shows the
 re-auth banner.
 
-**Confirm.** JwtBearer logs (Information) name the failure: `IDX10205` issuer, `IDX10214` audience,
+**Confirm.** Raise `Logging__LogLevel__Microsoft.AspNetCore.Authentication` to `Information`
+(the default for `Microsoft.AspNetCore` is `Warning`); JwtBearer then names the failure: `IDX10205` issuer, `IDX10214` audience,
 `IDX10223` lifetime, `IDX10500/10503` signature/keys. Compare `iss`/`aud`:
 `deploy/get-token.sh --claims alice`.
 

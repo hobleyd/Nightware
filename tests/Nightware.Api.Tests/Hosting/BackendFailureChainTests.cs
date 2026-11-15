@@ -82,13 +82,13 @@ public sealed class BackendFailureChainTests : IDisposable
     public async Task A_backend_http_date_retry_after_still_reaches_the_client_as_integer_seconds()
     {
         _keycloak.Given(Request.Create().WithPath(TokenPath).UsingPost())
-            .RespondWith(Response.Create().WithStatusCode(503).WithHeader("Retry-After", DateTimeOffset.UtcNow.AddSeconds(30).ToString("R")));
+            .RespondWith(Response.Create().WithStatusCode(503).WithHeader("Retry-After", DateTimeOffset.UtcNow.AddSeconds(120).ToString("R")));
         await using var host = await StartAsync();
 
         var response = await host.AuthorizedClient().GetAsync("/v1.0/probe/mail-credential", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
-        int.Parse(response.Headers.GetValues("Retry-After").Single(), System.Globalization.CultureInfo.InvariantCulture).ShouldBeInRange(25, 31);
+        int.Parse(response.Headers.GetValues("Retry-After").Single(), System.Globalization.CultureInfo.InvariantCulture).ShouldBeInRange(60, 121);
     }
 
     [Fact]

@@ -7,6 +7,12 @@ the three backends, plus `deploy/.env` (secrets — store it encrypted) and the 
 Volume names below assume the compose project `nightware` (`nightware_<volume>`). Never run
 `docker compose down -v`: it deletes every volume. Take backups to storage outside the host.
 
+**Verified status (2026-11-15, dev stack).** The two `pg_dump` commands were run against the live
+stack and produce valid archives (`pg_restore -l` lists every table). The other procedures — the
+Keycloak export container, the Stalwart stop-and-tar, `stalwart-cli export`, and every restore —
+were written from the backends' documentation and have **not** been executed here (the dev stack is
+shared); rehearse them on a scratch compose project before relying on them.
+
 A consistent restore point needs all three backends from about the same time: an event's iMIP mail
 lives in Stalwart, the event in Nextcloud, and the users in Keycloak.
 

@@ -84,6 +84,14 @@ process with a message naming the key, instead of failing on the first request.
 | `Telemetry:Otlp:Protocol` | `Grpc` | `Grpc` (4317) or `HttpProtobuf` (4318). |
 | `OTEL_EXPORTER_OTLP_HEADERS` 🔒 (env only) | none | Collector authentication headers, read by the exporter itself. |
 
+## Host
+
+| Key | Default | Meaning |
+|---|---|---|
+| `AllowedHosts` | `*` | Host-header filter. Set it to `graph.<domain>` in production (semicolon-separated list), so a request for any other host name is refused. |
+| `ASPNETCORE_ENVIRONMENT` (env only) | `Production` | `Development` loads `appsettings.Development.json` (dev-only secrets, human-readable logs). |
+| `ASPNETCORE_HTTP_PORTS` (env only) | `8080` (image) | Listening port inside the container. |
+
 ## Logging
 
 | Key | Default | Meaning |
