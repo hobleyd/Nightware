@@ -78,6 +78,20 @@ wait_for "collabora discovery" dc exec -T nextcloud curl -fsS -o /dev/null http:
 occ richdocuments:setup --wopi-url=http://collabora:9980 --callback-url=http://nextcloud >/dev/null
 occ config:app:set richdocuments wopi_allowlist --value="${DOCKER_SUBNET:-172.31.250.0/24}" >/dev/null
 
+# ------------------------------------------------------ brute-force allow-list
+# The façade reads public shares anonymously (/shares in Nightware), so every
+# reader's lookups arrive from its one address and Nextcloud would count a few
+# dead or password-protected links from anyone against all of them
+# (MaxDelayReached). Exempt only the api container's pinned address
+# (NIGHTWARE_API_ADDRESS in docker-compose.yml), never the whole subnet:
+# Caddy is on it too, and it forwards every browser's sign-in attempts. The
+# fixed id keeps this idempotent and out of the way of entries added in the
+# admin UI (bruteforcesettings numbers those from 1).
+API_ADDRESS="${NIGHTWARE_API_ADDRESS:-172.31.250.250}"
+log "Nextcloud: brute-force allow-list ${API_ADDRESS}/32 (nightware-api)"
+occ config:app:set bruteForce whitelist_1000 --value="${API_ADDRESS}/32" >/dev/null
+occ config:app:set bruteForce whitelist_1000_comment --value="nightware-api (deploy/nextcloud/configure.sh)" >/dev/null
+
 # ------------------------------------------------------------- outgoing mail
 # iMIP invitations go to Stalwart's SMTP listener (port 25) inside the Docker
 # network. Stalwart accepts unauthenticated mail for its own local recipients

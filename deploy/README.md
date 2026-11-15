@@ -285,15 +285,19 @@ involved, because `*.localhost` names do not work between containers:
   `configfailed` right after loading.
 - The image has no shell or curl, so there is no compose healthcheck; the
   image's own reports unhealthy. `nextcloud/configure.sh` waits for discovery.
-- **Brute-force protection sees every public-share lookup as the façade.**
-  The façade reads `/s/{token}` links anonymously from its own address, so a
-  password-protected or dead link counts as a failed attempt *from the
-  façade*; enough of them (any users, any links) and Nextcloud delays then
-  refuses every public share (`MaxDelayReached`, the façade answers 429/503).
-  Clear it with `occ security:bruteforce:reset <façade ip>`; for production,
-  pin the api container's address and add it to the `bruteforcesettings`
-  allow-list (not the whole subnet — Caddy's address carries all public
-  traffic). Share *creation* is also rate-limited per user (OCS 429), which
+- **The façade is exempt from Nextcloud's brute-force throttling.** It reads
+  `/s/{token}` links anonymously from its own address, so without this a few
+  password-protected or dead links (any users, any links) would make Nextcloud
+  delay, then refuse, every public share (`MaxDelayReached`). The api container
+  has a pinned address (`NIGHTWARE_API_ADDRESS`, default `172.31.250.250`,
+  which must sit inside `DOCKER_SUBNET`), and `nextcloud/configure.sh`
+  allow-lists exactly that `/32` as `bruteForce` `whitelist_1000`. Never widen
+  it to the subnet: Caddy is on it and carries every browser's sign-in
+  attempts. Check with `occ security:bruteforce:attempts 172.31.250.250`
+  (`bypass-listed: true`). The cost: nothing slows a caller guessing share
+  tokens or passwords *through the façade*; it already needs a Keycloak
+  sign-in to do so, and the façade's per-user rate limit bounds it.
+  Share *creation* is also rate-limited per user (OCS 429), which
   only matters to repeated live-test runs.
 - Port 9980 is published on `BIND_ADDRESS` (`COLLABORA_PORT`) so a façade run
   on the host (`dotnet run`, the live integration tests) can convert.

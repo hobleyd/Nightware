@@ -48,6 +48,23 @@ what a fix needs. Ordered by impact within each section.
 - Attachments for a shared mailbox's task go to the owner's Files; the upload
   only works if Nextcloud lets the delegate write there.
 
+### Documents (`/shares`)
+- **Share-token guessing through the façade isn't slowed by Nextcloud.** The
+  api container's pinned address is exempt from Nextcloud's brute-force
+  throttling (otherwise a few dead links from anyone throttled public shares
+  for everyone; `deploy/README.md`), so the only bound is a Keycloak sign-in
+  and the per-user rate limit. If that proves too loose, forward the reader's
+  address instead (Nextcloud already trusts the stack subnet as a proxy) so
+  Nextcloud throttles per reader.
+- An unknown share token is a Nextcloud 503, which the DAV resilience pipeline
+  probably retries before it is mapped to 404: extra latency on dead links,
+  same answer.
+- Collabora's outbound TLS verification is off in compose
+  (`COLLABORA_SSL_VERIFICATION=false`) because it fetches richdocuments'
+  settings over the Caddy-CA `cloud.` name. Turn it on with public certificates.
+- In-browser editing was verified at the protocol level (WOPI session over the
+  editor's websocket, save landed in Nextcloud), not in a rendered browser.
+
 ### Directory
 - `/users/{shared}` for a shared mailbox that isn't a Keycloak user is 404. The
   client only calls it for the signed-in account.
@@ -73,10 +90,24 @@ what a fix needs. Ordered by impact within each section.
   re-sign-in. Keep Keycloak highly available; never put a maintenance page in
   front of its token endpoint.
 - Fetching an attachment with its content buffers it whole, with no size cap.
+- **Stalwart allows 4 concurrent JMAP requests per account.** Several devices
+  on one account polling together get 429s. Raise Stalwart's limit (runbook) or
+  add a per-account concurrency limit in the façade.
+- **No circuit breakers** on the backend HttpClients; they must count only 5xx,
+  timeouts and network errors. The JMAP retry policy also retries 429 (DAV and
+  Keycloak exclude it), so a Stalwart 429 can stall until the request budget
+  answers 503.
+- Per-user rate limits are per façade instance.
+- **Load figures need an idle machine.** The phase-6 poll-cycle run (20 devices,
+  machine saturated by other suites) missed the 300 ms p95 on inbox delta
+  (486 ms), task lists (3.3 s) and calendarView (8.3 s).
+- Backup procedures: only the `pg_dump`s were exercised; exports, the Stalwart
+  tar and every restore are untested (`docs/operations/backup.md`).
 - Docker's VM disk filled up during development (Postgres couldn't start);
   build cache is the usual culprit (`docker builder prune`).
 
 ## Deferred by design (ADR §43)
-`/shares/{id}/driveItem[/content]` and
-`beta/security/threatSubmission/emailThreats` return 501: the client gates both
-off for NightMail Server accounts. `DeferredOperationsTests` asserts the 501s.
+`beta/security/threatSubmission/emailThreats` returns 501: the client gates it
+off for NightMail Server accounts (a phishing report is a junk move or a
+Phishing Inbox forward). `DeferredOperationsTests` asserts the 501. The
+`/shares` operations were implemented in phase 7.
