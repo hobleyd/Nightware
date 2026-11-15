@@ -1,7 +1,7 @@
 using Nightware.Api.Features.Files.Download;
 using Nightware.Api.Features.Tasks.Upload;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,6 +28,9 @@ using Nightware.Api.Graph;
 using Nightware.Api.Graph.Errors;
 using Nightware.Api.Graph.Json;
 using Nightware.Api.Graph.Routing;
+using Nightware.Api.Hosting;
+using Nightware.Api.Observability;
+using Nightware.Api.Throttling;
 using Nightware.Application;
 using Nightware.Application.Common.Identity;
 
@@ -39,7 +42,11 @@ namespace Nightware.Api.Composition;
 /// </summary>
 public static class NightwareComposition
 {
+    /// <summary>Readiness: the process and every backend health check (Stalwart, Nextcloud, Keycloak).</summary>
     public const string HealthPath = "/healthz";
+
+    /// <summary>Liveness: the process answers HTTP. No backend is consulted, so a backend outage never restarts the façade.</summary>
+    public const string LivenessPath = "/healthz/live";
 
     public static IServiceCollection AddNightware(this IServiceCollection services, IConfiguration configuration)
     {
@@ -47,13 +54,8 @@ public static class NightwareComposition
 
         services.TryAddSingleton(TimeProvider.System);
         services.ConfigureHttpJsonOptions(static o => GraphJson.Configure(o.SerializerOptions));
-        services.Configure<ForwardedHeadersOptions>(static o =>
-        {
-            // Nightware runs behind Caddy in its own network; trust the proxy's X-Forwarded-* headers.
-            o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedPrefix;
-            o.KnownIPNetworks.Clear();
-            o.KnownProxies.Clear();
-        });
+        services.AddHttpHardening(configuration);
+        services.AddNightwareTelemetry(configuration);
 
         services.AddOptions<DiscoveryOptions>()
             .Bind(configuration.GetSection(DiscoveryOptions.SectionName))
@@ -62,6 +64,7 @@ public static class NightwareComposition
         services.AddOptions<DeltaLinkOptions>().Bind(configuration.GetSection(DeltaLinkOptions.SectionName));
 
         services.AddGraphAuthentication(configuration);
+        services.AddGraphRateLimiting(configuration);
         services.AddHealthChecks();
 
         services.AddSingleton<GraphLinkBuilder>();
@@ -89,18 +92,33 @@ public static class NightwareComposition
         return services;
     }
 
+    /// <summary>
+    /// The request pipeline. Order matters: forwarded headers first (everything after sees the real
+    /// client and scheme); correlation and the Graph exception envelope wrap all the rest; CORS after
+    /// routing so preflights are answered before authentication; the rate limiter after
+    /// authentication (it partitions by <c>sub</c>) and before the request budget, so a rejected
+    /// request costs nothing; the budget innermost of the cross-cutting steps, so its 503/504 is
+    /// written before <see cref="GraphExceptionMiddleware"/> could mistake a timeout for a client abort.
+    /// </summary>
     public static WebApplication UseNightware(this WebApplication app)
     {
         ArgumentNullException.ThrowIfNull(app);
         app.UseForwardedHeaders();
+        app.UseMiddleware<SecurityHeadersMiddleware>();
         app.UseMiddleware<RequestCorrelationMiddleware>();
         app.UseMiddleware<GraphExceptionMiddleware>();
+        app.UseRouting();
+        app.UseCors();
+        app.UseMiddleware<RequestBodyLimitMiddleware>();
         app.UseMiddleware<SelfAuthorisingUrlMiddleware>();
         app.UseAuthentication();
+        app.UseRateLimiter();
+        app.UseMiddleware<RequestBudgetMiddleware>();
         app.UseAuthorization();
 
-        app.MapDiscovery();
+        app.MapDiscovery().RequireNightMailCors();
         app.MapHealthChecks(HealthPath).AllowAnonymous();
+        app.MapHealthChecks(LivenessPath, new HealthCheckOptions { Predicate = static _ => false }).AllowAnonymous();
         app.MapGraph();
         return app;
     }
@@ -113,6 +131,7 @@ public static class NightwareComposition
         {
             var graph = endpoints.MapGroup(version);
             graph.RequireAuthorization();
+            graph.RequireNightMailCors();
             graph.AddEndpointFilter<GraphBindingFilter>();
             graph
                 .MapMailEndpoints()
@@ -130,7 +149,9 @@ public static class NightwareComposition
                 contributor.Map(graph);
             }
 
-            endpoints.MapFallback(version + "/{**path}", UnknownGraphRoute.HandleAsync).RequireAuthorization();
+            endpoints.MapFallback(version + "/{**path}", UnknownGraphRoute.HandleAsync)
+                .RequireAuthorization()
+                .RequireNightMailCors();
         }
 
         return endpoints;

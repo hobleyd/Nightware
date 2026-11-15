@@ -142,7 +142,7 @@ public sealed class FilesEndpointsTests : IAsyncLifetime
         response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         var location = response.Headers.Location!.AbsoluteUri;
         var root = version == "beta" ? TestHost.GraphBetaBase : TestHost.GraphBase;
-        location.ShouldStartWith($"{root}/shares/{Uri.EscapeDataString(ShareId)}/driveItem/download?{expectedFormat}authtoken=");
+        location.ShouldStartWith($"{root}/shares/{Uri.EscapeDataString(ShareId)}/driveItem/$value?{expectedFormat}authtoken=");
         location.ShouldNotContain(token);
         await _reader.DidNotReceiveWithAnyArgs().GetContentAsync(null!, Ct);
     }
@@ -269,7 +269,7 @@ public sealed class FilesEndpointsTests : IAsyncLifetime
         GivenItem(Docx);
         _reader.GetContentAsync(Link, Arg.Any<CancellationToken>()).Returns(_ => Blob("text/plain", [65]));
 
-        using var response = await _host.AuthorizedClient().GetAsync($"/v1.0/shares/{ShareId}/driveItem/download", Ct);
+        using var response = await _host.AuthorizedClient().GetAsync($"/v1.0/shares/{ShareId}/driveItem/$value", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -277,8 +277,8 @@ public sealed class FilesEndpointsTests : IAsyncLifetime
     [Fact]
     public async Task The_download_route_checks_its_format_and_link_too()
     {
-        (await _host.AuthorizedClient().GetAsync($"/v1.0/shares/{ShareId}/driveItem/download?format=html", Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        (await _host.AuthorizedClient().GetAsync($"/v1.0/shares/{SharingUrlsTests.Encode("https://evil.example.com/s/x")}/driveItem/download", Ct))
+        (await _host.AuthorizedClient().GetAsync($"/v1.0/shares/{ShareId}/driveItem/$value?format=html", Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await _host.AuthorizedClient().GetAsync($"/v1.0/shares/{SharingUrlsTests.Encode("https://evil.example.com/s/x")}/driveItem/$value", Ct))
             .StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 

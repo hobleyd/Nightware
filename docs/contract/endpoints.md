@@ -230,7 +230,7 @@ share, read anonymously through public-share WebDAV) and `{site}/f/{fileId}`
 (internal link, found by file id in the caller's Files). A link elsewhere is
 404, a malformed share id 400, a password-protected share 403, a folder a
 `driveItem` with the `folder` facet. `/content[?format=pdf]` answers **302** to
-`{graphBaseUrl}/shares/{id}/driveItem/download[?format=pdf]&authtoken=…`, a
+`{graphBaseUrl}/shares/{id}/driveItem/$value[?format=pdf]&authtoken=…`, a
 self-authorising URL (ADR §39) valid for 5 minutes (or the token's remaining
 life) that streams the file, or the Collabora-rendered PDF of an Office file. A
 `format=pdf` the server cannot produce is 400 `notSupported` on the first leg.

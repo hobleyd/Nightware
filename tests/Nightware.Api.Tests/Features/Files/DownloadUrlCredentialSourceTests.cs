@@ -10,7 +10,7 @@ namespace Nightware.Api.Tests.Features.Files;
 public sealed class DownloadUrlCredentialSourceTests
 {
     private const string ShareId = "u!aGk";
-    private const string Path = "/v1.0/shares/u!aGk/driveItem/download";
+    private const string Path = "/v1.0/shares/u!aGk/driveItem/$value";
 
     private readonly DownloadUrlProtector _protector = new(Options.Create(new DeltaLinkOptions { SigningKey = "k" }), TimeProvider.System);
 
@@ -53,7 +53,7 @@ public sealed class DownloadUrlCredentialSourceTests
     public void Other_paths_get_nothing()
     {
         Resolve("GET", "/v1.0/shares/u!aGk/driveItem/content", "?format=pdf&authtoken=" + Sealed(), out _).ShouldBeFalse();
-        Resolve("GET", "/v1.0/shares/u!b3RoZXI/driveItem/download", "?format=pdf&authtoken=" + Sealed(), out _).ShouldBeFalse();
+        Resolve("GET", "/v1.0/shares/u!b3RoZXI/driveItem/$value", "?format=pdf&authtoken=" + Sealed(), out _).ShouldBeFalse();
         Resolve("GET", "/v1.0/me/messages", "?format=pdf&authtoken=" + Sealed(), out _).ShouldBeFalse();
     }
 
