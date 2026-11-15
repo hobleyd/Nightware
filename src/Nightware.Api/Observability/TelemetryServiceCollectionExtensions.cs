@@ -28,9 +28,10 @@ public static class TelemetryServiceCollectionExtensions
     /// <para>Nothing in the SDK is registered while export is off: the framework's own meters still
     /// exist (so <c>dotnet-counters</c> works) but no spans are sampled for nobody.</para>
     /// <para>What is never exported: request and response bodies and headers. The ASP.NET Core and
-    /// HttpClient instrumentations record method, route template, status and a query-redacted URL;
-    /// nothing here enriches spans with headers. Log export carries the same records the console
-    /// does, which the redaction tests pin.</para>
+    /// HttpClient instrumentations record method, route template, status and a query-redacted URL,
+    /// whose secret path segments (<see cref="UrlRedaction"/>) <see cref="RedactingSpanProcessor"/>
+    /// replaces; nothing here enriches spans with headers. Log export carries the same records the
+    /// console does, which the redaction tests pin.</para>
     /// </remarks>
     public static IServiceCollection AddNightwareTelemetry(this IServiceCollection services, IConfiguration configuration)
     {
@@ -59,7 +60,8 @@ public static class TelemetryServiceCollectionExtensions
                     .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion))
             .WithTracing(static tracing => tracing
                 .AddAspNetCoreInstrumentation(static o => o.Filter = static context => !IsProbe(context))
-                .AddHttpClientInstrumentation())
+                .AddHttpClientInstrumentation()
+                .AddProcessor(new RedactingSpanProcessor()))
             .WithMetrics(static metrics => metrics
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
