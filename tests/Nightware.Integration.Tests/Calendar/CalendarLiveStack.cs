@@ -9,15 +9,15 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Nightware.Application.Mail;
+using Microsoft.Extensions.Http;
 
 namespace Nightware.Integration.Tests.Calendar;
 
 /// <summary>
-/// The running dev stack and an in-process Nightware pointed at it, like 5A's <c>Directory/LiveStack</c>, plus
-/// one test-only service: <see cref="JmapInvitationReader"/> stands in for Phase 2's mail reader so the
-/// invitation-mail → event flow can run before Phase 2 merges. Opt-in with <c>NIGHTWARE_INTEGRATION=1</c>;
-/// <c>NIGHTWARE_DEPLOY_DIR</c> names a bootstrapped deploy folder (<c>.env</c> or <c>.env.example</c>, and <c>.certs/</c>).
+/// The running dev stack and an in-process Nightware pointed at it (the same shape as 5A's and Phase 2's live
+/// hosts). Opt-in with <c>NIGHTWARE_INTEGRATION=1</c>; <c>NIGHTWARE_DEPLOY_DIR</c> names a bootstrapped deploy
+/// folder (<c>.env</c>, else <c>.env.example</c>, and <c>.certs/</c>). The Caddy CA is trusted only by Nightware's
+/// outgoing clients and JWKS fetch, never process-wide.
 /// </summary>
 internal sealed class CalendarLiveStack : IAsyncDisposable
 {
@@ -43,13 +43,13 @@ internal sealed class CalendarLiveStack : IAsyncDisposable
                 ["Auth:Authority"] = Issuer,
                 ["DeltaLinks:SigningKey"] = "integration",
                 ["Directory:ClientSecret"] = _env["NIGHTWARE_API_CLIENT_SECRET"],
-                ["Jmap:SessionUrl"] = JmapInvitationReader.SessionUrl,
+                ["Jmap:SessionUrl"] = "https://mail." + Domain + "/.well-known/jmap",
             }));
             builder.ConfigureTestServices(services =>
             {
-                services.ConfigureHttpClientDefaults(http => http.ConfigurePrimaryHttpMessageHandler((handler, _) => Trust(handler, _ca)));
+                // After the app's own client configuration, so it also reaches clients that set their own primary handler.
+                services.ConfigureAll<HttpClientFactoryOptions>(o => o.HttpMessageHandlerBuilderActions.Add(b => Trust(b.PrimaryHandler, _ca)));
                 services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, o => o.BackchannelHttpHandler = TrustingHandler(_ca));
-                services.AddScoped<IMailMessageReader, JmapInvitationReader>();
             });
         });
     }
@@ -132,9 +132,12 @@ internal sealed class CalendarLiveStack : IAsyncDisposable
         chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
         chain.ChainPolicy.CustomTrustStore.Add(ca);
         chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-        foreach (var element in presented?.ChainElements ?? [])
+        if (presented is not null)
         {
-            chain.ChainPolicy.ExtraStore.Add(element.Certificate);
+            foreach (var element in presented.ChainElements)
+            {
+                chain.ChainPolicy.ExtraStore.Add(element.Certificate);
+            }
         }
 
         using var leaf = new X509Certificate2(certificate);

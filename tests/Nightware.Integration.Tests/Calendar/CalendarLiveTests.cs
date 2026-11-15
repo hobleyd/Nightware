@@ -36,6 +36,24 @@ public sealed class CalendarLiveTests
         return text.Length == 0 ? [] : JsonNode.Parse(text)!.AsObject();
     }
 
+    /// <summary>Polls Bob's inbox through the façade's mail routes until Nextcloud's iMIP invitation arrives.</summary>
+    private static async Task<string> InvitationIdAsync(HttpClient client, string subject)
+    {
+        for (var attempt = 0; attempt < 30; attempt++)
+        {
+            var page = await SendJsonAsync(client, HttpMethod.Get, "/v1.0/me/mailFolders/inbox/messages?$select=id,subject&$top=50");
+            var match = page["value"]!.AsArray().FirstOrDefault(m => m!["subject"]?.GetValue<string>().Contains(subject, StringComparison.Ordinal) == true);
+            if (match is not null)
+            {
+                return match["id"]!.GetValue<string>();
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(2), Ct);
+        }
+
+        throw new ShouldAssertException($"The invitation '{subject}' never reached the inbox.");
+    }
+
     /// <summary>A random whole-hour slot in 2028 (Sydney), so rooms and people are free and runs don't overlap.</summary>
     private static DateTime UniqueSlot() =>
         new DateTime(2028, 1, 3, 9, 0, 0).AddDays(Random.Shared.Next(0, 300) * 7).AddHours(Random.Shared.Next(0, 8));
@@ -71,7 +89,7 @@ public sealed class CalendarLiveTests
             room["status"]!["response"]!.GetValue<string>().ShouldBe("accepted", "Sabre auto-schedules a free room");
 
             // Bob receives the iMIP mail; the façade resolves it to his copy of the meeting (each cast spelling).
-            var messageId = Uri.EscapeDataString(JmapInvitationReader.SubjectPrefix + subject);
+            var messageId = Uri.EscapeDataString(await InvitationIdAsync(bob, subject));
             var linked = await SendJsonAsync(bob, HttpMethod.Get, $"/v1.0/me/messages/{messageId}/microsoft.graph.eventMessageRequest/event?$select=id,isOrganizer");
             linked["isOrganizer"]!.GetValue<bool>().ShouldBeFalse();
             var uncast = await SendJsonAsync(bob, HttpMethod.Get, $"/v1.0/me/messages/{messageId}/event?$select=id");
