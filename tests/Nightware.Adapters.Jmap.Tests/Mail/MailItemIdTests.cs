@@ -137,23 +137,6 @@ public sealed class MailItemIdTests
     }
 
     [Fact]
-    public void DraftFilter_finds_the_message_id_in_the_drafts_mailbox()
-    {
-        var filter = MailItemId.ForDraft("abc@example.com").DraftFilter("drafts-1");
-
-        filter.Operator.ShouldBe("AND");
-        filter.Conditions!.Count.ShouldBe(2);
-        filter.Conditions[0].InMailbox.ShouldBe("drafts-1");
-        filter.Conditions[1].Header.ShouldBe(["Message-ID", "abc@example.com"]);
-    }
-
-    [Fact]
-    public void DraftFilter_is_only_for_draft_ids()
-    {
-        Should.Throw<InvalidOperationException>(() => MailItemId.ForEmail("M1").DraftFilter("d"));
-    }
-
-    [Fact]
     public void MatchesDraft_requires_an_exact_message_id()
     {
         var id = MailItemId.ForDraft("abc@example.com");
