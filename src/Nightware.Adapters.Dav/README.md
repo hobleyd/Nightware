@@ -128,7 +128,7 @@ Sabre's `<d:error>` body is checked before the status code:
 | `no-uid-conflict` | `Conflict` (`uidConflict`) |
 | `max-resource-size` | `PayloadTooLarge` (`payloadTooLarge`) |
 | 400, 415, 422 | `Validation` |
-| 401 | `BackendAuthFailed` |
+| 401 (also OCS 997, and discovery's `<d:unauthenticated/>`) | `BackendAuthFailed` for a passed-through token; `BackendUnavailable` for a token-exchanged one, which means façade misconfiguration (ADR 0001 §42, `DavErrors.Unauthorized`) |
 | 403 | `Forbidden` |
 | 404, 410 | `NotFound` |
 | 405 (MKCOL on an existing collection), 409, 423 | `Conflict` |
@@ -217,6 +217,11 @@ Mapping, iCalendar → Domain:
 | `ExcludeOccurrence` | Adds an EXDATE in the master's own value form and drops a matching exception |
 | `Cancel` | Sets STATUS:CANCELLED and increments SEQUENCE |
 | `BumpSequence` | Increments SEQUENCE |
+| `MaterializeOccurrence` | Gives an unmodified occurrence its exception VEVENT (a deep copy of the master minus RRULE/RDATE/EXDATE, RECURRENCE-ID in the master's DTSTART form), after checking the series produces it; NotFound otherwise (also for an EXDATE'd one) |
+| `ApplyPatch` | A Graph PATCH in place, for the series or one occurrence: attendees merged by address (PARTSTAT/SCHEDULE-* kept, organizer's line kept, series edits reach exceptions), unchanged times left in their stored zone, SEQUENCE bumped only when the organizer really reschedules |
+| `AddAttendees` | Organizer forward: adds recipients as NEEDS-ACTION/RSVP attendees to the series (and its exceptions) or one occurrence |
+
+`SetParticipation` on an occurrence id creates the exception for an unmodified occurrence, so occurrence ids are write targets everywhere (ADR 0001 §4).
 
 Organizer time changes must also bump SEQUENCE (ADR 0001 §4).
 
@@ -274,6 +279,18 @@ Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf,
 - Nextcloud draws a letter avatar for users who never uploaded one, and the response marks it with `X-NC-IsCustomAvatar: 0`. That counts as **no photo** (`NotFound`), so the client draws its own initials, as it does with Graph.
 - The image is buffered, capped at 4 MiB.
 - A backend 401 maps to `BackendUnavailable`, never to 401: on a best-effort call, a 401 would make the client refresh its token and could flag the account for re-authentication.
+
+## Calendar and rooms (Phase 4)
+
+`Calendar/` implements `ICalendarReader`, `ICalendarWriter`, `ISchedulingActions` and `IFreeBusyReader`; `Rooms/` implements `IRoomDirectory`.
+
+- **Which calendars.** `/me` is the caller's own event calendars. `/users/{x}` is the calendars `x` shared with the caller (Nextcloud mounts them in the caller's home with `owner-principal` = `x`); `x`'s own home is not readable by others. The **default calendar** (Graph's `/me/calendar`) is the writable `personal*` one, else the first writable by order; the birthday calendar is never the default. `calendarView` and an unfiltered `/events` read the default calendar; the `iCalUId` lookup searches every calendar in scope. Every id is checked to lie inside one of those calendars before any request.
+- **calendarView** is one `calendar-query` with `<C:expand>` on the default calendar. Sabre writes every instance with a RECURRENCE-ID, so the recurring resources are multigot unexpanded to type each instance `Exception` (it has a stored exception component) or `Occurrence`. Expanded times are UTC (as Sabre returns them); NightMail always sends `Prefer: outlook.timezone="UTC"`. Paging is an offset `$skiptoken` over the sorted result.
+- **Writes are iTIP through Sabre.** Create builds the new resource from Domain (named `{guid}.ics`, ORGANIZER only for meetings); every later change is an `IcsEditor` edit PUT under `If-Match`. Organizer cancel **deletes** the resource (or EXDATEs the occurrence), which is what makes Sabre send METHOD:CANCEL, so the meeting leaves the organizer's calendar as in Graph. Organizer forward adds attendees; an attendee's forward is 403 (NightMail then mails the invitation itself). Rooms (CUTYPE=ROOM) are auto-scheduled by Sabre.
+- **getSchedule** posts one VFREEBUSY REQUEST to the **caller's** outbox (Sabre accepts no other), for people and rooms alike; `3.x` request statuses become per-schedule errors. `availabilityView` is computed in Application.
+- **Rooms** are the `principals/calendar-rooms/` principals of `calendar_resource_management`: `building` = `room-building-name` (else the address), `floorLabel` = `room-building-story`, `floorNumber` = the number in it, wheelchair access from `room-features`.
+- **Not carried by Sabre's iMIP** (accepted, kept on the stored copy at most): RSVP and cancel comments, forward comments, `sendResponse: false` (Sabre always replies), and a decline's `proposedNewTime` (Sabre has no iTIP COUNTER, and its REPLY carries no proposal).
+- `VTIMEZONE`s are generated from today when the event is more than a year ahead: Ical.Net throws for a later "earliest date" (`ZoneWriter.SupportedFrom`).
 
 ## Known gaps
 

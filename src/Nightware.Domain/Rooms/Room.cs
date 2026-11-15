@@ -9,5 +9,8 @@ public sealed record Room(string Id, string DisplayName, string EmailAddress)
 
     public string? FloorLabel { get; init; }
 
+    /// <summary>The floor as a number (Graph <c>floorNumber</c>), when the label names one.</summary>
+    public int? FloorNumber { get; init; }
+
     public bool IsWheelChairAccessible { get; init; }
 }

@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.Extensions.Time.Testing;
 using Nightware.Adapters.Dav.Core;
+using Nightware.Application.Common.Identity;
 using Nightware.Domain.Kernel;
 
 namespace Nightware.Adapters.Dav.Tests.Core;
@@ -27,6 +28,16 @@ public sealed class DavErrorsTests
     [InlineData(418, ErrorKind.Unknown)]
     public void Status_codes_map(int status, ErrorKind kind) =>
         DavErrors.Map((HttpStatusCode)status, null, null).Kind.ShouldBe(kind);
+
+    [Theory]
+    [InlineData(CredentialStrategy.PassThrough, ErrorKind.BackendAuthFailed)]
+    [InlineData(CredentialStrategy.TokenExchange, ErrorKind.BackendUnavailable)]
+    [InlineData(CredentialStrategy.ServiceAccount, ErrorKind.BackendUnavailable)]
+    public void A_401_is_a_reauthentication_only_for_the_callers_own_token(CredentialStrategy strategy, ErrorKind kind)
+    {
+        DavErrors.Map(HttpStatusCode.Unauthorized, null, null, DavRequestIntent.Default, strategy).Kind.ShouldBe(kind);
+        DavErrors.Unauthorized(strategy).Kind.ShouldBe(kind);
+    }
 
     [Fact]
     public void Create_only_412_is_a_conflict()

@@ -447,7 +447,7 @@ public sealed class DavClientTests : IDisposable
 
     [Theory]
     [InlineData(400, ErrorKind.Validation)]
-    [InlineData(401, ErrorKind.BackendAuthFailed)]
+    [InlineData(401, ErrorKind.BackendUnavailable)] // the test credential is token-exchanged (ADR 0001 §42)
     [InlineData(403, ErrorKind.Forbidden)]
     [InlineData(404, ErrorKind.NotFound)]
     [InlineData(409, ErrorKind.Conflict)]
@@ -461,6 +461,22 @@ public sealed class DavClientTests : IDisposable
         Respond("PROPFIND", Personal, status, "<?xml version=\"1.0\"?><d:error xmlns:d=\"DAV:\" xmlns:s=\"http://sabredav.org/ns\"><s:message>nope</s:message></d:error>");
         var result = await _dav.Client.PropFindAsync(Personal, DavDepth.Zero, [DavNames.DisplayName], Ct);
         result.Error!.Kind.ShouldBe(kind);
+    }
+
+    [Theory]
+    [InlineData(CredentialStrategy.PassThrough, ErrorKind.BackendAuthFailed)]
+    [InlineData(CredentialStrategy.TokenExchange, ErrorKind.BackendUnavailable)]
+    public async Task A_401_means_reauthenticate_only_for_a_passed_through_token(CredentialStrategy strategy, ErrorKind kind)
+    {
+        _dav.Credentials.ForAsync(Backend.Groupware, Arg.Any<CancellationToken>())
+            .Returns(Result<BackendCredential>.Success(new BackendCredential("Bearer", DavTestServer.Token, strategy)));
+        var client = new DavClient(_dav.Http, _dav.Credentials, _dav.Paths, _dav.Time);
+        Respond("GET", Event, 401, null);
+        Server.Given(Request.Create().WithPath("/ocs/v2.php/apps/denied").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(200).WithBody("{\"ocs\":{\"meta\":{\"statuscode\":997},\"data\":[]}}"));
+
+        (await client.GetAsync(Event, Ct)).Error!.Kind.ShouldBe(kind);
+        (await client.OcsGetAsync("apps/denied", null, Ct)).Error!.Kind.ShouldBe(kind);
     }
 
     [Theory]
