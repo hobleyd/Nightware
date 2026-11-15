@@ -40,6 +40,12 @@ public sealed record DraftContent
 
     public IReadOnlyList<NewAttachment> Attachments { get; init; } = [];
 
+    /// <summary>
+    /// A message whose attachments (inline ones included) are carried over as they are, without
+    /// downloading and re-uploading them: Graph <c>forward</c>/<c>createForward</c> copy the original's files.
+    /// </summary>
+    public MessageId? AttachmentsFrom { get; init; }
+
     public IReadOnlyList<InternetHeader> ExtraHeaders { get; init; } = [];
 }
 

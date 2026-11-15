@@ -1,0 +1,10 @@
+{
+  "accountId": "c",
+  "oldState": "sdm",
+  "newState": "sdm",
+  "notDestroyed": {
+    "zzzzzz": {
+      "type": "notFound"
+    }
+  }
+}
