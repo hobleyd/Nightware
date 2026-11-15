@@ -1,0 +1,12 @@
+{
+  "accountId": "c",
+  "oldState": "sdq",
+  "newState": "sdq",
+  "notCreated": {
+    "folder": {
+      "type": "alreadyExists",
+      "description": "A mailbox with name 'Inbox' already exists.",
+      "existingId": "a"
+    }
+  }
+}

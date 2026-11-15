@@ -1,0 +1,102 @@
+{
+  "accountId": "c",
+  "state": "sda",
+  "list": [
+    {
+      "id": "bqaaaaam",
+      "messageId": [
+        "rec-1794695759@nightware.localhost"
+      ],
+      "mailboxIds": {
+        "d": true
+      },
+      "keywords": {
+        "$hasattachment": true,
+        "$draft": true,
+        "$seen": true
+      },
+      "from": [
+        {
+          "name": "Alice Anderson",
+          "email": "alice@nightware.localhost"
+        }
+      ],
+      "to": [
+        {
+          "name": null,
+          "email": "bob@nightware.localhost"
+        }
+      ],
+      "cc": null,
+      "bcc": null,
+      "replyTo": null,
+      "subject": "RE: Quarterly numbers",
+      "inReplyTo": [
+        "original-0001@example.com"
+      ],
+      "references": [
+        "root-0001@example.com",
+        "original-0001@example.com"
+      ],
+      "header:Importance:asText": "high",
+      "textBody": [
+        {
+          "partId": "2",
+          "blobId": "cewdz0t3bjmyvkh3zjnen3jr1ikivvczslnk9eohpb9rkuvlqsgjaaqabtwqkii",
+          "size": 33,
+          "name": null,
+          "type": "text/html",
+          "charset": "utf-8",
+          "disposition": null,
+          "cid": null,
+          "location": null
+        }
+      ],
+      "htmlBody": [
+        {
+          "partId": "2",
+          "blobId": "cewdz0t3bjmyvkh3zjnen3jr1ikivvczslnk9eohpb9rkuvlqsgjaaqabtwqkii",
+          "size": 33,
+          "name": null,
+          "type": "text/html",
+          "charset": "utf-8",
+          "disposition": null,
+          "cid": null,
+          "location": null
+        }
+      ],
+      "attachments": [
+        {
+          "partId": "3",
+          "blobId": "cmwdz0t3bjmyvkh3zjnen3jr1ikivvczslnk9eohpb9rkuvlqsgjaaqabtfqofq",
+          "size": 15,
+          "name": "img.png",
+          "type": "image/png",
+          "charset": null,
+          "disposition": "inline",
+          "cid": "img1@x",
+          "location": null
+        },
+        {
+          "partId": "4",
+          "blobId": "ciwdz0t3bjmyvkh3zjnen3jr1ikivvczslnk9eohpb9rkuvlqsgjaaqabtjqsea",
+          "size": 14,
+          "name": "notes.txt",
+          "type": "text/plain",
+          "charset": "us-ascii",
+          "disposition": "attachment",
+          "cid": null,
+          "location": null
+        }
+      ],
+      "bodyValues": {
+        "2": {
+          "isEncodingProblem": false,
+          "isTruncated": false,
+          "value": "<p>see <img src=\"cid:img1@x\"></p>"
+        }
+      }
+    }
+  ],
+  "notFound": []
+}
