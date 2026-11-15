@@ -31,9 +31,9 @@ public sealed class MessageEventUseCaseTests
     private static CalendarEvent Meeting(string id, EventType type = EventType.SeriesMaster) =>
         new(new EventId(id), "Weekly", DateTimeTimeZone.Utc(Original), DateTimeTimeZone.Utc(Original.AddMinutes(30))) { ICalUId = Uid, Type = type };
 
-    private void ArrangeInvitation(CalendarEvent invitation, string ics = Ics)
+    private void ArrangeInvitation(CalendarEvent invitation, string ics = Ics, string method = "REQUEST")
     {
-        _mail.GetAsync(Me, Message, MessageFetch.Default, Ct).Returns(new MailMessage(Message) { CalendarPart = new CalendarPart("REQUEST", Part) });
+        _mail.GetAsync(Me, Message, MessageFetch.Default, Ct).Returns(new MailMessage(Message) { CalendarPart = new CalendarPart(method, Part) });
         var bytes = Encoding.UTF8.GetBytes(ics);
         _mail.GetAttachmentContentAsync(Me, Message, Part, Ct).Returns(new BlobContent("text/calendar", bytes.Length, _ => Task.FromResult<Stream>(new MemoryStream(bytes))));
         _codec.Parse(ics).Returns(new CalendarDocument("REQUEST", [invitation]));
@@ -67,6 +67,28 @@ public sealed class MessageEventUseCaseTests
             ]));
 
         (await Resolve().ExecuteAsync(Me, Message, Ct)).Value.Id.ShouldBe(new EventId("occurrence"));
+    }
+
+    [Fact]
+    public async Task An_external_counter_for_one_occurrence_resolves_to_the_organizers_occurrence()
+    {
+        // An Outlook attendee's COUNTER carries the proposed time as DTSTART/DTEND and the occurrence as
+        // RECURRENCE-ID: the lookup must span both, then the organizer accepts it with a PATCH on that id.
+        var proposed = Original.AddDays(2);
+        ArrangeInvitation(new CalendarEvent(new EventId(string.Empty), "Weekly", DateTimeTimeZone.Utc(proposed), DateTimeTimeZone.Utc(proposed.AddMinutes(30)))
+        {
+            ICalUId = Uid,
+            Type = EventType.Exception,
+            OriginalStart = Original,
+        }, method: "COUNTER");
+        ArrangeCopies(Meeting("master") with { IsOrganizer = true });
+        _calendar.CalendarViewAsync(Me, Original.AddMinutes(-1), proposed.AddMinutes(31), Arg.Any<ItemQuery>(), Ct)
+            .Returns(new Page<CalendarEvent>([Meeting("occurrence", EventType.Occurrence) with { OriginalStart = Original, IsOrganizer = true }]));
+
+        var resolved = (await Resolve().ExecuteAsync(Me, Message, Ct)).Value;
+
+        resolved.Id.ShouldBe(new EventId("occurrence"));
+        resolved.IsOrganizer.ShouldBeTrue();
     }
 
     [Fact]
