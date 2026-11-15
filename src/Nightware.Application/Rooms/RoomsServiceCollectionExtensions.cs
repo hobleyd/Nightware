@@ -1,9 +1,15 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Nightware.Application.Rooms;
 
 public static class RoomsServiceCollectionExtensions
 {
-    /// <summary>Registers the Rooms use cases. Owned by the phase that builds Rooms.</summary>
-    public static IServiceCollection AddRoomsUseCases(this IServiceCollection services) => services;
+    /// <summary>Registers the Rooms use cases.</summary>
+    public static IServiceCollection AddRoomsUseCases(this IServiceCollection services)
+    {
+        services.TryAddScoped<ListRooms>();
+        services.TryAddScoped<FindRooms>();
+        return services;
+    }
 }

@@ -123,19 +123,29 @@ public sealed class DavPrincipalDiscoveryTests : IDisposable
         (await Discovery().DiscoverAsync(new MailboxRef("bo@example.com"), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
     }
 
-    [Fact]
-    public async Task Unauthenticated_principal_is_backend_auth_failed()
+    [Theory]
+    [InlineData(CredentialStrategy.PassThrough, ErrorKind.BackendAuthFailed)]
+    [InlineData(CredentialStrategy.TokenExchange, ErrorKind.BackendUnavailable)] // ADR 0001 §42: façade misconfiguration
+    public async Task Unauthenticated_principal_is_what_a_401_is_for_the_credential(CredentialStrategy strategy, ErrorKind kind)
     {
+        UseCredential(strategy);
         Serve("PROPFIND", "/remote.php/dav/", "propfind-root-unauthenticated.xml");
-        (await Discovery().DiscoverAsync(new MailboxRef("alice@example.com"), Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendAuthFailed);
+        (await Discovery().DiscoverAsync(new MailboxRef("alice@example.com"), Ct)).Error!.Kind.ShouldBe(kind);
     }
 
-    [Fact]
-    public async Task Http_failures_propagate()
+    [Theory]
+    [InlineData(CredentialStrategy.PassThrough, ErrorKind.BackendAuthFailed)]
+    [InlineData(CredentialStrategy.TokenExchange, ErrorKind.BackendUnavailable)]
+    public async Task Http_failures_propagate(CredentialStrategy strategy, ErrorKind kind)
     {
+        UseCredential(strategy);
         _dav.Server.Given(Request.Create().WithPath("/remote.php/dav/").UsingMethod("PROPFIND")).RespondWith(Response.Create().WithStatusCode(401));
-        (await Discovery().DiscoverAsync(new MailboxRef("alice@example.com"), Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendAuthFailed);
+        (await Discovery().DiscoverAsync(new MailboxRef("alice@example.com"), Ct)).Error!.Kind.ShouldBe(kind);
     }
+
+    private void UseCredential(CredentialStrategy strategy) =>
+        _dav.Credentials.ForAsync(Backend.Groupware, Arg.Any<CancellationToken>())
+            .Returns(Result<BackendCredential>.Success(new BackendCredential("Bearer", DavTestServer.Token, strategy)));
 
     [Fact]
     public async Task Results_are_cached_per_credential_identity()

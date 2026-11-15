@@ -14,7 +14,7 @@ namespace Nightware.Adapters.Dav.Calendar.ICal;
 /// Use these instead of regenerating the resource from Domain when only one aspect changes.
 /// Each edit refreshes DTSTAMP/LAST-MODIFIED on the components it touches.
 /// </summary>
-public sealed class IcsEditor
+public sealed partial class IcsEditor
 {
     private readonly TimeProvider _timeProvider;
 
@@ -35,44 +35,43 @@ public sealed class IcsEditor
             }
 
             var zones = new IcalZoneContext(calendar, "UTC");
-            var instant = occurrence.ToUtc();
             foreach (var exception in calendar.Events.Where(e => e.RecurrenceIdentifier?.StartTime is not null && SameInstance(zones, e.RecurrenceIdentifier!.StartTime, occurrence)).ToList())
             {
                 RemoveByReference(calendar, exception);
             }
 
-            Ical.Net.DataTypes.CalDateTime value;
-            if (!master.DtStart.HasTime)
-            {
-                value = new Ical.Net.DataTypes.CalDateTime(occurrence.IsDate ? occurrence.ToDate() : DateOnly.FromDateTime(instant.UtcDateTime));
-            }
-            else if (master.DtStart is { IsUtc: false, IsFloating: false } zoned && zones.ZoneNameOf(zoned) is { } zoneName)
-            {
-                value = new Ical.Net.DataTypes.CalDateTime(IcalZoneContext.ToWallClock(instant, zoneName), zoned.TzId, true);
-            }
-            else
-            {
-                // UTC, floating, or a TZID we cannot resolve (e.g. Outlook display names): UTC is always exact.
-                value = IcalNetCalendarCodec.Utc(instant);
-            }
-
-            master.ExceptionDates.Add(value);
+            master.ExceptionDates.Add(InstanceValue(master, zones, occurrence));
             Touch(master);
             return Result.Success();
         });
 
     /// <summary>
     /// Sets the PARTSTAT of <paramref name="attendeeAddress"/> on the master and every
-    /// exception (or only on the exception for <paramref name="occurrence"/>). Removes RSVP
+    /// exception (or only on <paramref name="occurrence"/>, creating its exception component
+    /// when the occurrence is still unmodified). Removes RSVP
     /// and, when <paramref name="comment"/> is given, records it as the component's COMMENT.
     /// </summary>
     public Result<string> SetParticipation(string ics, string attendeeAddress, RsvpResponse response, DavRecurrenceId? occurrence = null, string? comment = null) =>
         Edit(ics, calendar =>
         {
             var zones = new IcalZoneContext(calendar, "UTC");
-            var targets = occurrence is { } rid
-                ? calendar.Events.Where(e => e.RecurrenceIdentifier?.StartTime is not null && SameInstance(zones, e.RecurrenceIdentifier!.StartTime, rid)).ToList()
-                : calendar.Events.ToList();
+            List<IcalEvent> targets;
+            if (occurrence is { } rid)
+            {
+                // An unmodified occurrence has no component of its own yet: give it one (ADR 0001 §4).
+                var instance = EnsureException(calendar, zones, rid);
+                if (!instance.IsSuccess)
+                {
+                    return instance.Error;
+                }
+
+                targets = [instance.Value];
+            }
+            else
+            {
+                targets = calendar.Events.ToList();
+            }
+
             var partStat = response switch
             {
                 RsvpResponse.Accept => EventParticipationStatus.Accepted,

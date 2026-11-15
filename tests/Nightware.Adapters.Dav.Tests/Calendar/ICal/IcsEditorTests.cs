@@ -101,7 +101,8 @@ public sealed class IcsEditorTests
     public void Participation_for_a_non_attendee_or_missing_instance_is_not_found()
     {
         _editor.SetParticipation(Ics("weekly-exception-exdate.ics"), "mallory@example.com", RsvpResponse.Accept).Error!.Kind.ShouldBe(ErrorKind.NotFound);
-        _editor.SetParticipation(Ics("weekly-exception-exdate.ics"), "bob@example.com", RsvpResponse.Accept, DavRecurrenceId.FromUtc(new DateTimeOffset(2026, 11, 9, 8, 30, 0, TimeSpan.Zero))).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        // A Tuesday: the Monday/Wednesday series has no such occurrence (an unmodified Monday now gets an exception).
+        _editor.SetParticipation(Ics("weekly-exception-exdate.ics"), "bob@example.com", RsvpResponse.Accept, DavRecurrenceId.FromUtc(new DateTimeOffset(2026, 11, 10, 8, 30, 0, TimeSpan.Zero))).Error!.Kind.ShouldBe(ErrorKind.NotFound);
     }
 
     [Fact]

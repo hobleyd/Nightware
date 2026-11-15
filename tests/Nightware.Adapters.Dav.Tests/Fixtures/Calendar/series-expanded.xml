@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+  <d:response>
+    <d:href>/remote.php/dav/calendars/alice/personal/series-fixture.ics</d:href>
+    <d:propstat>
+      <d:prop>
+        <d:getetag>"16546d170fda5d079a53e3460c303878"</d:getetag>
+        <cal:calendar-data>BEGIN:VCALENDAR&#xD;
+VERSION:2.0&#xD;
+PRODID:-//Sabre//Sabre VObject 4.5.6//EN&#xD;
+CALSCALE:GREGORIAN&#xD;
+BEGIN:VEVENT&#xD;
+UID:series-fixture&#xD;
+DTSTAMP:20261115T000000Z&#xD;
+DTSTART:20270103T220000Z&#xD;
+DTEND:20270103T223000Z&#xD;
+SUMMARY:Fixture weekly&#xD;
+ORGANIZER;CN=Alice Anderson:mailto:alice@nightware.localhost&#xD;
+ATTENDEE;CN=Bob;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;SCHEDU&#xD;
+ LE-STATUS=1.1:mailto:bob@nightware.localhost&#xD;
+SEQUENCE:0&#xD;
+RECURRENCE-ID:20270103T220000Z&#xD;
+END:VEVENT&#xD;
+BEGIN:VEVENT&#xD;
+UID:series-fixture&#xD;
+DTSTAMP:20261115T000000Z&#xD;
+RECURRENCE-ID:20270110T220000Z&#xD;
+DTSTART:20270111T000000Z&#xD;
+DTEND:20270111T003000Z&#xD;
+SUMMARY:Fixture weekly (moved)&#xD;
+ORGANIZER;CN=Alice Anderson:mailto:alice@nightware.localhost&#xD;
+ATTENDEE;CN=Bob;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto&#xD;
+ :bob@nightware.localhost&#xD;
+SEQUENCE:0&#xD;
+END:VEVENT&#xD;
+BEGIN:VEVENT&#xD;
+UID:series-fixture&#xD;
+DTSTAMP:20261115T000000Z&#xD;
+DTSTART:20270117T220000Z&#xD;
+DTEND:20270117T223000Z&#xD;
+SUMMARY:Fixture weekly&#xD;
+ORGANIZER;CN=Alice Anderson:mailto:alice@nightware.localhost&#xD;
+ATTENDEE;CN=Bob;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;SCHEDU&#xD;
+ LE-STATUS=1.1:mailto:bob@nightware.localhost&#xD;
+SEQUENCE:0&#xD;
+RECURRENCE-ID:20270117T220000Z&#xD;
+END:VEVENT&#xD;
+BEGIN:VEVENT&#xD;
+UID:series-fixture&#xD;
+DTSTAMP:20261115T000000Z&#xD;
+DTSTART:20270124T220000Z&#xD;
+DTEND:20270124T223000Z&#xD;
+SUMMARY:Fixture weekly&#xD;
+ORGANIZER;CN=Alice Anderson:mailto:alice@nightware.localhost&#xD;
+ATTENDEE;CN=Bob;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;SCHEDU&#xD;
+ LE-STATUS=1.1:mailto:bob@nightware.localhost&#xD;
+SEQUENCE:0&#xD;
+RECURRENCE-ID:20270124T220000Z&#xD;
+END:VEVENT&#xD;
+END:VCALENDAR&#xD;
+</cal:calendar-data>
+      </d:prop>
+      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+</d:multistatus>

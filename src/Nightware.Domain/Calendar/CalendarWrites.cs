@@ -80,12 +80,31 @@ public enum FreeBusyStatus
     Unknown = -1,
 }
 
-public sealed record ScheduleItem(DateTimeOffset Start, DateTimeOffset End, FreeBusyStatus Status);
+/// <summary>One busy period of a schedule (Graph <c>scheduleItem</c>).</summary>
+public sealed record ScheduleItem(DateTimeOffset Start, DateTimeOffset End, FreeBusyStatus Status)
+{
+    /// <summary>The event's subject, when the backend discloses it (plain free/busy does not).</summary>
+    public string? Subject { get; init; }
+
+    public string? Location { get; init; }
+
+    public bool IsPrivate { get; init; }
+}
 
 /// <summary>Free/busy for one address (Graph <c>scheduleInformation</c>, before <c>availabilityView</c> is computed).</summary>
 public sealed record FreeBusySchedule(string ScheduleId, IReadOnlyList<ScheduleItem> Items)
 {
     /// <summary>Set when the address could not be resolved.</summary>
+    public string? ErrorMessage { get; init; }
+}
+
+/// <summary>
+/// Graph <c>scheduleInformation</c>: a schedule's busy periods plus <c>availabilityView</c>, one
+/// digit per interval of the requested window (0 free, 1 tentative, 2 busy, 3 oof, 4 working elsewhere).
+/// </summary>
+public sealed record ScheduleInformation(string ScheduleId, string AvailabilityView, IReadOnlyList<ScheduleItem> Items)
+{
+    /// <summary>Set when the schedule could not be read (unknown address, no permission).</summary>
     public string? ErrorMessage { get; init; }
 }
 

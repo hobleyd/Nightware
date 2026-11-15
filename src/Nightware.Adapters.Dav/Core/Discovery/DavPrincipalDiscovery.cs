@@ -57,7 +57,7 @@ public sealed class DavPrincipalDiscovery : IDavPrincipalDiscovery
             return identity.Error;
         }
 
-        var key = $"{CachePrefix}{identity.Value}:{mailbox.Address.ToUpperInvariant()}";
+        var key = $"{CachePrefix}{identity.Value.Key}:{mailbox.Address.ToUpperInvariant()}";
         if (_cache.TryGetValue(key, out DavPrincipal? cached) && cached is not null)
         {
             return cached;
@@ -88,9 +88,9 @@ public sealed class DavPrincipalDiscovery : IDavPrincipalDiscovery
             : identity.Error;
     }
 
-    private async Task<Result<DavPrincipal>> CurrentUserCoreAsync(string identity, CancellationToken cancellationToken)
+    private async Task<Result<DavPrincipal>> CurrentUserCoreAsync(Caller identity, CancellationToken cancellationToken)
     {
-        var key = $"{CachePrefix}{identity}:@self";
+        var key = $"{CachePrefix}{identity.Key}:@self";
         if (_cache.TryGetValue(key, out DavPrincipal? cached) && cached is not null)
         {
             return cached;
@@ -105,8 +105,9 @@ public sealed class DavPrincipalDiscovery : IDavPrincipalDiscovery
         var principalHref = root.Value.Responses.Select(r => r.HrefOf(DavNames.CurrentUserPrincipal)).FirstOrDefault(h => h is not null);
         if (principalHref is null)
         {
-            // Sabre answers <d:unauthenticated/> when the credential was not accepted as a user.
-            return Error.BackendAuthFailed("The groupware server did not identify the caller.");
+            // Sabre answers <d:unauthenticated/> when the credential was not accepted as a user: a 401 in
+            // all but name, so it means what a 401 means for this credential (ADR 0001 §42).
+            return DavErrors.Unauthorized(identity.Strategy);
         }
 
         var principal = await _client.PropFindAsync(principalHref, DavDepth.Zero, PrincipalProperties, cancellationToken).ConfigureAwait(false);
@@ -165,7 +166,7 @@ public sealed class DavPrincipalDiscovery : IDavPrincipalDiscovery
         return response is null ? match : ToPrincipal(response, isCurrentUser: false);
     }
 
-    private async Task<Result<string>> IdentityAsync(CancellationToken cancellationToken)
+    private async Task<Result<Caller>> IdentityAsync(CancellationToken cancellationToken)
     {
         var credential = await _credentials.ForAsync(Backend.Groupware, cancellationToken).ConfigureAwait(false);
         if (!credential.IsSuccess)
@@ -174,7 +175,7 @@ public sealed class DavPrincipalDiscovery : IDavPrincipalDiscovery
         }
 
         var allowed = DavCredentialPolicy.Check(credential.Value);
-        return allowed.IsSuccess ? IdentityOf(credential.Value) : allowed.Error;
+        return allowed.IsSuccess ? new Caller(IdentityOf(credential.Value), credential.Value.Strategy) : allowed.Error;
     }
 
     private static DavResponse? FirstOrNull(DavMultistatus multistatus) =>
@@ -212,4 +213,7 @@ public sealed class DavPrincipalDiscovery : IDavPrincipalDiscovery
             EmailAddresses = emails,
         };
     }
+
+    /// <summary>The credential's cache key and how it was obtained.</summary>
+    private readonly record struct Caller(string Key, CredentialStrategy Strategy);
 }
