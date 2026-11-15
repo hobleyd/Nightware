@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using System.Globalization;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -41,8 +40,6 @@ public static partial class TasksEndpoints
     public static RouteGroupBuilder MapTasksEndpoints(this RouteGroupBuilder graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
-        var protector = ((IEndpointRouteBuilder)graph).ServiceProvider.GetRequiredService<UploadUrlProtector>();
-
         graph.MapMailboxGet(Lists, ListListsAsync);
         graph.MapMailboxGet(Tasks, ListTasksAsync);
         graph.MapMailboxPost(Tasks, CreateTaskAsync);
@@ -50,14 +47,13 @@ public static partial class TasksEndpoints
         graph.MapMailboxGet(Attachments, ListAttachmentsAsync);
         graph.MapMailboxPost(Attachments, AddAttachmentAsync);
         graph.MapMailboxGet(Attachments + "/{attachmentId}/$value", GetAttachmentContentAsync);
-        graph.MapMailboxPost(Attachments + "/createUploadSession", (Mailbox mailbox, string listId, string taskId, JsonObject? body,
-                BeginTaskAttachmentUpload useCase, IUserContext caller, GraphLinkBuilder links, HttpRequest request, CancellationToken cancellationToken) =>
-            BeginUploadAsync(mailbox, listId, taskId, body, useCase, caller, links, request, protector, cancellationToken));
+        graph.MapMailboxPost(Attachments + "/createUploadSession", BeginUploadAsync);
 
         // The upload URL is PUT without a bearer: SelfAuthorisingUrlMiddleware recovers the caller's
-        // token from it (UploadUrlCredentialSource) before authentication, so the route is authorised
-        // like any other. It always names the mailbox by address, so only the /users form exists.
-        graph.MapPut(UploadUrl.RoutePattern, UploadAsync);
+        // token from it before authentication, so the route is authorised like any other — and by
+        // nothing else (UploadUrl.Kind is URL-only). It always names the mailbox by address, so only
+        // the /users form exists.
+        graph.MapPut(UploadUrl.RoutePattern, UploadAsync).AuthorisedBy(UploadUrl.Kind);
         return graph;
     }
 
@@ -130,7 +126,7 @@ public static partial class TasksEndpoints
 
     private static async Task<IResult> BeginUploadAsync(
         Mailbox mailbox, string listId, string taskId, JsonObject? body, BeginTaskAttachmentUpload useCase, IUserContext caller,
-        GraphLinkBuilder links, HttpRequest request, UploadUrlProtector protector, CancellationToken cancellationToken)
+        GraphLinkBuilder links, HttpRequest request, SelfAuthorisingUrlSealer sealer, CancellationToken cancellationToken)
     {
         var item = TodoRequests.ReadUploadRequest(body);
         if (!item.IsSuccess)
@@ -145,27 +141,33 @@ public static partial class TasksEndpoints
             return GraphResults.Error(session.Error);
         }
 
-        var bearer = caller.BearerToken;
-        var expires = AccessTokenExpiry(bearer) is { } tokenExpiry && tokenExpiry < session.Value.ExpirationDateTime ? tokenExpiry : session.Value.ExpirationDateTime;
+        var ticket = sealer.TicketFor(UploadUrl.Kind, caller.BearerToken, request.HttpContext.User, session.Value.ExpirationDateTime) with { Name = name, Size = size };
         var binding = new UploadUrlBinding(mailbox.Ref.Address, listId, taskId, session.Value.Token);
-        var uploadUrl = UploadUrl.Build(links.VersionRoot(request), binding, protector.Seal(new UploadTicket(bearer, name, size, expires), binding));
-        if (uploadUrl.Length > UploadUrl.MaxRequestLine - 64)
+        var uploadUrl = UploadUrl.Build(links.VersionRoot(request), binding, sealer.Seal(UploadUrl.Kind, ticket, binding.BoundTo));
+        if (!SelfAuthorisingUrl.FitsRequestLine(uploadUrl))
         {
             // An oversized access token would produce a URL the server refuses to read back.
             return GraphResults.Error(new Error(ErrorKind.Unknown, "generalException", "The upload URL would exceed the request-line limit."));
         }
 
-        return GraphResults.Created(new UploadSessionDto { UploadUrl = uploadUrl, ExpirationDateTime = expires }, "microsoft.graph.uploadSession");
+        return GraphResults.Created(new UploadSessionDto { UploadUrl = uploadUrl, ExpirationDateTime = ticket.ExpiresAt }, "microsoft.graph.uploadSession");
     }
 
     /// <remarks>
     /// Deliberately binds no <see cref="Mailbox"/>: resolving one may consult the directory, which must
-    /// not be reachable before the upload URL has authenticated the request. The mailbox, list and
-    /// task in the path are bound to the sealed credential, and the store re-checks the target.
+    /// not be reachable before the upload URL has authenticated the request. The mailbox, list, task and
+    /// session in the path are bound to the sealed ticket, which is the only way in (<see cref="UploadUrl.Kind"/>
+    /// is URL-only) and names the one file the session was opened for.
     /// </remarks>
     private static async Task<IResult> UploadAsync(
         string sessionId, HttpRequest request, UploadTaskAttachmentContent useCase, CancellationToken cancellationToken)
     {
+        if (request.HttpContext.Features.Get<SealedTicket>() is not { Name: { } name, Size: { } size })
+        {
+            // Unreachable through authentication; a 401 rather than trusting an unsealed session.
+            return Results.Challenge();
+        }
+
         var range = ParseContentRange(request.Headers[HeaderNames.ContentRange].ToString());
         if (!range.IsSuccess)
         {
@@ -173,7 +175,7 @@ public static partial class TasksEndpoints
         }
 
         return GraphResults.Match(
-            await useCase.ExecuteAsync(sessionId, range.Value, request.Body, cancellationToken).ConfigureAwait(false),
+            await useCase.ExecuteAsync(sessionId, new ExpectedUpload(name, size), range.Value, request.Body, cancellationToken).ConfigureAwait(false),
             attachment => GraphResults.Created(TodoDtoMapper.ToDto(attachment), "microsoft.graph.taskFileAttachment"));
     }
 
@@ -193,9 +195,6 @@ public static partial class TasksEndpoints
             ? new ContentRange(first, last, total)
             : Error.Validation("Content-Range must be 'bytes first-last/total'.", "Content-Range");
     }
-
-    /// <summary>The access token's <c>exp</c>, when it is a readable JWT; validation happens elsewhere.</summary>
-    internal static DateTimeOffset? AccessTokenExpiry(string token) => AccessTokens.ExpiryOf(token);
 
     [GeneratedRegex(@"^\s*bytes\s+(\d+)-(\d+)/(\d+)\s*$", RegexOptions.IgnoreCase)]
     private static partial Regex ContentRangePattern();

@@ -5,6 +5,7 @@ using System.Text;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -12,6 +13,9 @@ using Nightware.Api.Graph;
 using Nightware.Api.Observability;
 using Nightware.Api.Tests.Support;
 using Nightware.Application.Common.Identity;
+using Nightware.Application.Tasks;
+using Nightware.Domain.Kernel;
+using Nightware.Domain.Tasks;
 
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
@@ -36,6 +40,12 @@ public sealed class LogRedactionTests(LogRedactionTests.Scenario scenario) : ICl
     private const string OutboundSecret = "SENTINEL-OUTBOUND-3f90";
     private const string GarbageToken = "SENTINEL-GARBAGE-TOKEN-d00d";
 
+    // A Nextcloud public-share token is a bearer secret: anyone holding it reads the file. It reaches the
+    // façade base64url-encoded inside a Graph share id, and leaves it in the path of public.php/dav/files/{token}.
+    private const string ShareToken = "SENTINELSHARE7c1e9";
+    private const string ShareSite = "https://cloud.redaction.test";
+    private static readonly string ShareId = "u!" + System.Buffers.Text.Base64Url.EncodeToString(Encoding.UTF8.GetBytes($"{ShareSite}/s/{ShareToken}"));
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     // The caller's bearer token is a secret too: it must never appear, nor its signature segment.
@@ -46,6 +56,7 @@ public sealed class LogRedactionTests(LogRedactionTests.Scenario scenario) : ICl
     [
         CookieSecret, BodySecret, QuerySecret, UrlTokenSecret, ClientSecret, ExchangedSecret, OutboundSecret, GarbageToken,
         UserToken, Signature(UserToken), ExpiredToken, Signature(ExpiredToken),
+        ShareToken, ShareId[2..],
         Convert.ToBase64String(Encoding.UTF8.GetBytes($"nightware-api:{ClientSecret}")),
     ];
 
@@ -69,6 +80,44 @@ public sealed class LogRedactionTests(LogRedactionTests.Scenario scenario) : ICl
             .ToList();
 
         leaks.ShouldBeEmpty($"leaked by: {string.Join(", ", leaks.Select(static l => $"{l.DisplayName}/{l.Key}"))}");
+    }
+
+    [Fact]
+    public void No_log_record_or_span_contains_a_minted_url_credential()
+    {
+        // The sealed authtokens of the download URL /content redirected to and of the upload URL
+        // createUploadSession returned: each carries the caller's access token.
+        scenario.MintedSecrets.Count.ShouldBe(2);
+        foreach (var secret in scenario.MintedSecrets)
+        {
+            No_log_record_contains_the_secret(secret);
+            No_span_attribute_contains_the_secret(secret);
+            secret.Length.ShouldBeGreaterThan(40);
+        }
+    }
+
+    [Fact]
+    public void Share_ids_and_public_share_tokens_are_redacted_where_paths_are_kept()
+    {
+        var entries = scenario.Logs.Entries;
+
+        // Inbound: the hosting scope's RequestPath on every record of the request.
+        entries.ShouldContain(static e => e.Scopes.Any(static s => s.Any(static kv =>
+            kv.Key == "RequestPath" && Equals(kv.Value, "/v1.0/shares/{redacted}/driveItem"))));
+        // Outbound: HttpClient's own request logs for Nextcloud's public-share WebDAV.
+        entries.ShouldContain(static e => e.Category.StartsWith("System.Net.Http.HttpClient", StringComparison.Ordinal)
+            && e.Text.Contains("/public.php/dav/files/{redacted}", StringComparison.Ordinal));
+        // Spans: the server span's url.path and the client span's url.full.
+        scenario.Activities.ShouldContain(static a => a.Kind == ActivityKind.Server && Equals(a.GetTagItem("url.path"), "/v1.0/shares/{redacted}/driveItem/content"));
+        scenario.Activities.ShouldContain(static a => a.Kind == ActivityKind.Client
+            && Convert.ToString(a.GetTagItem("url.full"), System.Globalization.CultureInfo.InvariantCulture)!.Contains("/public.php/dav/files/{redacted}", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Log_records_still_carry_the_trace_context()
+    {
+        scenario.Logs.Entries.ShouldContain(static e => e.Category.StartsWith("Microsoft.AspNetCore", StringComparison.Ordinal)
+            && e.Scopes.Any(static s => s.Any(static kv => kv.Key == "TraceId")) && e.Scopes.Any(static s => s.Any(static kv => kv.Key == "SpanId")));
     }
 
     [Fact]
@@ -118,6 +167,8 @@ public sealed class LogRedactionTests(LogRedactionTests.Scenario scenario) : ICl
     {
         private readonly List<Activity> _activities = [];
         private readonly WireMockServer _backend = WireMockServer.Start();
+        private readonly ITaskAttachmentStore _attachments = Substitute.For<ITaskAttachmentStore>();
+        private readonly List<string> _minted = [];
         private ActivityListener _listener = null!;
         private TestHost _host = null!;
 
@@ -143,6 +194,17 @@ public sealed class LogRedactionTests(LogRedactionTests.Scenario scenario) : ICl
                 .RespondWith(Response.Create().WithStatusCode(200).WithBodyAsJson(new { access_token = ExchangedSecret, token_type = "Bearer", expires_in = 300 }));
             _backend.Given(Request.Create().WithPath("/backend").UsingGet())
                 .RespondWith(Response.Create().WithStatusCode(500).WithBody("backend failure"));
+            _backend.Given(Request.Create().WithPath($"/public.php/dav/files/{ShareToken}").UsingMethod("PROPFIND"))
+                .RespondWith(Response.Create().WithStatusCode(207).WithHeader("Content-Type", "application/xml").WithBody(
+                    $"""<?xml version="1.0"?><d:multistatus xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns"><d:response><d:href>/public.php/dav/files/{ShareToken}</d:href><d:propstat><d:prop><d:displayname>probe.txt</d:displayname><d:getcontenttype>text/plain</d:getcontenttype><d:getcontentlength>5</d:getcontentlength><d:resourcetype/><oc:fileid>385</oc:fileid></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"""));
+            _backend.Given(Request.Create().WithPath($"/public.php/dav/files/{ShareToken}").UsingGet())
+                .RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "text/plain").WithBody("hello"));
+
+            var session = new UploadSession("store-session-token", DateTimeOffset.UtcNow.AddMinutes(15), 4096);
+            _attachments.BeginUploadAsync(Arg.Any<MailboxRef>(), Arg.Any<TaskListId>(), Arg.Any<TaskId>(), "big.eml", "message/rfc822", 4096, Arg.Any<CancellationToken>())
+                .Returns(session);
+            _attachments.PutChunkAsync(Arg.Is<UploadSession>(s => s.Token == session.Token), 0, 4095, Arg.Any<Stream>(), Arg.Any<CancellationToken>())
+                .Returns(new UploadProgress([], new TaskAttachment(new AttachmentId("att-1"), "big.eml", "message/rfc822", 4096)));
 
             var configuration = new Dictionary<string, string?>
             {
@@ -159,12 +221,15 @@ public sealed class LogRedactionTests(LogRedactionTests.Scenario scenario) : ICl
                 ["Directory:ClientSecret"] = ClientSecret,
                 ["BackendCredentials:Mail:Strategy"] = "TokenExchange",
                 ["BackendCredentials:Mail:Audience"] = "stalwart",
+                ["Dav:BaseUrl"] = _backend.Url + "/",
+                ["Discovery:FilesBaseUrls:0"] = ShareSite,
             };
 
             _host = await TestHost.StartAsync(
                 services =>
                 {
                     services.AddSingleton<ILoggerProvider>(Logs);
+                    services.AddSingleton(_attachments);
                     services.AddHttpClient("probe-backend");
                     services.AddGraphProbes(g =>
                     {
@@ -216,10 +281,33 @@ public sealed class LogRedactionTests(LogRedactionTests.Scenario scenario) : ICl
             (await client.GetAsync("/v1.0/outbound", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
             (await client.GetAsync($"/v1.0/no/such/{PathSecret}", Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
 
+            // Documents: the share id in the path, the sealed download URL, Nextcloud's public-share WebDAV.
+            using var anonymous = _host.App.GetTestClient();
+            (await client.GetAsync($"/v1.0/shares/{ShareId}/driveItem", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+            (await client.GetAsync($"/v1.0/shares/{ShareId}/bogus", Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+            using var redirect = await client.GetAsync($"/v1.0/shares/{ShareId}/driveItem/content", Ct);
+            redirect.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+            var download = redirect.Headers.Location!;
+            _minted.Add(System.Web.HttpUtility.ParseQueryString(download.Query)["authtoken"]!);
+            using var downloaded = await anonymous.GetAsync(download.PathAndQuery, Ct);
+            downloaded.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+            // To Do: the sealed upload URL, PUT without a bearer.
+            using var created = await client.PostAsync("/v1.0/me/todo/lists/list-1/tasks/task-1/attachments/createUploadSession", new StringContent(
+                """{"attachmentItem":{"attachmentType":"file","contentType":"message/rfc822","name":"big.eml","size":4096}}""", Encoding.UTF8, "application/json"), Ct);
+            created.StatusCode.ShouldBe(HttpStatusCode.Created);
+            var upload = new Uri(System.Text.Json.Nodes.JsonNode.Parse(await created.Content.ReadAsStringAsync(Ct))!["uploadUrl"]!.GetValue<string>());
+            _minted.Add(System.Web.HttpUtility.ParseQueryString(upload.Query)["authtoken"]!);
+            using var put = new ByteArrayContent(new byte[4096]);
+            put.Headers.TryAddWithoutValidation("Content-Range", "bytes 0-4095/4096");
+            (await anonymous.PutAsync(upload.PathAndQuery, put, Ct)).StatusCode.ShouldBe(HttpStatusCode.Created);
+
             (await _host.AuthorizedClient(GarbageToken).GetAsync("/v1.0/probe", Ct)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
             (await _host.AuthorizedClient(ExpiredToken).GetAsync("/v1.0/probe", Ct)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
             (await _host.AuthorizedClient(UserToken[..^4] + "AAAA").GetAsync("/v1.0/probe", Ct)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         }
+
+        public IReadOnlyList<string> MintedSecrets => _minted;
 
         public IReadOnlyList<Activity> Activities
         {

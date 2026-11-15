@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 
 using Nightware.Api.Hosting;
+using Nightware.Api.Tests.Auth;
 
 using Nightware.Api.Features.Files.Download;
 using Nightware.Domain.Files;
@@ -21,25 +22,30 @@ public sealed class DownloadUrlTests
     }
 
     [Theory]
-    [InlineData("/v1.0/shares/u!aGk/driveItem/$value", "u!aGk")]
-    [InlineData("/beta/shares/u!aGk/driveItem/$value", "u!aGk")]
-    [InlineData("/v1.0/Shares/u!aGk/DriveItem/$value", "u!aGk")]
-    public void Parses_its_own_paths(string path, string shareId)
+    [InlineData("", ContentFormat.Original)]
+    [InlineData("?format=pdf", ContentFormat.Pdf)]
+    [InlineData("?FORMAT=PDF", ContentFormat.Pdf)]
+    public void Binds_the_matched_share_and_format(string query, ContentFormat format)
     {
-        DownloadUrl.TryParse(new PathString(path), out var parsed).ShouldBeTrue();
-        parsed.ShouldBe(shareId);
+        var routed = SelfAuthorisingUrlCredentialSourceTests.Routed("GET", DownloadUrl.Kind, query, ("shareId", "u!aGk"));
+
+        DownloadUrl.Kind.BindingOf(routed.Request).ShouldBe(new DownloadUrlBinding("u!aGk", format).BoundTo);
     }
 
     [Theory]
-    [InlineData("/v1.0/shares/u!aGk/driveItem/content")]
-    [InlineData("/v1.0/shares/u!aGk/driveItem")]
-    [InlineData("/v1.0/shares//driveItem/$value")]
-    [InlineData("/v1.0/shares/u!aGk/driveItem/$value/extra")]
-    [InlineData("/v1.0/shares/u!aGk/driveItem/$VALUE")]
-    [InlineData("/v2.0/shares/u!aGk/driveItem/$value")]
-    [InlineData("/shares/u!aGk/driveItem/$value")]
-    public void Ignores_other_paths(string path) =>
-        DownloadUrl.TryParse(new PathString(path), out _).ShouldBeFalse();
+    [InlineData("?format=html")]
+    [InlineData("?format=pdf&format=pdf")]
+    public void A_bad_format_binds_nothing(string query) =>
+        DownloadUrl.Kind.BindingOf(SelfAuthorisingUrlCredentialSourceTests.Routed("GET", DownloadUrl.Kind, query, ("shareId", "u!aGk")).Request).ShouldBeNull();
+
+    [Fact]
+    public void A_download_url_is_get_only_and_keeps_its_key_purpose()
+    {
+        DownloadUrl.Kind.Method.ShouldBe("GET");
+        DownloadUrl.Kind.UrlOnly.ShouldBeFalse("a bearer may download what /content would redirect it to");
+        DownloadUrl.Kind.Purpose.ShouldBe("nightware/share-download-url/v1", "changing the purpose would break URLs already handed out");
+        DownloadUrl.Kind.Lifetime.ShouldBe(TimeSpan.FromMinutes(5));
+    }
 
     [Fact]
     public void The_download_route_gets_the_transfer_budget()

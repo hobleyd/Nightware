@@ -14,11 +14,16 @@ namespace Nightware.Api.Features.Files;
 /// The site check is what keeps the façade from being pointed anywhere: the backend only ever sees the path
 /// below the site, and talks to its own configured Nextcloud. A link elsewhere is 404 — Graph's answer for a
 /// share it does not know — and so is everything when no file site is configured (the feature is off).
+/// A path that could name something else once a backend decodes or normalises it (an encoded <c>/</c>,
+/// <c>\</c>, <c>.</c> or <c>%</c>, a backslash, a dot segment) is refused here too, whatever the backend
+/// would make of it: the site check is only as good as the path it checks.
 /// </remarks>
 internal static class SharingUrls
 {
     private const string Prefix = "u!";
     private const int MaxShareIdLength = 4096;
+
+    private static readonly string[] EncodedSeparators = ["%2F", "%5C", "%2E", "%25"];
 
     public static Result<ShareLink> Resolve(string shareId, IEnumerable<string>? fileSites)
     {
@@ -26,6 +31,11 @@ internal static class SharingUrls
         if (!TryDecode(shareId, out var url))
         {
             return Error.Validation("The share id is not an encoded sharing URL ('u!' + base64url).", "shareId");
+        }
+
+        if (IsAmbiguousPath(url.OriginalString))
+        {
+            return Error.NotFound("The sharing link is not on a file site of this server.");
         }
 
         foreach (var site in fileSites ?? [])
@@ -73,6 +83,33 @@ internal static class SharingUrls
 
         url = parsed;
         return true;
+    }
+
+    /// <summary>
+    /// True when the path of an absolute URL, as written, carries an encoded <c>/</c>, <c>\</c>, <c>.</c> or
+    /// <c>%</c>, a backslash, or a <c>.</c>/<c>..</c> segment (<see cref="Uri"/> resolves literal dot segments
+    /// silently, so the written form is what is checked).
+    /// </summary>
+    internal static bool IsAmbiguousPath(string url)
+    {
+        ArgumentNullException.ThrowIfNull(url);
+        var end = url.IndexOfAny(['?', '#']);
+        var head = end < 0 ? url : url[..end];
+        var authority = head.IndexOf("://", StringComparison.Ordinal);
+        if (head.Contains('\\', StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        var pathStart = authority < 0 ? -1 : head.IndexOf('/', authority + 3);
+        if (pathStart < 0)
+        {
+            return false;
+        }
+
+        var path = head[pathStart..];
+        return EncodedSeparators.Any(e => path.Contains(e, StringComparison.OrdinalIgnoreCase))
+               || path.Split('/').Any(static segment => segment is "." or "..");
     }
 
     /// <summary>

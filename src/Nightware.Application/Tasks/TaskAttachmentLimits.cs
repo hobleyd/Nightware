@@ -1,3 +1,5 @@
+using Nightware.Domain.Kernel;
+
 namespace Nightware.Application.Tasks;
 
 /// <summary>Microsoft To Do's attachment limits, which NightMail sizes its requests by.</summary>
@@ -12,10 +14,20 @@ public static class TaskAttachmentLimits
     /// <summary>Longest file name accepted (a common file-system limit).</summary>
     public const int MaxNameLength = 255;
 
-    internal static Domain.Kernel.Error? ValidateName(string? name) =>
+    /// <summary>Why <paramref name="name"/> cannot name an attachment, or null when it can.</summary>
+    public static Error? ValidateName(string? name) =>
         string.IsNullOrWhiteSpace(name)
-            ? Domain.Kernel.Error.Validation("An attachment needs a name.", "name")
+            ? Error.Validation("An attachment needs a name.", "name")
             : name.Length > MaxNameLength
-                ? Domain.Kernel.Error.Validation($"An attachment name may have at most {MaxNameLength} characters.", "name")
+                ? Error.Validation($"An attachment name may have at most {MaxNameLength} characters.", "name")
                 : null;
+
+    /// <summary>Why a file of <paramref name="name"/> and <paramref name="size"/> bytes cannot be uploaded, or null when it can.</summary>
+    public static Error? Validate(string? name, long size) =>
+        ValidateName(name)
+        ?? (size <= 0
+            ? Error.Validation("The attachment size must be positive.", "size")
+            : size > MaxBytes
+                ? new Error(ErrorKind.PayloadTooLarge, "requestEntityTooLarge", $"Task attachments may be at most {MaxBytes} bytes.")
+                : null);
 }
