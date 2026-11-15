@@ -389,7 +389,7 @@ public sealed partial class IcsEditor
 
         if (!calendar.TimeZones.Any(tz => string.Equals(tz.TzId, iana, StringComparison.Ordinal)))
         {
-            calendar.AddTimeZone(iana, wall.AddDays(-1), false);
+            calendar.AddTimeZone(iana, ZoneWriter.SupportedFrom(wall), false);
         }
 
         return new CalDateTime(wall, iana, true);
