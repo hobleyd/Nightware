@@ -25,12 +25,16 @@ public sealed class MailboxSettingsEndpointsTests : IAsyncLifetime
         ScheduledEndDateTime = new DateTimeTimeZone(new DateTime(2026, 9, 27, 13, 59, 59), "UTC"),
     };
 
+    private readonly IMailboxSettingsAccess _access = Substitute.For<IMailboxSettingsAccess>();
     private readonly IAutoReplyStore _replies = Substitute.For<IAutoReplyStore>();
     private readonly IUserPreferencesStore _preferences = Substitute.For<IUserPreferencesStore>();
     private TestHost _host = null!;
 
-    public async ValueTask InitializeAsync() =>
-        _host = await TestHost.StartAsync(services => services.AddSingleton(_replies).AddSingleton(_preferences));
+    public async ValueTask InitializeAsync()
+    {
+        _access.CheckAsync(Arg.Any<MailboxRef>(), Arg.Any<CancellationToken>()).Returns(Result.Success());
+        _host = await TestHost.StartAsync(services => services.AddSingleton(_access).AddSingleton(_replies).AddSingleton(_preferences));
+    }
 
     public async ValueTask DisposeAsync() => await _host.DisposeAsync();
 
@@ -78,6 +82,28 @@ public sealed class MailboxSettingsEndpointsTests : IAsyncLifetime
         var response = await _host.AuthorizedClient().GetAsync("/v1.0/users/bob@example.com/mailboxSettings", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Theory]
+    [InlineData("GET", null)]
+    [InlineData("PATCH", """{"automaticRepliesSetting":{"status":"disabled"}}""")]
+    public async Task A_mailbox_the_access_check_refuses_is_403_without_touching_either_store(string method, string? body)
+    {
+        var bob = new MailboxRef("bob@example.com");
+        _access.CheckAsync(bob, Arg.Any<CancellationToken>()).Returns(Error.Forbidden("no"));
+        _replies.GetAsync(bob, Arg.Any<CancellationToken>()).Returns(Stored);
+        _replies.SetAsync(bob, Arg.Any<AutoReplySetting>(), Arg.Any<CancellationToken>()).Returns(Stored);
+        _preferences.GetAsync(bob, Arg.Any<CancellationToken>()).Returns(new UserPreferences("Australia/Sydney", "en"));
+        using var request = new HttpRequestMessage(new HttpMethod(method), "/v1.0/users/bob@example.com/mailboxSettings")
+        {
+            Content = body is null ? null : new StringContent(body, Encoding.UTF8, "application/json"),
+        };
+
+        var response = await _host.AuthorizedClient().SendAsync(request, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        _replies.ReceivedCalls().ShouldBeEmpty();
+        _preferences.ReceivedCalls().ShouldBeEmpty();
     }
 
     [Theory]

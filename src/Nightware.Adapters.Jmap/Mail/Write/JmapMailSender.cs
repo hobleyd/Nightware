@@ -135,7 +135,10 @@ internal sealed partial class JmapMailSender(
             return outgoing.Error;
         }
 
-        var send = new JmapRequestBuilder();
+        // Create and submit go in one request. Split, a failure after the first HTTP request would
+        // leave the created copy in Drafts with nothing to clean it up (the discard below needs both
+        // responses).
+        var send = new JmapRequestBuilder().RequireSingleRequest();
         var create = send.Add(JmapMethods.EmailSet, new SetRequest<Email>(accountId)
         {
             Create = new Dictionary<string, Email>(StringComparer.Ordinal) { [Message] = outgoing.Value.ToEmail() },

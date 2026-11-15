@@ -159,4 +159,35 @@ public sealed class JmapMailDeltaReaderTests
         (await Reader(host).DeltaAsync(Alice, Inbox, null, new DeltaRequest(50), Ct)).IsSuccess.ShouldBeTrue();
         host.Calls("Email/get").Single()[1]![1]!["limit"]!.GetValue<int>().ShouldBe(10);
     }
+
+    [Fact]
+    public async Task An_initial_sync_the_session_limits_would_split_fails_without_reading_anything()
+    {
+        await using var host = new JmapTestHost();
+        host.StubSession(JmapTestHost.Session(maxCallsInRequest: 2));
+        host.StubMailboxes();
+
+        var result = await Reader(host).DeltaAsync(Alice, Inbox, null, new DeltaRequest(2), Ct);
+
+        // State in one HTTP request and the query in the next would let a change between them escape
+        // both the walk and the Email/changes replay.
+        result.Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+        host.Calls("Email/get").ShouldBeEmpty();
+        host.Calls("Email/query").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Later_initial_pages_may_be_split_because_the_state_is_already_captured()
+    {
+        await using var host = new JmapTestHost();
+        host.StubSession(JmapTestHost.Session(maxCallsInRequest: 2));
+        host.StubMailboxes();
+        host.On("Email/query", $$"""
+            [["Email/query",{"accountId":"c","queryState":"q","canCalculateChanges":true,"position":2,"ids":["m3"],"total":3},"c0"],
+             ["Email/get",{{MailReadStubs.EmailGet(MailReadStubs.Email("m3"))}},"c1"]]
+            """);
+        var token = JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Initial("a", "s1", 2));
+
+        (await Reader(host).DeltaAsync(Alice, Inbox, token, new DeltaRequest(2), Ct)).Value.Entries.Count.ShouldBe(1);
+    }
 }

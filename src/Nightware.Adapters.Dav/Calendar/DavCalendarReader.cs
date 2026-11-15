@@ -27,6 +27,12 @@ internal sealed class DavCalendarReader(
             return unsupported;
         }
 
+        // Sabre expands without limit; some callers take the window from an invitation anyone can send.
+        if (CalendarViewLimits.Check(start, end) is { } tooLong)
+        {
+            return tooLong;
+        }
+
         var scope = await scopes.ResolveAsync(mailbox, cancellationToken).ConfigureAwait(false);
         if (!scope.IsSuccess)
         {

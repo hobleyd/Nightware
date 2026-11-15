@@ -21,6 +21,7 @@ public sealed class JmapRequestPlannerTests
 
         Shape(plan).ShouldBe([["c0", "c1"]]);
         plan.WireIds["c1"].ShouldBe(["c1"]);
+        plan.IsSplit.ShouldBeFalse();
     }
 
     [Fact]
@@ -33,6 +34,7 @@ public sealed class JmapRequestPlannerTests
 
         plan.WireIds["c0"].ShouldBe(["c0", "c0.1", "c0.2"]);
         plan.Batches[0].Select(c => c.Logical.Arguments["ids"]!.AsArray().Count).ShouldBe([500, 500, 1]);
+        plan.IsSplit.ShouldBeFalse("chunks of one /get still travel in one HTTP request");
         plan.Batches[0][2].Logical.Arguments["ids"]![0]!.GetValue<string>().ShouldBe("e1001");
         request.Invocations[0].Arguments["ids"]!.AsArray().Count.ShouldBe(1001);
     }
@@ -69,7 +71,9 @@ public sealed class JmapRequestPlannerTests
             request.Add(JmapMethods.MailboxGet, new GetRequest("c"));
         }
 
-        Shape(JmapRequestPlanner.Plan(request.Invocations, 500, 2)).ShouldBe([["c0", "c1"], ["c2", "c3"], ["c4"]]);
+        var plan = JmapRequestPlanner.Plan(request.Invocations, 500, 2);
+        Shape(plan).ShouldBe([["c0", "c1"], ["c2", "c3"], ["c4"]]);
+        plan.IsSplit.ShouldBeTrue();
     }
 
     [Fact]

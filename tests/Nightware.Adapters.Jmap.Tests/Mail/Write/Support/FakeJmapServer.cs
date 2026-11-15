@@ -25,10 +25,11 @@ internal sealed class FakeJmapServer : IAsyncDisposable
 
     private readonly List<Handler> _handlers = [];
 
-    public FakeJmapServer()
+    /// <param name="session">The session document (default: the recorded Alice session).</param>
+    public FakeJmapServer(string? session = null)
     {
         Host = new JmapTestHost();
-        Host.StubSession();
+        Host.StubSession(session);
         Host.Server.Given(Request.Create().WithPath("/jmap/").UsingPost())
             .RespondWith(Response.Create().WithCallback(Answer));
         Locator = Substitute.For<IJmapMessageLocator>();

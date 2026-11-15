@@ -13,6 +13,13 @@ internal sealed record JmapRequestPlan(IReadOnlyList<IReadOnlyList<WireInvocatio
 {
     /// <summary>Wire call ids of each logical call (more than one when a /get was chunked).</summary>
     public IReadOnlyDictionary<string, IReadOnlyList<string>> WireIds { get; init; } = new Dictionary<string, IReadOnlyList<string>>();
+
+    /// <summary>
+    /// True when the request goes out as more than one HTTP request. The server then processes each
+    /// batch on its own: state read in one is not read "together with" calls in the next, and a
+    /// failure part-way leaves the earlier batches applied.
+    /// </summary>
+    public bool IsSplit => Batches.Count > 1;
 }
 
 /// <summary>

@@ -10,6 +10,7 @@ internal static class JmapMailboxSettingsServiceCollectionExtensions
     public static IServiceCollection AddJmapMailboxSettings(this IServiceCollection services)
     {
         services.TryAddScoped<IAutoReplyStore, JmapAutoReplyStore>();
+        services.TryAddScoped<IMailboxSettingsAccess, JmapMailboxSettingsAccess>();
         return services;
     }
 }

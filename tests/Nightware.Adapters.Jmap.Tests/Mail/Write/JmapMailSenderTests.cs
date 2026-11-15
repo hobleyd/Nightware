@@ -143,6 +143,20 @@ public sealed class JmapMailSenderTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SendMail_refuses_to_split_the_create_from_the_submission()
+    {
+        await using var jmap = new FakeJmapServer(Nightware.Adapters.Jmap.Tests.Support.JmapTestHost.Session(maxCallsInRequest: 1));
+        jmap.OnFixture("Mailbox/get", "mailbox-get.json");
+        jmap.OnFixture("Identity/get", "identity-get.json");
+        var sender = new JmapMailSender(jmap.Client(), jmap.Blobs(), jmap.Locator, jmap.User, NullLogger<JmapMailSender>.Instance);
+
+        var result = await sender.SendAsync(Alice, Content, saveToSentItems: true, Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+        jmap.Requests().ShouldBe([["Mailbox/get"], ["Identity/get"]], "nothing is created or submitted");
+    }
+
+    [Fact]
     public async Task SendMail_without_saving_destroys_the_message_once_submitted()
     {
         Submission("""{"accountId":"c","newState":"s","destroyed":["x"]}""");

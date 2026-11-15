@@ -42,6 +42,21 @@ internal sealed class JmapRequestBuilder
 
     public int Count => _invocations.Count;
 
+    /// <summary>Set by <see cref="RequireSingleRequest"/>.</summary>
+    public bool RequiresSingleRequest { get; private set; }
+
+    /// <summary>
+    /// Marks a request whose correctness depends on its calls reaching the server together — a state
+    /// read alongside the query it anchors, or a create and the submission that sends it. If the
+    /// session's limits would split it over several HTTP requests, the client sends nothing and fails
+    /// with <see cref="Domain.Kernel.ErrorKind.BackendUnavailable"/> instead of silently losing that.
+    /// </summary>
+    public JmapRequestBuilder RequireSingleRequest()
+    {
+        RequiresSingleRequest = true;
+        return this;
+    }
+
     /// <summary>
     /// Adds a call. Each <paramref name="references"/> entry replaces argument <c>x</c> with
     /// <c>#x</c> pointing at an earlier call's result (leave <c>x</c> null in <paramref name="arguments"/>).
