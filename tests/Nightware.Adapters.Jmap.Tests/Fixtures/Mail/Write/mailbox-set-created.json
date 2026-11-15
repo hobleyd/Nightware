@@ -1,0 +1,12 @@
+{
+  "accountId": "c",
+  "oldState": "sae",
+  "newState": "saf",
+  "created": {
+    "folder": {
+      "id": "h", "totalEmails": 0, "unreadEmails": 0, "totalThreads": 0, "unreadThreads": 0,
+      "myRights": { "mayReadItems": true, "mayAddItems": true, "mayRemoveItems": true, "maySetSeen": true, "maySetKeywords": true, "mayCreateChild": true, "mayRename": true, "maySubmit": true, "mayDelete": true, "mayShare": true, "maySetMetadata": true },
+      "role": null, "sortOrder": 0, "isSubscribed": false
+    }
+  }
+}

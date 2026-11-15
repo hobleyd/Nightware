@@ -1,0 +1,8 @@
+{
+  "accountId": "c",
+  "oldState": "sae",
+  "newState": "saf",
+  "created": {
+    "identity": { "id": "c", "replyTo": null, "bcc": null, "textSignature": "", "htmlSignature": "", "mayDelete": true }
+  }
+}
