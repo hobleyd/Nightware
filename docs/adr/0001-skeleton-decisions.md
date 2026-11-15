@@ -158,7 +158,15 @@ anything contradictory in `architecture.md` or the phase docs.
 39. Self-authorising URLs (To Do `uploadUrl`): an `IRequestCredentialSource`
     recovers the caller's token from the URL; `SelfAuthorisingUrlMiddleware`
     sets `Authorization` before authentication, so validation and token
-    exchange are unchanged.
+    exchange are unchanged. *Amended (review fixes):* one mechanism for every
+    such URL — a route declares a `SelfAuthorisingUrl` (key purpose, method,
+    lifetime, bound route values, URL-only) as endpoint metadata;
+    `SelfAuthorisingUrlSealer` seals a `SealedTicket` (token, expiry, optional
+    name/size) whose lifetime is capped by the token's `exp`; the single
+    `SelfAuthorisingUrlCredentialSource` opens it against the matched route
+    values. The ticket travels only in the query (`authtoken`), which logs and
+    spans redact. A URL-only route (the To Do upload PUT) ignores any
+    `Authorization` header.
 40. The mailbox root has the synthetic id `msgfolderroot`
     (`MailboxRoles.RootFolderId`): emitted as top-level `parentFolderId`,
     accepted as a folder id.
