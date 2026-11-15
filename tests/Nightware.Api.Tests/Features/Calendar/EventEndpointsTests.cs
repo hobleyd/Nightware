@@ -84,6 +84,32 @@ public sealed class EventEndpointsTests : IAsyncLifetime
     }
 
     [Theory]
+    [InlineData("/v1.0/me")]
+    [InlineData("/v1.0/users/shared@example.com")]
+    public async Task Calendar_view_refuses_a_window_over_ten_years_in_both_forms(string prefix)
+    {
+        var response = await _host.AuthorizedClient().GetAsync($"{prefix}/calendarView?startDateTime=1900-01-01T00:00:00.000Z&endDateTime=2900-01-01T00:00:00.000Z", Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var body = await response.ReadObjectAsync();
+        body.Str("error.code").ShouldBe("invalidRequest");
+        body.Str("error.message")!.ShouldContain("3653 days");
+        await _reader.DidNotReceiveWithAnyArgs().CalendarViewAsync(default, default, default, null!, Ct);
+    }
+
+    [Fact]
+    public async Task Calendar_view_serves_the_out_of_office_sweeps_longest_window()
+    {
+        var start = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        _reader.CalendarViewAsync(new MailboxRef("me@example.com"), start, start.AddYears(6), Arg.Any<ItemQuery>(), Arg.Any<CancellationToken>())
+            .Returns(new Page<CalendarEvent>([Review()]));
+
+        var response = await _host.AuthorizedClient().GetAsync("/v1.0/me/calendarView?startDateTime=2025-01-01T00:00:00.000Z&endDateTime=2031-01-01T00:00:00.000Z&$top=100", Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Theory]
     [InlineData("/v1.0/me/events/ev-1", "me@example.com")]
     [InlineData("/v1.0/users/shared%40example.com/events/ev-1", "shared@example.com")]
     public async Task Get_returns_the_full_event_in_its_own_zone_without_prefer(string path, string mailbox)

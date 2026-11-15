@@ -10,12 +10,13 @@ namespace Nightware.Application.MailboxSettings;
 
 /// <summary><c>PATCH mailboxSettings</c>: replaces the automatic replies and/or sets the time zone, then returns the result.</summary>
 /// <remarks>
-/// Authorisation follows <see cref="GetMailboxSettings"/>: the mail store, acting as the caller,
-/// decides whether the mailbox may be changed. The time zone lives in the directory, written by the
+/// Authorisation follows <see cref="GetMailboxSettings"/>: <see cref="IMailboxSettingsAccess"/>,
+/// acting as the caller, decides whether the mailbox may be opened before either store is touched
+/// (the mail store still refuses a read-only delegate's write). The time zone lives in the directory, written by the
 /// façade's service account, so it may only be changed for the caller's own mailbox — otherwise
 /// any user could rewrite anyone's zone.
 /// </remarks>
-public sealed class UpdateMailboxSettings(IAutoReplyStore replies, IUserPreferencesStore preferences, IUserContext caller)
+public sealed class UpdateMailboxSettings(IMailboxSettingsAccess access, IAutoReplyStore replies, IUserPreferencesStore preferences, IUserContext caller)
 {
     public async Task<Result<MailboxSettingsSnapshot>> ExecuteAsync(MailboxRef mailbox, MailboxSettingsPatch patch, CancellationToken cancellationToken)
     {
@@ -23,6 +24,12 @@ public sealed class UpdateMailboxSettings(IAutoReplyStore replies, IUserPreferen
         if (Validate(mailbox, patch) is { } invalid)
         {
             return invalid;
+        }
+
+        var allowed = await access.CheckAsync(mailbox, cancellationToken).ConfigureAwait(false);
+        if (!allowed.IsSuccess)
+        {
+            return allowed.Error!;
         }
 
         var written = patch.AutomaticReplies is { } setting

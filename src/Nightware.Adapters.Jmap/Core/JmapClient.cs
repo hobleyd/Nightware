@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.Logging;
 using Nightware.Adapters.Jmap.Core.Auth;
 using Nightware.Adapters.Jmap.Core.Errors;
 using Nightware.Adapters.Jmap.Core.Http;
@@ -27,7 +28,9 @@ internal interface IJmapClient
     Task<Result<JmapAccount>> ResolveAccountAsync(MailboxRef mailbox, CancellationToken cancellationToken, string capability = JmapCapabilities.Mail);
 
     /// <summary>
-    /// Sends the request (split over several HTTP requests when session limits require it).
+    /// Sends the request (split over several HTTP requests when session limits require it, unless
+    /// <see cref="JmapRequestBuilder.RequireSingleRequest"/> forbids that: then nothing is sent and the
+    /// result is <see cref="ErrorKind.BackendUnavailable"/>).
     /// Transport/HTTP/request-level failures are returned here; method-level errors are
     /// returned per call by <see cref="JmapResponse.Get{T}"/>.
     /// </summary>
@@ -35,11 +38,12 @@ internal interface IJmapClient
 }
 
 /// <inheritdoc />
-internal sealed class JmapClient(
+internal sealed partial class JmapClient(
     JmapConnectionProvider connections,
     IHttpClientFactory httpClientFactory,
     IUserContext userContext,
-    TimeProvider time) : IJmapClient
+    TimeProvider time,
+    ILogger<JmapClient> logger) : IJmapClient
 {
     public async Task<Result<JmapSession>> GetSessionAsync(CancellationToken cancellationToken)
     {
@@ -70,6 +74,14 @@ internal sealed class JmapClient(
         var connection = connected.Value;
         var limits = connection.Session.Limits;
         var plan = JmapRequestPlanner.Plan(request.Invocations, limits.MaxObjectsInGet, limits.MaxCallsInRequest);
+        if (plan.IsSplit && request.RequiresSingleRequest)
+        {
+            var methods = string.Join(", ", request.Invocations.Select(i => i.Method));
+            LogWouldSplit(logger, methods, plan.Batches.Count, limits.MaxCallsInRequest, limits.MaxObjectsInGet);
+            return Error.BackendUnavailable(
+                "The mail server's request limits are too small for this operation to be carried out in one request.");
+        }
+
         var client = httpClientFactory.CreateClient(JmapHttpClients.Api);
 
         var responses = new List<MethodResponse>();
@@ -121,6 +133,10 @@ internal sealed class JmapClient(
 
         return new JmapResponse(responses, sessionState, createdIds, plan.WireIds);
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "A JMAP request that must reach the server in one piece ({Methods}) would be split into {Batches} HTTP requests "
+        + "by the session limits (maxCallsInRequest {MaxCalls}, maxObjectsInGet {MaxObjects}); nothing was sent. Raise the mail server's limits.")]
+    private static partial void LogWouldSplit(ILogger logger, string methods, int batches, int maxCalls, int maxObjects);
 
     private static byte[] Serialize(IReadOnlyList<WireInvocation> batch, Dictionary<string, string> createdIds)
     {

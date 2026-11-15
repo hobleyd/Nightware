@@ -57,9 +57,10 @@ internal sealed class JmapMailDeltaReader(IJmapClient jmap) : IMailDeltaReader
         var request = new JmapRequestBuilder();
 
         // The state is read before the query, in the same request: anything that changes after it
-        // is replayed by Email/changes, even if it also lands in a page of this initial walk.
+        // is replayed by Email/changes, even if it also lands in a page of this initial walk. Sent in
+        // two HTTP requests, a change between them would be in neither the walk nor the replay.
         var state = cursor.State is null
-            ? request.Add(JmapMethods.EmailGet, new EmailGetRequest(account.AccountId) { Ids = [], Properties = ["id"] })
+            ? request.RequireSingleRequest().Add(JmapMethods.EmailGet, new EmailGetRequest(account.AccountId) { Ids = [], Properties = ["id"] })
             : null;
         var query = request.Add(JmapMethods.EmailQuery, new EmailQueryRequest(account.AccountId)
         {

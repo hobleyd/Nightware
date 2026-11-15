@@ -27,12 +27,14 @@ public sealed class MailboxSettingsArrangements : IConformanceArrangements
     {
         yield return new ConformanceArrangement("mailbox-settings.get", static fakes =>
         {
+            fakes.For<IMailboxSettingsAccess>().CheckAsync(Me, Arg.Any<CancellationToken>()).Returns(Result.Success());
             fakes.For<IAutoReplyStore>().GetAsync(Me, Arg.Any<CancellationToken>()).Returns(Stored);
             fakes.For<IUserPreferencesStore>().GetAsync(Me, Arg.Any<CancellationToken>()).Returns(new UserPreferences("Australia/Sydney", "en"));
         });
 
         yield return new ConformanceArrangement("mailbox-settings.update", static fakes =>
         {
+            fakes.For<IMailboxSettingsAccess>().CheckAsync(Me, Arg.Any<CancellationToken>()).Returns(Result.Success());
             fakes.For<IAutoReplyStore>()
                 .SetAsync(Me, Arg.Is<AutoReplySetting>(s => s.Status == AutoReplyStatus.Scheduled
                     && s.ExternalAudience == ExternalAudience.ContactsOnly

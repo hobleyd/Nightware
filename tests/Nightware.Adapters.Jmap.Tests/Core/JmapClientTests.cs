@@ -154,6 +154,39 @@ public sealed class JmapClientTests
     }
 
     [Fact]
+    public async Task A_request_that_must_not_be_split_fails_before_anything_is_sent()
+    {
+        await using var host = new JmapTestHost();
+        host.StubSession(JmapTestHost.Session(maxCallsInRequest: 1));
+        host.StubApi("[]");
+        var request = new JmapRequestBuilder().RequireSingleRequest();
+        request.Add(JmapMethods.MailboxGet, new GetRequest("c"));
+        request.Add(JmapMethods.IdentityGet, new GetRequest("c"));
+
+        var result = await host.Client().SendAsync(request, Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+        host.Requests("/jmap/", "POST").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_request_that_must_not_be_split_is_sent_when_it_fits()
+    {
+        await using var host = new JmapTestHost();
+        host.StubSession(JmapTestHost.Session(maxCallsInRequest: 2));
+        host.StubApi("""
+            [["Mailbox/get",{"accountId":"c","state":"m1","list":[],"notFound":[]},"c0"],
+             ["Identity/get",{"accountId":"c","state":"i1","list":[],"notFound":[]},"c1"]]
+            """);
+        var request = new JmapRequestBuilder().RequireSingleRequest();
+        request.Add(JmapMethods.MailboxGet, new GetRequest("c"));
+        request.Add(JmapMethods.IdentityGet, new GetRequest("c"));
+
+        (await host.Client().SendAsync(request, Ct)).IsSuccess.ShouldBeTrue();
+        host.Requests("/jmap/", "POST").ShouldHaveSingleItem();
+    }
+
+    [Fact]
     public async Task Method_errors_are_mapped_per_call()
     {
         await using var host = new JmapTestHost();

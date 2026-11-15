@@ -23,6 +23,8 @@ what a fix needs. Ordered by impact within each section.
   answer. The client always sends the header.
 - Stalwart reports `hasAttachment: false` on some invitation mail that carries
   an `.ics` and an image.
+- **Mail search is one page.** `$search` returns at most `$top` results and
+  no nextLink (`docs/contract/odata-subset.md` §6). NightMail never pages it.
 
 ### Calendar
 - **External invitations Nextcloud never delivered to the calendar** resolve to
@@ -33,6 +35,14 @@ what a fix needs. Ordered by impact within each section.
   `sendResponse: false` (Sabre always replies), and a decline's
   `proposedNewTime` (Sabre has no iTIP COUNTER). Inbound COUNTERs from external
   organizers do work.
+- **Every `calendarView` page re-expands the whole window.** The CalDAV
+  expand REPORT has no paging, so each `$skiptoken` page expands, materialises
+  and sorts every occurrence in the window again before slicing. The window is
+  capped at ten years (`GetCalendarView.MaxWindow`), which bounds one request
+  (20 daily series over ten years is ~73,000 instances), and NightMail never
+  pages this route (one request, `$top` 100), so only another client walking
+  many pages pays it repeatedly. Fix if one does: cache the sorted expansion
+  per credential + calendar + window (+ the calendar's CTag) for a minute.
 - Clearing a recurrence via PATCH isn't expressible through `EventPatch`.
 - Online-meeting fields are accepted and ignored.
 

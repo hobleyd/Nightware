@@ -1,5 +1,6 @@
 using System.Xml.Linq;
 using Nightware.Adapters.Dav.Core;
+using Nightware.Application.Calendar;
 using Nightware.Application.Common.Query;
 using Nightware.Domain.Calendar;
 using Nightware.Domain.Kernel;
@@ -79,6 +80,19 @@ public sealed class DavCalendarReaderTests : IDisposable
         page.Items.Count.ShouldBe(4);
         page.Items.ShouldAllBe(e => e.Type == EventType.SingleInstance);
         _h.Requests("REPORT").Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Calendar_view_refuses_a_window_over_the_cap_before_asking_the_server()
+    {
+        ServeView();
+
+        // An invitation's own DTSTART/DTEND can set the window (messages/{id}/event), so the reader bounds it too.
+        var result = await _h.Reader.CalendarViewAsync(AliceMailbox, Window, Window + CalendarViewLimits.MaxWindow + TimeSpan.FromTicks(1), ItemQuery.Default, Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.Validation);
+        _h.Dav.Server.LogEntries.ShouldBeEmpty();
+        (await _h.Reader.CalendarViewAsync(AliceMailbox, Window, Window + CalendarViewLimits.MaxWindow, ItemQuery.Default, Ct)).IsSuccess.ShouldBeTrue();
     }
 
     [Fact]
