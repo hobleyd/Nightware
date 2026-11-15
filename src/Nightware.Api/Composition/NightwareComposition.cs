@@ -1,3 +1,4 @@
+using Nightware.Api.Features.Files.Download;
 using Nightware.Api.Features.Tasks.Upload;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -69,6 +70,8 @@ public static class NightwareComposition
         // Self-authorising URLs (ADR §39): sources the middleware asks when a request has no bearer.
         services.AddSingleton<UploadUrlProtector>();
         services.AddSingleton<IRequestCredentialSource, UploadUrlCredentialSource>();
+        services.AddSingleton<DownloadUrlProtector>();
+        services.AddSingleton<IRequestCredentialSource, DownloadUrlCredentialSource>();
         services.TryAddScoped<IMailboxResolver, MailboxResolver>();
 
         services

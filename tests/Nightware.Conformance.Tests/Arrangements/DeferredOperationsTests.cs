@@ -7,16 +7,15 @@ namespace Nightware.Conformance.Tests.Arrangements;
 
 /// <summary>
 /// Operations deliberately left unimplemented (ADR 0001 §43): NightMail calls them only for Microsoft
-/// accounts, never for NightMail Server ones. Their fixtures stay unarranged (the harness reports them
-/// as skipped); this pins down that the façade answers each with a deliberate <c>501 notImplemented</c>
-/// rather than the unknown-route 400, and fails as soon as one is arranged or its fixture disappears.
+/// accounts, never for NightMail Server ones (<c>/shares</c> left this list in Phase 7). Their fixtures
+/// stay unarranged (the harness reports them as skipped); this pins down that the façade answers each
+/// with a deliberate <c>501 notImplemented</c> rather than the unknown-route 400, and fails as soon as
+/// one is arranged or its fixture disappears.
 /// </summary>
 public sealed class DeferredOperationsTests
 {
     public static TheoryData<string> Deferred() =>
     [
-        "files.shares.drive-item",
-        "files.shares.drive-item-content",
         "security.threat-submission.email-threats.create",
     ];
 
