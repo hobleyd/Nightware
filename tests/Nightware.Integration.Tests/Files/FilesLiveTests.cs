@@ -82,15 +82,17 @@ public sealed class FilesLiveTests : IAsyncLifetime
     [Fact]
     public async Task Bob_previews_an_internal_link_only_when_it_is_shared_with_him()
     {
+        // Unique: the share is mounted in bob's root, where Nextcloud renames a clash ("Shared (2).docx").
+        var name = $"Shared-{_folder[^8..]}.docx";
         var docx = await _host.RenderAsync("Shared notes " + _folder, "docx", Ct);
-        await _host.UploadAsync(FilesLiveHost.Alice, $"{_folder}/Shared.docx", docx, Ct);
+        await _host.UploadAsync(FilesLiveHost.Alice, $"{_folder}/{name}", docx, Ct);
         await _host.UploadAsync(FilesLiveHost.Alice, $"{_folder}/Private.docx", docx, Ct);
-        var (_, sharedId) = await _host.ShareAsync(FilesLiveHost.Alice, $"/{_folder}/Shared.docx", UserShare, Ct, shareWith: FilesLiveHost.Bob);
+        var (_, sharedId) = await _host.ShareAsync(FilesLiveHost.Alice, $"/{_folder}/{name}", UserShare, Ct, shareWith: FilesLiveHost.Bob);
         var (_, privateId) = await _host.ShareAsync(FilesLiveHost.Alice, $"/{_folder}/Private.docx", PublicLink, Ct);
         using var bob = await _host.GraphAsync(FilesLiveHost.Bob, Ct);
 
         var link = $"{FilesLiveHost.CloudBase}/f/{sharedId}";
-        (await DriveItemAsync(bob, link))["name"]!.GetValue<string>().ShouldBe("Shared.docx");
+        (await DriveItemAsync(bob, link))["name"]!.GetValue<string>().ShouldBe(name);
         (await DownloadAsync(bob, link)).Bytes.ShouldBe(docx);
         Encoding.ASCII.GetString((await DownloadAsync(bob, link, pdf: true)).Bytes, 0, 5).ShouldBe("%PDF-");
 
