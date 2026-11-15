@@ -8,7 +8,7 @@ using Microsoft.Extensions.Http;
 namespace Nightware.Integration.Tests.Support;
 
 /// <summary>
-/// The bootstrapped dev stack's deploy folder: its <c>.env</c> secrets and the Caddy root CA, trusted for
+/// The bootstrapped dev stack's deploy folder: its <c>.env</c> (else <c>.env.example</c>) secrets and the Caddy root CA, trusted for
 /// the clients the tests and the in-process Nightware use, never process-wide. Every live host builds on this.
 /// </summary>
 /// <remarks>
@@ -27,7 +27,9 @@ internal sealed class DevStack : IDisposable
 
     private DevStack(string deployDir)
     {
-        _env = ReadEnv(Path.Combine(deployDir, ".env"));
+        // A stack bootstrapped with the defaults may have no .env of its own; its values are .env.example's.
+        var envFile = Path.Combine(deployDir, ".env");
+        _env = ReadEnv(File.Exists(envFile) ? envFile : Path.Combine(deployDir, ".env.example"));
         _ca = X509CertificateLoader.LoadCertificateFromFile(Path.Combine(deployDir, ".certs", "caddy-root.crt"));
     }
 
@@ -38,7 +40,7 @@ internal sealed class DevStack : IDisposable
     {
         Assert.SkipUnless(Enabled, "Live integration tests run only with NIGHTWARE_INTEGRATION=1.");
         var deployDir = Environment.GetEnvironmentVariable("NIGHTWARE_DEPLOY_DIR") ?? FindDeployDir()
-            ?? throw new InvalidOperationException("No bootstrapped deploy folder (deploy/.env) found; set NIGHTWARE_DEPLOY_DIR.");
+            ?? throw new InvalidOperationException("No bootstrapped deploy folder (deploy/.certs/caddy-root.crt) found; set NIGHTWARE_DEPLOY_DIR.");
         return new DevStack(deployDir);
     }
 
@@ -114,7 +116,7 @@ internal sealed class DevStack : IDisposable
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
         {
             var candidate = Path.Combine(dir.FullName, "deploy");
-            if (File.Exists(Path.Combine(candidate, ".env")))
+            if (File.Exists(Path.Combine(candidate, ".certs", "caddy-root.crt")))
             {
                 return candidate;
             }
