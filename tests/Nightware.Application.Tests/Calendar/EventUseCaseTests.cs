@@ -34,7 +34,7 @@ public sealed class EventUseCaseTests
     [Fact]
     public async Task Calendar_view_serves_a_window_up_to_the_cap()
     {
-        var end = Start + GetCalendarView.MaxWindow;
+        var end = Start + CalendarViewLimits.MaxWindow;
         _reader.CalendarViewAsync(Me, Start, end, ItemQuery.Default, Ct).Returns(new Page<CalendarEvent>([Event()]));
 
         (await new GetCalendarView(_reader).ExecuteAsync(Me, Start, end, ItemQuery.Default, Ct)).Value.Items.ShouldHaveSingleItem();
@@ -46,7 +46,7 @@ public sealed class EventUseCaseTests
     public async Task Calendar_view_refuses_a_window_over_the_cap_without_expanding_it(long extraTicks)
     {
         var view = new GetCalendarView(_reader);
-        var end = Start + GetCalendarView.MaxWindow + TimeSpan.FromTicks(extraTicks);
+        var end = Start + CalendarViewLimits.MaxWindow + TimeSpan.FromTicks(extraTicks);
 
         var result = await view.ExecuteAsync(Me, Start, end, ItemQuery.Default, Ct);
 
@@ -60,7 +60,7 @@ public sealed class EventUseCaseTests
     {
         // NightMail's out-of-office meeting sweep: pickers span a year back to five years forward.
         var sweep = new DateTimeOffset(2031, 1, 1, 0, 0, 0, TimeSpan.Zero) - new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
-        GetCalendarView.MaxWindow.ShouldBeGreaterThan(sweep);
+        CalendarViewLimits.MaxWindow.ShouldBeGreaterThan(sweep);
     }
 
     [Fact]
