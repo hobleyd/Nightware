@@ -13,7 +13,11 @@ anything contradictory in `architecture.md` or the phase docs.
    create-replacement + destroy, which changes the JMAP id — but the client
    chains `PATCH → attachments → send` on one draft id. The façade mints the
    `Message-ID` header on draft creation, preserves it across replacements and
-   resolves `d.` ids with `Email/query {inMailbox: drafts, header: ["Message-ID", v]}`.
+   resolves `d.` ids by listing the Drafts mailbox newest first (`Email/query
+   {inMailbox: drafts}` + `Email/get messageId`, paged, bounded at 10 pages) and
+   confirming with `MailItemId.MatchesDraft`. *Amended:* Stalwart 1.1 never
+   matches a `header: ["Message-ID", v]` filter, and its header index is
+   asynchronous, so the originally planned header query found nothing live.
    The codec `Adapters.Jmap/Mail/Ids/MailItemId.cs` is skeleton-owned and frozen.
    `Email/get` always fetches `keywords` and `messageId` so the right form is
    emitted everywhere (list, delta, get).
@@ -25,8 +29,13 @@ anything contradictory in `architecture.md` or the phase docs.
    cancel/DELETE/PATCH on an occurrence = "this occurrence only": exception
    VEVENT or `EXDATE`). Organizer PATCH of start/end bumps `SEQUENCE` so Sabre
    re-sends the iTIP REQUEST.
-5. Attachment ids are the JMAP `partId` within the current blob (the client
-   re-lists before deleting).
+5. Attachment ids are `a.` + base64url(JSON `[ordinal, size, name]`), where
+   ordinal counts leaf parts with the same name and size in structure order
+   (`Adapters.Jmap/Mail/Ids/AttachmentItemId.cs`). *Amended:* JMAP `partId`s
+   and part `blobId`s both change on every draft rebuild, and the client lists
+   attachments once then deletes several in a loop; name and decoded size are
+   what survive. Used for message attachments, draft add/remove and
+   `CalendarPart.PartId` alike.
 
 ## Delta
 
