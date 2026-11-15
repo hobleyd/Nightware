@@ -75,6 +75,12 @@ internal sealed class JmapMailFolderReader(IJmapClient jmap) : IMailFolderReader
 - More calls than `maxCallsInRequest` go over several HTTP POSTs. A cut is never
   placed between a call and a call it references. `createdIds` are carried
   across the POSTs.
+- A split request is not atomic: each POST is processed on its own. A request
+  whose calls must arrive together (the delta's initial state read with its
+  query, a create with its submission) calls `RequireSingleRequest()`; if the
+  limits would split it, nothing is sent and the result is
+  `BackendUnavailable` (503), logged as an error naming the limits. Stalwart's
+  defaults (16 calls) never split these.
 - `maxObjectsInSet` is exposed in `Limits` but not enforced. Chunk large
   `/set` batches yourself.
 
