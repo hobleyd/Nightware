@@ -119,6 +119,21 @@ which arrive unauthenticated on port 25 — a burst of more than 25 invitations 
 Nextcloud to one attendee is throttled. Raise or re-key that throttle in Stalwart's settings
 (*Settings → MTA → Inbound → Throttles*) if your organisation schedules at that rate.
 
+## 429 on mail calls with several devices (Stalwart's concurrent-request limit)
+
+**Cause.** Stalwart allows `maxConcurrentRequests` (4 by default) JMAP requests in flight per
+account. When more than four devices of one user (or a device's parallel fetches) hit mail at the
+same moment, Stalwart answers a JMAP `limit` problem, which the façade reports as
+`429 TooManyRequests` with `Retry-After: 5`. NightMail waits and retries, so users rarely notice;
+the k6 run with ten devices per account saw 4 of 80 delta calls throttled this way.
+
+**Confirm.** The façade's own limiter does not log; Stalwart's limit shows as `Result: '400'` on the
+`Nightware.Jmap-jmap-api` pipeline (raise `Logging:LogLevel:Polly` to `Information`) with
+`maxConcurrentRequests` in the error.
+
+**Fix.** Raise Stalwart's concurrent-request limit for JMAP (Settings → JMAP → Protocol → request
+limits) to cover the devices per user you expect (e.g. 16).
+
 ## 413 on sending large attachments
 
 `Limits:MaxRequestBodyBytes` (≈ 67 MB) or Stalwart's `maxSizeUpload`/message size limit. Raise them

@@ -56,3 +56,10 @@ so runs longer than the realm's access-token lifespan work.
   and To Do routes (phases 4 and 5B) were not merged yet and answered `400 BadRequest` (unmapped
   route, ADR 0001 §31), so their status checks and the overall failure-rate threshold fail by
   construction. Re-run once those phases are merged.
+- `poll-cycle.js`, 20 VUs (10 devices per account), 90 s, after phases 2, 3, 4, 5A and 5B merged,
+  on a host with load average ~20 from other suites running in parallel: folders p95 166 ms
+  (pass), inbox delta p95 486 ms, task lists p95 3.3 s, calendarView p95 8.3 s (Nextcloud CPU-bound
+  on that host; re-measure on an idle machine before reading these as product numbers). 4 of 80
+  delta calls were answered 429: not the façade's limiter but Stalwart's per-account
+  `maxConcurrentRequests` (4), reached because ten devices shared one mailbox — see the runbook.
+

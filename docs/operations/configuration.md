@@ -104,6 +104,7 @@ senders remain subject to it — see the [runbook](runbook.md#mail-sent-but-neve
 | `Logging:LogLevel:Default` | `Information` | |
 | `Logging:LogLevel:Microsoft.AspNetCore` | `Warning` | |
 | `Logging:LogLevel:System.Net.Http.HttpClient` | `Warning` | Per-backend-call lines; `Information` logs two per call. |
+| `Logging:LogLevel:Polly` | `Warning` | Adapter resilience events; `Information` logs every attempt of every backend call. |
 | `Logging:Console:FormatterName` | `json` (`simple` in Development) | JSON lines with scopes (`graph.request_id`, `graph.client_request_id`, trace/span ids). |
 
 `Microsoft.AspNetCore.Hosting.Diagnostics` (the request-line log) is pinned to `Warning` in code
