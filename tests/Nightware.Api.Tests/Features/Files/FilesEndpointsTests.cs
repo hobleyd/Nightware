@@ -106,6 +106,36 @@ public sealed class FilesEndpointsTests : IAsyncLifetime
         await _reader.DidNotReceiveWithAnyArgs().GetItemAsync(null!, Ct);
     }
 
+    public static TheoryData<string, HttpStatusCode> LinksThatEscapeTheSite() => new()
+    {
+        { Site + "/s/..%2F..%2Fremote.php/dav", HttpStatusCode.NotFound },
+        { Site + "/s/..%2f..%2fremote.php%2fdav", HttpStatusCode.NotFound },
+        { Site + "/s/a%2Fb", HttpStatusCode.NotFound },
+        { Site + "/s/a%5Cb", HttpStatusCode.NotFound },
+        { Site + "/s/%2E%2E/remote.php/dav", HttpStatusCode.NotFound },
+        { Site + "/s/.%2e/remote.php/dav", HttpStatusCode.NotFound },
+        { Site + "/s/%252F", HttpStatusCode.NotFound },
+        { Site + "/s/../remote.php/dav", HttpStatusCode.NotFound },
+        { Site + "/s/AbCd/../../remote.php/dav", HttpStatusCode.NotFound },
+        { "https://cloud.example.com:8443/s/AbCdEfGh", HttpStatusCode.NotFound },
+        { "http://cloud.example.com/s/AbCdEfGh", HttpStatusCode.NotFound },
+        { "https://user:pass@cloud.example.com/s/AbCdEfGh", HttpStatusCode.BadRequest },
+        { "https://user@cloud.example.com/s/AbCdEfGh", HttpStatusCode.BadRequest },
+        { "https://cloud.example.com.evil.example/s/AbCdEfGh", HttpStatusCode.NotFound },
+    };
+
+    [Theory]
+    [MemberData(nameof(LinksThatEscapeTheSite))]
+    public async Task A_link_that_would_leave_the_share_never_reaches_the_reader(string link, HttpStatusCode expected)
+    {
+        var shareId = SharingUrlsTests.Encode(link);
+
+        (await _host.AuthorizedClient().GetAsync($"/v1.0/shares/{shareId}/driveItem", Ct)).StatusCode.ShouldBe(expected, link);
+        (await _host.AuthorizedClient().GetAsync($"/v1.0/shares/{shareId}/driveItem/content", Ct)).StatusCode.ShouldBe(expected, link);
+        (await _host.AuthorizedClient().GetAsync($"/v1.0/shares/{shareId}/driveItem/$value", Ct)).StatusCode.ShouldBe(expected, link);
+        _reader.ReceivedCalls().ShouldBeEmpty();
+    }
+
     [Fact]
     public async Task Without_file_sites_the_feature_is_off()
     {
