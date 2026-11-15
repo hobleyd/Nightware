@@ -285,6 +285,16 @@ involved, because `*.localhost` names do not work between containers:
   `configfailed` right after loading.
 - The image has no shell or curl, so there is no compose healthcheck; the
   image's own reports unhealthy. `nextcloud/configure.sh` waits for discovery.
+- **Brute-force protection sees every public-share lookup as the façade.**
+  The façade reads `/s/{token}` links anonymously from its own address, so a
+  password-protected or dead link counts as a failed attempt *from the
+  façade*; enough of them (any users, any links) and Nextcloud delays then
+  refuses every public share (`MaxDelayReached`, the façade answers 429/503).
+  Clear it with `occ security:bruteforce:reset <façade ip>`; for production,
+  pin the api container's address and add it to the `bruteforcesettings`
+  allow-list (not the whole subnet — Caddy's address carries all public
+  traffic). Share *creation* is also rate-limited per user (OCS 429), which
+  only matters to repeated live-test runs.
 - Port 9980 is published on `BIND_ADDRESS` (`COLLABORA_PORT`) so a façade run
   on the host (`dotnet run`, the live integration tests) can convert.
 - Verified (2026-11-15, CODE 26.04.5.2 on arm64): alice's `.docx` opened
