@@ -45,14 +45,55 @@ them): `KEYCLOAK_ADMIN_PASSWORD`, `KEYCLOAK_DB_PASSWORD`, `NIGHTWARE_API_CLIENT_
 grant and exists for scripts only), `NEXTCLOUD_OIDC_CLIENT_SECRET`, `STALWART_ADMIN_PASSWORD`,
 `NEXTCLOUD_ADMIN_PASSWORD`, `NEXTCLOUD_DB_PASSWORD`, and remove the test users alice and bob.
 
-For the façade, set a stable delta-link signing key shared by every instance:
+### The façade's root secret: `NIGHTWARE_DELTA_LINK_KEY`
+
+`DeltaLinks:SigningKey` (compose: `NIGHTWARE_DELTA_LINK_KEY`) is the façade's own root secret.
+`Directory:ClientSecret` is different: Keycloak holds that one too. The root secret is used for two
+things:
+
+- **delta and next links.** It is the HMAC key that signs every `@odata.deltaLink` and
+  `@odata.nextLink`.
+- **self-authorising URLs.** HKDF derives one AES-256-GCM key per URL kind from it. Those keys seal
+  the caller's **full access token** into To Do `uploadUrl`s and `/shares/…/content` download
+  redirects (ADR 0001 §39, §43).
+
+Anyone who knows it can forge links and open any sealed URL they see, recovering the token inside.
+So:
+
+- It must be random, at least 32 bytes and identical on every instance. Generate it with
+  `openssl rand -hex 32`. `deploy/scripts/init-env.sh` writes one into `deploy/.env` when the line
+  is absent or empty, and never replaces an existing one. `bootstrap.sh`, `make stack` and
+  `make api` run it.
+- `docker-compose.yml` has **no default** for it. Every compose command fails with
+  `required variable NIGHTWARE_DELTA_LINK_KEY is missing a value` until `.env` has one.
+- With `ASPNETCORE_ENVIRONMENT=Production` the façade **refuses to start** in three cases:
+  - the key is missing
+  - it is shorter than 32 bytes
+  - it is one of the development values published in this repository
+
+  The error names `DeltaLinks__SigningKey`. Development and test hosts fall back to a random
+  per-process key.
+- Keep it out of version control and logs, like the client secrets. `.env` is git-ignored.
+
+**Rotating it** (suspected leak, staff change) is a restart with the new value on every instance.
+Do it on all instances at once, because a mixed fleet rejects half of each other's links. It
+invalidates:
+
+- **every stored delta and next link.** A link signed with the old key answers `400 invalidRequest`
+  (not 410; see `docs/known-issues.md`). NightMail clears its cursor on 400 or 410 and does a
+  **full resync** of each folder: correct, but a burst of backend load as every device re-pulls.
+- **every in-flight upload and download URL.** An upload session `uploadUrl` or a 5-minute
+  download redirect sealed with the old key no longer recovers a credential and answers `401`.
+  The client starts the upload or download again.
 
 ```bash
-NIGHTWARE_DELTA_LINK_KEY=$(openssl rand -base64 48)
+cd deploy
+new=$(openssl rand -hex 32)
+grep -v '^NIGHTWARE_DELTA_LINK_KEY=' .env > .env.tmp && echo "NIGHTWARE_DELTA_LINK_KEY=$new" >> .env.tmp && cat .env.tmp > .env && rm .env.tmp
+docker compose -p nightware --profile api up -d --no-deps --force-recreate nightware-api
 ```
 
-Without it each process signs with a random key, so every restart invalidates every client's
-delta links (clients recover with a full resync — correct, but expensive).
+Nothing else holds state derived from the key. Exchanged-token caches are unaffected.
 
 ## 4. The façade container
 
@@ -62,7 +103,8 @@ NIGHTWARE_ENVIRONMENT=Production docker compose -p nightware --profile api up -d
 ```
 
 `ASPNETCORE_ENVIRONMENT` must be `Production` outside development: `Development` loads
-`appsettings.Development.json`, which carries a development delta-link key and client secret.
+`appsettings.Development.json`, which carries a development delta-link key and client secret, and
+only Production enforces the signing-key check above. The compose default is `Development`.
 Production logs are JSON lines on stdout (one object per record, with scopes).
 
 What the compose service already sets, and why:

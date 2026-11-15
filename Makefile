@@ -60,12 +60,16 @@ image: ## Build the API container image
 # ---------------------------------------------------------------- live stack
 # These never delete volumes and never reconfigure a running backend; bootstrap.sh is idempotent.
 
+.PHONY: env
+env: ## Create deploy/.env if missing and generate its NIGHTWARE_DELTA_LINK_KEY if absent (never replaces one)
+	deploy/scripts/init-env.sh
+
 .PHONY: stack
-stack: ## Start the deploy/ backends (Keycloak, Stalwart, Nextcloud, Caddy) and wait until healthy
-	cd deploy && { [[ -f .env ]] || cp .env.example .env; } && $(COMPOSE) up -d --wait
+stack: env ## Start the deploy/ backends (Keycloak, Stalwart, Nextcloud, Caddy) and wait until healthy
+	cd deploy && $(COMPOSE) up -d --wait
 
 .PHONY: api
-api: ## (Re)build and start only the façade container against the running stack
+api: env ## (Re)build and start only the façade container against the running stack
 	cd deploy && $(COMPOSE) --profile api up -d --build --wait --no-deps nightware-api
 
 .PHONY: integration

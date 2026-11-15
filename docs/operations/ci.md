@@ -12,6 +12,7 @@ Everything runs through the `Makefile`; `.github/workflows/ci.yml` calls the sam
 | `make vulnerable` | fails on any known-vulnerable NuGet package, direct or transitive |
 | `make ci` | `build vulnerable test-architecture coverage` |
 | `make image` | the API container image |
+| `make env` | create `deploy/.env` if missing and generate its `NIGHTWARE_DELTA_LINK_KEY` if absent (never replaces one); `stack` and `api` run it |
 | `make stack` / `make api` | start the `deploy/` backends / (re)build and start only the façade |
 | `make integration` | stack + bootstrap + façade + `smoke.sh` + `NIGHTWARE_INTEGRATION=1` live tests |
 | `make load` | k6 against the running stack (`tests/Nightware.Load/README.md`) |
@@ -21,7 +22,9 @@ Everything runs through the `Makefile`; `.github/workflows/ci.yml` calls the sam
 - **build** (every push/PR): build, vulnerable packages, architecture tests, coverage + gate; test
   results and Cobertura files are uploaded as the `test-results` artifact and the coverage table is
   written to the job summary.
-- **image** (after build): builds the image and checks it starts and answers `/healthz/live`.
+- **image** (after build): builds the image and checks it starts and answers `/healthz/live`. It
+  passes a random `DeltaLinks__SigningKey`, because the image runs as Production and refuses to start
+  without one.
 - **integration** (manual: *Run workflow* with `integration: true`): brings up `deploy/` on the
   runner, bootstraps, starts the façade, runs `smoke.sh` and the live suite, dumps compose logs on
   failure, and tears the ephemeral stack down.

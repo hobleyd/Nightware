@@ -23,11 +23,16 @@ richdocuments 12.0.2.
 
 ```bash
 cd deploy
-cp .env.example .env                     # dev defaults; change secrets for anything shared
+./scripts/init-env.sh                    # .env from .env.example + a random NIGHTWARE_DELTA_LINK_KEY
+                                         # (dev defaults otherwise; change secrets for anything shared)
 docker compose -p nightware up -d        # ~1-2 min until Keycloak + Nextcloud are healthy
 ./bootstrap.sh                           # one-time, idempotent (~1 min on a fresh volume)
 ./smoke.sh                               # exit status = number of failed checks
 ```
+
+Every compose command needs `NIGHTWARE_DELTA_LINK_KEY` in `.env`; the compose file has no default
+for it. `scripts/init-env.sh` generates it and is idempotent. `bootstrap.sh` and the other scripts
+(through `scripts/lib.sh`), `make stack` and `make api` run it for you.
 
 `bootstrap.sh` runs, in order:
 
@@ -61,7 +66,7 @@ liveness healthcheck on `/healthz/live`. `/healthz` is readiness (every backend)
 | `.env` | Façade setting | Default |
 |---|---|---|
 | `NIGHTWARE_ENVIRONMENT` | `ASPNETCORE_ENVIRONMENT` | `Development` (use `Production` outside dev) |
-| `NIGHTWARE_DELTA_LINK_KEY` | `DeltaLinks:SigningKey` | a dev-only constant |
+| `NIGHTWARE_DELTA_LINK_KEY` | `DeltaLinks:SigningKey`: the façade's root secret (delta links and sealed upload/download URLs) | **required**, no default; `scripts/init-env.sh` generates one |
 | `NIGHTWARE_API_CLIENT_SECRET` | `Directory:ClientSecret` | required |
 | `DOCKER_SUBNET` | `ForwardedHeaders:KnownNetworks:0` (only Caddy may set `X-Forwarded-*`) | `172.31.250.0/24` |
 | `NIGHTMAIL_WEB_ORIGIN` | `Cors:AllowedOrigins:0` | `http://localhost:34572` |

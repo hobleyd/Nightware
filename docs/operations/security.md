@@ -12,6 +12,15 @@ What the façade enforces, where, and why. Code references are under `src/Nightw
   and Nextcloud each receive a token exchanged for their own audience, and reject an un-exchanged
   NightMail token (asserted by `deploy/smoke.sh`).
 
+## The root secret (`Hosting/SigningKeyValidator.cs`)
+
+`DeltaLinks:SigningKey` signs delta/next links and keys (HKDF → AES-256-GCM, one key per purpose)
+the seal on self-authorising upload and download URLs, which carry the caller's **access token**.
+A known key means forged links and readable tokens, so Production refuses to start when it is
+missing, shorter than 32 bytes or a development value from this repository, and the compose file
+has no default for `NIGHTWARE_DELTA_LINK_KEY`. Generation and rotation:
+[deployment.md](deployment.md#the-façades-root-secret-nightware_delta_link_key).
+
 ## Per-user rate limits (`Throttling/`)
 
 Token bucket (300 burst, 10/s) chained with a concurrency limit (32), partitioned by `sub`; requests

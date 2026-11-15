@@ -5,11 +5,11 @@ set -euo pipefail
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$DEPLOY_DIR"
 
-if [[ -f .env ]]; then
-  set -a; source ./.env; set +a
-else
-  set -a; source ./.env.example; set +a
-fi
+# .env (created from .env.example if missing) must hold NIGHTWARE_DELTA_LINK_KEY
+# before any compose command: docker-compose.yml has no default for it. Notices go
+# to stderr so get-token.sh's stdout stays a bare token.
+"$DEPLOY_DIR/scripts/init-env.sh" >&2
+set -a; source ./.env; set +a
 
 : "${BASE_DOMAIN:=nightware.localhost}"
 : "${PUBLIC_PORT_SUFFIX:=}"

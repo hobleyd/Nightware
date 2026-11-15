@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 using Nightware.Adapters.Dav;
 using Nightware.Adapters.Directory;
@@ -61,7 +62,8 @@ public static class NightwareComposition
             .Bind(configuration.GetSection(DiscoveryOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
-        services.AddOptions<DeltaLinkOptions>().Bind(configuration.GetSection(DeltaLinkOptions.SectionName));
+        services.AddOptions<DeltaLinkOptions>().Bind(configuration.GetSection(DeltaLinkOptions.SectionName)).ValidateOnStart();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DeltaLinkOptions>, SigningKeyValidator>());
 
         services.AddGraphAuthentication(configuration);
         services.AddGraphRateLimiting(configuration);
