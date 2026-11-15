@@ -135,7 +135,10 @@ public sealed class DirectoryLiveTests
             var addresses = people.SelectMany(static p => p["scoredEmailAddresses"]!.AsArray().Select(static e => e!["address"]!.GetValue<string>())).ToList();
             addresses.ShouldContain(address, "contacts feed people");
             addresses.ShouldContain(Bob, "the directory feeds people");
-            addresses.IndexOf(address).ShouldBeLessThan(addresses.IndexOf(Bob), "a saved contact outranks a colleague");
+            // No ordering against Bob: on a shared stack alice may have real mail with him, and recent
+            // correspondence rightly outranks a saved contact nobody has written to. Exact ordering is
+            // covered by the PeopleRanker unit tests.
+            addresses.Count(a => a == address).ShouldBe(1, "people are merged by address, never duplicated");
         }
         finally
         {
