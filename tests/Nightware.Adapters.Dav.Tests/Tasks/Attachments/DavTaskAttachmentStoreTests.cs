@@ -330,6 +330,27 @@ public sealed class DavTaskAttachmentStoreTests : IDisposable
         _h.Dav.Server.LogEntries.ShouldBeEmpty();
     }
 
+    [Theory]
+    [InlineData("big.eml", Application.Tasks.TaskAttachmentLimits.MaxBytes + 1)]
+    [InlineData("big.eml", 0L)]
+    [InlineData(" ", 10L)]
+    [InlineData(null, 10L)]
+    public async Task A_hand_built_session_beyond_the_attachment_limits_is_not_found(string? name, long size)
+    {
+        // What BeginTaskAttachmentUpload refuses must not get in through a token nobody minted.
+        var token = new TaskUploadToken(TaskAdapterHarness.Alice.Address, "calendars/alice/tasks/", "calendars/alice/tasks/0f1e2d3c4b5a69788796a5b4c3d2e1f0.ics",
+            name ?? new string('n', Application.Tasks.TaskAttachmentLimits.MaxNameLength + 1), "text/plain", size,
+            (_h.Dav.Time.GetUtcNow() + TimeSpan.FromMinutes(5)).ToUnixTimeSeconds());
+        using var body = new MemoryStream(new byte[10]);
+
+        var result = await _h.Attachments.PutChunkAsync(new Domain.Tasks.UploadSession(token.Encode(), DateTimeOffset.MaxValue, size), 0, UploadTaskAttachmentContentToEnd, body, Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        _h.Dav.Server.LogEntries.ShouldBeEmpty();
+    }
+
+    private const long UploadTaskAttachmentContentToEnd = Application.Tasks.UploadTaskAttachmentContent.ToEnd;
+
     [Fact]
     public async Task Deleting_attachments_is_not_supported()
     {

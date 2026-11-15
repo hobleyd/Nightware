@@ -2,6 +2,7 @@ using System.Buffers.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Nightware.Adapters.Dav.Core;
+using Nightware.Application.Tasks;
 using Nightware.Domain.Kernel;
 
 namespace Nightware.Adapters.Dav.Tasks.Attachments;
@@ -12,10 +13,12 @@ namespace Nightware.Adapters.Dav.Tasks.Attachments;
 /// façade keeps no state.
 /// </summary>
 /// <remarks>
-/// The token is not secret and not signed here: every field is re-checked on use (the list against
-/// the mailbox, the task against the list, the body against <see cref="Size"/>), and the caller's
-/// own credentials decide what may be written. The Api binds the token to the caller's credential
-/// in the self-authorising upload URL.
+/// The token is not secret and not signed here. What keeps a hand-built one out is the Api: the PUT
+/// route accepts only a self-authorising upload URL, whose sealed ticket is bound to this token and to
+/// the route's mailbox, list and task, and names the file's name and size. Behind that, every field is
+/// re-checked on use — the list against the mailbox, the task against the list, the name and size
+/// against <see cref="TaskAttachmentLimits"/>, the body against <see cref="Size"/> — and the caller's
+/// own credentials decide what may be written.
 /// </remarks>
 internal sealed record TaskUploadToken(
     [property: JsonPropertyName("m")] string Mailbox,
@@ -36,7 +39,7 @@ internal sealed record TaskUploadToken(
 
     public string Encode() => Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(this));
 
-    /// <summary>The token, or <see cref="ErrorKind.NotFound"/> for anything malformed, of another version, or expired.</summary>
+    /// <summary>The token, or <see cref="ErrorKind.NotFound"/> for anything malformed, of another version, beyond the attachment limits, or expired.</summary>
     public static Result<TaskUploadToken> Decode(string? token, DateTimeOffset now)
     {
         var missing = Error.NotFound("The upload session was not found or has expired.");
@@ -48,10 +51,11 @@ internal sealed record TaskUploadToken(
         try
         {
             var decoded = JsonSerializer.Deserialize<TaskUploadToken>(Base64Url.DecodeFromChars(token));
-            return decoded is { Version: 1, Size: > 0 } valid
+            return decoded is { Version: 1 } valid
+                   && TaskAttachmentLimits.Validate(valid.Name, valid.Size) is null
                    && !string.IsNullOrEmpty(valid.Mailbox)
                    && DavHrefRules.IsSafeRelative(valid.ListHref) && DavHrefRules.IsSafeRelative(valid.TaskHref)
-                   && !string.IsNullOrWhiteSpace(valid.Name) && !string.IsNullOrWhiteSpace(valid.ContentType)
+                   && !string.IsNullOrWhiteSpace(valid.ContentType)
                    && valid.ExpiresAt > now
                 ? valid
                 : missing;

@@ -1,5 +1,3 @@
-using Nightware.Api.Features.Files.Download;
-using Nightware.Api.Features.Tasks.Upload;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Routing;
@@ -73,11 +71,7 @@ public static class NightwareComposition
         services.AddSingleton<GraphLinkBuilder>();
         services.AddSingleton<DeltaLinkCodec>();
 
-        // Self-authorising URLs (ADR §39): sources the middleware asks when a request has no bearer.
-        services.AddSingleton<UploadUrlProtector>();
-        services.AddSingleton<IRequestCredentialSource, UploadUrlCredentialSource>();
-        services.AddSingleton<DownloadUrlProtector>();
-        services.AddSingleton<IRequestCredentialSource, DownloadUrlCredentialSource>();
+        services.AddSelfAuthorisingUrls();
         services.TryAddScoped<IMailboxResolver, MailboxResolver>();
 
         services
