@@ -32,6 +32,38 @@ public sealed class EventUseCaseTests
     }
 
     [Fact]
+    public async Task Calendar_view_serves_a_window_up_to_the_cap()
+    {
+        var end = Start + GetCalendarView.MaxWindow;
+        _reader.CalendarViewAsync(Me, Start, end, ItemQuery.Default, Ct).Returns(new Page<CalendarEvent>([Event()]));
+
+        (await new GetCalendarView(_reader).ExecuteAsync(Me, Start, end, ItemQuery.Default, Ct)).Value.Items.ShouldHaveSingleItem();
+    }
+
+    [Theory]
+    [InlineData(1L)]
+    [InlineData(365_000L * TimeSpan.TicksPerDay)]
+    public async Task Calendar_view_refuses_a_window_over_the_cap_without_expanding_it(long extraTicks)
+    {
+        var view = new GetCalendarView(_reader);
+        var end = Start + GetCalendarView.MaxWindow + TimeSpan.FromTicks(extraTicks);
+
+        var result = await view.ExecuteAsync(Me, Start, end, ItemQuery.Default, Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.Validation);
+        result.Error.Target.ShouldBe("endDateTime");
+        await _reader.DidNotReceiveWithAnyArgs().CalendarViewAsync(default, default, default, null!, Ct);
+    }
+
+    [Fact]
+    public void Calendar_view_cap_covers_the_clients_longest_window()
+    {
+        // NightMail's out-of-office meeting sweep: pickers span a year back to five years forward.
+        var sweep = new DateTimeOffset(2031, 1, 1, 0, 0, 0, TimeSpan.Zero) - new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        GetCalendarView.MaxWindow.ShouldBeGreaterThan(sweep);
+    }
+
+    [Fact]
     public async Task Reads_pass_through()
     {
         _reader.GetAsync(Me, Id, Ct).Returns(Event());
