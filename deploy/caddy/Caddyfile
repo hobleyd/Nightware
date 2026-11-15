@@ -36,6 +36,20 @@ cloud.{$BASE_DOMAIN:nightware.localhost} {
 	reverse_proxy nextcloud:80
 }
 
+office.{$BASE_DOMAIN:nightware.localhost} {
+	import common
+	# Collabora Online for Nextcloud Office. Document conversion is for the
+	# façade only, which calls collabora:9980 directly: through this proxy every
+	# client would arrive from Caddy's private address and pass Collabora's
+	# post_allow check.
+	@convert path /cool/convert-to /cool/convert-to/* /lool/convert-to /lool/convert-to/*
+	respond @convert 403
+	reverse_proxy collabora:9980 {
+		# Long-lived WebSocket editing sessions.
+		flush_interval -1
+	}
+}
+
 graph.{$BASE_DOMAIN:nightware.localhost} {
 	import common
 	# Only answers when the `api` compose profile is up; 502 otherwise.

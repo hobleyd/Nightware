@@ -221,6 +221,35 @@ services:
       - nextcloud-data:/var/www/html/data
     networks: [nightware]
 
+  # ------------------------------------------------- Collabora Online (CODE)
+  # Nextcloud Office (richdocuments) edits documents in the browser through it,
+  # and the façade asks it for PDFs of Office files (/cool/convert-to/pdf) for
+  # the reading-pane preview. See README "Documents (Collabora)".
+  collabora:
+    <<: *restart
+    image: collabora/code:26.04.5.2.1
+    environment:
+      # WOPI hosts allowed to open documents (regexes): Nextcloud, which
+      # richdocuments tells Collabora to call back on the internal network.
+      aliasgroup1: http://nextcloud:80
+      # Browser-facing name: discovery's urlsrc and the editor's own links.
+      server_name: office.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
+      DONT_GEN_SSL_CERT: "1"
+      # Caddy terminates TLS. convert-to is open to private addresses only (the
+      # default net.post_allow), and Caddy refuses it on the public name.
+      # Collabora also fetches richdocuments' settings and templates on the
+      # public cloud. name, whose certificate (Caddy's local CA) it does not
+      # trust: verification is off unless COLLABORA_SSL_VERIFICATION=true
+      # (set it with CADDY_TLS=<acme email>). The image has no shell, so no
+      # healthcheck; nextcloud/configure.sh waits for its discovery instead.
+      extra_params: --o:ssl.enable=false --o:ssl.termination=true --o:ssl.ssl_verification=${COLLABORA_SSL_VERIFICATION:-false} --o:net.frame_ancestors=cloud.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-} --o:welcome.enable=false
+    ports:
+      # Plain HTTP on loopback, for a façade run on the host (dotnet run, the
+      # live integration tests) to reach convert-to: Docker Desktop forwards
+      # it from a private address, which net.post_allow accepts.
+      - "${BIND_ADDRESS:-127.0.0.1}:${COLLABORA_PORT:-9980}:9980"
+    networks: [nightware]
+
   # ---------------------------------------------------- Nightware Graph façade
   nightware-api:
     profiles: [api]
@@ -256,6 +285,10 @@ services:
       # Proposed for the JMAP/DAV adapters (they own the option names).
       Jmap__SessionUrl: http://stalwart:8080/jmap/session
       Dav__BaseUrl: http://nextcloud/
+      # Phase 7: Nextcloud links in mail preview through /shares on these hosts
+      # (advertised as filesBaseUrls); Office files are rendered to PDF by Collabora.
+      Discovery__FilesBaseUrls__0: https://cloud.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
+      Collabora__BaseUrl: http://collabora:9980/
       # Caddy's local CA root, exported by bootstrap.sh, for calls via public names.
       SSL_CERT_FILE: /certs/caddy-root.crt
     volumes:
