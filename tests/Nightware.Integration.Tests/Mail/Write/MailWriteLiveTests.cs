@@ -214,8 +214,12 @@ public sealed class MailWriteLiveTests : IAsyncLifetime
             """);
 
         status.ShouldBe(HttpStatusCode.Created);
-        imported!["id"]!.GetValue<string>().ShouldStartWith("e.");
-        var stored = await _probe.WaitForAsync(Alice, "inbox", subject, Ct);
+        var id = imported!["id"]!.GetValue<string>();
+        id.ShouldStartWith("e.");
+        var stored = await _probe.GetAsync(Alice, id["e.".Length..], Ct);
+        stored["subject"]!.GetValue<string>().ShouldBe(subject);
+        var inbox = (await _probe.MailboxesAsync(Alice, Ct)).Single(m => m["role"]?.GetValue<string>() == "inbox")["id"]!.GetValue<string>();
+        stored["mailboxIds"]!.AsObject().ContainsKey(inbox).ShouldBeTrue("the import lands in the folder it was posted to");
         stored["receivedAt"]!.GetValue<string>().ShouldBe("2026-03-04T05:06:07Z");
         stored["sentAt"]!.GetValue<string>().ShouldBe("2026-03-04T05:00:00Z");
         stored["keywords"]!.AsObject().ContainsKey("$seen").ShouldBeTrue();

@@ -56,6 +56,17 @@ internal sealed class StalwartProbe(LiveStack stack)
         throw new ShouldAssertException($"'{subject}' never reached {user}'s {role}.");
     }
 
+    /// <summary>
+    /// One message by JMAP id. Use this rather than <see cref="WaitForAsync"/> for backdated mail
+    /// (imports): the shared test inbox keeps growing, so a message received "in the past" soon falls
+    /// out of the newest-first window that WaitForAsync scans.
+    /// </summary>
+    public async Task<JsonObject> GetAsync(string user, string jmapId, CancellationToken cancellationToken, string properties = """["id","subject","mailboxIds","keywords","from","receivedAt","sentAt"]""")
+    {
+        var responses = await CallAsync(user, $$$"""[["Email/get",{"accountId":"$account","ids":["{{{jmapId}}}"],"properties":{{{properties}}}},"g"]]""", cancellationToken);
+        return responses[0]![1]!["list"]!.AsArray().ShouldHaveSingleItem()!.AsObject();
+    }
+
     public async Task<IReadOnlyList<JsonObject>> MailboxesAsync(string user, CancellationToken cancellationToken)
     {
         var responses = await CallAsync(user, """[["Mailbox/get",{"accountId":"$account","properties":["id","name","parentId","role"]},"m"]]""", cancellationToken);
