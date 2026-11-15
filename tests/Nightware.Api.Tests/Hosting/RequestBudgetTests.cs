@@ -37,7 +37,7 @@ public sealed class RequestBudgetTests
         return Results.Ok(new { done = true });
     }
 
-    private static Task<TestHost> StartAsync(Action<IServiceCollection>? services = null) =>
+    private static Task<TestHost> StartAsync(Action<IServiceCollection>? services = null, Dictionary<string, string?>? configuration = null) =>
         TestHost.StartAsync(
             s =>
             {
@@ -53,7 +53,7 @@ public sealed class RequestBudgetTests
                 });
                 services?.Invoke(s);
             },
-            configuration: ShortBudget);
+            configuration: configuration ?? ShortBudget);
 
     [Fact]
     public async Task A_read_over_budget_is_a_graph_503_with_integer_retry_after()
@@ -150,14 +150,15 @@ public sealed class RequestBudgetTests
             }
 
             return Results.Ok();
-        })));
+        })), new Dictionary<string, string?> { ["RequestTimeouts:Default"] = "00:01:00" });
         using var abort = CancellationTokenSource.CreateLinkedTokenSource(Ct);
         abort.CancelAfter(TimeSpan.FromMilliseconds(50));
 
         await Should.ThrowAsync<OperationCanceledException>(() => host.AuthorizedClient().GetAsync("/v1.0/abandoned", abort.Token));
         await observed.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
 
-        timeouts.Snapshot().ShouldBeEmpty();
+        // The listener is process-wide; other tests' timeouts may show up, never this route's.
+        timeouts.Snapshot().ShouldNotContain(static m => m.Route == "/v1.0/abandoned");
     }
 
     /// <summary>Collects <c>nightware.request.timeouts</c> measurements.</summary>
