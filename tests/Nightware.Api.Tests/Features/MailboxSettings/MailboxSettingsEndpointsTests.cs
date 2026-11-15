@@ -80,10 +80,12 @@ public sealed class MailboxSettingsEndpointsTests : IAsyncLifetime
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
-    [Fact]
-    public async Task Patches_the_automatic_replies_as_the_client_sends_them()
+    [Theory]
+    [InlineData("/v1.0/me", TestHost.UserEmail)]
+    [InlineData("/v1.0/users/shared@example.com", "shared@example.com")]
+    public async Task Patches_the_automatic_replies_as_the_client_sends_them(string prefix, string mailbox)
     {
-        _replies.SetAsync(new MailboxRef(TestHost.UserEmail), Arg.Is<AutoReplySetting>(s => s.Status == AutoReplyStatus.Scheduled
+        _replies.SetAsync(new MailboxRef(mailbox), Arg.Is<AutoReplySetting>(s => s.Status == AutoReplyStatus.Scheduled
                 && s.ExternalAudience == ExternalAudience.ContactsOnly
                 && s.InternalReplyMessage == "<div>Away.</div>" && s.ExternalReplyMessage == "<div>Out.</div>"
                 && s.ScheduledStartDateTime == new DateTimeTimeZone(new DateTime(2026, 9, 20), "AUS Eastern Standard Time")
@@ -91,7 +93,7 @@ public sealed class MailboxSettingsEndpointsTests : IAsyncLifetime
             .Returns(Stored);
         _preferences.GetAsync(Arg.Any<MailboxRef>(), Arg.Any<CancellationToken>()).Returns(new UserPreferences("Australia/Sydney", null));
 
-        var response = await _host.AuthorizedClient().PatchAsync("/v1.0/me/mailboxSettings", Json("""
+        var response = await _host.AuthorizedClient().PatchAsync(prefix + "/mailboxSettings", Json("""
             {"automaticRepliesSetting":{"status":"scheduled","externalAudience":"contactsOnly","internalReplyMessage":"<div>Away.</div>","externalReplyMessage":"<div>Out.</div>",
               "scheduledStartDateTime":{"dateTime":"2026-09-20T00:00:00.0000000","timeZone":"AUS Eastern Standard Time"}}}
             """), Ct);

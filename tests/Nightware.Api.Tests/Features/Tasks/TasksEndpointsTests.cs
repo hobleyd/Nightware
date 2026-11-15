@@ -87,6 +87,16 @@ public sealed class TasksEndpointsTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Lists_a_shared_mailboxs_tasks()
+    {
+        _tasks.ListAsync(new MailboxRef("shared@example.com"), List, Arg.Any<ItemQuery>(), Arg.Any<CancellationToken>()).Returns(new Page<TodoTask>([Reply]));
+
+        var response = await _host.AuthorizedClient().GetAsync("/v1.0/users/shared@example.com/todo/lists/list-1/tasks?$top=200", Ct);
+
+        (await response.ReadObjectAsync())["value"]!.AsArray().Count.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task An_unsupported_filter_is_a_400_from_the_store()
     {
         _tasks.ListAsync(Arg.Any<MailboxRef>(), List, Arg.Any<ItemQuery>(), Arg.Any<CancellationToken>()).Returns(Error.Validation("not supported"));
@@ -133,13 +143,15 @@ public sealed class TasksEndpointsTests : IAsyncLifetime
         await _tasks.DidNotReceiveWithAnyArgs().CreateAsync(default, default, null!, Ct);
     }
 
-    [Fact]
-    public async Task Patches_the_status()
+    [Theory]
+    [InlineData("/v1.0/me", TestHost.UserEmail)]
+    [InlineData("/v1.0/users/shared@example.com", "shared@example.com")]
+    public async Task Patches_the_status(string prefix, string mailbox)
     {
-        _tasks.UpdateAsync(new MailboxRef(TestHost.UserEmail), List, Task1, new TaskDraft { Status = TaskStatus.Completed }, Arg.Any<CancellationToken>())
+        _tasks.UpdateAsync(new MailboxRef(mailbox), List, Task1, new TaskDraft { Status = TaskStatus.Completed }, Arg.Any<CancellationToken>())
             .Returns(Reply with { Status = TaskStatus.Completed, CompletedDateTime = new DateTimeTimeZone(new DateTime(2026, 6, 2, 8, 30, 0), "UTC") });
 
-        var response = await _host.AuthorizedClient().PatchAsync("/v1.0/me/todo/lists/list-1/tasks/task-1", Json("""{"status":"completed"}"""), Ct);
+        var response = await _host.AuthorizedClient().PatchAsync(prefix + "/todo/lists/list-1/tasks/task-1", Json("""{"status":"completed"}"""), Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var body = await response.ReadObjectAsync();
@@ -180,26 +192,30 @@ public sealed class TasksEndpointsTests : IAsyncLifetime
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
-    [Fact]
-    public async Task Lists_attachments()
+    [Theory]
+    [InlineData("/v1.0/me", TestHost.UserEmail)]
+    [InlineData("/v1.0/users/shared@example.com", "shared@example.com")]
+    public async Task Lists_attachments(string prefix, string mailbox)
     {
-        _attachments.ListAsync(new MailboxRef(TestHost.UserEmail), List, Task1, Arg.Any<CancellationToken>())
+        _attachments.ListAsync(new MailboxRef(mailbox), List, Task1, Arg.Any<CancellationToken>())
             .Returns(Result<IReadOnlyList<TaskAttachment>>.Success([Thread]));
 
-        var response = await _host.AuthorizedClient().GetAsync("/v1.0/me/todo/lists/list-1/tasks/task-1/attachments", Ct);
+        var response = await _host.AuthorizedClient().GetAsync(prefix + "/todo/lists/list-1/tasks/task-1/attachments", Ct);
 
         var item = (await response.ReadObjectAsync())["value"]![0]!.AsObject();
         JsonNode.DeepEquals(item, JsonNode.Parse("""{"@odata.type":"#microsoft.graph.taskFileAttachment","id":"att-1","name":"thread.eml","contentType":"message/rfc822","size":245}""")).ShouldBeTrue(item.ToJsonString());
     }
 
-    [Fact]
-    public async Task Attaches_inline_content()
+    [Theory]
+    [InlineData("/v1.0/me", TestHost.UserEmail)]
+    [InlineData("/v1.0/users/shared@example.com", "shared@example.com")]
+    public async Task Attaches_inline_content(string prefix, string mailbox)
     {
         var bytes = Encoding.UTF8.GetBytes("From: a@example.com\r\n\r\nhi");
-        _attachments.CreateAsync(new MailboxRef("shared@example.com"), List, Task1, Arg.Is<NewAttachment>(a => a.Name == "thread.eml" && a.Content.ToArray().SequenceEqual(bytes)), Arg.Any<CancellationToken>())
+        _attachments.CreateAsync(new MailboxRef(mailbox), List, Task1, Arg.Is<NewAttachment>(a => a.Name == "thread.eml" && a.Content.ToArray().SequenceEqual(bytes)), Arg.Any<CancellationToken>())
             .Returns(Thread);
 
-        var response = await _host.AuthorizedClient().PostAsJsonAsync("/v1.0/users/shared@example.com/todo/lists/list-1/tasks/task-1/attachments", new Dictionary<string, object>
+        var response = await _host.AuthorizedClient().PostAsJsonAsync(prefix + "/todo/lists/list-1/tasks/task-1/attachments", new Dictionary<string, object>
         {
             ["@odata.type"] = "#microsoft.graph.taskFileAttachment",
             ["name"] = "thread.eml",
@@ -223,13 +239,15 @@ public sealed class TasksEndpointsTests : IAsyncLifetime
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
-    [Fact]
-    public async Task Streams_an_attachments_bytes()
+    [Theory]
+    [InlineData("/v1.0/me", TestHost.UserEmail)]
+    [InlineData("/v1.0/users/shared@example.com", "shared@example.com")]
+    public async Task Streams_an_attachments_bytes(string prefix, string mailbox)
     {
-        _attachments.GetContentAsync(new MailboxRef(TestHost.UserEmail), List, Task1, new AttachmentId("att-1"), Arg.Any<CancellationToken>())
+        _attachments.GetContentAsync(new MailboxRef(mailbox), List, Task1, new AttachmentId("att-1"), Arg.Any<CancellationToken>())
             .Returns(new BlobContent("message/rfc822", 2, _ => Task.FromResult<Stream>(new MemoryStream("hi"u8.ToArray()))) { FileName = "thread.eml" });
 
-        var response = await _host.AuthorizedClient().GetAsync("/v1.0/me/todo/lists/list-1/tasks/task-1/attachments/att-1/$value", Ct);
+        var response = await _host.AuthorizedClient().GetAsync(prefix + "/todo/lists/list-1/tasks/task-1/attachments/att-1/$value", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         response.Content.Headers.ContentType!.MediaType.ShouldBe("message/rfc822");
