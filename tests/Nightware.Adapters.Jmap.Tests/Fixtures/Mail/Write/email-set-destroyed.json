@@ -1,0 +1,8 @@
+{
+  "accountId": "c",
+  "oldState": "sda",
+  "newState": "sde",
+  "destroyed": [
+    "bqaaaaam"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "accountId": "c",
+  "state": "sae",
+  "list": [
+    {
+      "id": "b",
+      "name": "Alice Anderson",
+      "email": "alice@nightware.localhost",
+      "replyTo": null,
+      "bcc": null,
+      "textSignature": "",
+      "htmlSignature": "",
+      "mayDelete": true
+    }
+  ],
+  "notFound": []
+}

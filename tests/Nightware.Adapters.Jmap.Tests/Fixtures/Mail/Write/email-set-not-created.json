@@ -1,0 +1,14 @@
+{
+  "accountId": "c",
+  "oldState": "sdq",
+  "newState": "sdq",
+  "notCreated": {
+    "draft": {
+      "type": "invalidProperties",
+      "description": "Invalid property or value.",
+      "properties": [
+        "headers"
+      ]
+    }
+  }
+}

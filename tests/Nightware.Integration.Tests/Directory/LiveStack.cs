@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 
 namespace Nightware.Integration.Tests.Directory;
 
@@ -55,7 +56,9 @@ internal sealed class LiveStack : IAsyncDisposable
             }));
             builder.ConfigureTestServices(services =>
             {
-                services.ConfigureHttpClientDefaults(http => http.ConfigurePrimaryHttpMessageHandler((handler, _) => Trust(handler, _ca)));
+                // Every client sets its own (cookie-free) primary handler, which replaces anything
+                // ConfigureHttpClientDefaults supplies; a builder action runs after that, on the real one.
+                services.ConfigureAll<HttpClientFactoryOptions>(o => o.HttpMessageHandlerBuilderActions.Add(b => Trust(b.PrimaryHandler, _ca)));
                 // Configure, not PostConfigure: the framework's own post-configure builds the metadata manager
                 // from BackchannelHttpHandler.
                 services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, o => o.BackchannelHttpHandler = TrustingHandler(_ca));

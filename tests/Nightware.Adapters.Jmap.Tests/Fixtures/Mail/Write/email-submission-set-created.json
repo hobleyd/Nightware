@@ -1,0 +1,11 @@
+{
+  "accountId": "c",
+  "newState": "sae",
+  "created": {
+    "send": {
+      "id": "b",
+      "sendAt": "2026-11-14T22:17:26Z",
+      "undoStatus": "pending"
+    }
+  }
+}
