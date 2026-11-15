@@ -252,6 +252,20 @@ public sealed class DavTaskAttachmentStoreTests : IDisposable
             .RequestMessage!.BodyAsBytes!.Length.ShouldBe(5000);
     }
 
+    [Fact]
+    public async Task A_request_without_a_range_is_taken_as_the_whole_file()
+    {
+        var session = await OpenSessionAsync(5000);
+        _h.RespondUnderFiles("MKCOL", 201);
+        _h.RespondUnderFiles("PUT", 201);
+        _h.Respond("PUT", TaskAdapterHarness.OpenTask, 204);
+        using var body = new MemoryStream(new byte[5000]);
+
+        var progress = await _h.Attachments.PutChunkAsync(session, 0, Application.Tasks.UploadTaskAttachmentContent.ToEnd, body, Ct);
+
+        progress.Value.Completed!.Size.ShouldBe(5000);
+    }
+
     [Theory]
     [InlineData(4999, ErrorKind.Validation)]
     [InlineData(5001, ErrorKind.PayloadTooLarge)]

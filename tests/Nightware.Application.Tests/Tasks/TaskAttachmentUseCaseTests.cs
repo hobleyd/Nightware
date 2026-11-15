@@ -115,9 +115,10 @@ public sealed class TaskAttachmentUseCaseTests
     public async Task The_whole_file_completes_the_upload()
     {
         using var body = new MemoryStream(new byte[4096]);
-        _store.PutChunkAsync(Session, 0, 4095, body, Ct).Returns(new UploadProgress([], Stored));
+        _store.PutChunkAsync(Arg.Is<UploadSession>(s => s.Token == "session-token" && s.TotalSize == 4096), 0, 4095, body, Ct)
+            .Returns(new UploadProgress([], Stored));
 
-        var result = await new UploadTaskAttachmentContent(_store).ExecuteAsync(Session, new ContentRange(0, 4095, 4096), body, Ct);
+        var result = await new UploadTaskAttachmentContent(_store).ExecuteAsync("session-token", new ContentRange(0, 4095, 4096), body, Ct);
 
         result.Value.ShouldBeSameAs(Stored);
     }
@@ -126,9 +127,10 @@ public sealed class TaskAttachmentUseCaseTests
     public async Task A_request_without_content_range_is_the_whole_file()
     {
         using var body = new MemoryStream(new byte[4096]);
-        _store.PutChunkAsync(Session, 0, 4095, body, Ct).Returns(new UploadProgress([], Stored));
+        _store.PutChunkAsync(Arg.Is<UploadSession>(s => s.Token == "session-token"), 0, UploadTaskAttachmentContent.ToEnd, body, Ct)
+            .Returns(new UploadProgress([], Stored));
 
-        var result = await new UploadTaskAttachmentContent(_store).ExecuteAsync(Session, null, body, Ct);
+        var result = await new UploadTaskAttachmentContent(_store).ExecuteAsync("session-token", null, body, Ct);
 
         result.Value.ShouldBeSameAs(Stored);
     }
@@ -136,12 +138,12 @@ public sealed class TaskAttachmentUseCaseTests
     [Theory]
     [InlineData(0, 1023, 4096)]
     [InlineData(1024, 4095, 4096)]
-    [InlineData(0, 4095, 8192)]
+    [InlineData(0, -1, 0)]
     public async Task Partial_ranges_are_refused(long first, long last, long total)
     {
         using var body = new MemoryStream();
 
-        var result = await new UploadTaskAttachmentContent(_store).ExecuteAsync(Session, new ContentRange(first, last, total), body, Ct);
+        var result = await new UploadTaskAttachmentContent(_store).ExecuteAsync("session-token", new ContentRange(first, last, total), body, Ct);
 
         result.Error!.Kind.ShouldBe(ErrorKind.Validation);
         result.Error.Target.ShouldBe("Content-Range");
@@ -152,9 +154,9 @@ public sealed class TaskAttachmentUseCaseTests
     public async Task An_upload_the_store_did_not_complete_is_an_error()
     {
         using var body = new MemoryStream(new byte[4096]);
-        _store.PutChunkAsync(Session, 0, 4095, body, Ct).Returns(new UploadProgress(["4096-"], null));
+        _store.PutChunkAsync(Arg.Any<UploadSession>(), 0, UploadTaskAttachmentContent.ToEnd, body, Ct).Returns(new UploadProgress(["4096-"], null));
 
-        var result = await new UploadTaskAttachmentContent(_store).ExecuteAsync(Session, null, body, Ct);
+        var result = await new UploadTaskAttachmentContent(_store).ExecuteAsync("session-token", null, body, Ct);
 
         result.Error!.Kind.ShouldBe(ErrorKind.Unknown);
     }
@@ -163,10 +165,11 @@ public sealed class TaskAttachmentUseCaseTests
     public async Task Store_failures_pass_through()
     {
         using var body = new MemoryStream(new byte[4096]);
-        _store.PutChunkAsync(Session, 0, 4095, body, Ct).Returns(Error.Validation("size mismatch"));
+        _store.PutChunkAsync(Arg.Any<UploadSession>(), 0, UploadTaskAttachmentContent.ToEnd, body, Ct).Returns(Error.Validation("size mismatch"));
 
-        var result = await new UploadTaskAttachmentContent(_store).ExecuteAsync(Session, null, body, Ct);
+        var result = await new UploadTaskAttachmentContent(_store).ExecuteAsync("session-token", null, body, Ct);
 
         result.Error!.Message.ShouldBe("size mismatch");
     }
+
 }

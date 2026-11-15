@@ -110,7 +110,7 @@ internal sealed class DavTaskAttachmentStore(
         }
 
         var token = decoded.Value;
-        if (rangeStart != 0 || rangeEnd != token.Size - 1)
+        if (rangeStart != 0 || (rangeEnd != token.Size - 1 && rangeEnd != UploadTaskAttachmentContent.ToEnd))
         {
             return Error.Validation($"Send the whole file (bytes 0-{token.Size - 1}) in one request.", "Content-Range");
         }
