@@ -5,8 +5,14 @@
 #     nightware_working_hours (JSON string), nightware_date_format,
 #     nightware_time_format. Viewable by users, editable only by admins / the
 #     nightware-api service account.
+#   - lock the identity attributes: `email` (the Stalwart account and the
+#     façade's /me mailbox) and `username` are editable by admins only, so a user
+#     cannot claim another mailbox's address in the account console; usernames
+#     are not editable and the UPDATE_EMAIL required action stays disabled.
 #   - seed them for the test users, writing as the nightware-api service
 #     account (realm-management manage-users) to prove that path.
+# Every step reads the current state and writes only what differs (the user
+# profile is merged, never replaced wholesale).
 source "$(dirname "$0")/../scripts/lib.sh"
 
 log "Keycloak: waiting for realm"
@@ -26,21 +32,32 @@ ATTRS='[
   {"name":"nightware_date_format","displayName":"Date format (Graph dateFormat)","validations":{"length":{"max":64}}},
   {"name":"nightware_time_format","displayName":"Time format (Graph timeFormat)","validations":{"length":{"max":64}}}
 ]'
-profile=$(ccurl -H "Authorization: Bearer ${ADMIN}" "${API}/users/profile")
-updated=$(jq --argjson want "$ATTRS" '
-  .attributes as $have
-  | .attributes = ($have | map(
-      if (.name as $n | $want | map(.name) | index($n)) and .name != "locale"
-      then .permissions = {view:["admin","user"], edit:["admin"]} | .multivalued = false
-      else . end))
-  + [ $want[] | select(.name as $n | ($have | map(.name) | index($n)) | not)
-      | . + {permissions:{view:["admin","user"], edit:["admin"]}, multivalued:false} ]' <<<"$profile")
+profile=$(ccurl -f -H "Authorization: Bearer ${ADMIN}" "${API}/users/profile")
+updated=$(jq --argjson want "$ATTRS" -f "$DEPLOY_DIR/keycloak/user-profile.jq" <<<"$profile")
 if [[ "$(jq -S . <<<"$profile")" == "$(jq -S . <<<"$updated")" ]]; then
-  log "Keycloak: user profile already declares the mailboxSettings attributes"
+  log "Keycloak: user profile already declares the mailboxSettings attributes and locks email/username"
 else
-  log "Keycloak: declaring zoneinfo, locale, nightware_working_hours, nightware_date_format, nightware_time_format"
+  log "Keycloak: declaring zoneinfo, locale, nightware_working_hours, nightware_date_format, nightware_time_format; email/username admin-edit only"
   ccurl -f -X PUT -H "Authorization: Bearer ${ADMIN}" -H 'Content-Type: application/json' \
     "${API}/users/profile" --data-binary @- <<<"$updated" >/dev/null
+fi
+
+# Identity is the email claim (Stalwart's claimUsername, the façade's /me), so no
+# self-service path may change it. Usernames: realm flag (also in the import).
+realm=$(ccurl -f -H "Authorization: Bearer ${ADMIN}" "${API}")
+if [[ "$(jq -r .editUsernameAllowed <<<"$realm")" != "false" ]]; then
+  log "Keycloak: editUsernameAllowed -> false"
+  ccurl -f -X PUT -H "Authorization: Bearer ${ADMIN}" -H 'Content-Type: application/json' \
+    "${API}" -d '{"editUsernameAllowed":false}' >/dev/null
+fi
+# The update-email feature is on by default in Keycloak 26; its required action is
+# a self-service email change (kc_action=UPDATE_EMAIL). Keep it disabled.
+action=$(ccurl -f -H "Authorization: Bearer ${ADMIN}" "${API}/authentication/required-actions/UPDATE_EMAIL" || true)
+if [[ -n "$action" && "$(jq -r .enabled <<<"$action")" != "false" ]]; then
+  log "Keycloak: disabling the UPDATE_EMAIL required action"
+  jq '.enabled = false | .defaultAction = false' <<<"$action" \
+    | ccurl -f -X PUT -H "Authorization: Bearer ${ADMIN}" -H 'Content-Type: application/json' \
+        "${API}/authentication/required-actions/UPDATE_EMAIL" --data-binary @- >/dev/null
 fi
 
 SVC=$(service_token)

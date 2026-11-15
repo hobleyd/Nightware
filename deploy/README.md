@@ -41,8 +41,11 @@ for it. `scripts/init-env.sh` generates it and is idempotent. `bootstrap.sh` and
    the URLs without warnings. On macOS:
    `sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain .certs/caddy-root.crt`
 2. `keycloak/configure.sh` declares the mailboxSettings attributes in the
-   user profile (see "User → backend mapping"). It seeds them for alice and
-   bob through the `nightware-api` service account.
+   user profile (see "User → backend mapping"), makes `email` and `username`
+   admin-editable only, and keeps the `UPDATE_EMAIL` required action disabled.
+   It merges into the existing user profile and changes only what differs.
+   It seeds the attributes for alice and bob through the `nightware-api`
+   service account.
 3. `stalwart/configure.sh` runs Stalwart's first-start Bootstrap through the
    API and restarts the container. It then pre-creates alice and bob, creates
    the Keycloak OIDC directory and makes it the default, sets the trusted
@@ -149,7 +152,10 @@ Lifetime is 15 minutes (`accessTokenLifespan` 900). Refresh with
 ### User → backend mapping
 
 - **Stalwart account = `email` claim** (`claimUsername: email`). For example,
-  alice's JMAP `username` is `alice@nightware.localhost`.
+  alice's JMAP `username` is `alice@nightware.localhost`. The email is the
+  identity, so only admins can change it: the realm user profile gives
+  `email` and `username` `edit: ["admin"]`, and a user's change through the
+  account console or account REST API is refused (`keycloak/configure.sh`).
 - **Nextcloud uid = `preferred_username`** (user_oidc `--unique-uid=0
   --mapping-uid=preferred_username`). The uid for alice is `alice`, so her
   DAV paths are `/remote.php/dav/.../alice/`.

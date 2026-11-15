@@ -21,6 +21,16 @@ missing, shorter than 32 bytes or a development value from this repository, and 
 has no default for `NIGHTWARE_DELTA_LINK_KEY`. Generation and rotation:
 [deployment.md](deployment.md#the-façades-root-secret-nightware_delta_link_key).
 
+## Identity attributes are admin-only (Keycloak)
+
+The user's identity is the token's `email` claim: it is the façade's `/me` mailbox and the Stalwart
+account (`claimUsername: email`). If users could edit their own email in Keycloak's account console,
+one could take an address that exists only in Stalwart (an offboarded user, a shared mailbox) and
+open that mailbox. `deploy/keycloak/configure.sh` therefore merges `permissions.edit: ["admin"]`
+into the realm user profile for `email` and `username` (read-modify-write, nothing else changes),
+keeps `editUsernameAllowed` off and the `UPDATE_EMAIL` required action disabled. Address changes are
+an admin task. The façade does not yet require `email_verified` (see `docs/known-issues.md`).
+
 ## Per-user rate limits (`Throttling/`)
 
 Token bucket (300 burst, 10/s) chained with a concurrency limit (32), partitioned by `sub`; requests
