@@ -104,7 +104,7 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
         }
 
         var (account, email, bodyPart) = part.Value;
-        var result = MimeParts.ToAttachment(bodyPart, email.ReceivedAt);
+        var result = MimeParts.ToAttachment(bodyPart, attachment, email.ReceivedAt);
         if (!includeContent || result.Kind != AttachmentKind.File)
         {
             return result;
@@ -247,6 +247,12 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
     private async Task<Result<(JmapAccount Account, Email Email, EmailBodyPart Part)>> FindPartAsync(
         MailboxRef mailbox, MessageId id, AttachmentId attachment, CancellationToken cancellationToken)
     {
+        var parsed = AttachmentItemId.Parse(attachment);
+        if (!parsed.IsSuccess)
+        {
+            return parsed.Error;
+        }
+
         var found = await FetchAsync(mailbox, id, AttachmentsRequest, cancellationToken).ConfigureAwait(false);
         if (!found.IsSuccess)
         {
@@ -254,8 +260,7 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
         }
 
         var (account, email) = found.Value;
-        var part = MimeParts.Find(email.BodyStructure, attachment.Value)
-            ?? email.Attachments?.FirstOrDefault(p => string.Equals(p.PartId, attachment.Value, StringComparison.Ordinal));
+        var part = parsed.Value.Find(email.BodyStructure);
         return part?.BlobId is null || part.SubParts is { Count: > 0 }
             ? Error.NotFound("The specified attachment was not found.", "attachmentId")
             : (account, email, part);
@@ -263,7 +268,7 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
 
     private Task<Result<BlobContent>> DownloadAsync(JmapAccount account, EmailBodyPart part, CancellationToken cancellationToken)
     {
-        var attachment = MimeParts.ToAttachment(part, null);
+        var attachment = MimeParts.ToAttachment(part, default, null);
         var type = attachment.Kind == AttachmentKind.Item ? RawMessageType : attachment.ContentType;
         return blobs.DownloadAsync(account.AccountId, part.BlobId!, attachment.Name, type, cancellationToken);
     }

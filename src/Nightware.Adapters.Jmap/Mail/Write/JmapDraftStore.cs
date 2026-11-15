@@ -135,16 +135,15 @@ internal sealed class JmapDraftStore(IJmapClient jmap, IJmapBlobService blobs, I
             return replaced.Error;
         }
 
-        // Attachment ids are partIds of the current Email (ADR 0001 §5); the new part is the last one
-        // with this name and size, since it was appended after every carried attachment.
-        var parts = replaced.Value;
-        var part = parts.LastOrDefault(p => p.Name == attachment.Name && p.Size == attachment.Content.Length) ?? (parts.Count > 0 ? parts[^1] : null);
-        if (part?.PartId is null)
+        // The new part is the last attachment with this name and size: it was appended after every carried one.
+        var rebuilt = replaced.Value;
+        var part = rebuilt?.Attachments?.LastOrDefault(p => p.Name == attachment.Name && p.Size == attachment.Content.Length);
+        if (part?.PartId is null || !AttachmentItemId.Assign(rebuilt!.BodyStructure).TryGetValue(part.PartId, out var id))
         {
             return JmapErrors.Unexpected("The mail server did not report the new attachment.");
         }
 
-        return new MailAttachment(new AttachmentId(part.PartId), attachment.Name, part.Type ?? uploaded.Value.Type!, part.Size ?? attachment.Content.Length, AttachmentKind.File)
+        return new MailAttachment(id.ToAttachmentId(), attachment.Name, part.Type ?? uploaded.Value.Type!, part.Size ?? attachment.Content.Length, AttachmentKind.File)
         {
             IsInline = attachment.IsInline,
             ContentId = part.Cid,
@@ -153,6 +152,12 @@ internal sealed class JmapDraftStore(IJmapClient jmap, IJmapBlobService blobs, I
 
     public async Task<Result> RemoveAttachmentAsync(MailboxRef mailbox, MessageId draftId, AttachmentId attachment, CancellationToken cancellationToken)
     {
+        var target = AttachmentItemId.Parse(attachment);
+        if (!target.IsSuccess)
+        {
+            return target.Error;
+        }
+
         var existing = await DraftAsync(mailbox, draftId, cancellationToken).ConfigureAwait(false);
         if (!existing.IsSuccess)
         {
@@ -161,7 +166,8 @@ internal sealed class JmapDraftStore(IJmapClient jmap, IJmapBlobService blobs, I
 
         var (located, email) = existing.Value;
         var snapshot = Snapshot(mailbox, email);
-        var kept = snapshot.Attachments.Where(p => !string.Equals(p.PartId, attachment.Value, StringComparison.Ordinal)).ToList();
+        var removed = target.Value.Find(email.BodyStructure)?.PartId;
+        var kept = snapshot.Attachments.Where(p => removed is null || !string.Equals(p.PartId, removed, StringComparison.Ordinal)).ToList();
         if (kept.Count == snapshot.Attachments.Count)
         {
             return Error.NotFound("The specified attachment was not found on the draft.");
@@ -214,8 +220,8 @@ internal sealed class JmapDraftStore(IJmapClient jmap, IJmapBlobService blobs, I
         return response.Bind(r => r.Get(set)).Bind(s => s.Created(Draft));
     }
 
-    /// <summary>Creates the replacement, then destroys the original; returns the replacement's attachments when asked.</summary>
-    private async Task<Result<IReadOnlyList<EmailBodyPart>>> ReplaceEmailAsync(
+    /// <summary>Creates the replacement, then destroys the original; returns the replacement's attachments and structure when asked.</summary>
+    private async Task<Result<Email?>> ReplaceEmailAsync(
         LocatedMessage original, OutgoingEmail replacement, CancellationToken cancellationToken, bool readAttachments = false)
     {
         var create = new JmapRequestBuilder();
@@ -226,7 +232,7 @@ internal sealed class JmapDraftStore(IJmapClient jmap, IJmapBlobService blobs, I
             get = create.Add(JmapMethods.EmailGet, new EmailGetRequest(original.AccountId)
             {
                 Ids = ["#" + Draft],
-                Properties = ["id", "attachments"],
+                Properties = ["id", "attachments", "bodyStructure"],
                 BodyProperties = ExistingEmail.BodyProperties,
             });
         }
@@ -243,7 +249,7 @@ internal sealed class JmapDraftStore(IJmapClient jmap, IJmapBlobService blobs, I
             return made.Error;
         }
 
-        IReadOnlyList<EmailBodyPart> attachments = [];
+        Email? replacementEmail = null;
         if (get is not null)
         {
             var read = created.Value.Get(get).Bind(WriteSupport.Single);
@@ -252,14 +258,14 @@ internal sealed class JmapDraftStore(IJmapClient jmap, IJmapBlobService blobs, I
                 return read.Error;
             }
 
-            attachments = read.Value.Attachments ?? [];
+            replacementEmail = read.Value;
         }
 
         var destroy = new JmapRequestBuilder();
         var destroySet = destroy.Add(JmapMethods.EmailSet, new SetRequest<Email>(original.AccountId) { Destroy = [original.JmapId] });
         var destroyed = await jmap.SendAsync(destroy, cancellationToken).ConfigureAwait(false);
         var outcome = destroyed.Bind(r => r.Get(destroySet)).Then(s => s.Destroyed(original.JmapId));
-        return outcome.IsSuccess ? Result<IReadOnlyList<EmailBodyPart>>.Success(attachments) : outcome.Error!;
+        return outcome.IsSuccess ? Result<Email?>.Success(replacementEmail) : outcome.Error!;
     }
 
     private static SetRequest<Email> Create(string accountId, OutgoingEmail email) => new(accountId)

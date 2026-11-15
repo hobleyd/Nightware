@@ -22,7 +22,7 @@ public sealed class EmailMapperTests
         message.InternetMessageId.ShouldBe("0cabbeae49ca9d342f2312533fe8d134@nightware.localhost");
         message.IsRead.ShouldBeFalse();
         message.Categories.ShouldBeEmpty(); // $hasnoattachment is a system keyword
-        message.CalendarPart.ShouldBe(new CalendarPart("REQUEST", new AttachmentId("6")));
+        message.CalendarPart.ShouldBe(new CalendarPart("REQUEST", AttachmentItemId.Assign(MailReadStubs.RecordedInvitation().BodyStructure)["6"].ToAttachmentId()));
         message.Body!.ContentType.ShouldBe(BodyType.Html);
         message.Body.Content.ShouldContain("<html", Case.Insensitive);
     }
@@ -32,10 +32,11 @@ public sealed class EmailMapperTests
     {
         var attachments = EmailMapper.ToMessage(MailReadStubs.RecordedInvitation()).Attachments;
 
+        var ids = AttachmentItemId.Assign(MailReadStubs.RecordedInvitation().BodyStructure);
         attachments.Select(a => (a.Id.Value, a.Name, a.ContentType, a.IsInline, a.ContentId)).ShouldBe(
         [
-            ("5", "logo", "image/png", true, "29ddc05e4ad796b584ab205c05db7b15@symfony"),
-            ("6", "event.ics", "text/calendar", false, null),
+            (ids["5"].ToString(), "logo", "image/png", true, "29ddc05e4ad796b584ab205c05db7b15@symfony"),
+            (ids["6"].ToString(), "event.ics", "text/calendar", false, null),
         ]);
         attachments.ShouldAllBe(a => a.Kind == AttachmentKind.File);
     }

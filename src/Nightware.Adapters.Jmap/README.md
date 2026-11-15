@@ -136,10 +136,12 @@ The format is frozen because clients store these ids. ADR 0001 §1.
 - **Parse.** `MailItemId.Parse(MessageId)` accepts canonical ids only. It
   rejects padding, non-canonical base64 tails, invalid UTF-8, brackets and
   whitespace. Anything else is `Validation` / `ErrorInvalidIdMalformed` (400).
-- **Resolve a `d.` id.** Run `Email/query` with `id.DraftFilter(draftsMailboxId)`,
-  i.e. `{inMailbox, header:["Message-ID", value]}`. Then **always** confirm
-  each candidate with `id.MatchesDraft(email)`, because RFC 8621 header
-  matching is "contains", not equality.
+- **Resolve a `d.` id** through `IJmapMessageLocator` (`Mail/Read/JmapMessageLocator`). It lists
+  the Drafts mailbox newest first, a page of `maxObjectsInGet` at a time (at most 10 pages), and
+  confirms each Email with `id.MatchesDraft(email)`. Stalwart v1.1 cannot search for a Message-ID:
+  `Email/query` with `header: ["Message-ID", value]` never matches, with or without angle brackets.
+  Header search that does work (Subject) is indexed asynchronously, so it would also miss a draft
+  created a moment ago. Verified live on 2026-11-15.
 - **New drafts.** Mint the Message-ID with
   `InternetMessageIds.Mint(mailbox)` → `<uuid>@<mailbox domain>`, without
   brackets. Use `ToHeaderValue` to get the header form.

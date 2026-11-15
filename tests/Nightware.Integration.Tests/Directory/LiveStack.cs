@@ -1,16 +1,14 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Http;
+
+using Nightware.Integration.Tests.Support;
 
 namespace Nightware.Integration.Tests.Directory;
 
@@ -27,20 +25,18 @@ namespace Nightware.Integration.Tests.Directory;
 /// </remarks>
 internal sealed class LiveStack : IAsyncDisposable
 {
-    public const string Domain = "nightware.localhost";
+    public const string Domain = DevStack.Domain;
     public const string GraphBase = "https://graph." + Domain + "/v1.0";
     public const string CloudBase = "https://cloud." + Domain;
-    public const string Issuer = "https://auth." + Domain + "/realms/nightware";
+    public const string Issuer = DevStack.Issuer;
 
     private readonly WebApplicationFactory<Program> _factory;
-    private readonly X509Certificate2 _ca;
-    private readonly Dictionary<string, string> _env;
+    private readonly DevStack _stack;
 
-    private LiveStack(string deployDir)
+    private LiveStack(DevStack stack)
     {
-        _env = ReadEnv(Path.Combine(deployDir, ".env"));
-        _ca = X509CertificateLoader.LoadCertificateFromFile(Path.Combine(deployDir, ".certs", "caddy-root.crt"));
-        Backchannel = new HttpClient(TrustingHandler(_ca));
+        _stack = stack;
+        Backchannel = stack.Backchannel();
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
@@ -51,32 +47,21 @@ internal sealed class LiveStack : IAsyncDisposable
                 ["Discovery:GraphBetaBaseUrl"] = "https://graph." + Domain + "/beta",
                 ["DeltaLinks:SigningKey"] = "integration",
                 ["Directory:KeycloakBaseUrl"] = "https://auth." + Domain,
-                ["Directory:ClientSecret"] = _env["NIGHTWARE_API_CLIENT_SECRET"],
+                ["Directory:ClientSecret"] = stack.Env("NIGHTWARE_API_CLIENT_SECRET"),
                 ["Dav:BaseUrl"] = CloudBase + "/",
             }));
-            builder.ConfigureTestServices(services =>
-            {
-                // Every client sets its own (cookie-free) primary handler, which replaces anything
-                // ConfigureHttpClientDefaults supplies; a builder action runs after that, on the real one.
-                services.ConfigureAll<HttpClientFactoryOptions>(o => o.HttpMessageHandlerBuilderActions.Add(b => Trust(b.PrimaryHandler, _ca)));
-                // Configure, not PostConfigure: the framework's own post-configure builds the metadata manager
-                // from BackchannelHttpHandler.
-                services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, o => o.BackchannelHttpHandler = TrustingHandler(_ca));
-            });
+            builder.ConfigureTestServices(stack.Trust);
         });
     }
 
-    public static bool Enabled => Environment.GetEnvironmentVariable("NIGHTWARE_INTEGRATION") == "1";
+    public static bool Enabled => DevStack.Enabled;
 
     /// <summary>An HTTP client trusting the stack's CA, for setting up data directly on the backends.</summary>
     public HttpClient Backchannel { get; }
 
     public static LiveStack Start()
     {
-        Assert.SkipUnless(Enabled, "Live integration tests run only with NIGHTWARE_INTEGRATION=1.");
-        var deployDir = Environment.GetEnvironmentVariable("NIGHTWARE_DEPLOY_DIR") ?? FindDeployDir()
-            ?? throw new InvalidOperationException("No bootstrapped deploy folder (deploy/.env) found; set NIGHTWARE_DEPLOY_DIR.");
-        return new LiveStack(deployDir);
+        return new LiveStack(DevStack.Open());
     }
 
     /// <summary>A client of the in-process Nightware carrying <paramref name="user"/>'s NightMail-shaped token.</summary>
@@ -93,16 +78,19 @@ internal sealed class LiveStack : IAsyncDisposable
             [
                 new("grant_type", "password"),
                 new("client_id", "nightware-dev"),
-                new("client_secret", _env["NIGHTWARE_DEV_CLIENT_SECRET"]),
+                new("client_secret", _stack.Env("NIGHTWARE_DEV_CLIENT_SECRET")),
                 new("username", user),
-                new("password", _env["TEST_USER_PASSWORD"]),
+                new("password", _stack.Env("TEST_USER_PASSWORD")),
                 new("scope", "openid email profile"),
             ],
             null,
             cancellationToken);
 
     /// <summary><paramref name="user"/>'s token exchanged for audience <c>nextcloud</c>, as the façade would send it.</summary>
-    public async Task<string> NextcloudTokenAsync(string user, CancellationToken cancellationToken)
+    public Task<string> NextcloudTokenAsync(string user, CancellationToken cancellationToken) => ExchangedTokenAsync(user, "nextcloud", cancellationToken);
+
+    /// <summary><paramref name="user"/>'s token exchanged (RFC 8693) for a backend <paramref name="audience"/>, as the façade does.</summary>
+    public async Task<string> ExchangedTokenAsync(string user, string audience, CancellationToken cancellationToken)
     {
         var subject = await UserTokenAsync(user, cancellationToken);
         return await TokenAsync(
@@ -111,9 +99,9 @@ internal sealed class LiveStack : IAsyncDisposable
                 new("subject_token", subject),
                 new("subject_token_type", "urn:ietf:params:oauth:token-type:access_token"),
                 new("requested_token_type", "urn:ietf:params:oauth:token-type:access_token"),
-                new("audience", "nextcloud"),
+                new("audience", audience),
             ],
-            new AuthenticationHeaderValue("Basic", Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("nightware-api:" + _env["NIGHTWARE_API_CLIENT_SECRET"]))),
+            new AuthenticationHeaderValue("Basic", Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("nightware-api:" + _stack.Env("NIGHTWARE_API_CLIENT_SECRET")))),
             cancellationToken);
     }
 
@@ -128,7 +116,7 @@ internal sealed class LiveStack : IAsyncDisposable
     {
         Backchannel.Dispose();
         await _factory.DisposeAsync();
-        _ca.Dispose();
+        _stack.Dispose();
     }
 
     private async Task<string> TokenAsync(IEnumerable<KeyValuePair<string, string>> form, AuthenticationHeaderValue? auth, CancellationToken cancellationToken)
@@ -140,76 +128,4 @@ internal sealed class LiveStack : IAsyncDisposable
         var body = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
         return body.GetProperty("access_token").GetString()!;
     }
-
-    private static void Trust(HttpMessageHandler handler, X509Certificate2 ca)
-    {
-        switch (handler)
-        {
-            case SocketsHttpHandler sockets:
-                sockets.SslOptions.RemoteCertificateValidationCallback = (_, certificate, presented, errors) => IsTrusted(certificate, presented, errors, ca);
-                break;
-            case HttpClientHandler classic:
-                classic.ServerCertificateCustomValidationCallback = (_, certificate, presented, errors) => IsTrusted(certificate, presented, errors, ca);
-                break;
-        }
-    }
-
-    private static SocketsHttpHandler TrustingHandler(X509Certificate2 ca)
-    {
-        var handler = new SocketsHttpHandler();
-        Trust(handler, ca);
-        return handler;
-    }
-
-    private static bool IsTrusted(X509Certificate? certificate, X509Chain? presented, SslPolicyErrors errors, X509Certificate2 ca)
-    {
-        if (errors == SslPolicyErrors.None)
-        {
-            return true;
-        }
-
-        if (certificate is null || errors.HasFlag(SslPolicyErrors.RemoteCertificateNameMismatch))
-        {
-            return false;
-        }
-
-        using var chain = new X509Chain();
-        chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-        chain.ChainPolicy.CustomTrustStore.Add(ca);
-        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-
-        // Caddy serves leaf + intermediate; the intermediate must be available to build up to its root.
-        if (presented is not null)
-        {
-            foreach (var element in presented.ChainElements)
-            {
-                chain.ChainPolicy.ExtraStore.Add(element.Certificate);
-            }
-        }
-
-        using var leaf = new X509Certificate2(certificate);
-        return chain.Build(leaf);
-    }
-
-    private static string? FindDeployDir()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-        {
-            var candidate = Path.Combine(dir.FullName, "deploy");
-            if (File.Exists(Path.Combine(candidate, ".env")))
-            {
-                return candidate;
-            }
-        }
-
-        return null;
-    }
-
-    private static Dictionary<string, string> ReadEnv(string path) =>
-        File.ReadAllLines(path)
-            .Select(static l => l.Trim())
-            .Where(static l => l.Length > 0 && !l.StartsWith('#') && l.Contains('=', StringComparison.Ordinal))
-            .Select(static l => (Key: l[..l.IndexOf('=', StringComparison.Ordinal)], Value: l[(l.IndexOf('=', StringComparison.Ordinal) + 1)..].Trim('"')))
-            .GroupBy(static kv => kv.Key)
-            .ToDictionary(static g => g.Key, static g => g.Last().Value);
 }
