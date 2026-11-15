@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -120,10 +121,12 @@ public sealed class TasksArrangements : IConformanceArrangements
 
     private sealed class FixedCredential : IRequestCredentialSource
     {
-        public bool TryResolve(HttpRequest request, out string bearerToken)
+        public bool TryResolve(HttpRequest request, [NotNullWhen(true)] out SealedTicket? ticket)
         {
-            bearerToken = "conformance-upload-url-token";
-            return request.Path.Value!.Contains("/attachmentSessions/", StringComparison.Ordinal);
+            ticket = request.Path.Value!.Contains("/attachmentSessions/", StringComparison.Ordinal)
+                ? new SealedTicket("conformance-upload-url-token", DateTimeOffset.MaxValue) { Name = "Large thread.eml", Size = 4194304 }
+                : null;
+            return ticket is not null;
         }
     }
 }

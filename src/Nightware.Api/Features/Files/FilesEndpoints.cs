@@ -39,7 +39,7 @@ public static class FilesEndpoints
 
         // Fetched without a bearer: SelfAuthorisingUrlMiddleware recovers the caller's token from the URL
         // (DownloadUrlCredentialSource) before authentication, so the route is authorised like any other.
-        graph.MapGet(DownloadUrl.RoutePattern, DownloadAsync);
+        graph.MapGet(DownloadUrl.RoutePattern, DownloadAsync).AuthorisedBy(DownloadUrl.Kind);
         return graph;
     }
 
@@ -58,7 +58,7 @@ public static class FilesEndpoints
 
     private static async Task<IResult> RedirectToContentAsync(
         string shareId, HttpRequest request, IOptions<DiscoveryOptions> discovery, PrepareSharedItemDownload useCase, IUserContext caller,
-        GraphLinkBuilder links, DownloadUrlProtector protector, CancellationToken cancellationToken)
+        GraphLinkBuilder links, SelfAuthorisingUrlSealer sealer, CancellationToken cancellationToken)
     {
         var target = Target(shareId, request, discovery.Value);
         if (!target.IsSuccess)
@@ -74,12 +74,12 @@ public static class FilesEndpoints
         }
 
         var binding = new DownloadUrlBinding(shareId, format);
-        var ticket = protector.TicketFor(caller.BearerToken, AccessTokens.ExpiryOf(caller.BearerToken));
-        var url = DownloadUrl.Build(links.VersionRoot(request), binding, protector.Seal(ticket, binding));
-        return url.Length > DownloadUrl.MaxRequestLine - 64
+        var ticket = sealer.TicketFor(DownloadUrl.Kind, caller.BearerToken, request.HttpContext.User);
+        var url = DownloadUrl.Build(links.VersionRoot(request), binding, sealer.Seal(DownloadUrl.Kind, ticket, binding.BoundTo));
+        return SelfAuthorisingUrl.FitsRequestLine(url)
+            ? SelfAuthorisingUrl.Redirect(url)
             // An oversized access token would produce a URL the server refuses to read back.
-            ? GraphResults.Error(new Error(ErrorKind.Unknown, "generalException", "The download URL would exceed the request-line limit."))
-            : Results.Redirect(url);
+            : GraphResults.Error(new Error(ErrorKind.Unknown, "generalException", "The download URL would exceed the request-line limit."));
     }
 
     private static async Task<IResult> DownloadAsync(
@@ -103,10 +103,9 @@ public static class FilesEndpoints
 
     private static Result<(ShareLink Link, ContentFormat Format)> Target(string shareId, HttpRequest request, DiscoveryOptions discovery)
     {
-        var formats = request.Query[DownloadUrl.FormatParameter];
-        if (formats.Count > 1 || !DownloadUrl.TryParseFormat(formats.ToString(), out var format))
+        if (!DownloadUrl.TryParseFormat(request.Query, out var format))
         {
-            return Error.Validation($"format '{formats}' is not supported; only 'pdf' is.", DownloadUrl.FormatParameter);
+            return Error.Validation($"format '{request.Query[DownloadUrl.FormatParameter]}' is not supported; only 'pdf' is.", DownloadUrl.FormatParameter);
         }
 
         var link = SharingUrls.Resolve(shareId, discovery.FilesBaseUrls);

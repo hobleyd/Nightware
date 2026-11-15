@@ -28,6 +28,14 @@ public static class AuthServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>Self-authorising URLs (ADR 0001 §39): the sealer that mints them and the source the middleware asks when a request has no bearer.</summary>
+    public static IServiceCollection AddSelfAuthorisingUrls(this IServiceCollection services)
+    {
+        services.TryAddSingleton<SelfAuthorisingUrlSealer>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IRequestCredentialSource, SelfAuthorisingUrlCredentialSource>());
+        return services;
+    }
+
     internal static void ConfigureJwtBearer(JwtBearerOptions options, AuthOptions auth)
     {
         options.MapInboundClaims = false;

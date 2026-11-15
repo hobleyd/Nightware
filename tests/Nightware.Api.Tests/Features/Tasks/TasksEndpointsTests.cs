@@ -357,11 +357,10 @@ public sealed class TasksEndpointsTests : IAsyncLifetime
     {
         GivenSession(TestHost.UserEmail);
         var expired = TestHost.Token(expires: DateTime.UtcNow.AddMinutes(-10));
-        var protector = new Api.Features.Tasks.Upload.UploadUrlProtector(
-            Microsoft.Extensions.Options.Options.Create(new Api.Graph.Json.DeltaLinkOptions { SigningKey = "test-delta-key" }), TimeProvider.System);
+        var sealer = _host.App.Services.GetRequiredService<Api.Auth.SelfAuthorisingUrlSealer>();
         var binding = new Api.Features.Tasks.Upload.UploadUrlBinding(TestHost.UserEmail, "list-1", "task-1", "session-token");
-        var url = Api.Features.Tasks.Upload.UploadUrl.Build("/v1.0", binding,
-            protector.Seal(new Api.Features.Tasks.Upload.UploadTicket(expired, "big.eml", 4096, DateTimeOffset.UtcNow.AddMinutes(5)), binding));
+        var ticket = new Api.Auth.SealedTicket(expired, DateTimeOffset.UtcNow.AddMinutes(5)) { Name = "big.eml", Size = 4096 };
+        var url = Api.Features.Tasks.Upload.UploadUrl.Build("/v1.0", binding, sealer.Seal(Api.Features.Tasks.Upload.UploadUrl.Kind, ticket, binding.BoundTo));
 
         var put = await PutAsync(url, 4096, null);
 
@@ -406,13 +405,70 @@ public sealed class TasksEndpointsTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_bearer_also_authorises_the_put()
+    public async Task A_bearer_alone_does_not_authorise_the_put()
     {
+        // The session token in the path is the store's and unsigned: only a sealed URL may carry one in,
+        // after BeginTaskAttachmentUpload checked the target, name and size. NightMail never sends a bearer here.
         var session = GivenSession(TestHost.UserEmail);
-        _attachments.PutChunkAsync(Arg.Is<UploadSession>(s => s.Token == session.Token), Arg.Is(0L), Arg.Any<long>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>())
+        _attachments.PutChunkAsync(Arg.Any<UploadSession>(), Arg.Any<long>(), Arg.Any<long>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>())
             .Returns(new UploadProgress([], Thread));
 
         var put = await _host.AuthorizedClient().PutAsync($"/v1.0/users/{TestHost.UserEmail}/todo/lists/list-1/tasks/task-1/attachmentSessions/{session.Token}/content", new ByteArrayContent(new byte[4]), Ct);
+
+        put.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await put.ReadObjectAsync()).Str("error.code").ShouldBe("InvalidAuthenticationToken");
+        await _attachments.DidNotReceiveWithAnyArgs().PutChunkAsync(null!, default, default, null!, Ct);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("?authtoken=forged")]
+    [InlineData("?authtoken=sealed-for-another-session")]
+    public async Task A_forged_session_token_with_an_ordinary_bearer_never_reaches_the_store(string query)
+    {
+        // A hand-built token naming a 1 GB file the store would otherwise take the caller's word for.
+        var forged = System.Buffers.Text.Base64Url.EncodeToString(Encoding.UTF8.GetBytes(
+            $$"""{"v":1,"m":"{{TestHost.UserEmail}}","l":"calendars/me/tasks/","t":"calendars/me/tasks/x.ics","n":"huge.bin","c":"application/octet-stream","s":1073741824,"e":9999999999}"""));
+        GivenSession(TestHost.UserEmail);
+        if (query.EndsWith("another-session", StringComparison.Ordinal))
+        {
+            var real = new Uri(await CreateUploadUrlAsync("/v1.0/me"));
+            query = real.Query;
+        }
+
+        _attachments.PutChunkAsync(Arg.Any<UploadSession>(), Arg.Any<long>(), Arg.Any<long>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>())
+            .Returns(new UploadProgress([], Thread));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/v1.0/users/{TestHost.UserEmail}/todo/lists/list-1/tasks/task-1/attachmentSessions/{forged}/content{query}")
+        {
+            Content = new ByteArrayContent(new byte[16]),
+        };
+
+        var put = await _host.AuthorizedClient().SendAsync(request, Ct);
+
+        put.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        await _attachments.DidNotReceiveWithAnyArgs().PutChunkAsync(null!, default, default, null!, Ct);
+    }
+
+    [Fact]
+    public async Task The_put_enforces_the_size_the_url_was_minted_for()
+    {
+        GivenSession(TestHost.UserEmail);
+        var url = await CreateUploadUrlAsync("/v1.0/me");
+
+        var put = await PutAsync(url, 8192, "bytes 0-8191/8192");
+
+        put.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        await _attachments.DidNotReceiveWithAnyArgs().PutChunkAsync(null!, default, default, null!, Ct);
+    }
+
+    [Fact]
+    public async Task A_put_reaches_the_store_with_the_minted_size()
+    {
+        var session = GivenSession(TestHost.UserEmail);
+        _attachments.PutChunkAsync(Arg.Is<UploadSession>(s => s.Token == session.Token && s.TotalSize == 4096), Arg.Is(0L), Arg.Is(4095L), Arg.Any<Stream>(), Arg.Any<CancellationToken>())
+            .Returns(new UploadProgress([], Thread));
+
+        var put = await PutAsync(await CreateUploadUrlAsync("/v1.0/me"), 4096, "bytes 0-4095/4096");
 
         put.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
@@ -467,15 +523,6 @@ public sealed class TasksEndpointsTests : IAsyncLifetime
     [InlineData("items 0-9/10")]
     public void Rejects_malformed_content_range(string header) =>
         Api.Features.Tasks.TasksEndpoints.ParseContentRange(header).Error!.Target.ShouldBe("Content-Range");
-
-    [Fact]
-    public void Reads_the_access_tokens_expiry()
-    {
-        var expires = DateTime.UtcNow.AddMinutes(7);
-
-        Api.Features.Tasks.TasksEndpoints.AccessTokenExpiry(TestHost.Token(expires: expires))!.Value.ShouldBe(new DateTimeOffset(expires, TimeSpan.Zero), TimeSpan.FromSeconds(1));
-        Api.Features.Tasks.TasksEndpoints.AccessTokenExpiry("not-a-jwt").ShouldBeNull();
-    }
 
     private const string UploadRequest = """
         {"attachmentItem":{"@odata.type":"#microsoft.graph.fileAttachmentUploadProperties","attachmentType":"file","contentType":"message/rfc822","name":"big.eml","size":4096}}

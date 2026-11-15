@@ -255,10 +255,10 @@ public sealed class FilesEndpointsTests : IAsyncLifetime
         GivenItem(Docx);
         // Beyond the JWT handler's five-minute clock skew.
         var expired = TestHost.Token(expires: DateTime.UtcNow.AddMinutes(-10));
-        var protector = _host.App.Services.GetRequiredService<Api.Features.Files.Download.DownloadUrlProtector>();
+        var sealer = _host.App.Services.GetRequiredService<Api.Auth.SelfAuthorisingUrlSealer>();
         var binding = new Api.Features.Files.Download.DownloadUrlBinding(ShareId, ContentFormat.Original);
         var url = Api.Features.Files.Download.DownloadUrl.Build("/v1.0", binding,
-            protector.Seal(new Api.Features.Files.Download.DownloadTicket(expired, DateTimeOffset.UtcNow.AddMinutes(5)), binding));
+            sealer.Seal(Api.Features.Files.Download.DownloadUrl.Kind, new Api.Auth.SealedTicket(expired, DateTimeOffset.UtcNow.AddMinutes(5)), binding.BoundTo));
 
         (await Anonymous().GetAsync(url, Ct)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
