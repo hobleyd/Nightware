@@ -62,7 +62,7 @@ internal static class MessageWriteEndpoints
     private static async Task<IResult> MoveAsync(
         Mailbox mailbox, string messageId, [FromBody] MoveRequestDto? body, MoveMessage useCase, CancellationToken cancellationToken)
     {
-        var destination = FolderRefs.Parse(body?.DestinationId, "destinationId");
+        var destination = WriteFolders.Parse(body?.DestinationId, "destinationId");
         if (!destination.IsSuccess)
         {
             return GraphResults.Error(destination.Error);
@@ -78,7 +78,7 @@ internal static class MessageWriteEndpoints
     private static async Task<IResult> ImportAsync(
         Mailbox mailbox, string folderId, [FromBody] MessageDto? body, ImportMessage useCase, CancellationToken cancellationToken)
     {
-        var folder = FolderRefs.Parse(folderId, "folderId");
+        var folder = WriteFolders.Parse(folderId, "folderId");
         var content = MailWriteRequestMapper.ToContent(body);
         if (!folder.IsSuccess || !content.IsSuccess)
         {

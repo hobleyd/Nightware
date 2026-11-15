@@ -1,4 +1,5 @@
 using Nightware.Adapters.Jmap.Core.Protocol;
+using Nightware.Adapters.Jmap.Mail.Read;
 using Nightware.Domain.Kernel;
 using Nightware.Domain.Mail;
 
@@ -70,23 +71,8 @@ internal static class WriteMailboxes
         }
     }
 
-    /// <summary>The Graph folder for <paramref name="mailbox"/>; top-level mailboxes are children of the root.</summary>
-    public static MailFolder ToFolder(Mailbox mailbox, IReadOnlyList<Mailbox> all)
-    {
-        ArgumentNullException.ThrowIfNull(mailbox);
-        ArgumentNullException.ThrowIfNull(all);
-        var children = all.Count(m => m.ParentId is not null && string.Equals(m.ParentId, mailbox.Id, StringComparison.Ordinal));
-        return new MailFolder(
-            new FolderId(mailbox.Id!),
-            mailbox.Name ?? string.Empty,
-            mailbox.ParentId is { } parent ? new FolderId(parent) : MailboxRoles.RootFolderId,
-            children,
-            mailbox.UnreadEmails ?? 0,
-            mailbox.TotalEmails ?? 0)
-        {
-            WellKnownName = MailboxRoles.WellKnownOf(mailbox.Role),
-        };
-    }
+    /// <summary>The Graph folder for <paramref name="mailbox"/>, mapped once, by Mail/Read.</summary>
+    public static MailFolder ToFolder(Mailbox mailbox, IReadOnlyList<Mailbox> all) => JmapMailboxes.From(all).ToFolder(mailbox);
 
     public static Error NoSuchFolder() => Error.NotFound("The specified folder could not be found in the store.");
 }

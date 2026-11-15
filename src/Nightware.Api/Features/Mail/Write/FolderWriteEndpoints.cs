@@ -28,7 +28,7 @@ internal static class FolderWriteEndpoints
     private static async Task<IResult> CreateChildAsync(
         Mailbox mailbox, string folderId, [FromBody] MailFolderRequestDto? body, CreateChildFolder useCase, CancellationToken cancellationToken)
     {
-        var parent = FolderRefs.Parse(folderId, "folderId");
+        var parent = WriteFolders.Parse(folderId, "folderId");
         if (!parent.IsSuccess)
         {
             return GraphResults.Error(parent.Error);
@@ -52,7 +52,7 @@ internal static class FolderWriteEndpoints
     private static async Task<IResult> MoveAsync(
         Mailbox mailbox, string folderId, [FromBody] MoveRequestDto? body, MoveFolder useCase, CancellationToken cancellationToken)
     {
-        var destination = FolderRefs.Parse(body?.DestinationId, "destinationId");
+        var destination = WriteFolders.Parse(body?.DestinationId, "destinationId");
         if (!destination.IsSuccess)
         {
             return GraphResults.Error(destination.Error);

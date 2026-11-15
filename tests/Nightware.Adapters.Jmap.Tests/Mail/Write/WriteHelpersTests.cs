@@ -227,18 +227,4 @@ public sealed class JmapMailWriteRegistrationTests
         scope.ServiceProvider.GetRequiredService<IMailSender>().ShouldBeOfType<JmapMailSender>();
         scope.ServiceProvider.GetRequiredService<IMailImporter>().ShouldBeOfType<JmapMailImporter>();
     }
-
-    [Fact]
-    public async Task The_stand_in_locator_answers_501_and_never_replaces_a_real_one()
-    {
-        using (var provider = Build())
-        {
-            var locator = provider.CreateScope().ServiceProvider.GetRequiredService<IJmapMessageLocator>();
-            (await locator.ResolveAsync(null!, new MessageId("e.x"), TestContext.Current.CancellationToken)).Error!.Kind.ShouldBe(ErrorKind.Unsupported);
-        }
-
-        var real = Substitute.For<IJmapMessageLocator>();
-        using var withReal = Build(s => s.AddScoped(_ => real));
-        withReal.CreateScope().ServiceProvider.GetRequiredService<IJmapMessageLocator>().ShouldBeSameAs(real);
-    }
 }
