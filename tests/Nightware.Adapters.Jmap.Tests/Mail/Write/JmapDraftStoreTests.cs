@@ -102,8 +102,8 @@ public sealed class JmapDraftStoreTests : IAsyncLifetime
         get["properties"]!.ToJsonString().ShouldBe("""["id","textBody","htmlBody","attachments"]""");
         var email = Created();
         email["attachments"]!.ToJsonString().ShouldBe(
-            """[{"blobId":"cmwdz0t3bjmyvkh3zjnen3jr1ikivvczslnk9eohpb9rkuvlqsgjaaqabtfqofq","name":"img.png","type":"image/png","disposition":"inline","cid":"img1@x"},"""
-            + """{"blobId":"ciwdz0t3bjmyvkh3zjnen3jr1ikivvczslnk9eohpb9rkuvlqsgjaaqabtjqsea","name":"notes.txt","type":"text/plain","charset":"us-ascii","disposition":"attachment"}]""");
+            """[{"blobId":"cmk7lfx79dzfsbfwwptr7rhxgeumfh0udljyff7d3wt03gmhbneiiaqaj9fqofq","name":"img.png","type":"image/png","disposition":"inline","cid":"img1@x"},"""
+            + """{"blobId":"cik7lfx79dzfsbfwwptr7rhxgeumfh0udljyff7d3wt03gmhbneiiaqaj9jqsea","name":"notes.txt","type":"text/plain","charset":"us-ascii","disposition":"attachment"}]""");
         email["references"]!.ToJsonString().ShouldBe("""["root@x","orig@x"]""");
         email.ContainsKey("inReplyTo").ShouldBeFalse();
     }
@@ -222,12 +222,18 @@ public sealed class JmapDraftStoreTests : IAsyncLifetime
             {"accountId":"c","state":"s9","list":[{"id":"newid","attachments":[
               {"partId":"3","blobId":"x3","size":15,"name":"img.png","type":"image/png","disposition":"inline","cid":"img1@x"},
               {"partId":"4","blobId":"x4","size":14,"name":"notes.txt","type":"text/plain","disposition":"attachment"},
-              {"partId":"5","blobId":"x5","size":16,"name":"q2.csv","type":"text/csv","disposition":"attachment"}]}],"notFound":[]}
+              {"partId":"5","blobId":"x5","size":16,"name":"q2.csv","type":"text/csv","disposition":"attachment"}],
+             "bodyStructure":{"type":"multipart/mixed","subParts":[
+              {"type":"multipart/related","subParts":[
+                {"partId":"2","blobId":"x2","size":33,"type":"text/html"},
+                {"partId":"3","blobId":"x3","size":15,"name":"img.png","type":"image/png"}]},
+              {"partId":"4","blobId":"x4","size":14,"name":"notes.txt","type":"text/plain"},
+              {"partId":"5","blobId":"x5","size":16,"name":"q2.csv","type":"text/csv"}]}}],"notFound":[]}
             """, when: static a => a["ids"]![0]!.GetValue<string>() == "#draft");
 
         var added = await Store().AddAttachmentAsync(Alice, DraftId, new NewAttachment("q2.csv", "text/csv", "q,revenue\n2,100\n"u8.ToArray()), Ct);
 
-        added.Value.ShouldBe(new MailAttachment(new AttachmentId("5"), "q2.csv", "text/csv", 16, AttachmentKind.File));
+        added.Value.ShouldBe(new MailAttachment(AttachmentItemId.Of("q2.csv", 16, 0).ToAttachmentId(), "q2.csv", "text/csv", 16, AttachmentKind.File));
         _jmap.Requests().ShouldBe([["Email/get"], ["Email/set", "Email/get"], ["Email/set"]]);
         var email = Created();
         email["htmlBody"]!.ToJsonString().ShouldBe("""[{"partId":"body","type":"text/html"}]""");
@@ -242,7 +248,7 @@ public sealed class JmapDraftStoreTests : IAsyncLifetime
     [Fact]
     public async Task Removing_an_attachment_rebuilds_the_draft_without_that_part()
     {
-        (await Store().RemoveAttachmentAsync(Alice, DraftId, new AttachmentId("4"), Ct)).IsSuccess.ShouldBeTrue();
+        (await Store().RemoveAttachmentAsync(Alice, DraftId, AttachmentItemId.Of("notes.txt", 14, 0).ToAttachmentId(), Ct)).IsSuccess.ShouldBeTrue();
 
         Created()["attachments"]!.AsArray().ShouldHaveSingleItem()!["name"]!.GetValue<string>().ShouldBe("img.png");
         _jmap.Calls()[^1].Arguments["destroy"]!.ToJsonString().ShouldBe($"""["{DraftJmapId}"]""");
@@ -251,9 +257,25 @@ public sealed class JmapDraftStoreTests : IAsyncLifetime
     [Fact]
     public async Task Removing_an_unknown_attachment_is_404_without_a_write()
     {
-        (await Store().RemoveAttachmentAsync(Alice, DraftId, new AttachmentId("9"), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        (await Store().RemoveAttachmentAsync(Alice, DraftId, AttachmentItemId.Of("notes.txt", 14, 1).ToAttachmentId(), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
 
         _jmap.Calls().ShouldNotContain(c => c.Method == "Email/set");
+    }
+
+    [Fact]
+    public async Task A_malformed_attachment_id_is_400_before_any_request()
+    {
+        (await Store().RemoveAttachmentAsync(Alice, DraftId, new AttachmentId("4"), Ct)).Error!.Code.ShouldBe("ErrorInvalidIdMalformed");
+
+        _jmap.Calls().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Replace_reads_the_structure_attachment_ids_are_assigned_over()
+    {
+        (await Store().ReplaceAsync(Alice, DraftId, Content, Ct)).IsSuccess.ShouldBeTrue();
+
+        _jmap.Single("Email/get")["properties"]!.AsArray().Select(p => p!.GetValue<string>()).ShouldContain("bodyStructure");
     }
 
     [Fact]

@@ -47,10 +47,10 @@ public sealed class JmapMessageLocatorTests
     }
 
     [Fact]
-    public async Task A_draft_id_is_found_by_message_id_in_drafts_and_confirmed()
+    public async Task A_draft_id_is_found_by_listing_drafts_newest_first_and_confirming_the_message_id()
     {
         await using var host = Host();
-        // "Contains" matching returns a near miss too; only the exact Message-ID counts, newest first.
+        // Only the exact Message-ID counts (not a near miss); of two copies, the newest.
         host.On("Email/query", """
             [["Email/query",{"accountId":"c","queryState":"q","canCalculateChanges":true,"position":0,"ids":["d1","d2","d3"]},"c0"],
              ["Email/get",{"accountId":"c","state":"s","list":[
@@ -62,7 +62,10 @@ public sealed class JmapMessageLocatorTests
 
         (await locator.ResolveAsync(account, Draft, Ct)).Value.ShouldBe("d3");
         var calls = host.Calls("Email/query").ShouldHaveSingleItem();
-        calls[0]![1]!["filter"]!.ToJsonString().ShouldBe("""{"operator":"AND","conditions":[{"inMailbox":"d"},{"header":["Message-ID","abc@nightware.localhost"]}]}""");
+        calls[0]![1]!["filter"]!.ToJsonString().ShouldBe("""{"inMailbox":"d"}""", "Stalwart cannot search Message-ID headers");
+        calls[0]![1]!["sort"]!.ToJsonString().ShouldBe("""[{"property":"receivedAt","isAscending":false}]""");
+        calls[0]![1]!["position"]!.GetValue<int>().ShouldBe(0);
+        calls[0]![1]!["limit"]!.GetValue<int>().ShouldBe(500, "a page is maxObjectsInGet, since it feeds a back-referenced Email/get");
         calls[1]![1]!["properties"]!.ToJsonString().ShouldBe("""["id","messageId","receivedAt"]""");
     }
 
@@ -78,6 +81,60 @@ public sealed class JmapMessageLocatorTests
 
         (await locator.ResolveAsync(account, Draft, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
     }
+
+    [Fact]
+    public async Task Further_pages_are_read_until_the_draft_is_found()
+    {
+        await using var host = new JmapTestHost();
+        host.StubSession(JmapTestHost.Session(maxObjectsInGet: 2));
+        host.StubMailboxes();
+        Page(host, 0, """["d1","d2"]""", """{"id":"d1","messageId":["x@y"]},{"id":"d2","messageId":["y@z"]}""");
+        Page(host, 2, """["d3","d4"]""", """{"id":"d3","messageId":["abc@nightware.localhost"]},{"id":"d4","messageId":["q@z"]}""");
+        var (locator, account) = await ArrangeAsync(host);
+
+        (await locator.ResolveAsync(account, Draft, Ct)).Value.ShouldBe("d3");
+        host.Calls("Email/query").Select(c => c[0]![1]!["position"]!.GetValue<int>()).ShouldBe([0, 2]);
+    }
+
+    [Fact]
+    public async Task A_short_page_ends_the_search()
+    {
+        await using var host = new JmapTestHost();
+        host.StubSession(JmapTestHost.Session(maxObjectsInGet: 2));
+        host.StubMailboxes();
+        Page(host, 0, """["d1"]""", """{"id":"d1","messageId":["x@y"]}""");
+        var (locator, account) = await ArrangeAsync(host);
+
+        (await locator.ResolveAsync(account, Draft, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        host.Calls("Email/query").ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task The_search_is_bounded()
+    {
+        await using var host = new JmapTestHost();
+        host.StubSession(JmapTestHost.Session(maxObjectsInGet: 1));
+        host.StubMailboxes();
+        host.On("Email/query", """
+            [["Email/query",{"accountId":"c","queryState":"q","canCalculateChanges":true,"position":0,"ids":["d1"]},"c0"],
+             ["Email/get",{"accountId":"c","state":"s","list":[{"id":"d1","messageId":["other@x"]}],"notFound":[]},"c1"]]
+            """);
+        var (locator, account) = await ArrangeAsync(host);
+
+        var result = await locator.ResolveAsync(account, Draft, Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        result.Error.Message.ShouldContain("newest 10 drafts");
+        host.Calls("Email/query").Count.ShouldBe(10);
+    }
+
+    private static void Page(JmapTestHost host, int position, string ids, string emails) =>
+        host.Server.Given(WireMock.RequestBuilders.Request.Create().WithPath("/jmap/").UsingPost()
+                .WithBody(new WireMock.Matchers.WildcardMatcher($"*\"methodCalls\":[[\"Email/query\"*\"position\":{position},*")))
+            .RespondWith(JmapTestHost.ApiResponse($$"""
+                [["Email/query",{"accountId":"c","queryState":"q","canCalculateChanges":true,"position":{{position}},"ids":{{ids}}},"c0"],
+                 ["Email/get",{"accountId":"c","state":"s","list":[{{emails}}],"notFound":[]},"c1"]]
+                """));
 
     [Fact]
     public async Task Without_a_drafts_mailbox_a_draft_id_is_not_found()

@@ -148,29 +148,10 @@ internal readonly record struct MailItemId
         value is { Length: >= 1 and <= MaxMessageIdLength } && value.All(c => c is > ' ' and < (char)127 and not '<' and not '>');
 
     /// <summary>
-    /// The <c>Email/query</c> filter that finds the draft behind a <c>d.</c> id. RFC 8621 header
-    /// matching is "contains", so always confirm candidates with <see cref="MatchesDraft"/>.
+    /// True when <paramref name="email"/> (fetched with <c>messageId</c>) is exactly this draft. A <c>d.</c>
+    /// id is resolved by listing the Drafts mailbox and testing each Email with this: Stalwart cannot
+    /// search Message-ID headers (see <c>Mail/Read/JmapMessageLocator</c>).
     /// </summary>
-    public EmailFilter DraftFilter(string draftsMailboxId)
-    {
-        if (!IsDraft)
-        {
-            throw new InvalidOperationException("Only draft ids resolve through a Message-ID filter.");
-        }
-
-        ArgumentException.ThrowIfNullOrEmpty(draftsMailboxId);
-        return new EmailFilter
-        {
-            Operator = "AND",
-            Conditions =
-            [
-                new EmailFilter { InMailbox = draftsMailboxId },
-                new EmailFilter { Header = ["Message-ID", Value] },
-            ],
-        };
-    }
-
-    /// <summary>True when <paramref name="email"/> (fetched with <c>messageId</c>) is exactly this draft.</summary>
     public bool MatchesDraft(Email email)
     {
         ArgumentNullException.ThrowIfNull(email);

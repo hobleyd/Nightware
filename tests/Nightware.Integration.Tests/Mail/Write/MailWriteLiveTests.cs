@@ -18,7 +18,6 @@ public sealed class MailWriteLiveTests : IAsyncLifetime
     private const string BobAddress = "bob@nightware.localhost";
 
     private LiveStack _stack = null!;
-    private MailLiveHost _host = null!;
     private StalwartProbe _probe = null!;
     private readonly string _run = Guid.NewGuid().ToString("N")[..8];
 
@@ -28,17 +27,11 @@ public sealed class MailWriteLiveTests : IAsyncLifetime
     {
         _stack = LiveStack.Start();
         _probe = new StalwartProbe(_stack);
-        _host = new MailLiveHost(_stack);
         return ValueTask.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_host is not null)
-        {
-            await _host.DisposeAsync();
-        }
-
         if (_stack is not null)
         {
             await _stack.DisposeAsync();
@@ -69,7 +62,7 @@ public sealed class MailWriteLiveTests : IAsyncLifetime
     public async Task SendMail_reaches_the_recipients_inbox_and_the_senders_sent_items()
     {
         var subject = $"Nightware sendMail {_run}";
-        var alice = await _host.GraphClientAsync(Alice, Ct);
+        var alice = await _stack.GraphClientAsync(Alice, Ct);
 
         var (status, _) = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/sendMail", $$$"""
             {"message":{"subject":"{{{subject}}}","body":{"contentType":"html","content":"<p>See attached.</p>"},
@@ -92,7 +85,7 @@ public sealed class MailWriteLiveTests : IAsyncLifetime
     public async Task Compose_attach_and_send_a_draft()
     {
         var subject = $"Nightware draft {_run}";
-        var alice = await _host.GraphClientAsync(Alice, Ct);
+        var alice = await _stack.GraphClientAsync(Alice, Ct);
 
         var (created, draft) = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/messages", $$$"""
             {"subject":"{{{subject}}}","body":{"contentType":"Html","content":"<p>Draft text</p>"},"toRecipients":[{"emailAddress":{"address":"{{{BobAddress}}}"}}]}
@@ -116,16 +109,54 @@ public sealed class MailWriteLiveTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Attachment_ids_listed_once_stay_valid_across_deletes_as_the_client_uses_them()
+    {
+        var subject = $"Nightware attachments {_run}";
+        var alice = await _stack.GraphClientAsync(Alice, Ct);
+        var (_, draft) = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/messages", $$$"""
+            {"subject":"{{{subject}}}","body":{"contentType":"Html","content":"<p>three files</p>"},"toRecipients":[{"emailAddress":{"address":"{{{BobAddress}}}"}}]}
+            """);
+        var id = draft!["id"]!.GetValue<string>();
+        foreach (var (name, text) in new[] { ("a.txt", "first"), ("b.txt", "second"), ("c.txt", "third") })
+        {
+            (await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/messages/{id}/attachments", $$$"""
+                {"@odata.type":"#microsoft.graph.fileAttachment","name":"{{{name}}}","contentType":"text/plain","contentBytes":"{{{Base64(text)}}}"}
+                """)).Status.ShouldBe(HttpStatusCode.Created);
+        }
+
+        // NightMail's _syncDraftAttachments / _removeExcludedFromForwardDraft: one listing, then several deletes.
+        var listed = await ListAttachmentsAsync(alice, id);
+        listed.Select(a => a.Name).ShouldBe(["a.txt", "b.txt", "c.txt"], ignoreOrder: true);
+        foreach (var name in new[] { "a.txt", "c.txt" })
+        {
+            (await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/messages/{id}/attachments/{listed.Single(a => a.Name == name).Id}")).Status.ShouldBe(HttpStatusCode.NoContent);
+        }
+
+        var remaining = (await ListAttachmentsAsync(alice, id)).ShouldHaveSingleItem();
+        remaining.ShouldBe(listed.Single(a => a.Name == "b.txt"), "the surviving file keeps the id it was listed with");
+        using var content = await alice.GetAsync($"/v1.0/me/messages/{id}/attachments/{remaining.Id}/$value", Ct);
+        (await content.Content.ReadAsStringAsync(Ct)).ShouldBe("second");
+        (await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/messages/{id}")).Status.ShouldBe(HttpStatusCode.NoContent);
+    }
+
+    private static async Task<IReadOnlyList<(string Id, string Name)>> ListAttachmentsAsync(HttpClient client, string messageId)
+    {
+        var (status, body) = await SendAsync(client, HttpMethod.Get, $"/v1.0/me/messages/{messageId}/attachments?$select=id,name,size");
+        status.ShouldBe(HttpStatusCode.OK);
+        return [.. body!["value"]!.AsArray().Select(a => (a!["id"]!.GetValue<string>(), a["name"]!.GetValue<string>()))];
+    }
+
+    [Fact]
     public async Task A_reply_threads_into_the_same_conversation()
     {
         var subject = $"Nightware thread {_run}";
-        var alice = await _host.GraphClientAsync(Alice, Ct);
+        var alice = await _stack.GraphClientAsync(Alice, Ct);
         (await SendAsync(alice, HttpMethod.Post, "/v1.0/me/sendMail", $$$"""
             {"message":{"subject":"{{{subject}}}","body":{"contentType":"text","content":"Question?"},"toRecipients":[{"emailAddress":{"address":"{{{BobAddress}}}"}}]},"saveToSentItems":true}
             """)).Status.ShouldBe(HttpStatusCode.Accepted);
         var original = await _probe.WaitForAsync(Bob, "inbox", subject, Ct);
 
-        var bob = await _host.GraphClientAsync(Bob, Ct);
+        var bob = await _stack.GraphClientAsync(Bob, Ct);
         var (status, _) = await SendAsync(bob, HttpMethod.Post, $"/v1.0/me/messages/e.{original["id"]!.GetValue<string>()}/reply", """
             {"message":{"body":{"contentType":"text","content":"Answer.\n\n> Question?"}}}
             """);
@@ -141,7 +172,7 @@ public sealed class MailWriteLiveTests : IAsyncLifetime
     [Fact]
     public async Task Folders_are_created_renamed_moved_and_deleted()
     {
-        var alice = await _host.GraphClientAsync(Alice, Ct);
+        var alice = await _stack.GraphClientAsync(Alice, Ct);
         var name = $"Nightware {_run}";
 
         var (created, folder) = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/mailFolders/msgfolderroot/childFolders", $$$"""{"displayName":"{{{name}}}"}""");
@@ -172,7 +203,7 @@ public sealed class MailWriteLiveTests : IAsyncLifetime
     public async Task Migration_import_keeps_the_original_dates_sender_and_read_state()
     {
         var subject = $"Nightware import {_run}";
-        var alice = await _host.GraphClientAsync(Alice, Ct);
+        var alice = await _stack.GraphClientAsync(Alice, Ct);
 
         var (status, imported) = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/mailFolders/inbox/messages", $$$"""
             {"subject":"{{{subject}}}","body":{"contentType":"text","content":"Numbers attached."},
@@ -183,8 +214,12 @@ public sealed class MailWriteLiveTests : IAsyncLifetime
             """);
 
         status.ShouldBe(HttpStatusCode.Created);
-        imported!["id"]!.GetValue<string>().ShouldStartWith("e.");
-        var stored = await _probe.WaitForAsync(Alice, "inbox", subject, Ct);
+        var id = imported!["id"]!.GetValue<string>();
+        id.ShouldStartWith("e.");
+        var stored = await _probe.GetAsync(Alice, id["e.".Length..], Ct);
+        stored["subject"]!.GetValue<string>().ShouldBe(subject);
+        var inbox = (await _probe.MailboxesAsync(Alice, Ct)).Single(m => m["role"]?.GetValue<string>() == "inbox")["id"]!.GetValue<string>();
+        stored["mailboxIds"]!.AsObject().ContainsKey(inbox).ShouldBeTrue("the import lands in the folder it was posted to");
         stored["receivedAt"]!.GetValue<string>().ShouldBe("2026-03-04T05:06:07Z");
         stored["sentAt"]!.GetValue<string>().ShouldBe("2026-03-04T05:00:00Z");
         stored["keywords"]!.AsObject().ContainsKey("$seen").ShouldBeTrue();

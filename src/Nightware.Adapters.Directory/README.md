@@ -150,6 +150,19 @@ Graph profile properties that Keycloak has no field for come from user attribute
 
 Keycloak 24+ silently drops attributes its realm user profile does not declare. A deployment that wants these properties filled must declare them, admin-editable, the way `deploy/keycloak/configure.sh` declares the mailboxSettings attributes. The dev realm does not declare them, so there these properties are null and `proxyAddresses` is just `SMTP:<mail>`.
 
+## Mailbox preferences (`IUserPreferencesStore`, phase 5B)
+
+`MailboxSettings/KeycloakUserPreferencesStore` finds the mailbox's user by exact email and maps the
+attributes of ADR 0001 §29: `zoneinfo` (time zone), `locale` (language), `nightware_working_hours`
+(Graph `workingHours` JSON; unreadable JSON counts as unset), `nightware_date_format`,
+`nightware_time_format`. Writes change only the patched attributes (read-modify-write through the admin
+client). No user with that email is `NotFound`.
+
+The store does **no authorisation**: the service account can read and write every user. Callers must
+first establish that the signed-in user may act on the mailbox — the mailbox-settings use cases ask the
+mail store (with the caller's credentials) first, and allow time-zone writes only on the caller's own
+mailbox.
+
 ## Health check
 
 The `keycloak` check (tag `backend`) reports healthy when `GET {KeycloakBaseUrl}/realms/{realm}/.well-known/openid-configuration` returns 200 with an `issuer`. It does not compare the issuer with `KeycloakBaseUrl`.

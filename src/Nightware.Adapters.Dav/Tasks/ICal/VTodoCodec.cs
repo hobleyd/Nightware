@@ -16,6 +16,12 @@ namespace Nightware.Adapters.Dav.Tasks.ICal;
 /// <summary>A VTODO parsed from a resource, with its UID (needed to write it back).</summary>
 public sealed record ParsedTodo(TodoTask Task, string? Uid);
 
+/// <summary>An <c>ATTACH</c> that points at a stored file.</summary>
+public sealed record TodoAttachmentLink(Uri Uri, string FileName, string ContentType)
+{
+    public long? Size { get; init; }
+}
+
 /// <summary>
 /// VTODO ↔ Domain <see cref="TodoTask"/> (Nextcloud Tasks / RFC 5545 §3.6.2).
 /// <list type="bullet">
@@ -32,6 +38,12 @@ public sealed record ParsedTodo(TodoTask Task, string? Uid);
 public sealed class VTodoCodec
 {
     public const string StatusExtension = "X-NIGHTWARE-TASK-STATUS";
+
+    /// <summary>RFC 8607 §4.2: the attachment's file name.</summary>
+    public const string FileNameParameter = "FILENAME";
+
+    /// <summary>RFC 8607 §4.3: the attachment's size in octets.</summary>
+    public const string SizeParameter = "SIZE";
     private readonly TimeProvider _timeProvider;
 
     public VTodoCodec(TimeProvider timeProvider) =>
@@ -107,6 +119,61 @@ public sealed class VTodoCodec
         ArgumentNullException.ThrowIfNull(patch);
         return Edit(existingIcs, todo => ApplyFields(todo, patch));
     }
+
+    /// <summary>
+    /// The URI attachments (<c>ATTACH;VALUE=URI</c>) of the first VTODO, with the RFC 8607
+    /// <c>FILENAME</c>/<c>SIZE</c> and RFC 5545 <c>FMTTYPE</c> parameters. Inline (BASE64) attachments are skipped.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822", Justification = "Instance API of a DI-registered codec.")]
+    public Result<IReadOnlyList<TodoAttachmentLink>> ReadAttachments(string ics)
+    {
+        var loaded = IcalNetCalendarCodec.Load(ics);
+        if (!loaded.IsSuccess)
+        {
+            return loaded.Error;
+        }
+
+        var todo = loaded.Value.Todos.FirstOrDefault(t => t.RecurrenceIdentifier?.StartTime is null);
+        if (todo is null)
+        {
+            return Error.NotFound("The resource holds no task.");
+        }
+
+        IReadOnlyList<TodoAttachmentLink> links = todo.Attachments
+            .Where(a => a.Uri is { IsAbsoluteUri: true })
+            .Select(a => new TodoAttachmentLink(
+                a.Uri!,
+                a.Parameters.Get(FileNameParameter) is { Length: > 0 } name ? name : FileNameOf(a.Uri!),
+                string.IsNullOrWhiteSpace(a.FormatType) ? "application/octet-stream" : a.FormatType)
+            {
+                Size = long.TryParse(a.Parameters.Get(SizeParameter), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var size) ? size : null,
+            })
+            .ToList();
+        return Result<IReadOnlyList<TodoAttachmentLink>>.Success(links);
+    }
+
+    /// <summary>Adds a URI attachment to the first VTODO, keeping everything else (and bumping LAST-MODIFIED).</summary>
+    public Result<string> AddAttachment(string existingIcs, TodoAttachmentLink link)
+    {
+        ArgumentNullException.ThrowIfNull(link);
+        var now = IcalNetCalendarCodec.Utc(_timeProvider.GetUtcNow());
+        return Edit(existingIcs, todo =>
+        {
+            var attachment = new Attachment { Uri = link.Uri, FormatType = link.ContentType };
+            attachment.Parameters.Set(FileNameParameter, link.FileName);
+            if (link.Size is { } size)
+            {
+                attachment.Parameters.Set(SizeParameter, size.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+
+            todo.Attachments.Add(attachment);
+            todo.DtStamp = now;
+            todo.LastModified = now;
+        });
+    }
+
+    private static string FileNameOf(Uri uri) =>
+        Uri.UnescapeDataString(uri.AbsolutePath.TrimEnd('/').Split('/')[^1]) is { Length: > 0 } last ? last : "attachment";
 
     private static Result<string> Edit(string ics, Action<Todo> edit)
     {

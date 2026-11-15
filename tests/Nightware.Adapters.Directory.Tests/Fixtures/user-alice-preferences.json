@@ -1,0 +1,19 @@
+{
+  "id": "5d2c6a4e-2f0b-4a8e-9f3c-1b7e2d9a6c11",
+  "username": "alice",
+  "firstName": "Alice",
+  "lastName": "Anderson",
+  "email": "alice@nightware.localhost",
+  "emailVerified": true,
+  "attributes": {
+    "locale": ["en"],
+    "zoneinfo": ["Australia/Sydney"],
+    "nightware_working_hours": ["{\"daysOfWeek\":[\"monday\",\"tuesday\",\"wednesday\",\"thursday\",\"friday\"],\"startTime\":\"09:00:00.0000000\",\"endTime\":\"17:30:00.0000000\",\"timeZone\":{\"name\":\"Australia/Sydney\"}}"],
+    "nightware_date_format": ["dd/MM/yyyy"],
+    "nightware_time_format": ["h:mm tt"]
+  },
+  "createdTimestamp": 1794690000123,
+  "enabled": true,
+  "requiredActions": [],
+  "access": { "view": true, "manage": true }
+}

@@ -1,3 +1,4 @@
+using Nightware.Adapters.Jmap.Mail.Ids;
 using Nightware.Adapters.Jmap.Core.Protocol;
 using Nightware.Adapters.Jmap.Mail.Read;
 using Nightware.Domain.Kernel;
@@ -37,7 +38,7 @@ public sealed class MimePartsTests
             Multipart("multipart/alternative", Leaf("1", "text/plain"), Leaf("2", "text/calendar", " text/calendar; method=reply")),
             Leaf("3", "application/pdf"));
 
-        MimeParts.CalendarPartOf(root).ShouldBe(new CalendarPart("REPLY", new AttachmentId("2")));
+        MimeParts.CalendarPartOf(root).ShouldBe(new CalendarPart("REPLY", AttachmentItemId.Assign(root)["2"].ToAttachmentId()));
         MimeParts.Find(root, "3")!.Type.ShouldBe("application/pdf");
         MimeParts.Find(root, "9").ShouldBeNull();
     }
@@ -62,7 +63,12 @@ public sealed class MimePartsTests
 
         var attachments = MimeParts.Attachments(email);
 
-        attachments.Select(a => (a.Id.Value, a.Name, a.Kind)).ShouldBe([("3", "Attached message", AttachmentKind.Item), ("2", "invite.ics", AttachmentKind.File)]);
+        var ids = AttachmentItemId.Assign(email.BodyStructure);
+        attachments.Select(a => (a.Id, a.Name, a.Kind)).ShouldBe(
+        [
+            (ids["3"].ToAttachmentId(), "Attached message", AttachmentKind.Item),
+            (ids["2"].ToAttachmentId(), "invite.ics", AttachmentKind.File),
+        ]);
     }
 
     [Theory]
@@ -72,7 +78,7 @@ public sealed class MimePartsTests
     [InlineData("inline", null, false)]
     public void Inline_means_referenced_by_content_id(string? disposition, string? cid, bool inline)
     {
-        var attachment = MimeParts.ToAttachment(Leaf("1", "image/PNG") with { Disposition = disposition, Cid = cid }, null);
+        var attachment = MimeParts.ToAttachment(Leaf("1", "image/PNG") with { Disposition = disposition, Cid = cid }, new AttachmentId("a.x"), null);
 
         attachment.IsInline.ShouldBe(inline);
         attachment.ContentType.ShouldBe("image/png");
@@ -85,9 +91,9 @@ public sealed class MimePartsTests
     [Fact]
     public void A_part_without_a_type_or_name_gets_defaults()
     {
-        var attachment = MimeParts.ToAttachment(new EmailBodyPart { PartId = "7" }, DateTimeOffset.UnixEpoch);
+        var attachment = MimeParts.ToAttachment(new EmailBodyPart { PartId = "7" }, new AttachmentId("a.7"), DateTimeOffset.UnixEpoch);
 
-        attachment.ShouldBe(new MailAttachment(new AttachmentId("7"), "attachment", "application/octet-stream", 0, AttachmentKind.File)
+        attachment.ShouldBe(new MailAttachment(new AttachmentId("a.7"), "attachment", "application/octet-stream", 0, AttachmentKind.File)
         {
             LastModifiedDateTime = DateTimeOffset.UnixEpoch,
         });

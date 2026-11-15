@@ -1,3 +1,4 @@
+using Nightware.Adapters.Jmap.Mail.Ids;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Nightware.Adapters.Jmap.Tests.Support;
@@ -204,6 +205,11 @@ public sealed class JmapMailMessageReaderTests
         host.Requests("/jmap/download/c/Gm1/message.eml", "GET").ShouldHaveSingleItem().RequestMessage!.Query!["accept"].ShouldBe(["message/rfc822"]);
     }
 
+    // Ids of WithAttachments' parts: (name, decoded size, ordinal among equal name and size).
+    private static readonly AttachmentId Pdf = AttachmentItemId.Of("q2.pdf", 3, 0).ToAttachmentId();
+    private static readonly AttachmentId AttachedMessage = AttachmentItemId.Of(null, 40, 0).ToAttachmentId();
+    private static readonly AttachmentId Invitation = AttachmentItemId.Of(null, 9, 0).ToAttachmentId();
+
     private const string WithAttachments = """
         [["Email/get",{"accountId":"c","state":"s","list":[{"id":"m1","receivedAt":"2026-11-14T21:25:54Z",
           "bodyStructure":{"partId":null,"type":"multipart/mixed","subParts":[
@@ -224,7 +230,12 @@ public sealed class JmapMailMessageReaderTests
 
         var attachments = (await Reader(host).ListAttachmentsAsync(Alice, new MessageId("e.m1"), Ct)).Value;
 
-        attachments.Select(a => (a.Id.Value, a.Name, a.Kind)).ShouldBe([("2", "q2.pdf", AttachmentKind.File), ("3", "Attached message", AttachmentKind.Item), ("4", "invite.ics", AttachmentKind.File)]);
+        attachments.Select(a => (a.Id, a.Name, a.Kind)).ShouldBe(
+        [
+            (Pdf, "q2.pdf", AttachmentKind.File),
+            (AttachedMessage, "Attached message", AttachmentKind.Item),
+            (Invitation, "invite.ics", AttachmentKind.File),
+        ]);
         host.Calls("Email/get")[0][0]![1]!["properties"]!.ToJsonString().ShouldBe("""["id","receivedAt","attachments","bodyStructure"]""");
     }
 
@@ -235,9 +246,9 @@ public sealed class JmapMailMessageReaderTests
         host.On("Email/get", WithAttachments);
         host.Server.Given(Request.Create().WithPath("/jmap/download/c/G2/q2.pdf").UsingGet()).RespondWith(Response.Create().WithStatusCode(200).WithBody("PDF"));
 
-        var file = (await Reader(host).GetAttachmentAsync(Alice, new MessageId("e.m1"), new AttachmentId("2"), includeContent: true, Ct)).Value;
-        var item = (await Reader(host).GetAttachmentAsync(Alice, new MessageId("e.m1"), new AttachmentId("3"), includeContent: true, Ct)).Value;
-        var metadata = (await Reader(host).GetAttachmentAsync(Alice, new MessageId("e.m1"), new AttachmentId("2"), includeContent: false, Ct)).Value;
+        var file = (await Reader(host).GetAttachmentAsync(Alice, new MessageId("e.m1"), Pdf, includeContent: true, Ct)).Value;
+        var item = (await Reader(host).GetAttachmentAsync(Alice, new MessageId("e.m1"), AttachedMessage, includeContent: true, Ct)).Value;
+        var metadata = (await Reader(host).GetAttachmentAsync(Alice, new MessageId("e.m1"), Pdf, includeContent: false, Ct)).Value;
 
         Encoding.ASCII.GetString(file.ContentBytes!.Value.Span).ShouldBe("PDF");
         file.LastModifiedDateTime.ShouldBe(new DateTimeOffset(2026, 11, 14, 21, 25, 54, TimeSpan.Zero));
@@ -255,8 +266,8 @@ public sealed class JmapMailMessageReaderTests
         host.Server.Given(Request.Create().WithPath("/jmap/download/c/G3/Attached message").UsingGet()).RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "message/rfc822").WithBody("Subject: inner"));
         host.Server.Given(Request.Create().WithPath("/jmap/download/c/G4/invite.ics").UsingGet()).RespondWith(Response.Create().WithStatusCode(200).WithBody("BEGIN:VCALENDAR"));
 
-        var message = (await Reader(host).GetAttachmentContentAsync(Alice, new MessageId("e.m1"), new AttachmentId("3"), Ct)).Value;
-        var calendar = (await Reader(host).GetAttachmentContentAsync(Alice, new MessageId("e.m1"), new AttachmentId("4"), Ct)).Value;
+        var message = (await Reader(host).GetAttachmentContentAsync(Alice, new MessageId("e.m1"), AttachedMessage, Ct)).Value;
+        var calendar = (await Reader(host).GetAttachmentContentAsync(Alice, new MessageId("e.m1"), Invitation, Ct)).Value;
 
         message.ContentType.ShouldBe("message/rfc822");
         host.Requests("/jmap/download/c/G3/Attached message", "GET").Single().RequestMessage!.Query!["accept"].ShouldBe(["message/rfc822"]);
@@ -270,8 +281,20 @@ public sealed class JmapMailMessageReaderTests
         await using var host = Host();
         host.On("Email/get", WithAttachments);
 
-        (await Reader(host).GetAttachmentAsync(Alice, new MessageId("e.m1"), new AttachmentId("9"), true, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
-        (await Reader(host).GetAttachmentContentAsync(Alice, new MessageId("e.m1"), new AttachmentId("9"), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        var absent = AttachmentItemId.Of("q2.pdf", 3, ordinal: 1).ToAttachmentId();
+        (await Reader(host).GetAttachmentAsync(Alice, new MessageId("e.m1"), absent, true, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        (await Reader(host).GetAttachmentContentAsync(Alice, new MessageId("e.m1"), absent, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task A_malformed_attachment_id_is_400_without_a_request()
+    {
+        await using var host = Host();
+
+        var result = await Reader(host).GetAttachmentContentAsync(Alice, new MessageId("e.m1"), new AttachmentId("2"), Ct);
+
+        result.Error!.Code.ShouldBe("ErrorInvalidIdMalformed");
+        host.Calls("Email/get").ShouldBeEmpty();
     }
 
     [Fact]
