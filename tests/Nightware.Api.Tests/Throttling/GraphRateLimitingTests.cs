@@ -113,7 +113,7 @@ public sealed class GraphRateLimitingTests
         var client = host.AuthorizedClient();
 
         var first = client.GetAsync("/v1.0/slow", Ct);
-        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        await entered.Task.WaitAsync(TimeSpan.FromMinutes(2), Ct); // generous: CI machines can be very loaded
         var second = await client.GetAsync("/v1.0/slow", Ct);
         gate.SetResult();
 

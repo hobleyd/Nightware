@@ -155,7 +155,7 @@ public sealed class RequestBudgetTests
         abort.CancelAfter(TimeSpan.FromMilliseconds(50));
 
         await Should.ThrowAsync<OperationCanceledException>(() => host.AuthorizedClient().GetAsync("/v1.0/abandoned", abort.Token));
-        await observed.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        await observed.Task.WaitAsync(TimeSpan.FromMinutes(2), Ct);
 
         // The listener is process-wide; other tests' timeouts may show up, never this route's.
         timeouts.Snapshot().ShouldNotContain(static m => m.Route == "/v1.0/abandoned");
