@@ -115,4 +115,4 @@ regardless of configuration, because URLs can carry credentials — see [securit
 | Path | Meaning |
 |---|---|
 | `/healthz/live` | Liveness: the process answers. Never consults a backend. |
-| `/healthz` | Readiness: every backend check (Stalwart session, Nextcloud DAV, Keycloak realm). |
+| `/healthz` | Readiness: every backend check (Stalwart session, Nextcloud DAV, Keycloak realm). The result is cached for 10 s and shared by all callers, so hitting it in a loop costs the backends at most one round of checks per 10 s. |

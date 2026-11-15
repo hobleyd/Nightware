@@ -43,7 +43,7 @@ namespace Nightware.Api.Composition;
 /// </summary>
 public static class NightwareComposition
 {
-    /// <summary>Readiness: the process and every backend health check (Stalwart, Nextcloud, Keycloak).</summary>
+    /// <summary>Readiness: the process and every backend health check (Stalwart, Nextcloud, Keycloak), cached for <see cref="ReadinessCache.Lifetime"/>.</summary>
     public const string HealthPath = "/healthz";
 
     /// <summary>Liveness: the process answers HTTP. No backend is consulted, so a backend outage never restarts the façade.</summary>
@@ -68,6 +68,7 @@ public static class NightwareComposition
         services.AddGraphAuthentication(configuration);
         services.AddGraphRateLimiting(configuration);
         services.AddHealthChecks();
+        services.TryAddSingleton<ReadinessCache>();
 
         services.AddSingleton<GraphLinkBuilder>();
         services.AddSingleton<DeltaLinkCodec>();
@@ -119,7 +120,7 @@ public static class NightwareComposition
         app.UseAuthorization();
 
         app.MapDiscovery().RequireNightMailCors();
-        app.MapHealthChecks(HealthPath).AllowAnonymous();
+        app.MapReadiness(HealthPath).AllowAnonymous();
         app.MapHealthChecks(LivenessPath, new HealthCheckOptions { Predicate = static _ => false }).AllowAnonymous();
         app.MapGraph();
         return app;

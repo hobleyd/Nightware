@@ -5,7 +5,7 @@
 | Probe | Use it for | Healthy means |
 |---|---|---|
 | `GET /healthz/live` | Container liveness (the compose healthcheck uses it) | The process answers HTTP. Never restart the façade because a *backend* is down. |
-| `GET /healthz` | Readiness / external uptime check | Stalwart's JMAP session, Nextcloud's DAV root and Keycloak's realm metadata all answer. Returns 503 `Unhealthy` otherwise. |
+| `GET /healthz` | Readiness / external uptime check | Stalwart's JMAP session, Nextcloud's DAV root and Keycloak's realm metadata all answer. Returns 503 `Unhealthy` otherwise. The result is cached for 10 s (one backend round per 10 s however often it is hit), so a recovery or an outage shows up to 10 s late; poll no faster than that. |
 | `https://auth.<domain>/realms/nightware/.well-known/openid-configuration` | Keycloak availability as NightMail sees it | 200 through Caddy. Alert on the first failure (see README: token refresh). |
 | Keycloak `:9000/health/ready`, Nextcloud `status.php`, Stalwart `/healthz/live` | Per-backend, inside the network | As in `deploy/docker-compose.yml`. |
 

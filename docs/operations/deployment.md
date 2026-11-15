@@ -127,7 +127,7 @@ instance, every instance must share `DeltaLinks:SigningKey`; per-user rate limit
 ```bash
 cd deploy && ./smoke.sh             # every backend, token exchange, iMIP, the façade
 curl https://graph.example.com/.well-known/nightware
-curl https://graph.example.com/healthz          # Healthy = every backend reachable
+curl https://graph.example.com/healthz          # Healthy = every backend reachable (cached 10 s)
 ```
 
 Then sign in from NightMail with the server address `graph.example.com`.

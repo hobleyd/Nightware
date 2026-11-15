@@ -36,6 +36,9 @@ an admin task. The façade does not yet require `email_verified` (see `docs/know
 Token bucket (300 burst, 10/s) chained with a concurrency limit (32), partitioned by `sub`; requests
 without a valid token are partitioned by client address. A rejection is `429 TooManyRequests` with
 an integer `Retry-After`, which NightMail honours. Discovery, health and CORS preflights are exempt.
+Readiness (`/healthz`), which is anonymous and fans out to every backend, is instead cached for 10 s
+and single-flight (`Hosting/ReadinessCache.cs`), so a caller looping on it cannot multiply backend
+load.
 Limits are per façade instance; with N instances behind a load balancer a user can reach N× the
 configured rate (sticky sessions or a smaller per-instance budget if that matters).
 

@@ -63,7 +63,7 @@ docker compose -p nightware --profile api up -d --build --no-deps nightware-api 
 ```
 
 It listens on 8080 inside its container, behind Caddy at `https://graph.${BASE_DOMAIN}`, and has a
-liveness healthcheck on `/healthz/live`. `/healthz` is readiness (every backend). `smoke.sh` checks
+liveness healthcheck on `/healthz/live`. `/healthz` is readiness (every backend, cached for 10 s). `smoke.sh` checks
 `/healthz` and `GET /v1.0/me` with alice's token. Settings it takes from `.env`:
 
 | `.env` | Façade setting | Default |
