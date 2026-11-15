@@ -12,6 +12,10 @@ public sealed class UrlRedactionTests
     [InlineData("http://nextcloud/public.php/dav/files/AbCdEf/x.txt", "http://nextcloud/public.php/dav/files/{redacted}/x.txt")]
     [InlineData("for the request path '/v1.0/shares/u!abc/driveItem'", "for the request path '/v1.0/shares/{redacted}/driveItem'")]
     [InlineData("/v1.0/shares/{redacted}/driveItem", "/v1.0/shares/{redacted}/driveItem")]
+    // A share id sent as standard base64 can carry a literal '/': the whole id, tail included, is redacted.
+    [InlineData("/v1.0/shares/u!aHR0cHM6/Ly9jbG91ZC90b2tlbg/driveItem", "/v1.0/shares/{redacted}/driveItem")]
+    [InlineData("/v1.0/shares/u!aHR0cHM6/Ly9jbG91ZC90b2tlbg", "/v1.0/shares/{redacted}")]
+    [InlineData("RequestPath:/v1.0/shares/u!a/b/driveItem/content RequestId:42", "RequestPath:/v1.0/shares/{redacted}/driveItem/content RequestId:42")]
     public void Replaces_share_ids_and_public_share_tokens(string text, string expected) =>
         UrlRedaction.Redact(text).ShouldBe(expected);
 

@@ -40,8 +40,9 @@ public static partial class UrlRedaction
     private static bool MayContainSecret(string text) =>
         text.Contains("/shares/", StringComparison.OrdinalIgnoreCase) || text.Contains("/public.php/", StringComparison.OrdinalIgnoreCase);
 
-    // The segment after /shares/ or /public.php/dav/files/, up to the next separator (also whitespace and
-    // quotes, which end a path inside formatted text).
-    [GeneratedRegex(@"(?<=/(?:shares|public\.php/dav/files)/)(?!\{redacted\})[^/?#\s'""]+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    // After /public.php/dav/files/: the token segment. After /shares/: everything up to /driveItem, not just
+    // one segment — a share id sent as standard base64 can hold a literal '/', and the token is its tail.
+    // Both stop at a query, fragment, whitespace or quote (the end of a path inside formatted text).
+    [GeneratedRegex(@"(?<=/public\.php/dav/files/)(?!\{redacted\})[^/?#\s'""]+|(?<=/shares/)(?!\{redacted\})(?:(?!/driveItem(?:[/?#\s'""]|$))[^?#\s'""])+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SecretSegment();
 }

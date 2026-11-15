@@ -13,10 +13,26 @@ if [[ ! -f .env ]]; then
   (umask 077; cp .env.example .env)
   echo "init-env: created .env from .env.example"
 fi
+# .env holds the root secret (and every backend password): owner-only, also for
+# one created before this script existed (`cp .env.example .env` gave 0644).
+chmod 600 .env
 
 # An empty value: nothing, whitespace, or an empty quoted string.
 empty='^NIGHTWARE_DELTA_LINK_KEY=[[:space:]]*(""|'"''"')?[[:space:]]*$'
-if grep '^NIGHTWARE_DELTA_LINK_KEY=' .env | grep -Evq "$empty"; then
+if current=$(grep '^NIGHTWARE_DELTA_LINK_KEY=' .env | grep -Ev "$empty" | tail -n1); then
+  # Set: never replaced, but refused when weak. The façade itself only checks in
+  # Production (SigningKeyValidator), and compose defaults to Development.
+  value=${current#NIGHTWARE_DELTA_LINK_KEY=}
+  value=${value//\"/}; value=${value//\'/}
+  case "$value" in
+    dev-only-delta-link-signing-key | development-only-delta-link-signing-key-change-me)
+      echo "init-env: NIGHTWARE_DELTA_LINK_KEY in .env is a published development value; replace it with \`openssl rand -hex 32\` (this invalidates clients' delta links)" >&2
+      exit 1 ;;
+  esac
+  if (( ${#value} < 32 )); then
+    echo "init-env: NIGHTWARE_DELTA_LINK_KEY in .env is shorter than 32 bytes; replace it with \`openssl rand -hex 32\` (this invalidates clients' delta links)" >&2
+    exit 1
+  fi
   exit 0
 fi
 
