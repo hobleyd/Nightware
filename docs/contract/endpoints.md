@@ -212,6 +212,55 @@ The client wins. These are the differences from `docs/phases/*.md`.
     `timeZone`; `language` and `workingHours` are never touched.
   - Threat submission and `/shares` are Microsoft-only once the 0.4 hook lands.
 
+### Phase 5B: deferred operations and backend decisions
+
+**Deferred (ADR 0001 §43).** `files.shares.drive-item`,
+`files.shares.drive-item-content` and
+`security.threat-submission.email-threats.create` are not implemented: the
+client gates them off for NightMail Server accounts. Their routes are mapped and
+answer a deliberate `501 notImplemented` (not the unknown-route `400`). The
+conformance harness has no "deferred" state, so their fixtures report as
+skipped ("no arrangement"); `Arrangements/DeferredOperationsTests.cs` replays
+each fixture, asserts the 501, and fails if one is ever arranged without being
+removed from that list.
+
+**Automatic replies → Stalwart `VacationResponse`.** It holds one message and
+answers every sender, so Graph's audience and internal/external split cannot be
+stored:
+
+- On write, the **external** message is stored (the internal one only when the
+  external is empty). It is the text written for people outside the
+  organisation, whom Stalwart will answer too; storing the internal one could
+  send internal detail to strangers. NightMail sends both equal unless the user
+  asked for separate messages.
+- On read, both message fields carry the stored text and `externalAudience` is
+  `all`, which is what the server actually does.
+- `scheduled` maps to `fromDate`/`toDate`; `scheduled` without dates reads back
+  as `alwaysEnabled` (both mean "on").
+- Schedules are returned as wall clock in the mailbox's zone (the Windows id
+  `timeZone` reports), as Graph does.
+
+**Time zone → Keycloak `zoneinfo`.** Accepted as a Windows or IANA id, stored
+as IANA (it is also an OIDC claim), returned as the Windows id; UTC when unset or
+when the mailbox is not a directory user. The directory is read and written by
+the façade's service account, so the mail store (acting as the caller) gates
+every mailbox-settings request, and the time zone can only be changed for the
+caller's own mailbox (403 otherwise).
+
+**To Do.** Lists are the mailbox's VTODO calendars; the caller's default list
+(`tasks/`, VTODO only) is created on first listing when they own none. Due and
+completion dates are emitted as that day's midnight labelled `UTC`. Attachments
+are files in the owner's Nextcloud Files (`Nightware/Task attachments/{uuid}/`)
+referenced from the VTODO by `ATTACH` (RFC 8607 `FILENAME`/`SIZE`).
+
+**Upload URL (`tasks.attachments.upload-session-put`).**
+`{graphBaseUrl}/users/{mailbox}/todo/lists/{list}/tasks/{task}/attachmentSessions/{session}/content?authtoken=…`.
+`authtoken` is the caller's access token sealed with AES-256-GCM (key derived
+with HKDF from `DeltaLinks:SigningKey`), bound to exactly that method and path,
+and valid until the earlier of the session's expiry (15 min) and the token's
+`exp`. The PUT must carry the whole file; `Content-Range` is optional, and a body
+of a different length than the session declared is refused (400/413).
+
 ## Fixture format
 
 `tests/Nightware.Conformance.Tests/Fixtures/<operation-id>.json`, one per
