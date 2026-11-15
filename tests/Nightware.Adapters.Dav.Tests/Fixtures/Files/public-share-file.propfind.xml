@@ -1,0 +1,2 @@
+<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns"><d:response><d:href>/public.php/dav/files/jeKXiPKYQXyWQAT</d:href><d:propstat><d:prop><d:displayname>probe.txt</d:displayname><d:getcontenttype>text/plain</d:getcontenttype><d:getcontentlength>13</d:getcontentlength><d:resourcetype/><oc:fileid>385</oc:fileid><d:getlastmodified>Sun, 15 Nov 2026 03:57:33 GMT</d:getlastmodified></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>
