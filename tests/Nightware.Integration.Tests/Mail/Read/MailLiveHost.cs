@@ -1,18 +1,16 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Http;
+
+using Nightware.Integration.Tests.Support;
 
 namespace Nightware.Integration.Tests.Mail.Read;
 
@@ -26,7 +24,7 @@ namespace Nightware.Integration.Tests.Mail.Read;
 /// </remarks>
 internal sealed class MailLiveHost : IAsyncDisposable
 {
-    public const string Domain = "nightware.localhost";
+    public const string Domain = DevStack.Domain;
     public const string GraphBase = "https://graph." + Domain + "/v1.0";
     public const string Alice = "alice@" + Domain;
 
@@ -34,16 +32,14 @@ internal sealed class MailLiveHost : IAsyncDisposable
     private const string MailBase = "https://mail." + Domain;
 
     private readonly WebApplicationFactory<Program> _factory;
-    private readonly X509Certificate2 _ca;
-    private readonly Dictionary<string, string> _env;
+    private readonly DevStack _stack;
     private readonly HttpClient _backchannel;
     private string? _jmapToken;
 
-    private MailLiveHost(string deployDir)
+    private MailLiveHost(DevStack stack)
     {
-        _env = ReadEnv(Path.Combine(deployDir, ".env"));
-        _ca = X509CertificateLoader.LoadCertificateFromFile(Path.Combine(deployDir, ".certs", "caddy-root.crt"));
-        _backchannel = new HttpClient(Trusting(new SocketsHttpHandler()));
+        _stack = stack;
+        _backchannel = stack.Backchannel();
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
@@ -54,26 +50,16 @@ internal sealed class MailLiveHost : IAsyncDisposable
                 ["Discovery:GraphBetaBaseUrl"] = "https://graph." + Domain + "/beta",
                 ["DeltaLinks:SigningKey"] = "integration",
                 ["Directory:KeycloakBaseUrl"] = "https://auth." + Domain,
-                ["Directory:ClientSecret"] = _env["NIGHTWARE_API_CLIENT_SECRET"],
+                ["Directory:ClientSecret"] = stack.Env("NIGHTWARE_API_CLIENT_SECRET"),
                 ["Jmap:SessionUrl"] = MailBase + "/.well-known/jmap",
             }));
-            builder.ConfigureTestServices(services =>
-            {
-                // Registered after the app's own client configuration, so it runs after every
-                // ConfigurePrimaryHttpMessageHandler (the JMAP and Keycloak clients set their own).
-                services.ConfigureAll<HttpClientFactoryOptions>(o => o.HttpMessageHandlerBuilderActions.Add(b => Trusting(b.PrimaryHandler)));
-
-                services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, o => o.BackchannelHttpHandler = Trusting(new SocketsHttpHandler()));
-            });
+            builder.ConfigureTestServices(stack.Trust);
         });
     }
 
     public static MailLiveHost Start()
     {
-        Assert.SkipUnless(Environment.GetEnvironmentVariable("NIGHTWARE_INTEGRATION") == "1", "Live integration tests run only with NIGHTWARE_INTEGRATION=1.");
-        var deployDir = Environment.GetEnvironmentVariable("NIGHTWARE_DEPLOY_DIR") ?? FindDeployDir()
-            ?? throw new InvalidOperationException("No bootstrapped deploy folder (deploy/.env) found; set NIGHTWARE_DEPLOY_DIR.");
-        return new MailLiveHost(deployDir);
+        return new MailLiveHost(DevStack.Open());
     }
 
     /// <summary>The in-process Graph façade, authenticated as alice with a NightMail-shaped token.</summary>
@@ -147,7 +133,7 @@ internal sealed class MailLiveHost : IAsyncDisposable
     {
         _backchannel.Dispose();
         await _factory.DisposeAsync();
-        _ca.Dispose();
+        _stack.Dispose();
     }
 
     private async Task<JsonArray> JmapAsync(JsonArray calls, CancellationToken cancellationToken)
@@ -178,9 +164,9 @@ internal sealed class MailLiveHost : IAsyncDisposable
             [
                 new("grant_type", "password"),
                 new("client_id", "nightware-dev"),
-                new("client_secret", _env["NIGHTWARE_DEV_CLIENT_SECRET"]),
+                new("client_secret", _stack.Env("NIGHTWARE_DEV_CLIENT_SECRET")),
                 new("username", "alice"),
-                new("password", _env["TEST_USER_PASSWORD"]),
+                new("password", _stack.Env("TEST_USER_PASSWORD")),
                 new("scope", "openid email profile"),
             ],
             null,
@@ -195,7 +181,7 @@ internal sealed class MailLiveHost : IAsyncDisposable
                 new("requested_token_type", "urn:ietf:params:oauth:token-type:access_token"),
                 new("audience", "stalwart"),
             ],
-            new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes("nightware-api:" + _env["NIGHTWARE_API_CLIENT_SECRET"]))),
+            new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes("nightware-api:" + _stack.Env("NIGHTWARE_API_CLIENT_SECRET")))),
             cancellationToken);
 
     private async Task<string> TokenAsync(IEnumerable<KeyValuePair<string, string>> form, AuthenticationHeaderValue? auth, CancellationToken cancellationToken)
@@ -206,64 +192,4 @@ internal sealed class MailLiveHost : IAsyncDisposable
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken)).GetProperty("access_token").GetString()!;
     }
-
-    private HttpMessageHandler Trusting(HttpMessageHandler handler)
-    {
-        if (handler is SocketsHttpHandler sockets)
-        {
-            sockets.SslOptions.RemoteCertificateValidationCallback = (_, certificate, presented, errors) => IsTrusted(certificate, presented, errors);
-        }
-
-        return handler;
-    }
-
-    private bool IsTrusted(X509Certificate? certificate, X509Chain? presented, SslPolicyErrors errors)
-    {
-        if (errors == SslPolicyErrors.None)
-        {
-            return true;
-        }
-
-        if (certificate is null || errors.HasFlag(SslPolicyErrors.RemoteCertificateNameMismatch))
-        {
-            return false;
-        }
-
-        using var chain = new X509Chain();
-        chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-        chain.ChainPolicy.CustomTrustStore.Add(_ca);
-        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-        if (presented is not null)
-        {
-            foreach (var element in presented.ChainElements)
-            {
-                chain.ChainPolicy.ExtraStore.Add(element.Certificate);
-            }
-        }
-
-        using var leaf = new X509Certificate2(certificate);
-        return chain.Build(leaf);
-    }
-
-    private static string? FindDeployDir()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-        {
-            var candidate = Path.Combine(dir.FullName, "deploy");
-            if (File.Exists(Path.Combine(candidate, ".env")))
-            {
-                return candidate;
-            }
-        }
-
-        return null;
-    }
-
-    private static Dictionary<string, string> ReadEnv(string path) =>
-        File.ReadAllLines(path)
-            .Select(static l => l.Trim())
-            .Where(static l => l.Length > 0 && !l.StartsWith('#') && l.Contains('=', StringComparison.Ordinal))
-            .Select(static l => (Key: l[..l.IndexOf('=', StringComparison.Ordinal)], Value: l[(l.IndexOf('=', StringComparison.Ordinal) + 1)..].Trim('"')))
-            .GroupBy(static kv => kv.Key)
-            .ToDictionary(static g => g.Key, static g => g.Last().Value);
 }

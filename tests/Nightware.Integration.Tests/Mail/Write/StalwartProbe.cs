@@ -69,7 +69,7 @@ internal sealed class StalwartProbe(LiveStack stack)
             return cached;
         }
 
-        var token = await ExchangeAsync(await stack.UserTokenAsync(user, cancellationToken), cancellationToken);
+        var token = await stack.ExchangedTokenAsync(user, "stalwart", cancellationToken);
         using var request = new HttpRequestMessage(HttpMethod.Get, MailUrl + "/jmap/session");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         using var response = await stack.Backchannel.SendAsync(request, cancellationToken);
@@ -78,43 +78,4 @@ internal sealed class StalwartProbe(LiveStack stack)
         var account = session.GetProperty("primaryAccounts").GetProperty("urn:ietf:params:jmap:mail").GetString()!;
         return _sessions[user] = (token, account);
     }
-
-    /// <summary>The user's token exchanged for audience <c>stalwart</c>, as the façade itself would.</summary>
-    private async Task<string> ExchangeAsync(string subject, CancellationToken cancellationToken)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Post, LiveStack.Issuer + "/protocol/openid-connect/token")
-        {
-            Content = new FormUrlEncodedContent(
-            [
-                new("grant_type", "urn:ietf:params:oauth:grant-type:token-exchange"),
-                new("subject_token", subject),
-                new("subject_token_type", "urn:ietf:params:oauth:token-type:access_token"),
-                new("requested_token_type", "urn:ietf:params:oauth:token-type:access_token"),
-                new("audience", "stalwart"),
-            ]),
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes("nightware-api:" + Env("NIGHTWARE_API_CLIENT_SECRET"))));
-        using var response = await stack.Backchannel.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken)).GetProperty("access_token").GetString()!;
-    }
-
-    /// <summary>The bootstrapped deploy folder, found as <see cref="LiveStack"/> finds it.</summary>
-    public static string DeployDir()
-    {
-        var deployDir = Environment.GetEnvironmentVariable("NIGHTWARE_DEPLOY_DIR");
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); deployDir is null && dir is not null; dir = dir.Parent)
-        {
-            var candidate = Path.Combine(dir.FullName, "deploy");
-            deployDir = File.Exists(Path.Combine(candidate, ".env")) ? candidate : null;
-        }
-
-        return deployDir ?? throw new InvalidOperationException("No deploy/.env found; set NIGHTWARE_DEPLOY_DIR.");
-    }
-
-    /// <summary>A value from the deploy folder's <c>.env</c>.</summary>
-    public static string Env(string key) =>
-        File.ReadAllLines(Path.Combine(DeployDir(), ".env"))
-            .Select(static l => l.Trim())
-            .Last(l => l.StartsWith(key + "=", StringComparison.Ordinal))[(key.Length + 1)..].Trim('"');
 }
