@@ -97,6 +97,28 @@ bug or a script, sometimes a very large outbox drain across several devices.
 **Fix.** NightMail waits `Retry-After` and continues; nothing to do for occasional 429s. Raise
 `RateLimiting:*` if legitimate heavy use trips it.
 
+## Mail "sent" but never delivered (Stalwart inbound throttle)
+
+**Symptoms.** `sendMail`/draft send returns `202 Accepted`, the message is in Sent Items, but the
+recipient never receives it — typically after a burst of mail to one person (a meeting series,
+a script, a busy colleague). The façade cannot see this: submission succeeded, delivery is
+Stalwart's.
+
+**Cause.** Stalwart's default `MtaInboundThrottle` "sender domain to recipient" allows 25 messages
+an hour per (sender domain, recipient). In a single-domain organisation that caps *all colleagues
+together* at 25 messages an hour to any one person.
+
+**Confirm.** Stalwart's log shows `smtp.rate-limit-exceeded` for the recipient
+(`docker compose -p nightware logs stalwart | grep rate-limit-exceeded`).
+
+**Fix.** `deploy/stalwart/configure.sh` (run by `bootstrap.sh`, idempotent) scopes that throttle to
+**unauthenticated inbound only** (`is_empty(authenticated_as)`); authenticated submissions —
+everything sent through the façade — are no longer counted. Re-run it on stacks bootstrapped before
+that change. Still subject to the throttle: external senders and **Nextcloud's iMIP invitations**,
+which arrive unauthenticated on port 25 — a burst of more than 25 invitations an hour from
+Nextcloud to one attendee is throttled. Raise or re-key that throttle in Stalwart's settings
+(*Settings → MTA → Inbound → Throttles*) if your organisation schedules at that rate.
+
 ## 413 on sending large attachments
 
 `Limits:MaxRequestBodyBytes` (≈ 67 MB) or Stalwart's `maxSizeUpload`/message size limit. Raise them

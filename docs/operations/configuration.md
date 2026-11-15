@@ -61,6 +61,11 @@ process with a message naming the key, instead of failing on the first request.
 | `BackendCredentials:<Backend>:ServiceAccount:Username` / `Password` 🔒 | none | Basic credential. |
 | `BackendCredentials:Cache:Enabled` / `ExpirySkew` | `true` / `00:00:30` | Exchanged-token cache. |
 
+Backend settings outside the façade that change its observable behaviour: Stalwart's
+`MtaInboundThrottle` "sender domain to recipient" (25/hour per sender domain and recipient) is
+scoped to unauthenticated inbound mail by `deploy/stalwart/configure.sh`; Nextcloud iMIP and external
+senders remain subject to it — see the [runbook](runbook.md#mail-sent-but-never-delivered-stalwart-inbound-throttle).
+
 ## Hardening (phase 6)
 
 | Key | Default | Meaning |
