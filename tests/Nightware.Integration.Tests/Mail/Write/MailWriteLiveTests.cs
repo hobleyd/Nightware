@@ -116,6 +116,44 @@ public sealed class MailWriteLiveTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Attachment_ids_listed_once_stay_valid_across_deletes_as_the_client_uses_them()
+    {
+        var subject = $"Nightware attachments {_run}";
+        var alice = await _host.GraphClientAsync(Alice, Ct);
+        var (_, draft) = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/messages", $$$"""
+            {"subject":"{{{subject}}}","body":{"contentType":"Html","content":"<p>three files</p>"},"toRecipients":[{"emailAddress":{"address":"{{{BobAddress}}}"}}]}
+            """);
+        var id = draft!["id"]!.GetValue<string>();
+        foreach (var (name, text) in new[] { ("a.txt", "first"), ("b.txt", "second"), ("c.txt", "third") })
+        {
+            (await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/messages/{id}/attachments", $$$"""
+                {"@odata.type":"#microsoft.graph.fileAttachment","name":"{{{name}}}","contentType":"text/plain","contentBytes":"{{{Base64(text)}}}"}
+                """)).Status.ShouldBe(HttpStatusCode.Created);
+        }
+
+        // NightMail's _syncDraftAttachments / _removeExcludedFromForwardDraft: one listing, then several deletes.
+        var listed = await ListAttachmentsAsync(alice, id);
+        listed.Select(a => a.Name).ShouldBe(["a.txt", "b.txt", "c.txt"], ignoreOrder: true);
+        foreach (var name in new[] { "a.txt", "c.txt" })
+        {
+            (await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/messages/{id}/attachments/{listed.Single(a => a.Name == name).Id}")).Status.ShouldBe(HttpStatusCode.NoContent);
+        }
+
+        var remaining = (await ListAttachmentsAsync(alice, id)).ShouldHaveSingleItem();
+        remaining.ShouldBe(listed.Single(a => a.Name == "b.txt"), "the surviving file keeps the id it was listed with");
+        using var content = await alice.GetAsync($"/v1.0/me/messages/{id}/attachments/{remaining.Id}/$value", Ct);
+        (await content.Content.ReadAsStringAsync(Ct)).ShouldBe("second");
+        (await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/messages/{id}")).Status.ShouldBe(HttpStatusCode.NoContent);
+    }
+
+    private static async Task<IReadOnlyList<(string Id, string Name)>> ListAttachmentsAsync(HttpClient client, string messageId)
+    {
+        var (status, body) = await SendAsync(client, HttpMethod.Get, $"/v1.0/me/messages/{messageId}/attachments?$select=id,name,size");
+        status.ShouldBe(HttpStatusCode.OK);
+        return [.. body!["value"]!.AsArray().Select(a => (a!["id"]!.GetValue<string>(), a["name"]!.GetValue<string>()))];
+    }
+
+    [Fact]
     public async Task A_reply_threads_into_the_same_conversation()
     {
         var subject = $"Nightware thread {_run}";

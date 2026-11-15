@@ -1,6 +1,6 @@
 {
   "accountId": "c",
-  "state": "sda",
+  "state": "sviaq",
   "list": [
     {
       "id": "bqaaaaam",
@@ -42,51 +42,55 @@
       "textBody": [
         {
           "partId": "2",
-          "blobId": "cewdz0t3bjmyvkh3zjnen3jr1ikivvczslnk9eohpb9rkuvlqsgjaaqabtwqkii",
+          "blobId": "cek7lfx79dzfsbfwwptr7rhxgeumfh0udljyff7d3wt03gmhbneiiaqaj9wqkii",
           "size": 33,
           "name": null,
           "type": "text/html",
           "charset": "utf-8",
           "disposition": null,
           "cid": null,
-          "location": null
+          "location": null,
+          "subParts": null
         }
       ],
       "htmlBody": [
         {
           "partId": "2",
-          "blobId": "cewdz0t3bjmyvkh3zjnen3jr1ikivvczslnk9eohpb9rkuvlqsgjaaqabtwqkii",
+          "blobId": "cek7lfx79dzfsbfwwptr7rhxgeumfh0udljyff7d3wt03gmhbneiiaqaj9wqkii",
           "size": 33,
           "name": null,
           "type": "text/html",
           "charset": "utf-8",
           "disposition": null,
           "cid": null,
-          "location": null
+          "location": null,
+          "subParts": null
         }
       ],
       "attachments": [
         {
           "partId": "3",
-          "blobId": "cmwdz0t3bjmyvkh3zjnen3jr1ikivvczslnk9eohpb9rkuvlqsgjaaqabtfqofq",
+          "blobId": "cmk7lfx79dzfsbfwwptr7rhxgeumfh0udljyff7d3wt03gmhbneiiaqaj9fqofq",
           "size": 15,
           "name": "img.png",
           "type": "image/png",
           "charset": null,
           "disposition": "inline",
           "cid": "img1@x",
-          "location": null
+          "location": null,
+          "subParts": null
         },
         {
           "partId": "4",
-          "blobId": "ciwdz0t3bjmyvkh3zjnen3jr1ikivvczslnk9eohpb9rkuvlqsgjaaqabtjqsea",
+          "blobId": "cik7lfx79dzfsbfwwptr7rhxgeumfh0udljyff7d3wt03gmhbneiiaqaj9jqsea",
           "size": 14,
           "name": "notes.txt",
           "type": "text/plain",
           "charset": "us-ascii",
           "disposition": "attachment",
           "cid": null,
-          "location": null
+          "location": null,
+          "subParts": null
         }
       ],
       "bodyValues": {
@@ -95,6 +99,68 @@
           "isTruncated": false,
           "value": "<p>see <img src=\"cid:img1@x\"></p>"
         }
+      },
+      "bodyStructure": {
+        "partId": null,
+        "blobId": null,
+        "size": 863,
+        "name": null,
+        "type": "multipart/mixed",
+        "charset": null,
+        "disposition": null,
+        "cid": null,
+        "location": null,
+        "subParts": [
+          {
+            "partId": null,
+            "blobId": null,
+            "size": 433,
+            "name": null,
+            "type": "multipart/related",
+            "charset": null,
+            "disposition": null,
+            "cid": null,
+            "location": null,
+            "subParts": [
+              {
+                "partId": "2",
+                "blobId": "cek7lfx79dzfsbfwwptr7rhxgeumfh0udljyff7d3wt03gmhbneiiaqaj9wqkii",
+                "size": 33,
+                "name": null,
+                "type": "text/html",
+                "charset": "utf-8",
+                "disposition": null,
+                "cid": null,
+                "location": null,
+                "subParts": null
+              },
+              {
+                "partId": "3",
+                "blobId": "cmk7lfx79dzfsbfwwptr7rhxgeumfh0udljyff7d3wt03gmhbneiiaqaj9fqofq",
+                "size": 15,
+                "name": "img.png",
+                "type": "image/png",
+                "charset": null,
+                "disposition": "inline",
+                "cid": "img1@x",
+                "location": null,
+                "subParts": null
+              }
+            ]
+          },
+          {
+            "partId": "4",
+            "blobId": "cik7lfx79dzfsbfwwptr7rhxgeumfh0udljyff7d3wt03gmhbneiiaqaj9jqsea",
+            "size": 14,
+            "name": "notes.txt",
+            "type": "text/plain",
+            "charset": "us-ascii",
+            "disposition": "attachment",
+            "cid": null,
+            "location": null,
+            "subParts": null
+          }
+        ]
       }
     }
   ],

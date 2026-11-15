@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Nightware.Adapters.Jmap.Core.Protocol;
+using Nightware.Adapters.Jmap.Mail.Ids;
 using Nightware.Domain.Kernel;
 using Nightware.Domain.Mail;
 
@@ -49,9 +50,10 @@ internal static class MimeParts
         foreach (var part in Walk(root))
         {
             if (part.PartId is not null && IsType(part, Calendar)
-                && Parameter(ContentType(part), "method") is { Length: > 0 } method)
+                && Parameter(ContentType(part), "method") is { Length: > 0 } method
+                && AttachmentItemId.Assign(root).TryGetValue(part.PartId, out var id))
             {
-                return new CalendarPart(method.ToUpperInvariant(), new AttachmentId(part.PartId));
+                return new CalendarPart(method.ToUpperInvariant(), id.ToAttachmentId());
             }
         }
 
@@ -107,22 +109,25 @@ internal static class MimeParts
     /// <summary>
     /// The message's attachments: JMAP's <c>attachments</c> list plus the iTIP part, which RFC 8621
     /// leaves out when it sits in a <c>multipart/alternative</c> (the client looks for it by type).
+    /// Ids are <see cref="AttachmentItemId"/>s over <c>bodyStructure</c>, so they survive a draft rebuild.
     /// </summary>
     public static IReadOnlyList<MailAttachment> Attachments(Email email)
     {
         ArgumentNullException.ThrowIfNull(email);
-        var parts = (email.Attachments ?? []).Where(static p => p.PartId is not null).ToList();
+        var ids = AttachmentItemId.Assign(email.BodyStructure);
+        var parts = (email.Attachments ?? []).Where(p => p.PartId is not null && ids.ContainsKey(p.PartId)).ToList();
         if (CalendarPartOf(email.BodyStructure) is { } calendar
-            && !parts.Any(p => p.PartId == calendar.PartId.Value)
-            && Find(email.BodyStructure, calendar.PartId.Value) is { } calendarPart)
+            && AttachmentItemId.Parse(calendar.PartId).Value.Find(email.BodyStructure) is { } calendarPart
+            && !parts.Any(p => p.PartId == calendarPart.PartId))
         {
             parts.Add(calendarPart);
         }
 
-        return [.. parts.Select(p => ToAttachment(p, email.ReceivedAt))];
+        return [.. parts.Select(p => ToAttachment(p, ids[p.PartId!].ToAttachmentId(), email.ReceivedAt))];
     }
 
-    public static MailAttachment ToAttachment(EmailBodyPart part, DateTimeOffset? lastModified)
+    /// <param name="id">The part's attachment id (<see cref="AttachmentItemId"/>), assigned over its whole message.</param>
+    public static MailAttachment ToAttachment(EmailBodyPart part, AttachmentId id, DateTimeOffset? lastModified)
     {
         ArgumentNullException.ThrowIfNull(part);
         var isItem = IsType(part, AttachedMessage);
@@ -136,7 +141,7 @@ internal static class MimeParts
         // required: Sabre marks its invitation .ics `inline` without one, and the client must treat
         // that as a file, not an image to fetch for the body.
         var isInline = cid is not null && !string.Equals(part.Disposition, "attachment", StringComparison.OrdinalIgnoreCase);
-        return new MailAttachment(new AttachmentId(part.PartId!), name, type, part.Size ?? 0, isItem ? AttachmentKind.Item : AttachmentKind.File)
+        return new MailAttachment(id, name, type, part.Size ?? 0, isItem ? AttachmentKind.Item : AttachmentKind.File)
         {
             IsInline = isInline,
             ContentId = cid,

@@ -20,13 +20,14 @@ internal static class ExistingEmail
     [
         "id", "messageId", "mailboxIds", "keywords", "from", "to", "cc", "bcc", "replyTo", "subject",
         "inReplyTo", "references", EmailHeaders.Property(ImportanceHeader, HeaderForm.Text),
-        "textBody", "htmlBody", "attachments", "bodyValues",
+        "textBody", "htmlBody", "attachments", "bodyValues", "bodyStructure",
     ];
 
     /// <summary><c>Email/get</c> properties for <see cref="Attachments"/> only (a forward's source).</summary>
     public static IReadOnlyList<string> AttachmentProperties { get; } = ["id", "textBody", "htmlBody", "attachments"];
 
-    public static IReadOnlyList<string> BodyProperties { get; } = ["partId", "blobId", "size", "name", "type", "charset", "disposition", "cid", "location"];
+    /// <summary>Per-part properties; <c>subParts</c> so attachment ids can be assigned over <c>bodyStructure</c>.</summary>
+    public static IReadOnlyList<string> BodyProperties { get; } = ["partId", "blobId", "size", "name", "type", "charset", "disposition", "cid", "location", "subParts"];
 
     /// <summary>An <c>Email/get</c> for <paramref name="jmapId"/> that returns everything <see cref="Snapshot"/> reads.</summary>
     public static EmailGetRequest Get(string accountId, string jmapId) => new(accountId)
