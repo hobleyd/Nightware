@@ -169,6 +169,14 @@ kql         = <the user's typed text, verbatim, except:
   anything else": a 400 here surfaces as a failed search with Graph's message.
 - Results come back without `$orderby`. Graph returns them by relevance, and
   the client re-sorts by date.
+- **One page, no `@odata.nextLink`.** The façade returns at most `$top`
+  results (clamped to the mail server's `maxObjectsInGet`, 500 on Stalwart)
+  and never a nextLink, so anything past `$top` is not reachable. Graph pages
+  `$search` results up to its own cap, but NightMail reads only the first page
+  of a search (`graph_api_datasource_impl.dart` `searchEmails`: `$top` 50 from
+  the search box, 1–100 from the AI agent's tool) and never follows the link.
+  Paging would only matter for another client; add it then (JMAP `Email/query`
+  `position` paging as on folder listings).
 
 ## 7. `$expand`
 
