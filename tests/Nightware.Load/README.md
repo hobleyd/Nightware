@@ -51,6 +51,8 @@ so runs longer than the realm's access-token lifespan work.
 - `harness.js`, 5 VUs, 30 s: all thresholds pass — p95 live 5.3 ms, discovery 3.4 ms, `/me` 14.0 ms,
   readiness 108 ms; 0 % failures. Unpaced (no `sleep`), the same single-user run is answered 429 after
   the 300-request burst, as designed.
-- `poll-cycle.js`: the harness runs end to end, but on this date's `main` the mail, calendar and task
-  routes are not merged yet and answer `400 BadRequest` (unmapped route, ADR 0001 §31), so the
-  status checks fail by construction. Re-run once phases 2, 4 and 5B are merged.
+- `poll-cycle.js`, 20 VUs (alice/bob), 90 s, 30 s cycle, after the phase 2 and 5A merges: inbox
+  delta p95 55 ms and folder list p95 7.5 ms — both mail calls pass every check, zero 429s. Calendar
+  and To Do routes (phases 4 and 5B) were not merged yet and answered `400 BadRequest` (unmapped
+  route, ADR 0001 §31), so their status checks and the overall failure-rate threshold fail by
+  construction. Re-run once those phases are merged.

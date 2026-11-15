@@ -46,9 +46,9 @@ public sealed class RequestBudgetTests
                     g.MapGet("/hang", Hang);
                     g.MapPost("/hang", Hang);
                     g.MapDelete("/hang", Hang);
-                    g.MapGet("/me/messages/{id}/attachments/{attachmentId}/$value", Slow);
-                    g.MapGet("/me/messages/{id}/$value", Slow);
-                    g.MapPost("/me/sendMail", Slow);
+                    g.MapGet("/probe/messages/{id}/attachments/{attachmentId}/$value", Slow);
+                    g.MapGet("/probe/messages/{id}/$value", Slow);
+                    g.MapPost("/probe/sendMail", Slow);
                     g.MapPost("/slow", Slow);
                 });
                 services?.Invoke(s);
@@ -88,8 +88,8 @@ public sealed class RequestBudgetTests
     }
 
     [Theory]
-    [InlineData("/v1.0/me/messages/m1/attachments/a1/$value")]
-    [InlineData("/v1.0/me/messages/m1/$value")]
+    [InlineData("/v1.0/probe/messages/m1/attachments/a1/$value")]
+    [InlineData("/v1.0/probe/messages/m1/$value")]
     public async Task Transfer_routes_get_the_long_budget(string path)
     {
         await using var host = await StartAsync();
@@ -104,7 +104,7 @@ public sealed class RequestBudgetTests
     {
         await using var host = await StartAsync();
 
-        var response = await host.AuthorizedClient().PostAsync("/v1.0/me/sendMail", new StringContent("{}"), Ct);
+        var response = await host.AuthorizedClient().PostAsync("/v1.0/probe/sendMail", new StringContent("{}"), Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -208,6 +208,21 @@ public sealed class RequestBudgetTests
         RequestBudgetMiddleware.BudgetFor(Context("/v1.0/me/todo/lists/{l}/tasks/{t}/attachments/createUploadSession"), options).ShouldBe(TimeSpan.FromSeconds(9));
         RequestBudgetMiddleware.BudgetFor(Context("/v1.0/me/messages/{id}", contentLength: 11), options).ShouldBe(TimeSpan.FromSeconds(9));
         RequestBudgetMiddleware.BudgetFor(Context(null), options).ShouldBe(TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public async Task Every_mapped_content_route_gets_the_transfer_budget()
+    {
+        await using var host = await TestHost.StartAsync();
+        var options = new RequestBudgetOptions { Default = TimeSpan.FromSeconds(1), Transfer = TimeSpan.FromSeconds(9) };
+        var routes = host.App.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .OfType<RouteEndpoint>()
+            .Select(static e => e.RoutePattern.RawText!)
+            .Where(static r => r.EndsWith("/$value", StringComparison.Ordinal) || r.Contains("/attachments", StringComparison.Ordinal))
+            .ToList();
+
+        routes.ShouldNotBeEmpty("the mail feature maps $value and attachment routes");
+        routes.ShouldAllBe(r => RequestBudgetMiddleware.BudgetFor(Context(r, null), options) == TimeSpan.FromSeconds(9));
     }
 
     [Theory]
