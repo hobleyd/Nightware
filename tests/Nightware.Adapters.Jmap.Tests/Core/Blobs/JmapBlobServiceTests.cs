@@ -1,5 +1,6 @@
 using System.Text;
 using Nightware.Adapters.Jmap.Tests.Support;
+using Nightware.Application.Common.Identity;
 using Nightware.Domain.Kernel;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
@@ -57,7 +58,7 @@ public sealed class JmapBlobServiceTests
 
     [Theory]
     [InlineData(413, ErrorKind.PayloadTooLarge)]
-    [InlineData(401, ErrorKind.BackendAuthFailed)]
+    [InlineData(401, ErrorKind.BackendUnavailable)] // the host's credential is a token exchange (ADR 0001 §42)
     [InlineData(403, ErrorKind.Forbidden)]
     [InlineData(503, ErrorKind.BackendUnavailable)]
     public async Task Upload_failures_are_mapped(int status, ErrorKind expected)
@@ -161,7 +162,7 @@ public sealed class JmapBlobServiceTests
     [Theory]
     [InlineData(404, ErrorKind.NotFound)]
     [InlineData(403, ErrorKind.Forbidden)]
-    [InlineData(401, ErrorKind.BackendAuthFailed)]
+    [InlineData(401, ErrorKind.BackendUnavailable)] // the host's credential is a token exchange (ADR 0001 §42)
     [InlineData(500, ErrorKind.BackendUnavailable)]
     public async Task Download_failures_surface_before_streaming(int status, ErrorKind expected)
     {
@@ -186,9 +187,23 @@ public sealed class JmapBlobServiceTests
     }
 
     [Fact]
+    public async Task A_401_on_a_passed_through_token_asks_the_client_to_re_authenticate()
+    {
+        await using var host = new JmapTestHost();
+        host.UseCredential(new BackendCredential("Bearer", "user-token", CredentialStrategy.PassThrough));
+        host.StubSession();
+        host.Server.Given(Request.Create().WithPath("/jmap/upload/c/").UsingPost()).RespondWith(Response.Create().WithStatusCode(401));
+        host.Server.Given(Request.Create().WithPath("/jmap/download/c/b/blob").UsingGet()).RespondWith(Response.Create().WithStatusCode(401));
+
+        (await host.Blobs().UploadAsync("c", new MemoryStream([1]), "text/plain", Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendAuthFailed);
+        (await host.Blobs().DownloadAsync("c", "b", null, "text/plain", Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendAuthFailed);
+    }
+
+    [Fact]
     public async Task Blob_operations_return_connection_errors()
     {
         await using var host = new JmapTestHost();
+        host.UseCredential(new BackendCredential("Bearer", "user-token", CredentialStrategy.PassThrough));
         host.Server.Given(Request.Create().WithPath("/jmap/session").UsingGet()).RespondWith(Response.Create().WithStatusCode(401));
 
         (await host.Blobs().UploadAsync("c", new MemoryStream([1]), "text/plain", Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendAuthFailed);

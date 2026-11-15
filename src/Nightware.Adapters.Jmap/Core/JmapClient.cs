@@ -100,7 +100,7 @@ internal sealed class JmapClient(
                     connections.Reject(connection.Credential);
                 }
 
-                return await JmapHttp.ReadFailureAsync(response, time, "api", cancellationToken).ConfigureAwait(false);
+                return await JmapHttp.ReadFailureAsync(response, time, "api", connection.Credential.Strategy, cancellationToken).ConfigureAwait(false);
             }
 
             var parsed = await ParseAsync(response, cancellationToken).ConfigureAwait(false);

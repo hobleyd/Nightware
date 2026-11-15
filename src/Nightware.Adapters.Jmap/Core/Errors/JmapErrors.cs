@@ -1,5 +1,6 @@
 using System.Net;
 using Nightware.Adapters.Jmap.Core.Protocol;
+using Nightware.Application.Common.Identity;
 using Nightware.Domain.Kernel;
 
 namespace Nightware.Adapters.Jmap.Core.Errors;
@@ -26,11 +27,18 @@ internal static class JmapErrors
         new(ErrorKind.Unknown, "generalException", message);
 
     /// <summary>Maps a non-success HTTP response (any endpoint) when no JMAP problem document refines it.</summary>
-    public static Error FromStatus(HttpStatusCode status, int? retryAfterSeconds, string context)
+    /// <param name="strategy">
+    /// How the rejected credential was obtained. Only a passed-through caller token can be fixed by
+    /// the client re-authenticating; a 401 on an exchanged or service-account credential means the
+    /// façade is misconfigured (ADR 0001 §34, §42), so the client must not be sent to sign in again.
+    /// </param>
+    public static Error FromStatus(HttpStatusCode status, int? retryAfterSeconds, string context, CredentialStrategy strategy = CredentialStrategy.PassThrough)
     {
         var code = (int)status;
         return status switch
         {
+            HttpStatusCode.Unauthorized when strategy != CredentialStrategy.PassThrough =>
+                Error.BackendUnavailable($"The mail server rejected the façade's {strategy} credential ({context}); check the backend credential configuration.", retryAfterSeconds),
             HttpStatusCode.Unauthorized => Error.BackendAuthFailed($"The mail server rejected the credentials ({context})."),
             HttpStatusCode.Forbidden => Error.Forbidden($"The mail server denied access ({context})."),
             HttpStatusCode.NotFound => Error.NotFound($"Not found on the mail server ({context})."),
@@ -42,14 +50,15 @@ internal static class JmapErrors
     }
 
     /// <summary>Maps a request-level error (RFC 8620 §3.6.1).</summary>
-    public static Error FromProblem(ProblemDetails problem, HttpStatusCode status, int? retryAfterSeconds)
+    /// <param name="strategy">See <see cref="FromStatus"/>.</param>
+    public static Error FromProblem(ProblemDetails problem, HttpStatusCode status, int? retryAfterSeconds, CredentialStrategy strategy = CredentialStrategy.PassThrough)
     {
         ArgumentNullException.ThrowIfNull(problem);
         var type = problem.Type ?? string.Empty;
         var detail = problem.Detail ?? problem.Title ?? type;
         if (!type.StartsWith(ProblemPrefix, StringComparison.Ordinal))
         {
-            return FromStatus(status, retryAfterSeconds, detail);
+            return FromStatus(status, retryAfterSeconds, detail, strategy);
         }
 
         return type[ProblemPrefix.Length..] switch
@@ -57,7 +66,7 @@ internal static class JmapErrors
             "unknownCapability" => Error.Unsupported($"The mail server lacks a required capability: {detail}"),
             "limit" => FromLimit(problem.Limit, detail, retryAfterSeconds),
             "notJSON" or "notRequest" => Unexpected($"The mail server rejected the request as malformed ({type}): {detail}"),
-            _ => FromStatus(status, retryAfterSeconds, detail),
+            _ => FromStatus(status, retryAfterSeconds, detail, strategy),
         };
     }
 
