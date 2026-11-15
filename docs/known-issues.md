@@ -119,17 +119,21 @@ what a fix needs. Ordered by impact within each section.
   re-sign-in. Keep Keycloak highly available; never put a maintenance page in
   front of its token endpoint.
 - Fetching an attachment with its content buffers it whole, with no size cap.
-- **Stalwart allows 4 concurrent JMAP requests per account.** Several devices
-  on one account polling together get 429s. Raise Stalwart's limit (runbook) or
-  add a per-account concurrency limit in the façade.
 - **No circuit breakers** on the backend HttpClients; they must count only 5xx,
   timeouts and network errors. The JMAP retry policy also retries 429 (DAV and
   Keycloak exclude it), so a Stalwart 429 can stall until the request budget
   answers 503.
 - Per-user rate limits are per façade instance.
-- **Load figures need an idle machine.** The phase-6 poll-cycle run (20 devices,
-  machine saturated by other suites) missed the 300 ms p95 on inbox delta
-  (486 ms), task lists (3.3 s) and calendarView (8.3 s).
+- **calendarView misses its 300 ms p95 under load.** Idle-machine poll cycle
+  (2026-11-16: 20 devices on two accounts, 30 s interval, 5 min, Stalwart at
+  32 concurrent JMAP requests): 0 failures, 0 throttled; p95 inbox delta 25 ms,
+  folders 3 ms, task lists 299 ms, calendarView 1.08 s (median 156 ms). One
+  calendarView alone takes ~140 ms; ten in parallel for one user take
+  330–440 ms each, because Nextcloud serves one user's CalDAV requests largely
+  one after another, and the tail is calendarView queued behind the same user's
+  task-list calls. Ten devices per user polling in step is pessimistic; if real
+  use shows it, look at the façade's DAV round trips per calendarView and at
+  Nextcloud's PHP-FPM workers.
 - Backup procedures: only the `pg_dump`s were exercised; exports, the Stalwart
   tar and every restore are untested (`docs/operations/backup.md`).
 - Docker's VM disk filled up during development (Postgres couldn't start);

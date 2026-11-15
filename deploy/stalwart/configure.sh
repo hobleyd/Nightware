@@ -9,7 +9,9 @@
 #   2. pre-create the test accounts (an OIDC directory cannot look up
 #      recipients, so mail to a never-signed-in user would bounce)
 #   3. create/update the Keycloak OIDC directory, make it the default directory
-#   4. ReloadSettings
+#   4. trusted compose network, inbound throttle scope, JMAP concurrent
+#      requests per account (default 32)
+#   5. ReloadSettings
 #
 # Authenticates as the recovery administrator (STALWART_RECOVERY_ADMIN).
 source "$(dirname "$0")/../scripts/lib.sh"
@@ -105,7 +107,32 @@ if [[ -n "$THROTTLE_ID" ]]; then
     | jq -e ".methodResponses[0][1].updated | has(\"${THROTTLE_ID}\")" >/dev/null
 fi
 
+# ------------------------------------------ 4c. concurrent JMAP requests/account
+# Stalwart allows 4 JMAP requests in flight per account by default. Every one of a
+# user's devices reaches it as that user through the façade, so a few devices
+# polling together (or one device prefetching bodies) got JMAP `limit` problems,
+# answered as 429. The façade already bounds a user to 32 requests in flight
+# (RateLimiting:ConcurrentRequestLimit), so Stalwart matches it and the
+# façade's limit is the one that applies. ReloadSettings does not apply JMAP
+# limits to a running server (verified: the old limit held until a restart), so a
+# change here restarts Stalwart after the reload below.
+RESTART_STALWART=0
+JMAP_CONCURRENCY="${STALWART_JMAP_MAX_CONCURRENT_REQUESTS:-32}"
+current=$(call '[["x:Jmap/get",{"ids":["singleton"],"properties":["maxConcurrentRequests"]},"g"]]' \
+  | jq -r '.methodResponses[0][1].list[0].maxConcurrentRequests')
+if [[ "$current" != "$JMAP_CONCURRENCY" ]]; then
+  log "Stalwart: JMAP maxConcurrentRequests ${current} -> ${JMAP_CONCURRENCY} per account"
+  call "$(jq -cn --argjson n "$JMAP_CONCURRENCY" '[["x:Jmap/set",{"update":{"singleton":{maxConcurrentRequests:$n}}},"c"]]')" \
+    | jq -e '.methodResponses[0][1].updated | has("singleton")' >/dev/null
+  RESTART_STALWART=1
+fi
+
 # ------------------------------------------------------------------ 5. reload
 call '[["x:Action/set",{"create":{"r":{"@type":"ReloadSettings"}}},"c"]]' \
   | jq -e '.methodResponses[0][1].created' >/dev/null
+if (( RESTART_STALWART )); then
+  log "Stalwart: restarting to apply the JMAP request limits"
+  dc restart stalwart >/dev/null
+  wait_for "stalwart restart" ccurl -f "${MAIL_URL}/healthz/live"
+fi
 log "Stalwart: configured (directory ${DIR_ID} is the default directory)"

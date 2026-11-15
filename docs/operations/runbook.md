@@ -135,18 +135,30 @@ Nextcloud to one attendee is throttled. Raise or re-key that throttle in Stalwar
 
 ## 429 on mail calls with several devices (Stalwart's concurrent-request limit)
 
-**Cause.** Stalwart allows `maxConcurrentRequests` (4 by default) JMAP requests in flight per
-account. When more than four devices of one user (or a device's parallel fetches) hit mail at the
-same moment, Stalwart answers a JMAP `limit` problem, which the façade reports as
-`429 TooManyRequests` with `Retry-After: 5`. NightMail waits and retries, so users rarely notice;
-the k6 run with ten devices per account saw 4 of 80 delta calls throttled this way.
+**Cause.** Stalwart limits JMAP requests in flight per account (`maxConcurrentRequests`, Stalwart's
+default 4). Every device of a user reaches it as that user, so a burst above the limit gets a JMAP
+`limit` problem, which the façade answers as `429 TooManyRequests` with `Retry-After: 5` and the
+message "The mail server's maxConcurrentRequests limit was reached."
 
-**Confirm.** The façade's own limiter does not log; Stalwart's limit shows as `Result: '400'` on the
-`Nightware.Jmap-jmap-api` pipeline (raise `Logging:LogLevel:Polly` to `Information`) with
-`maxConcurrentRequests` in the error.
+**Default.** `deploy/stalwart/configure.sh` sets it to 32, matching the façade's own per-user limit
+(`RateLimiting:ConcurrentRequestLimit`), so the façade's limit is the one users meet. Override with
+`STALWART_JMAP_MAX_CONCURRENT_REQUESTS`. Stalwart applies this limit only at startup (a settings
+reload is not enough), so the script restarts Stalwart when it changes the value. If you change it
+in Stalwart's web UI, restart Stalwart too.
 
-**Fix.** Raise Stalwart's concurrent-request limit for JMAP (Settings → JMAP → Protocol → request
-limits) to cover the devices per user you expect (e.g. 16).
+**Confirm.** `curl` a dozen parallel `…/mailFolders/inbox/messages/delta` calls with one user's
+token: every one should be 200. If some are 429 with the message above, the limit in force is
+lower than the burst (check the value, then whether Stalwart was restarted since it was set).
+
+## TLS errors after the host slept (dev stack)
+
+**Cause.** Caddy's local CA issues 12-hour certificates and renews them from a 10-minute
+maintenance timer. While a laptop sleeps, Docker's VM is paused, so a certificate can expire with
+no renewal attempt; for up to 10 minutes after waking, clients see `certificate has expired` on
+`auth.`/`mail.`/`graph.`/`cloud.`.
+
+**Fix.** Wait for the next maintenance run, or `docker compose -p nightware restart caddy`, which
+renews expired certificates on start (its volumes, and so the root CA clients trust, are kept).
 
 ## 413 on sending large attachments
 
