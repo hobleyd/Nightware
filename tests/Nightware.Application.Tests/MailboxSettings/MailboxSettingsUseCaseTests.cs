@@ -13,12 +13,16 @@ public sealed class MailboxSettingsUseCaseTests
     private static readonly MailboxRef Alice = new("alice@example.com");
     private static readonly MailboxRef Shared = new("team@example.com");
 
+    private readonly IMailboxSettingsAccess _access = Substitute.For<IMailboxSettingsAccess>();
     private readonly IAutoReplyStore _replies = Substitute.For<IAutoReplyStore>();
     private readonly IUserPreferencesStore _preferences = Substitute.For<IUserPreferencesStore>();
     private readonly IUserContext _caller = Substitute.For<IUserContext>();
 
-    public MailboxSettingsUseCaseTests() =>
+    public MailboxSettingsUseCaseTests()
+    {
         _caller.Principal.Returns(new Principal("sub-alice", "alice", "alice@example.com", "Alice"));
+        _access.CheckAsync(Arg.Any<MailboxRef>(), Arg.Any<CancellationToken>()).Returns(Result.Success());
+    }
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -37,7 +41,7 @@ public sealed class MailboxSettingsUseCaseTests
         _replies.GetAsync(Alice, Ct).Returns(StoredSchedule);
         _preferences.GetAsync(Alice, Ct).Returns(new UserPreferences("Australia/Sydney", "en"));
 
-        var result = await new GetMailboxSettings(_replies, _preferences).ExecuteAsync(Alice, Ct);
+        var result = await Get().ExecuteAsync(Alice, Ct);
 
         result.Value.TimeZone.ShouldBe("AUS Eastern Standard Time");
         result.Value.AutomaticReplies.ScheduledStartDateTime.ShouldBe(new DateTimeTimeZone(new DateTime(2026, 9, 20, 0, 0, 0), "AUS Eastern Standard Time"));
@@ -51,7 +55,7 @@ public sealed class MailboxSettingsUseCaseTests
         _replies.GetAsync(Alice, Ct).Returns(new AutoReplySetting(AutoReplyStatus.Disabled));
         _preferences.GetAsync(Alice, Ct).Returns(new UserPreferences("GMT Standard Time", null));
 
-        var result = await new GetMailboxSettings(_replies, _preferences).ExecuteAsync(Alice, Ct);
+        var result = await Get().ExecuteAsync(Alice, Ct);
 
         result.Value.TimeZone.ShouldBe("GMT Standard Time");
     }
@@ -64,7 +68,7 @@ public sealed class MailboxSettingsUseCaseTests
         _replies.GetAsync(Alice, Ct).Returns(StoredSchedule);
         _preferences.GetAsync(Alice, Ct).Returns(new UserPreferences(zone, null));
 
-        var result = await new GetMailboxSettings(_replies, _preferences).ExecuteAsync(Alice, Ct);
+        var result = await Get().ExecuteAsync(Alice, Ct);
 
         result.Value.TimeZone.ShouldBe("UTC");
         result.Value.AutomaticReplies.ScheduledStartDateTime.ShouldBe(StoredSchedule.ScheduledStartDateTime);
@@ -76,7 +80,7 @@ public sealed class MailboxSettingsUseCaseTests
         _replies.GetAsync(Shared, Ct).Returns(new AutoReplySetting(AutoReplyStatus.Disabled));
         _preferences.GetAsync(Shared, Ct).Returns(Error.NotFound("no such user"));
 
-        var result = await new GetMailboxSettings(_replies, _preferences).ExecuteAsync(Shared, Ct);
+        var result = await Get().ExecuteAsync(Shared, Ct);
 
         result.Value.TimeZone.ShouldBe("UTC");
     }
@@ -87,7 +91,7 @@ public sealed class MailboxSettingsUseCaseTests
         _replies.GetAsync(Alice, Ct).Returns(new AutoReplySetting(AutoReplyStatus.Disabled));
         _preferences.GetAsync(Alice, Ct).Returns(Error.BackendUnavailable("keycloak down"));
 
-        var result = await new GetMailboxSettings(_replies, _preferences).ExecuteAsync(Alice, Ct);
+        var result = await Get().ExecuteAsync(Alice, Ct);
 
         result.Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
     }
@@ -97,7 +101,7 @@ public sealed class MailboxSettingsUseCaseTests
     {
         _replies.GetAsync(Shared, Ct).Returns(Error.Forbidden("not yours"));
 
-        var result = await new GetMailboxSettings(_replies, _preferences).ExecuteAsync(Shared, Ct);
+        var result = await Get().ExecuteAsync(Shared, Ct);
 
         result.Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         await _preferences.DidNotReceiveWithAnyArgs().GetAsync(default, Ct);
@@ -235,5 +239,72 @@ public sealed class MailboxSettingsUseCaseTests
         result.Error!.Kind.ShouldBe(ErrorKind.Forbidden);
     }
 
-    private UpdateMailboxSettings Update() => new(_replies, _preferences, _caller);
+    [Theory]
+    [InlineData(ErrorKind.Forbidden)]
+    [InlineData(ErrorKind.NotFound)]
+    public async Task Get_touches_no_store_when_access_is_refused(ErrorKind refusal)
+    {
+        _access.CheckAsync(Shared, Ct).Returns(new Error(refusal, "refused", "not yours"));
+        // Both stores would answer: only the access check may stop the read.
+        _replies.GetAsync(Shared, Ct).Returns(new AutoReplySetting(AutoReplyStatus.Disabled));
+        _preferences.GetAsync(Shared, Ct).Returns(new UserPreferences("Australia/Sydney", null));
+
+        var result = await Get().ExecuteAsync(Shared, Ct);
+
+        result.Error!.Kind.ShouldBe(refusal);
+        await _replies.DidNotReceiveWithAnyArgs().GetAsync(default, Ct);
+        await _preferences.DidNotReceiveWithAnyArgs().GetAsync(default, Ct);
+    }
+
+    [Fact]
+    public async Task Get_checks_access_before_reading_either_store()
+    {
+        _replies.GetAsync(Alice, Ct).Returns(new AutoReplySetting(AutoReplyStatus.Disabled));
+        _preferences.GetAsync(Alice, Ct).Returns(new UserPreferences("UTC", null));
+
+        (await Get().ExecuteAsync(Alice, Ct)).IsSuccess.ShouldBeTrue();
+
+        Received.InOrder(() =>
+        {
+            _access.CheckAsync(Alice, Ct);
+            _replies.GetAsync(Alice, Ct);
+            _preferences.GetAsync(Alice, Ct);
+        });
+    }
+
+    [Fact]
+    public async Task Update_touches_no_store_when_access_is_refused()
+    {
+        _access.CheckAsync(Shared, Ct).Returns(Error.Forbidden("not yours"));
+        _replies.SetAsync(Shared, Arg.Any<AutoReplySetting>(), Ct).Returns(StoredSchedule);
+        _preferences.GetAsync(Shared, Ct).Returns(new UserPreferences("UTC", null));
+
+        var result = await Update().ExecuteAsync(Shared, new MailboxSettingsPatch { AutomaticReplies = StoredSchedule }, Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        await _replies.DidNotReceiveWithAnyArgs().SetAsync(default, null!, Ct);
+        await _replies.DidNotReceiveWithAnyArgs().GetAsync(default, Ct);
+        await _preferences.DidNotReceiveWithAnyArgs().GetAsync(default, Ct);
+        await _preferences.DidNotReceiveWithAnyArgs().SetAsync(default, null!, Ct);
+    }
+
+    [Fact]
+    public async Task Update_checks_access_before_writing_either_store()
+    {
+        _replies.GetAsync(Alice, Ct).Returns(new AutoReplySetting(AutoReplyStatus.Disabled));
+        _preferences.SetAsync(Alice, Arg.Any<UserPreferencesPatch>(), Ct).Returns(new UserPreferences("UTC", null));
+
+        (await Update().ExecuteAsync(Alice, new MailboxSettingsPatch { TimeZone = "UTC" }, Ct)).IsSuccess.ShouldBeTrue();
+
+        Received.InOrder(() =>
+        {
+            _access.CheckAsync(Alice, Ct);
+            _replies.GetAsync(Alice, Ct);
+            _preferences.SetAsync(Alice, Arg.Any<UserPreferencesPatch>(), Ct);
+        });
+    }
+
+    private GetMailboxSettings Get() => new(_access, _replies, _preferences);
+
+    private UpdateMailboxSettings Update() => new(_access, _replies, _preferences, _caller);
 }
