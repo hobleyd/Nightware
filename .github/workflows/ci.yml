@@ -71,7 +71,9 @@ jobs:
       - name: Image starts and answers liveness
         run: |
           # Discovery/Auth need only syntactically valid config to start; backends are not contacted for liveness.
+          # The image runs as Production, which refuses to start without a signing key of >= 32 bytes.
           docker run -d --name nightware-api -p 8080:8080 \
+            -e DeltaLinks__SigningKey="$(openssl rand -hex 32)" \
             -e Auth__Authority=https://auth.example.test/realms/nightware \
             -e Discovery__GraphBaseUrl=https://graph.example.test/v1.0 \
             -e Discovery__GraphBetaBaseUrl=https://graph.example.test/beta \

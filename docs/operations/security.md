@@ -12,11 +12,33 @@ What the façade enforces, where, and why. Code references are under `src/Nightw
   and Nextcloud each receive a token exchanged for their own audience, and reject an un-exchanged
   NightMail token (asserted by `deploy/smoke.sh`).
 
+## The root secret (`Hosting/SigningKeyValidator.cs`)
+
+`DeltaLinks:SigningKey` signs delta/next links and keys (HKDF → AES-256-GCM, one key per purpose)
+the seal on self-authorising upload and download URLs, which carry the caller's **access token**.
+A known key means forged links and readable tokens, so Production refuses to start when it is
+missing, shorter than 32 bytes or a development value from this repository, and the compose file
+has no default for `NIGHTWARE_DELTA_LINK_KEY`. Generation and rotation:
+[deployment.md](deployment.md#the-façades-root-secret-nightware_delta_link_key).
+
+## Identity attributes are admin-only (Keycloak)
+
+The user's identity is the token's `email` claim: it is the façade's `/me` mailbox and the Stalwart
+account (`claimUsername: email`). If users could edit their own email in Keycloak's account console,
+one could take an address that exists only in Stalwart (an offboarded user, a shared mailbox) and
+open that mailbox. `deploy/keycloak/configure.sh` therefore merges `permissions.edit: ["admin"]`
+into the realm user profile for `email` and `username` (read-modify-write, nothing else changes),
+keeps `editUsernameAllowed` off and the `UPDATE_EMAIL` required action disabled. Address changes are
+an admin task. The façade does not yet require `email_verified` (see `docs/known-issues.md`).
+
 ## Per-user rate limits (`Throttling/`)
 
 Token bucket (300 burst, 10/s) chained with a concurrency limit (32), partitioned by `sub`; requests
 without a valid token are partitioned by client address. A rejection is `429 TooManyRequests` with
 an integer `Retry-After`, which NightMail honours. Discovery, health and CORS preflights are exempt.
+Readiness (`/healthz`), which is anonymous and fans out to every backend, is instead cached for 10 s
+and single-flight (`Hosting/ReadinessCache.cs`), so a caller looping on it cannot multiply backend
+load.
 Limits are per façade instance; with N instances behind a load balancer a user can reach N× the
 configured rate (sticky sessions or a smaller per-instance budget if that matters).
 

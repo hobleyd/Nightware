@@ -21,6 +21,20 @@ Directory/BackendCredentials configuration and the realm`, with Keycloak's `erro
 nightware-realm.json`), restart the façade. Exchanged tokens are cached for their lifetime; a restart
 clears the cache.
 
+## The façade does not start: `DeltaLinks:SigningKey`
+
+**Symptoms.** The container restarts in a loop. Its log has an `OptionsValidationException` naming
+`DeltaLinks:SigningKey (environment variable DeltaLinks__SigningKey; compose: NIGHTWARE_DELTA_LINK_KEY …)`.
+Or `docker compose` itself refuses with `required variable NIGHTWARE_DELTA_LINK_KEY is missing a value`.
+
+**Cause.** Production needs the root secret: set, at least 32 bytes, and not a development value.
+
+**Fix.** Run `deploy/scripts/init-env.sh`, or set `NIGHTWARE_DELTA_LINK_KEY=$(openssl rand -hex 32)`
+in `deploy/.env` yourself. Then recreate the façade:
+`docker compose -p nightware --profile api up -d --no-deps nightware-api`.
+On a multi-instance deployment use the key the other instances already have, not a new one; a new
+key forces every client to resync ([deployment.md](deployment.md#the-façades-root-secret-nightware_delta_link_key)).
+
 ## Everyone gets 401
 
 **Cause.** Tokens fail validation: issuer mismatch (`Auth:Authority` ≠ the token's `iss`, e.g.

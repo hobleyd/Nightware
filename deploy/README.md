@@ -23,11 +23,16 @@ richdocuments 12.0.2.
 
 ```bash
 cd deploy
-cp .env.example .env                     # dev defaults; change secrets for anything shared
+./scripts/init-env.sh                    # .env from .env.example + a random NIGHTWARE_DELTA_LINK_KEY
+                                         # (dev defaults otherwise; change secrets for anything shared)
 docker compose -p nightware up -d        # ~1-2 min until Keycloak + Nextcloud are healthy
 ./bootstrap.sh                           # one-time, idempotent (~1 min on a fresh volume)
 ./smoke.sh                               # exit status = number of failed checks
 ```
+
+Every compose command needs `NIGHTWARE_DELTA_LINK_KEY` in `.env`; the compose file has no default
+for it. `scripts/init-env.sh` generates it and is idempotent. `bootstrap.sh` and the other scripts
+(through `scripts/lib.sh`), `make stack` and `make api` run it for you.
 
 `bootstrap.sh` runs, in order:
 
@@ -36,8 +41,11 @@ docker compose -p nightware up -d        # ~1-2 min until Keycloak + Nextcloud a
    the URLs without warnings. On macOS:
    `sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain .certs/caddy-root.crt`
 2. `keycloak/configure.sh` declares the mailboxSettings attributes in the
-   user profile (see "User → backend mapping"). It seeds them for alice and
-   bob through the `nightware-api` service account.
+   user profile (see "User → backend mapping"), makes `email` and `username`
+   admin-editable only, and keeps the `UPDATE_EMAIL` required action disabled.
+   It merges into the existing user profile and changes only what differs.
+   It seeds the attributes for alice and bob through the `nightware-api`
+   service account.
 3. `stalwart/configure.sh` runs Stalwart's first-start Bootstrap through the
    API and restarts the container. It then pre-creates alice and bob, creates
    the Keycloak OIDC directory and makes it the default, sets the trusted
@@ -55,13 +63,13 @@ docker compose -p nightware --profile api up -d --build --no-deps nightware-api 
 ```
 
 It listens on 8080 inside its container, behind Caddy at `https://graph.${BASE_DOMAIN}`, and has a
-liveness healthcheck on `/healthz/live`. `/healthz` is readiness (every backend). `smoke.sh` checks
+liveness healthcheck on `/healthz/live`. `/healthz` is readiness (every backend, cached for 10 s). `smoke.sh` checks
 `/healthz` and `GET /v1.0/me` with alice's token. Settings it takes from `.env`:
 
 | `.env` | Façade setting | Default |
 |---|---|---|
 | `NIGHTWARE_ENVIRONMENT` | `ASPNETCORE_ENVIRONMENT` | `Development` (use `Production` outside dev) |
-| `NIGHTWARE_DELTA_LINK_KEY` | `DeltaLinks:SigningKey` | a dev-only constant |
+| `NIGHTWARE_DELTA_LINK_KEY` | `DeltaLinks:SigningKey`: the façade's root secret (delta links and sealed upload/download URLs) | **required**, no default; `scripts/init-env.sh` generates one |
 | `NIGHTWARE_API_CLIENT_SECRET` | `Directory:ClientSecret` | required |
 | `DOCKER_SUBNET` | `ForwardedHeaders:KnownNetworks:0` (only Caddy may set `X-Forwarded-*`) | `172.31.250.0/24` |
 | `NIGHTMAIL_WEB_ORIGIN` | `Cors:AllowedOrigins:0` | `http://localhost:34572` |
@@ -144,7 +152,10 @@ Lifetime is 15 minutes (`accessTokenLifespan` 900). Refresh with
 ### User → backend mapping
 
 - **Stalwart account = `email` claim** (`claimUsername: email`). For example,
-  alice's JMAP `username` is `alice@nightware.localhost`.
+  alice's JMAP `username` is `alice@nightware.localhost`. The email is the
+  identity, so only admins can change it: the realm user profile gives
+  `email` and `username` `edit: ["admin"]`, and a user's change through the
+  account console or account REST API is refused (`keycloak/configure.sh`).
 - **Nextcloud uid = `preferred_username`** (user_oidc `--unique-uid=0
   --mapping-uid=preferred_username`). The uid for alice is `alice`, so her
   DAV paths are `/remote.php/dav/.../alice/`.

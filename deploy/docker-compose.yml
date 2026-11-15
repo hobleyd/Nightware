@@ -274,7 +274,10 @@ services:
       Discovery__AuthorizationEndpoint: https://auth.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/realms/nightware/protocol/openid-connect/auth
       Discovery__TokenEndpoint: https://auth.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/realms/nightware/protocol/openid-connect/token
       Discovery__ClientId: nightmail
-      DeltaLinks__SigningKey: ${NIGHTWARE_DELTA_LINK_KEY:-dev-only-delta-link-signing-key}
+      # The façade's root secret: signs delta links and keys the seal on upload/download
+      # URLs that carry callers' tokens. No default: a public one would let anyone forge
+      # them. scripts/init-env.sh (run by bootstrap.sh, make stack, make api) generates it.
+      DeltaLinks__SigningKey: "${NIGHTWARE_DELTA_LINK_KEY:?is not set in deploy/.env - run deploy/scripts/init-env.sh, or set it to the output of openssl rand -hex 32}"
       Directory__KeycloakBaseUrl: http://keycloak:8080
       Directory__Realm: nightware
       Directory__ClientId: nightware-api

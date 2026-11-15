@@ -88,6 +88,9 @@ if [[ "${SMOKE_IMIP:-1}" == 1 ]]; then
 fi
 
 log "Nightware API (profile 'api')"
+# Every compose command fails when .env lacks a required value (NIGHTWARE_DELTA_LINK_KEY);
+# count that as a failure rather than letting the check below skip as "not running".
+check "docker compose config (deploy/.env complete)" dc --profile api config --quiet
 if dc ps --status running --services 2>/dev/null | grep -qx nightware-api; then
   check "GET ${GRAPH_URL}/healthz" ccurl -f -o /dev/null "${GRAPH_URL}/healthz"
   code=$(ccurl -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${ALICE}" "${GRAPH_URL}/v1.0/me")

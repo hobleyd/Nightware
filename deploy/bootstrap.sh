@@ -4,7 +4,8 @@
 # Safe to re-run; each step converges.
 source "$(dirname "$0")/scripts/lib.sh"
 
-[[ -f .env ]] || { cp .env.example .env; log "created .env from .env.example"; }
+# lib.sh has already run scripts/init-env.sh: .env exists and holds a
+# NIGHTWARE_DELTA_LINK_KEY (generated on first run, never replaced).
 
 log "Exporting Caddy root CA -> .certs/caddy-root.crt"
 export_ca

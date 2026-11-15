@@ -6,6 +6,7 @@
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
+  "editUsernameAllowed": false,
   "internationalizationEnabled": true,
   "supportedLocales": ["en", "de", "fr", "es", "it", "nl", "pt-BR", "ja"],
   "defaultLocale": "en",

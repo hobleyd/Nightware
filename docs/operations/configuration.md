@@ -25,7 +25,7 @@ process with a message naming the key, instead of failing on the first request.
 | `Discovery:TokenEndpoint` | Keycloak `…/token` | Published to NightMail. Required. Must be highly available (see README). |
 | `Discovery:ClientId` | `nightmail` | The public client NightMail signs in with. |
 | `Discovery:Scopes:N` | `openid email profile offline_access` | Requested scopes. |
-| `DeltaLinks:SigningKey` 🔒 | empty (random per process) | HMAC key for delta/next links. Must be identical on every instance and stable across restarts. |
+| `DeltaLinks:SigningKey` 🔒 | empty (random per process outside Production) | The façade's root secret: HMAC key for delta/next links, and (through HKDF) the AES-GCM keys that seal callers' tokens into upload/download URLs. **Production refuses to start** without one of at least 32 bytes (`openssl rand -hex 32`). Must be identical on every instance and stable across restarts. Compose: `NIGHTWARE_DELTA_LINK_KEY`, required. Rotation: [deployment.md](deployment.md#the-façades-root-secret-nightware_delta_link_key). |
 | `DeltaLinks:Lifetime` | `30.00:00:00` | How long a delta link is accepted; older ones get 410 and the client resyncs. |
 
 ## Backends
@@ -115,4 +115,4 @@ regardless of configuration, because URLs can carry credentials — see [securit
 | Path | Meaning |
 |---|---|
 | `/healthz/live` | Liveness: the process answers. Never consults a backend. |
-| `/healthz` | Readiness: every backend check (Stalwart session, Nextcloud DAV, Keycloak realm). |
+| `/healthz` | Readiness: every backend check (Stalwart session, Nextcloud DAV, Keycloak realm). The result is cached for 10 s and shared by all callers, so hitting it in a loop costs the backends at most one round of checks per 10 s. |
