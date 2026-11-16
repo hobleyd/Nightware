@@ -6,7 +6,7 @@
 # ("registry"), managed over JMAP. This script is idempotent:
 #
 #   1. bootstrap mode (fresh volume) -> submit x:Bootstrap, restart container
-#   2. pre-create the test accounts (an OIDC directory cannot look up
+#   2. pre-create the mail accounts (an OIDC directory cannot look up
 #      recipients, so mail to a never-signed-in user would bounce)
 #   3. create/update the Keycloak OIDC directory, make it the default directory
 #   4. trusted compose network, inbound throttle scope, JMAP concurrent
@@ -43,10 +43,13 @@ fi
 DOMAIN_ID=$(call "$(jq -cn --arg d "$MAIL_DOMAIN" '[["x:Domain/query",{"filter":{"name":$d}},"c"]]')" | jq -er '.methodResponses[0][1].ids[0]')
 log "Stalwart: domain ${MAIL_DOMAIN} id=${DOMAIN_ID}"
 
-# ------------------------------------------------------- 2. test user accounts
+# ------------------------------------------------------- 2. user accounts
+# STALWART_ACCOUNTS: the local parts to create (default the test users alice
+# and bob). A deployment with real users lists theirs instead; each must match
+# the email claim of the Keycloak user who signs in as it.
 existing=$(call '[["x:Account/query",{},"q"],["x:Account/get",{"#ids":{"resultOf":"q","name":"x:Account/query","path":"/ids"},"properties":["name","emailAddress"]},"g"]]' \
   | jq -r '.methodResponses[1][1].list[].emailAddress')
-for u in alice bob; do
+for u in ${STALWART_ACCOUNTS:-alice bob}; do
   if grep -qx "${u}@${MAIL_DOMAIN}" <<<"$existing"; then
     log "Stalwart: account ${u}@${MAIL_DOMAIN} exists"
   else
