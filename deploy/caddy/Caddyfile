@@ -1,7 +1,12 @@
-# TLS for the Nightware dev stack. With CADDY_TLS=internal (default) every
-# site uses Caddy's local CA (root at /data/caddy/pki/authorities/local/root.crt;
-# bootstrap.sh exports it to deploy/.certs/caddy-root.crt). Set CADDY_TLS to an
-# ACME email to get publicly trusted certificates for a real BASE_DOMAIN.
+# TLS and routing for the Nightware dev stack: one public host, one path prefix
+# per backend.
+#
+# CADDY_TLS is one of
+#   internal (default)  Caddy's local CA (root at /data/caddy/pki/authorities/local/root.crt;
+#                       bootstrap.sh exports it to deploy/.certs/caddy-root.crt)
+#   <ACME email>        publicly trusted certificates for a resolvable PUBLIC_HOST
+#   "/certs/fullchain.crt /certs/privkey.key"
+#                       files you supply in deploy/.certs (scripts/fetch-cert.sh)
 {
 	https_port {$HTTPS_PORT:443}
 	auto_https disable_redirects
@@ -9,49 +14,71 @@
 	skip_install_trust
 }
 
-(common) {
+{$PUBLIC_HOST:nightware.localhost} {
 	tls {$CADDY_TLS:internal}
 	encode gzip
-}
 
-auth.{$BASE_DOMAIN:nightware.localhost} {
-	import common
-	reverse_proxy keycloak:8080
-}
-
-mail.{$BASE_DOMAIN:nightware.localhost} {
-	import common
-	# Stalwart's plain-HTTP listener (8080): JMAP (/jmap, /.well-known/jmap),
-	# WebDAV, WebUI (/admin, /account) and the management API.
-	reverse_proxy stalwart:8080
-}
-
-cloud.{$BASE_DOMAIN:nightware.localhost} {
-	import common
-	request_body {
-		max_size 1GB
+	# NightMail's server discovery is the façade's, at the host root.
+	handle /.well-known/nightware {
+		reverse_proxy nightware-api:8080
 	}
-	redir /.well-known/carddav /remote.php/dav/ 301
-	redir /.well-known/caldav /remote.php/dav/ 301
-	reverse_proxy nextcloud:80
-}
+	redir /.well-known/carddav /cloud/remote.php/dav/ 301
+	redir /.well-known/caldav /cloud/remote.php/dav/ 301
 
-office.{$BASE_DOMAIN:nightware.localhost} {
-	import common
-	# Collabora Online for Nextcloud Office. Document conversion is for the
-	# façade only, which calls collabora:9980 directly: through this proxy every
-	# client would arrive from Caddy's private address and pass Collabora's
-	# post_allow check.
-	@convert path /cool/convert-to /cool/convert-to/* /lool/convert-to /lool/convert-to/*
-	respond @convert 403
-	reverse_proxy collabora:9980 {
-		# Long-lived WebSocket editing sessions.
-		flush_interval -1
+	# Keycloak serves under /auth itself (KC_HTTP_RELATIVE_PATH), so no stripping.
+	redir /auth /auth/ 301
+	handle /auth/* {
+		reverse_proxy keycloak:8080
 	}
-}
 
-graph.{$BASE_DOMAIN:nightware.localhost} {
-	import common
-	# Only answers when the `api` compose profile is up; 502 otherwise.
-	reverse_proxy nightware-api:8080
+	# Stalwart has no path prefix: its router matches root segments, and the
+	# JMAP session advertises ${PUBLIC_URL}/jmap/... So JMAP lives at the root,
+	# and /mail/* is a stripped alias for everything else it serves (healthz,
+	# WebDAV). Its web admin is not usable through the alias (absolute links).
+	handle /.well-known/jmap {
+		reverse_proxy stalwart:8080
+	}
+	handle /jmap/* {
+		reverse_proxy stalwart:8080
+	}
+	handle_path /mail/* {
+		reverse_proxy stalwart:8080
+	}
+
+	# Nextcloud generates /cloud links itself (overwritewebroot) for requests
+	# from this proxy's pinned address only (overwritecondaddr).
+	redir /cloud /cloud/ 301
+	handle_path /cloud/* {
+		request_body {
+			max_size 1GB
+		}
+		reverse_proxy nextcloud:80
+	}
+
+	# Collabora Online for Nextcloud Office, under its own service root
+	# (net.service_root=/office), so the path is passed through. Document
+	# conversion is for the façade only, which calls collabora:9980 directly:
+	# through this proxy every client would arrive from Caddy's private address
+	# and pass Collabora's post_allow check.
+	handle /office/* {
+		@convert path /office/cool/convert-to /office/cool/convert-to/* /office/lool/convert-to /office/lool/convert-to/*
+		respond @convert 403
+		reverse_proxy collabora:9980 {
+			# Long-lived WebSocket editing sessions.
+			flush_interval -1
+		}
+	}
+
+	# Only answers when the `api` compose profile is up; 502 otherwise. The
+	# façade builds its links on Discovery:GraphBaseUrl (.../graph/v1.0); the
+	# prefix header covers anything built from the request instead.
+	handle_path /graph/* {
+		reverse_proxy nightware-api:8080 {
+			header_up X-Forwarded-Prefix /graph
+		}
+	}
+
+	handle {
+		redir * /cloud/ 302
+	}
 }

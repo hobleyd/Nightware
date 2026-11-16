@@ -14,7 +14,8 @@ COVERAGE_SETTINGS := $(CURDIR)/scripts/ci/coverage.settings.xml
 COVERAGE_LINE ?= 90
 COVERAGE_BRANCH ?= 80
 IMAGE ?= nightware/api:dev
-COMPOSE := docker compose -p nightware
+# No -p: run in deploy/, compose takes the project name from deploy/.env (COMPOSE_PROJECT_NAME).
+COMPOSE := docker compose
 K6_IMAGE ?= grafana/k6:1.4.2
 LOAD_SCRIPT ?= poll-cycle.js
 
@@ -71,6 +72,10 @@ stack: env ## Start the deploy/ backends (Keycloak, Stalwart, Nextcloud, Caddy) 
 .PHONY: api
 api: env ## (Re)build and start only the façade container against the running stack
 	cd deploy && $(COMPOSE) --profile api up -d --build --wait --no-deps nightware-api
+
+.PHONY: cert
+cert: ## Copy the TLS certificate and key from CERT_SOURCE_HOST into deploy/.certs and reload Caddy (deploy/scripts/fetch-cert.sh)
+	deploy/scripts/fetch-cert.sh
 
 .PHONY: integration
 integration: stack ## Bootstrap the stack, start the façade, run smoke.sh and the live integration suite

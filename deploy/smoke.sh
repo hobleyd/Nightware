@@ -12,12 +12,12 @@ check() { local name="$1"; shift; if "$@"; then ok "$name"; else bad "$name"; fa
 
 log "Keycloak"
 check "OIDC discovery issuer = ${ISSUER}" \
-  bash -c "curl -sS --cacert '$CA_FILE' '${ISSUER}/.well-known/openid-configuration' | jq -e --arg i '$ISSUER' '.issuer==\$i' >/dev/null"
+  bash -c "$CCURL '${ISSUER}/.well-known/openid-configuration' | jq -e --arg i '$ISSUER' '.issuer==\$i' >/dev/null"
 
 ALICE=$(user_token alice 2>/dev/null)
 check "password grant for alice (nightware-dev)" test -n "$ALICE"
-check "alice token: aud contains nightware-api, email=alice@${BASE_DOMAIN}" \
-  bash -c "jq -e '([.aud]|flatten|index(\"nightware-api\"))!=null and .email==\"alice@${BASE_DOMAIN}\"' <<<'$(jwt_claims "$ALICE")' >/dev/null"
+check "alice token: aud contains nightware-api, email=alice@${MAIL_DOMAIN}" \
+  bash -c "jq -e '([.aud]|flatten|index(\"nightware-api\"))!=null and .email==\"alice@${MAIL_DOMAIN}\"' <<<'$(jwt_claims "$ALICE")' >/dev/null"
 PKCE=$("$DEPLOY_DIR/get-token.sh" --pkce --json alice 2>/dev/null)
 check "nightmail auth-code + PKCE, redirect http://localhost:34571 (headless)" \
   bash -c "jq -e '.access_token and .refresh_token' >/dev/null <<<'$PKCE'"
@@ -26,8 +26,8 @@ REFRESHED=$(ccurl "$TOKEN_URL" -d grant_type=refresh_token -d client_id=nightmai
   --data-urlencode "scope=openid email profile offline_access" 2>/dev/null | jq -r '.access_token // empty')
 check "nightmail refresh (scope=openid email profile offline_access)" test -n "$REFRESHED"
 check "CORS for ${NIGHTMAIL_WEB_ORIGIN:-http://localhost:34572} on discovery + token endpoint" bash -c "
-  curl -sS --cacert '$CA_FILE' -D - -o /dev/null -H 'Origin: ${NIGHTMAIL_WEB_ORIGIN:-http://localhost:34572}' '${ISSUER}/.well-known/openid-configuration' | grep -qi '^access-control-allow-origin: ${NIGHTMAIL_WEB_ORIGIN:-http://localhost:34572}' &&
-  curl -sS --cacert '$CA_FILE' -D - -o /dev/null -X OPTIONS -H 'Origin: ${NIGHTMAIL_WEB_ORIGIN:-http://localhost:34572}' -H 'Access-Control-Request-Method: POST' '${TOKEN_URL}' | grep -qi '^access-control-allow-origin: ${NIGHTMAIL_WEB_ORIGIN:-http://localhost:34572}'"
+  $CCURL -D - -o /dev/null -H 'Origin: ${NIGHTMAIL_WEB_ORIGIN:-http://localhost:34572}' '${ISSUER}/.well-known/openid-configuration' | grep -qi '^access-control-allow-origin: ${NIGHTMAIL_WEB_ORIGIN:-http://localhost:34572}' &&
+  $CCURL -D - -o /dev/null -X OPTIONS -H 'Origin: ${NIGHTMAIL_WEB_ORIGIN:-http://localhost:34572}' -H 'Access-Control-Request-Method: POST' '${TOKEN_URL}' | grep -qi '^access-control-allow-origin: ${NIGHTMAIL_WEB_ORIGIN:-http://localhost:34572}'"
 
 ALICE_JMAP=$(exchange_token "$ALICE" stalwart 2>/dev/null)
 check "token exchange alice -> aud=stalwart" \
@@ -39,20 +39,20 @@ SVC=$(service_token 2>/dev/null)
 code=$(ccurl -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${SVC}" "${AUTH_URL}/admin/realms/nightware/users?max=1" 2>/dev/null)
 check "admin API GET /users?max=1 with service-account token (scope kc-admin-api) -> ${code}" test "$code" = 200
 check "service account sees mailboxSettings attributes (zoneinfo, nightware_working_hours)" \
-  bash -c "curl -sS --cacert '$CA_FILE' -H 'Authorization: Bearer $SVC' '${AUTH_URL}/admin/realms/nightware/users?username=alice&exact=true' | jq -e '.[0].attributes | .zoneinfo[0] and .nightware_working_hours[0]' >/dev/null"
+  bash -c "$CCURL -H 'Authorization: Bearer $SVC' '${AUTH_URL}/admin/realms/nightware/users?username=alice&exact=true' | jq -e '.[0].attributes | .zoneinfo[0] and .nightware_working_hours[0]' >/dev/null"
 
 log "Stalwart (JMAP)"
 SESSION=$(ccurl -L -H "Authorization: Bearer ${ALICE_JMAP}" "${MAIL_URL}/.well-known/jmap" 2>/dev/null)
 check "GET /.well-known/jmap with exchanged bearer -> session for alice" \
-  bash -c "jq -e --arg u 'alice@${BASE_DOMAIN}' '.username==\$u and (.capabilities|has(\"urn:ietf:params:jmap:mail\"))' >/dev/null <<<'$SESSION'"
+  bash -c "jq -e --arg u 'alice@${MAIL_DOMAIN}' '.username==\$u and (.capabilities|has(\"urn:ietf:params:jmap:mail\"))' >/dev/null <<<'$SESSION'"
 ACC=$(jq -r '.primaryAccounts["urn:ietf:params:jmap:mail"] // empty' <<<"$SESSION")
-check "Mailbox/get returns an inbox" bash -c "curl -sS --cacert '$CA_FILE' -H 'Authorization: Bearer ${ALICE_JMAP}' -H 'Content-Type: application/json' '${MAIL_URL}/jmap/' \
+check "Mailbox/get returns an inbox" bash -c "$CCURL -H 'Authorization: Bearer ${ALICE_JMAP}' -H 'Content-Type: application/json' '${MAIL_URL}/jmap/' \
   -d '{\"using\":[\"urn:ietf:params:jmap:core\",\"urn:ietf:params:jmap:mail\"],\"methodCalls\":[[\"Mailbox/get\",{\"accountId\":\"${ACC}\",\"properties\":[\"role\"]},\"a\"]]}' \
   | jq -e '.methodResponses[0][1].list | map(.role) | index(\"inbox\")' >/dev/null"
 code=$(ccurl -L -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${ALICE}" "${MAIL_URL}/.well-known/jmap" 2>/dev/null)
 check "un-exchanged NightMail token (aud nightware-api) is rejected by Stalwart (${code})" test "$code" = 401
 check "master-user fallback: Basic alice%admin opens alice's session" \
-  bash -c "curl -sS -L --cacert '$CA_FILE' -u 'alice@${BASE_DOMAIN}%${STALWART_ADMIN_USER}:${STALWART_ADMIN_PASSWORD}' '${MAIL_URL}/.well-known/jmap' | jq -e '.username==\"alice@${BASE_DOMAIN}\"' >/dev/null"
+  bash -c "$CCURL -L -u 'alice@${MAIL_DOMAIN}%${STALWART_ADMIN_USER}:${STALWART_ADMIN_PASSWORD}' '${MAIL_URL}/.well-known/jmap' | jq -e '.username==\"alice@${MAIL_DOMAIN}\"' >/dev/null"
 
 log "Nextcloud (CalDAV)"
 PF='<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><d:current-user-principal/><c:calendar-home-set/></d:prop></d:propfind>'
@@ -67,7 +67,7 @@ check "un-exchanged token (aud nightware-api) is rejected by Nextcloud (${code})
 
 if [[ "${SMOKE_IMIP:-1}" == 1 ]]; then
   log "iMIP (Nextcloud -> Stalwart SMTP -> bob's inbox)"
-  uid=$(put_invite "$ALICE_DAV" alice "bob@${BASE_DOMAIN}" 2>/dev/null)
+  uid=$(put_invite "$ALICE_DAV" alice "bob@${MAIL_DOMAIN}" 2>/dev/null)
   check "alice creates an event with bob + Boardroom (CalDAV PUT)" test -n "$uid"
   BOB_JMAP=$(exchange_token "$(user_token bob)" stalwart 2>/dev/null)
   BOB_ACC=$(ccurl -L -H "Authorization: Bearer ${BOB_JMAP}" "${MAIL_URL}/.well-known/jmap" | jq -r '.primaryAccounts["urn:ietf:params:jmap:mail"]')
@@ -93,10 +93,12 @@ log "Nightware API (profile 'api')"
 check "docker compose config (deploy/.env complete)" dc --profile api config --quiet
 if dc ps --status running --services 2>/dev/null | grep -qx nightware-api; then
   check "GET ${GRAPH_URL}/healthz" ccurl -f -o /dev/null "${GRAPH_URL}/healthz"
+  check "GET ${PUBLIC_URL}/.well-known/nightware: graphBaseUrl ${GRAPH_URL}/v1.0, token endpoint ${TOKEN_URL}" \
+    bash -c "$CCURL -f '${PUBLIC_URL}/.well-known/nightware' | jq -e --arg g '${GRAPH_URL}/v1.0' --arg t '${TOKEN_URL}' '.graphBaseUrl==\$g and .tokenEndpoint==\$t' >/dev/null"
   code=$(ccurl -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${ALICE}" "${GRAPH_URL}/v1.0/me")
   check "GET /v1.0/me with alice's token (${code})" test "$code" = 200
 else
-  skip "nightware-api not running (docker compose -p nightware --profile api up -d)"
+  skip "nightware-api not running (docker compose -p ${COMPOSE_PROJECT_NAME} --profile api up -d)"
 fi
 
 echo

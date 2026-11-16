@@ -15,8 +15,8 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Counter } from 'k6/metrics';
 
-const BASE = __ENV.GRAPH_BASE || 'https://graph.nightware.localhost/v1.0';
-const TOKEN_URL = __ENV.TOKEN_URL || 'https://auth.nightware.localhost/realms/nightware/protocol/openid-connect/token';
+const BASE = __ENV.GRAPH_BASE || 'https://nightware.localhost/graph/v1.0';
+const TOKEN_URL = __ENV.TOKEN_URL || 'https://nightware.localhost/auth/realms/nightware/protocol/openid-connect/token';
 const USERS = (__ENV.LOAD_USERS || 'alice,bob').split(',');
 const PASSWORD = __ENV.TEST_USER_PASSWORD;
 const CLIENT_SECRET = __ENV.NIGHTWARE_DEV_CLIENT_SECRET;

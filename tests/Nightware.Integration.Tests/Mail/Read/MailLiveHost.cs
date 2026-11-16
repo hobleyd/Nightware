@@ -20,16 +20,17 @@ namespace Nightware.Integration.Tests.Mail.Read;
 /// another client would. Opt-in: skips unless <c>NIGHTWARE_INTEGRATION=1</c>.
 /// </summary>
 /// <remarks>
-/// The Caddy CA is trusted for Nightware's own HTTP clients only, never process-wide.
+/// The stack's CA and address (<see cref="DevStack"/>) apply to Nightware's own HTTP clients only, never process-wide.
 /// </remarks>
 internal sealed class MailLiveHost : IAsyncDisposable
 {
-    public const string Domain = DevStack.Domain;
-    public const string GraphBase = "https://graph." + Domain + "/v1.0";
-    public const string Alice = "alice@" + Domain;
+    public static string GraphBase => DevStack.GraphBase;
 
-    private const string Issuer = "https://auth." + Domain + "/realms/nightware";
-    private const string MailBase = "https://mail." + Domain;
+    public static string Alice => DevStack.Address("alice");
+
+    private static string Issuer => DevStack.Issuer;
+
+    private static string MailBase => DevStack.MailBase;
 
     private readonly WebApplicationFactory<Program> _factory;
     private readonly DevStack _stack;
@@ -43,16 +44,7 @@ internal sealed class MailLiveHost : IAsyncDisposable
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
-            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Auth:Authority"] = Issuer,
-                ["Discovery:GraphBaseUrl"] = GraphBase,
-                ["Discovery:GraphBetaBaseUrl"] = "https://graph." + Domain + "/beta",
-                ["DeltaLinks:SigningKey"] = "integration",
-                ["Directory:KeycloakBaseUrl"] = "https://auth." + Domain,
-                ["Directory:ClientSecret"] = stack.Env("NIGHTWARE_API_CLIENT_SECRET"),
-                ["Jmap:SessionUrl"] = MailBase + "/.well-known/jmap",
-            }));
+            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(stack.FacadeSettings()));
             builder.ConfigureTestServices(stack.Trust);
         });
     }

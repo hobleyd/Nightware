@@ -14,12 +14,12 @@ process with a message naming the key, instead of failing on the first request.
 
 | Key | Default | Meaning |
 |---|---|---|
-| `Auth:Authority` | `https://auth.nightware.localhost/realms/nightware` | Public OIDC issuer; tokens' `iss` must match it (or `ValidIssuers`). |
-| `Auth:MetadataAddress` | empty | Where to fetch OIDC metadata/keys when the public URL does not resolve inside the deployment, e.g. `http://keycloak:8080/realms/nightware/.well-known/openid-configuration`. |
+| `Auth:Authority` | `https://nightware.localhost/auth/realms/nightware` | Public OIDC issuer; tokens' `iss` must match it (or `ValidIssuers`). |
+| `Auth:MetadataAddress` | empty | Where to fetch OIDC metadata/keys when the public URL does not resolve inside the deployment, e.g. `http://keycloak:8080/auth/realms/nightware/.well-known/openid-configuration`. |
 | `Auth:Audience` | `nightware-api` | Required `aud`. Empty disables the audience check — never do that in production. |
 | `Auth:RequireHttpsMetadata` | `true` | `false` only for an internal `http://` metadata address. |
 | `Auth:ValidIssuers:N` | none | Extra accepted issuers. |
-| `Discovery:GraphBaseUrl` | `https://graph.nightware.localhost/v1.0` | Public v1.0 root. Every `@odata.nextLink`/`deltaLink` is built on it; NightMail ignores links on any other scheme/host/port. Required. |
+| `Discovery:GraphBaseUrl` | `https://nightware.localhost/graph/v1.0` | Public v1.0 root, path prefix included (the compose stack serves the façade under `/graph`). Every `@odata.nextLink`/`deltaLink` and sealed upload/download URL is built on it; NightMail ignores links on any other scheme/host/port. Required. |
 | `Discovery:GraphBetaBaseUrl` | `…/beta` | Public beta root. Required. |
 | `Discovery:AuthorizationEndpoint` | Keycloak `…/auth` | Published to NightMail. Required. |
 | `Discovery:TokenEndpoint` | Keycloak `…/token` | Published to NightMail. Required. Must be highly available (see README). |
@@ -32,7 +32,7 @@ process with a message naming the key, instead of failing on the first request.
 
 | Key | Default | Meaning |
 |---|---|---|
-| `Jmap:SessionUrl` | `https://mail.nightware.localhost/.well-known/jmap` | Stalwart JMAP session resource; internal URL in compose (`http://stalwart:8080/jmap/session`). |
+| `Jmap:SessionUrl` | `https://nightware.localhost/.well-known/jmap` | Stalwart JMAP session resource; internal URL in compose (`http://stalwart:8080/jmap/session`). |
 | `Jmap:UseSessionUrlOrigin` | `true` | Rewrite the session's advertised public URLs to the session URL's origin. |
 | `Jmap:SessionCacheDuration` | `00:05:00` | Session reuse per credential. |
 | `Jmap:RequestTimeout` / `AttemptTimeout` | `00:00:30` / `00:00:10` | Total and per-attempt time for a JMAP call. |
@@ -40,13 +40,13 @@ process with a message naming the key, instead of failing on the first request.
 | `Jmap:MaxRetryAttempts` | `2` | Retries for safe JMAP requests only. |
 | `Jmap:MaxObjectsInGetFallback` / `MaxCallsInRequestFallback` | `500` / `16` | Used when the session omits its limits. |
 | `Jmap:MasterUserSeparator` | `%` | Stalwart master-user login separator (service-account fallback). |
-| `Dav:BaseUrl` | `https://cloud.nightware.localhost/` | Nextcloud root (internal `http://nextcloud/` in compose). |
+| `Dav:BaseUrl` | `https://nightware.localhost/cloud/` | Nextcloud root, path included (internal `http://nextcloud/` in compose, where Nextcloud's `/cloud` overwrite does not apply). |
 | `Dav:DavRoot` / `OcsRoot` | `/remote.php/dav` / `/ocs/v2.php` | Paths under the base URL. |
 | `Dav:AttemptTimeout` / `TotalTimeout` | `00:00:30` / `00:01:30` | Per attempt / with retries. |
 | `Dav:MaxRetryAttempts` | `2` | GET/HEAD/OPTIONS/PROPFIND/REPORT only. |
 | `Dav:DiscoveryCacheDuration` | `00:10:00` | Principal discovery cache. |
 | `Dav:HealthCheckTimeout` | `00:00:05` | `/healthz` probe. |
-| `Directory:KeycloakBaseUrl` | `https://auth.nightware.localhost` | Keycloak root (internal `http://keycloak:8080` in compose). |
+| `Directory:KeycloakBaseUrl` | `https://nightware.localhost/auth` | Keycloak root including its relative path, not the realm URL (internal `http://keycloak:8080/auth` in compose). |
 | `Directory:Realm` | `nightware` | Realm. |
 | `Directory:ClientId` | `nightware-api` | Confidential client used for token exchange and the admin API. |
 | `Directory:ClientSecret` 🔒 | empty | Its secret. Required. |

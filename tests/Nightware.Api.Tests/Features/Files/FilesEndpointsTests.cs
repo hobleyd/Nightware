@@ -192,6 +192,31 @@ public sealed class FilesEndpointsTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Under_a_path_prefix_the_download_url_sits_on_the_prefixed_base_and_opens_once_the_proxy_strips_it()
+    {
+        // The dev stack publishes the façade at https://{host}/graph/v1.0; Caddy strips /graph before forwarding.
+        const string prefixed = "https://nightware.example.org/graph/v1.0";
+        await using var host = await TestHost.StartAsync(
+            services =>
+            {
+                services.AddScoped(_ => _reader);
+                services.AddScoped(_ => _converter);
+            },
+            configuration: new Dictionary<string, string?> { ["Discovery:FilesBaseUrls:0"] = Site, ["Discovery:GraphBaseUrl"] = prefixed });
+        GivenItem(Docx);
+        _reader.GetContentAsync(Link, Arg.Any<CancellationToken>()).Returns(_ => Blob("application/octet-stream", [1, 2, 3]));
+
+        using var redirect = await host.AuthorizedClient().GetAsync($"/v1.0/shares/{ShareId}/driveItem/content", Ct);
+
+        redirect.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        var location = redirect.Headers.Location!;
+        location.AbsoluteUri.ShouldStartWith($"{prefixed}/shares/{Uri.EscapeDataString(ShareId)}/driveItem/$value?authtoken=");
+        using var response = await host.Client.GetAsync(location.PathAndQuery["/graph".Length..], Ct);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await response.Content.ReadAsByteArrayAsync(Ct)).ShouldBe(new byte[] { 1, 2, 3 });
+    }
+
+    [Fact]
     public async Task The_pdf_download_url_streams_the_converted_document()
     {
         GivenItem(Docx);

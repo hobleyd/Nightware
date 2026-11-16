@@ -14,13 +14,12 @@ namespace Nightware.Integration.Tests.Calendar;
 /// <summary>
 /// The running dev stack and an in-process Nightware pointed at it (the same shape as 5A's and Phase 2's live
 /// hosts). Opt-in with <c>NIGHTWARE_INTEGRATION=1</c>; <c>NIGHTWARE_DEPLOY_DIR</c> names a bootstrapped deploy
-/// folder (<c>.env</c>, else <c>.env.example</c>, and <c>.certs/</c>). The Caddy CA is trusted only by Nightware's
+/// folder (<c>.env</c> and <c>.certs/</c>). The Caddy CA is trusted only by Nightware's
 /// outgoing clients and JWKS fetch, never process-wide.
 /// </summary>
 internal sealed class CalendarLiveStack : IAsyncDisposable
 {
-    public const string Domain = DevStack.Domain;
-    public const string Issuer = DevStack.Issuer;
+    public static string Issuer => DevStack.Issuer;
 
     private readonly WebApplicationFactory<Program> _factory;
     private readonly DevStack _stack;
@@ -33,13 +32,7 @@ internal sealed class CalendarLiveStack : IAsyncDisposable
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
-            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Auth:Authority"] = Issuer,
-                ["DeltaLinks:SigningKey"] = "integration",
-                ["Directory:ClientSecret"] = stack.Env("NIGHTWARE_API_CLIENT_SECRET"),
-                ["Jmap:SessionUrl"] = "https://mail." + Domain + "/.well-known/jmap",
-            }));
+            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(stack.FacadeSettings()));
             builder.ConfigureTestServices(stack.Trust);
         });
     }

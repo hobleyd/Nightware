@@ -17,18 +17,19 @@ namespace Nightware.Integration.Tests.Directory;
 /// unless <c>NIGHTWARE_INTEGRATION=1</c>.
 /// </summary>
 /// <remarks>
-/// <para>The stack's secrets and Caddy root CA live in the bootstrapped deploy folder
-/// (<c>deploy/.env</c>, <c>deploy/.certs/caddy-root.crt</c>), which is git-ignored. Set
+/// <para>The stack's host, secrets and (with <c>CADDY_TLS=internal</c>) Caddy root CA live in the bootstrapped
+/// deploy folder (<c>deploy/.env</c>, <c>deploy/.certs/caddy-root.crt</c>), which is git-ignored. Set
 /// <c>NIGHTWARE_DEPLOY_DIR</c> when that is not this checkout's own <c>deploy/</c>.</para>
-/// <para>Every backend is reached on its public <c>https://*.nightware.localhost</c> name through Caddy; the
-/// Caddy CA is trusted for Nightware's outgoing HTTP clients and JWKS fetch only, never process-wide.</para>
+/// <para>Every backend is reached on its public URL (<c>https://{PUBLIC_HOST}/auth</c>, <c>/cloud</c>, …) through
+/// Caddy; the CA is trusted for Nightware's outgoing HTTP clients and JWKS fetch only, never process-wide.</para>
 /// </remarks>
 internal sealed class LiveStack : IAsyncDisposable
 {
-    public const string Domain = DevStack.Domain;
-    public const string GraphBase = "https://graph." + Domain + "/v1.0";
-    public const string CloudBase = "https://cloud." + Domain;
-    public const string Issuer = DevStack.Issuer;
+    public static string GraphBase => DevStack.GraphBase;
+
+    public static string CloudBase => DevStack.CloudBase;
+
+    public static string Issuer => DevStack.Issuer;
 
     private readonly WebApplicationFactory<Program> _factory;
     private readonly DevStack _stack;
@@ -40,16 +41,7 @@ internal sealed class LiveStack : IAsyncDisposable
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
-            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Auth:Authority"] = Issuer,
-                ["Discovery:GraphBaseUrl"] = GraphBase,
-                ["Discovery:GraphBetaBaseUrl"] = "https://graph." + Domain + "/beta",
-                ["DeltaLinks:SigningKey"] = "integration",
-                ["Directory:KeycloakBaseUrl"] = "https://auth." + Domain,
-                ["Directory:ClientSecret"] = stack.Env("NIGHTWARE_API_CLIENT_SECRET"),
-                ["Dav:BaseUrl"] = CloudBase + "/",
-            }));
+            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(stack.FacadeSettings()));
             builder.ConfigureTestServices(stack.Trust);
         });
     }

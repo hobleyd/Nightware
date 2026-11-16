@@ -1,49 +1,72 @@
 # Deployment
 
 The reference deployment is `deploy/docker-compose.yml`: Caddy (TLS, reverse proxy) in front of
-Keycloak, Stalwart, Nextcloud and the Nightware façade, on one Docker network. `deploy/README.md`
+Keycloak, Stalwart, Nextcloud, Collabora and the Nightware façade, on one Docker network and one
+public host name. Compose commands below assume `deploy/` as the working directory, where compose
+takes the project name from `.env` (`COMPOSE_PROJECT_NAME`, default `nightware`). `deploy/README.md`
 covers the stack in detail; this page covers what changes for a real, internet-facing install.
 
-## 1. Domain and DNS
+## 1. Host, mail domain and DNS
 
-Pick a base domain and point four names at the host running Caddy:
+Pick one public host name (`PUBLIC_HOST`) and point it at the machine running Caddy. Every service
+is a path on it:
 
-| Name | Serves |
+| Path | Serves |
 |---|---|
-| `auth.<domain>` | Keycloak (OIDC issuer, token endpoint, login pages) |
-| `mail.<domain>` | Stalwart (JMAP, WebUI, SMTP/IMAP names in certificates) |
-| `cloud.<domain>` | Nextcloud |
-| `graph.<domain>` | Nightware (the address users type into NightMail) |
+| `/auth/` | Keycloak (OIDC issuer, token endpoint, login pages) |
+| `/.well-known/jmap`, `/jmap/` | Stalwart JMAP (at the root: Stalwart cannot run under a prefix); `/mail/` for its other paths |
+| `/cloud/` | Nextcloud |
+| `/office/` | Collabora (Nextcloud Office) |
+| `/graph/`, `/.well-known/nightware` | Nightware (users type the host name into NightMail) |
 
-Mail delivery additionally needs MX, SPF, DKIM and DMARC records for the domain — see Stalwart's
-documentation; the façade is not involved.
+The mail domain (`MAIL_DOMAIN`) is separate: addresses are `user@<MAIL_DOMAIN>` whatever the host is
+called, and Stalwart's own SMTP/IMAP name is `mail.<MAIL_DOMAIN>`. Mail delivery additionally needs
+MX, SPF, DKIM and DMARC records for that domain — see Stalwart's documentation; the façade is not
+involved.
 
 ## 2. TLS
 
 Set in `deploy/.env`:
 
 ```bash
-BASE_DOMAIN=example.com
+PUBLIC_HOST=nightware.example.com
+MAIL_DOMAIN=example.com
 CADDY_TLS=ops@example.com     # an ACME account e-mail: Let's Encrypt certificates
+# or: CADDY_TLS="/certs/fullchain.crt /certs/privkey.key"   (your own files in deploy/.certs)
 HTTPS_PORT=443
 PUBLIC_PORT_SUFFIX=           # empty on 443
 BIND_ADDRESS=0.0.0.0          # listen on the public interface
+# With either publicly trusted option:
+COLLABORA_SSL_VERIFICATION=true
+STALWART_ALLOW_INVALID_CERTS=false
+NIGHTWARE_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 ```
 
 With `CADDY_TLS` set to an e-mail address Caddy obtains publicly trusted certificates (inbound 443,
-or 80 for the HTTP challenge, must reach the host). The default, `internal`, uses Caddy's local CA,
-which every client device would have to trust — development only.
+or 80 for the HTTP challenge, must reach the host). With two file paths it serves the certificate
+you put in `deploy/.certs` (mounted read-only at `/certs`); `deploy/scripts/fetch-cert.sh`
+(`make cert`) copies one from another host over ssh, checks it, and reloads Caddy — rerun it after
+each renewal ([runbook](runbook.md#tls-certificate-renewal-certificate-files)). The default,
+`internal`, uses Caddy's local CA, which every client device would have to trust — development only.
+
+Docker Desktop on macOS can publish ports on `127.0.0.1` or `0.0.0.0` only, not on one specific
+other address such as a WireGuard interface.
 
 Caddy sets no HSTS of its own; the façade sends `Strict-Transport-Security: max-age=31536000` on
 HTTPS requests (`SecurityHeaders:HstsMaxAge`). Keycloak and Nextcloud manage their own headers.
 
 ## 3. Secrets
 
-Change **every** secret in `.env.example` before the first start (the realm import substitutes
-them): `KEYCLOAK_ADMIN_PASSWORD`, `KEYCLOAK_DB_PASSWORD`, `NIGHTWARE_API_CLIENT_SECRET`,
-`NIGHTWARE_DEV_CLIENT_SECRET` (and delete the `nightware-dev` client — it allows the password
-grant and exists for scripts only), `NEXTCLOUD_OIDC_CLIENT_SECRET`, `STALWART_ADMIN_PASSWORD`,
-`NEXTCLOUD_ADMIN_PASSWORD`, `NEXTCLOUD_DB_PASSWORD`, and remove the test users alice and bob.
+`deploy/scripts/init-env.sh` gives a new `.env` a random value for every secret before the first
+start (the realm import substitutes them): `KEYCLOAK_ADMIN_PASSWORD`, `KEYCLOAK_DB_PASSWORD`,
+`NIGHTWARE_API_CLIENT_SECRET`, `NIGHTWARE_DEV_CLIENT_SECRET`, `NEXTCLOUD_OIDC_CLIENT_SECRET`,
+`STALWART_ADMIN_PASSWORD`, `NEXTCLOUD_ADMIN_PASSWORD`, `NEXTCLOUD_DB_PASSWORD` and
+`NIGHTWARE_DELTA_LINK_KEY`. It never changes a value already set, because Postgres and the imported
+realm keep the one they were bootstrapped with; for an older `.env` still holding the development
+passwords this repository used to publish it only warns. Such a stack must not face a network:
+bring the deployment up on fresh volumes with a fresh `.env`. Also delete the `nightware-dev`
+client (it allows the password grant and exists for scripts only) and remove the test users alice
+and bob.
 
 ### The façade's root secret: `NIGHTWARE_DELTA_LINK_KEY`
 
@@ -93,7 +116,7 @@ invalidates:
 cd deploy
 new=$(openssl rand -hex 32)
 grep -v '^NIGHTWARE_DELTA_LINK_KEY=' .env > .env.tmp && echo "NIGHTWARE_DELTA_LINK_KEY=$new" >> .env.tmp && cat .env.tmp > .env && rm .env.tmp
-docker compose -p nightware --profile api up -d --no-deps --force-recreate nightware-api
+docker compose --profile api up -d --no-deps --force-recreate nightware-api
 ```
 
 Nothing else holds state derived from the key. Exchanged-token caches are unaffected.
@@ -102,7 +125,7 @@ Nothing else holds state derived from the key. Exchanged-token caches are unaffe
 
 ```bash
 cd deploy
-NIGHTWARE_ENVIRONMENT=Production docker compose -p nightware --profile api up -d --build --no-deps nightware-api
+NIGHTWARE_ENVIRONMENT=Production docker compose --profile api up -d --build --no-deps nightware-api
 ```
 
 `ASPNETCORE_ENVIRONMENT` must be `Production` outside development: `Development` loads
@@ -112,8 +135,11 @@ Production logs are JSON lines on stdout (one object per record, with scopes).
 
 What the compose service already sets, and why:
 
-- `Auth__Authority` is the **public** issuer (`https://auth.<domain>/realms/nightware`), while
-  `Auth__MetadataAddress` fetches keys over the internal network (`http://keycloak:8080/...`).
+- `Auth__Authority` is the **public** issuer (`https://<host>/auth/realms/nightware`), while
+  `Auth__MetadataAddress` fetches keys over the internal network (`http://keycloak:8080/auth/...`).
+- `Discovery__GraphBaseUrl` is `https://<host>/graph/v1.0`. Caddy strips `/graph` before the façade
+  and sends `X-Forwarded-Prefix: /graph`; every link is built on the configured base, so
+  `@odata.nextLink`, delta links and sealed upload/download URLs carry `/graph`.
 - `ForwardedHeaders__KnownNetworks__0=${DOCKER_SUBNET}` — only Caddy may set `X-Forwarded-*`. If you
   run another proxy in front of Caddy, add its address too and raise `ForwardedHeaders:ForwardLimit`.
 - `Cors__AllowedOrigins__0=${NIGHTMAIL_WEB_ORIGIN}` — the NightMail web build's origin. Leave it
@@ -129,11 +155,11 @@ instance, every instance must share `DeltaLinks:SigningKey`; per-user rate limit
 
 ```bash
 cd deploy && ./smoke.sh             # every backend, token exchange, iMIP, the façade
-curl https://graph.example.com/.well-known/nightware
-curl https://graph.example.com/healthz          # Healthy = every backend reachable (cached 10 s)
+curl https://nightware.example.com/.well-known/nightware
+curl https://nightware.example.com/graph/healthz    # Healthy = every backend reachable (cached 10 s)
 ```
 
-Then sign in from NightMail with the server address `graph.example.com`.
+Then sign in from NightMail with the server address `nightware.example.com`.
 
 ## Sizing notes
 

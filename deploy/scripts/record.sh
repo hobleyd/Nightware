@@ -42,13 +42,13 @@ DRAFTS=$(jq -r '.methodResponses[0][1].list[] | select(.role=="drafts") | .id' <
 SENT=$(jq -r '.methodResponses[0][1].list[] | select(.role=="sent") | .id' <<<"$BOB_MB")
 IDENT=$(jq -r '.methodResponses[1][1].list[0].id // empty' <<<"$BOB_MB")
 if [[ -z "$IDENT" ]]; then
-  IDENT=$(jmap "$BOB" "{\"using\":${USING},\"methodCalls\":[[\"Identity/set\",{\"accountId\":\"${BOB_ACC}\",\"create\":{\"i\":{\"name\":\"Bob Brown\",\"email\":\"bob@${BASE_DOMAIN}\"}}},\"c\"]]}" \
+  IDENT=$(jmap "$BOB" "{\"using\":${USING},\"methodCalls\":[[\"Identity/set\",{\"accountId\":\"${BOB_ACC}\",\"create\":{\"i\":{\"name\":\"Bob Brown\",\"email\":\"bob@${MAIL_DOMAIN}\"}}},\"c\"]]}" \
     | jq -r '.methodResponses[0][1].created.i.id')
 fi
 send() {
   local subject="$1" body="$2" html="$3"
   local email
-  email=$(jq -cn --arg d "$DRAFTS" --arg dom "$BASE_DOMAIN" --arg s "$subject" --arg b "$body" --arg h "$html" '{
+  email=$(jq -cn --arg d "$DRAFTS" --arg dom "$MAIL_DOMAIN" --arg s "$subject" --arg b "$body" --arg h "$html" '{
     mailboxIds:{($d):true}, keywords:{"$draft":true,"$seen":true},
     from:[{name:"Bob Brown",email:("bob@"+$dom)}], to:[{name:"Alice Anderson",email:("alice@"+$dom)}],
     subject:$s,
@@ -108,7 +108,7 @@ save_jmap 09-errors-notfound-and-accountnotfound "$REQ" "$(jmap "$ALICE" "$REQ")
 
 # ---- CalDAV recordings (alice)
 source "$DEPLOY_DIR/scripts/imip-event.sh"
-EVENT_UID=$(put_invite "$ALICE_DAV" alice "bob@${BASE_DOMAIN}")
+EVENT_UID=$(put_invite "$ALICE_DAV" alice "bob@${MAIL_DOMAIN}")
 # dav <name> <method> <path> <depth> <body>
 dav() {
   local name="$1" method="$2" path="$3" depth="$4" body="$5" hdr
@@ -145,8 +145,8 @@ FB_START=$(date -u -v+1d +%Y%m%dT000000Z 2>/dev/null || date -u -d tomorrow +%Y%
 FB_END=$(date -u -v+2d +%Y%m%dT000000Z 2>/dev/null || date -u -d '+2 days' +%Y%m%dT000000Z)
 FB=$(printf '%s\r\n' 'BEGIN:VCALENDAR' 'VERSION:2.0' 'PRODID:-//Nightware//record//EN' 'METHOD:REQUEST' \
   'BEGIN:VFREEBUSY' "UID:nightware-fb-$(date +%s)" "DTSTAMP:$(date -u +%Y%m%dT%H%M%SZ)" \
-  "DTSTART:${FB_START}" "DTEND:${FB_END}" "ORGANIZER:mailto:alice@${BASE_DOMAIN}" \
-  "ATTENDEE:mailto:boardroom@${BASE_DOMAIN}" "ATTENDEE:mailto:bob@${BASE_DOMAIN}" 'END:VFREEBUSY' 'END:VCALENDAR')
+  "DTSTART:${FB_START}" "DTEND:${FB_END}" "ORGANIZER:mailto:alice@${MAIL_DOMAIN}" \
+  "ATTENDEE:mailto:boardroom@${MAIL_DOMAIN}" "ATTENDEE:mailto:bob@${MAIL_DOMAIN}" 'END:VFREEBUSY' 'END:VCALENDAR')
 printf 'POST /remote.php/dav/calendars/alice/outbox/\nContent-Type: text/calendar; charset=utf-8\n\n%s\n' "$FB" > "$OUT/caldav/09-freebusy-post.request.txt"
 ccurl -X POST -H "Authorization: Bearer ${ALICE_DAV}" -H 'Content-Type: text/calendar; charset=utf-8' \
   --data-binary "$FB" "${CLOUD_URL}/remote.php/dav/calendars/alice/outbox/" | xmllint --format - > "$OUT/caldav/09-freebusy-post.response.xml"
@@ -157,7 +157,7 @@ cat > "$OUT/README.md" <<EOF
 
 Captured by \`deploy/scripts/record.sh\` against the dev stack (Stalwart
 v1.1.0, Nextcloud 35.0.3) on $(date -u +%Y-%m-%d). Test users alice/bob,
-domain \`${BASE_DOMAIN}\`. Authorization headers are not recorded; every
+domain \`${MAIL_DOMAIN}\`. Authorization headers are not recorded; every
 request was sent with a Keycloak access token obtained by token exchange
 (aud \`stalwart\` for JMAP, \`nextcloud\` for CalDAV).
 

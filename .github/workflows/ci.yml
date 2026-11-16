@@ -99,11 +99,12 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-      - name: Resolve the stack's public names to loopback
+      - name: Resolve the stack's public host to loopback
         # curl resolves *.localhost itself; .NET asks the system resolver, so make it explicit.
-        run: echo "127.0.0.1 auth.nightware.localhost mail.nightware.localhost cloud.nightware.localhost graph.nightware.localhost" | sudo tee -a /etc/hosts
+        run: echo "127.0.0.1 nightware.localhost" | sudo tee -a /etc/hosts
       - name: Stack, bootstrap, façade, smoke, live tests
-        # The live tests trust deploy/.certs/caddy-root.crt for their own clients (LiveStack).
+        # make integration creates deploy/.env (random secrets, CADDY_TLS=internal); the live tests
+        # trust deploy/.certs/caddy-root.crt for their own clients (DevStack).
         run: make integration
       - name: Compose logs
         if: failure()

@@ -51,6 +51,41 @@ public sealed class ForwardedHeadersTests
     }
 
     [Fact]
+    public async Task A_trusted_proxys_path_prefix_becomes_the_path_base()
+    {
+        // deploy/caddy/Caddyfile: handle_path /graph/* strips the prefix and sends it as X-Forwarded-Prefix.
+        await using var host = await StartAsync(new() { ["ForwardedHeaders:KnownNetworks:0"] = "172.31.250.0/24" });
+
+        var context = await host.App.GetTestServer().SendAsync(c =>
+        {
+            c.Connection.RemoteIpAddress = IPAddress.Parse("172.31.250.253");
+            c.Request.Method = "GET";
+            c.Request.Path = "/v1.0/origin";
+            c.Request.Headers["X-Forwarded-Proto"] = "https";
+            c.Request.Headers["X-Forwarded-Host"] = "nightware.example.org";
+            c.Request.Headers["X-Forwarded-Prefix"] = "/graph";
+        }, Ct);
+
+        (await BodyAsync(context)).ShouldStartWith("https://nightware.example.org/graph from ");
+    }
+
+    [Fact]
+    public async Task An_untrusted_sender_cannot_set_the_path_base()
+    {
+        await using var host = await StartAsync(new() { ["ForwardedHeaders:KnownNetworks:0"] = "172.31.250.0/24" });
+
+        var context = await host.App.GetTestServer().SendAsync(c =>
+        {
+            c.Connection.RemoteIpAddress = IPAddress.Parse("198.51.100.20");
+            c.Request.Method = "GET";
+            c.Request.Path = "/v1.0/origin";
+            c.Request.Headers["X-Forwarded-Prefix"] = "/elsewhere";
+        }, Ct);
+
+        (await BodyAsync(context)).ShouldNotContain("/elsewhere");
+    }
+
+    [Fact]
     public async Task A_configured_proxy_address_is_trusted()
     {
         await using var host = await StartAsync(new() { ["ForwardedHeaders:KnownProxies:0"] = "10.9.8.7" });

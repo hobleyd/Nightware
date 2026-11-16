@@ -11,20 +11,37 @@ cd "$DEPLOY_DIR"
 "$DEPLOY_DIR/scripts/init-env.sh" >&2
 set -a; source ./.env; set +a
 
-: "${BASE_DOMAIN:=nightware.localhost}"
+# One public host with a path per backend (see caddy/Caddyfile). BASE_DOMAIN is
+# the deprecated pre-single-host setting, read only when the new ones are absent.
+: "${PUBLIC_HOST:=${BASE_DOMAIN:-nightware.localhost}}"
+: "${MAIL_DOMAIN:=${BASE_DOMAIN:-nightware.localhost}}"
 : "${PUBLIC_PORT_SUFFIX:=}"
-AUTH_URL="https://auth.${BASE_DOMAIN}${PUBLIC_PORT_SUFFIX}"
-MAIL_URL="https://mail.${BASE_DOMAIN}${PUBLIC_PORT_SUFFIX}"
-CLOUD_URL="https://cloud.${BASE_DOMAIN}${PUBLIC_PORT_SUFFIX}"
-GRAPH_URL="https://graph.${BASE_DOMAIN}${PUBLIC_PORT_SUFFIX}"
+: "${HTTPS_PORT:=443}"
+: "${CADDY_TLS:=internal}"
+: "${COMPOSE_PROJECT_NAME:=nightware}"
+PUBLIC_URL="https://${PUBLIC_HOST}${PUBLIC_PORT_SUFFIX}"
+AUTH_URL="${PUBLIC_URL}/auth"
+# Stalwart's JMAP is at the host root (/.well-known/jmap, /jmap/); anything
+# else it serves (healthz) is under the stripped /mail alias, MAIL_ALIAS_URL.
+MAIL_URL="${PUBLIC_URL}"
+MAIL_ALIAS_URL="${PUBLIC_URL}/mail"
+CLOUD_URL="${PUBLIC_URL}/cloud"
+GRAPH_URL="${PUBLIC_URL}/graph"
 ISSUER="${AUTH_URL}/realms/nightware"
 TOKEN_URL="${ISSUER}/protocol/openid-connect/token"
 CA_FILE="${DEPLOY_DIR}/.certs/caddy-root.crt"
+export COMPOSE_PROJECT_NAME
 
-dc() { docker compose -p nightware "$@"; }
+dc() { docker compose -p "$COMPOSE_PROJECT_NAME" "$@"; }
+
+# True when Caddy issues from its local CA, which clients must be told to trust.
+# Otherwise (ACME, certificate files) the system trust store verifies it.
+internal_tls() { [[ "$CADDY_TLS" == internal ]]; }
 
 # Export Caddy's local root CA so host-side curl can verify the stack's TLS.
+# Nothing to export unless CADDY_TLS=internal: Caddy creates no local CA then.
 export_ca() {
+  internal_tls || return 0
   mkdir -p "${DEPLOY_DIR}/.certs"
   local i
   for i in $(seq 1 30); do
@@ -36,7 +53,17 @@ export_ca() {
   echo "could not export Caddy root CA" >&2; return 1
 }
 
-ccurl() { curl -sS --cacert "$CA_FILE" "$@"; }
+# curl for the stack's public URL: Caddy's CA with CADDY_TLS=internal, and
+# PUBLIC_HOST pinned to NIGHTWARE_CONNECT_ADDRESS when that is set (a host name
+# DNS does not resolve yet; the .NET live tests read the same variable).
+CURL_TLS=()
+if internal_tls; then CURL_TLS+=(--cacert "$CA_FILE"); fi
+if [[ -n "${NIGHTWARE_CONNECT_ADDRESS:-}" ]]; then
+  CURL_TLS+=(--resolve "${PUBLIC_HOST}:${HTTPS_PORT}:${NIGHTWARE_CONNECT_ADDRESS}")
+fi
+ccurl() { curl -sS ${CURL_TLS[@]+"${CURL_TLS[@]}"} "$@"; }
+# The same as shell text, for checks that run in a `bash -c` string.
+CCURL=$(printf '%q ' curl -sS ${CURL_TLS[@]+"${CURL_TLS[@]}"})
 
 log()  { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 ok()   { printf '  \033[32mPASS\033[0m %s\n' "$*"; }

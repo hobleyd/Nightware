@@ -349,7 +349,7 @@ Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf,
 
 | Key (`Collabora` section) | Default | Notes |
 |---|---|---|
-| `BaseUrl` | (none: conversion off) | Collabora's internal URL, e.g. `http://collabora:9980/`. Not the public `office.` name: Caddy refuses `convert-to` there |
+| `BaseUrl` | (none: conversion off) | Collabora's internal URL, e.g. `http://collabora:9980/office/` (Collabora's `net.service_root` included). Not the public `/office` URL: Caddy refuses `convert-to` there |
 | `Timeout` | 90 s | Whole conversion, upload and download included |
 | `MaxSourceBytes` | 50 MB | Larger documents are `PayloadTooLarge` without a request |
 

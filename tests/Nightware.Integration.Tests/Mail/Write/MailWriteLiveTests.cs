@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
 using Nightware.Integration.Tests.Directory;
+using Nightware.Integration.Tests.Support;
 
 namespace Nightware.Integration.Tests.Mail.Write;
 
@@ -15,7 +16,8 @@ public sealed class MailWriteLiveTests : IAsyncLifetime
 {
     private const string Alice = "alice";
     private const string Bob = "bob";
-    private const string BobAddress = "bob@nightware.localhost";
+    private static readonly string BobAddress = DevStack.Address("bob");
+    private static readonly string AliceAddress = DevStack.Address("alice");
 
     private LiveStack _stack = null!;
     private StalwartProbe _probe = null!;
@@ -67,7 +69,7 @@ public sealed class MailWriteLiveTests : IAsyncLifetime
         var (status, _) = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/sendMail", $$$"""
             {"message":{"subject":"{{{subject}}}","body":{"contentType":"html","content":"<p>See attached.</p>"},
               "toRecipients":[{"emailAddress":{"address":"{{{BobAddress}}}"}}],
-              "bccRecipients":[{"emailAddress":{"address":"alice@nightware.localhost"}}],
+              "bccRecipients":[{"emailAddress":{"address":"{{{AliceAddress}}}"}}],
               "attachments":[{"@odata.type":"#microsoft.graph.fileAttachment","name":"q2.csv","contentType":"text/csv","contentBytes":"{{{Base64("q,revenue\n2,100\n")}}}"}]},
              "saveToSentItems":true}
             """);
@@ -208,7 +210,7 @@ public sealed class MailWriteLiveTests : IAsyncLifetime
         var (status, imported) = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/mailFolders/inbox/messages", $$$"""
             {"subject":"{{{subject}}}","body":{"contentType":"text","content":"Numbers attached."},
              "from":{"emailAddress":{"address":"alex@example.com","name":"Alex Sender"}},
-             "toRecipients":[{"emailAddress":{"address":"alice@nightware.localhost"}}],
+             "toRecipients":[{"emailAddress":{"address":"{{{AliceAddress}}}"}}],
              "singleValueExtendedProperties":[{"id":"SystemTime 0x0E06","value":"2026-03-04T05:06:07.000Z"},{"id":"SystemTime 0x0039","value":"2026-03-04T05:00:00.000Z"},{"id":"Integer 0x0E07","value":"1"}],
              "isRead":true}
             """);

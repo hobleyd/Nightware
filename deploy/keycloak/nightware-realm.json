@@ -161,7 +161,7 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
-      "redirectUris": ["https://cloud.${BASE_DOMAIN}${PUBLIC_PORT_SUFFIX:}/*"],
+      "redirectUris": ["${PUBLIC_URL}/cloud/*"],
       "webOrigins": ["+"],
       "attributes": {
         "post.logout.redirect.uris": "+"
@@ -173,7 +173,7 @@
   "users": [
     {
       "username": "alice",
-      "email": "alice@${BASE_DOMAIN}",
+      "email": "alice@${MAIL_DOMAIN}",
       "emailVerified": true,
       "firstName": "Alice",
       "lastName": "Anderson",
@@ -183,7 +183,7 @@
     },
     {
       "username": "bob",
-      "email": "bob@${BASE_DOMAIN}",
+      "email": "bob@${MAIL_DOMAIN}",
       "emailVerified": true,
       "firstName": "Bob",
       "lastName": "Brown",
