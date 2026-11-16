@@ -152,11 +152,12 @@ all data. A re-bootstrap from empty volumes is fully scripted.
 Admin consoles (credentials are in `.env`):
 
 - Keycloak: `https://nightware.localhost/auth/admin` (master realm `admin`).
-- Stalwart WebUI: **not proxied.** `/mail/admin` redirects to the root path
-  `/admin/`, which Caddy does not route to Stalwart. Reach it with
-  `docker compose exec stalwart` tooling, or temporarily publish port 8080 of
-  the `stalwart` service on loopback. The management API itself is JMAP
-  (`/jmap/`, as the recovery admin `admin`), which `stalwart/configure.sh` uses.
+- Stalwart WebUI: `https://nightware.localhost/admin/`, signing in as the
+  recovery admin (`STALWART_ADMIN_USER`). It and its sign-in page live at the
+  host root, and its OAuth endpoints are a few exact paths under `/auth/`
+  that Caddy sends to Stalwart rather than Keycloak (`caddy/Caddyfile`). The
+  management API it drives is JMAP (`/jmap/`), which `stalwart/configure.sh`
+  also uses.
 - Nextcloud: `https://nightware.localhost/cloud`. Log in as `admin`, or use
   "Log in with Keycloak".
 

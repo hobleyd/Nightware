@@ -145,11 +145,14 @@ what a fix needs. Ordered by impact within each section.
   (ACME or certificate files) both can verify; set
   `COLLABORA_SSL_VERIFICATION=true` and `STALWART_ALLOW_INVALID_CERTS=false`
   (verified 2026-11-16 with a Let's Encrypt wildcard).
-- **Stalwart's web admin is not reachable through Caddy.** The single-host
-  layout serves Stalwart's JMAP at the root and everything else under a
-  stripped `/mail/` alias; the web admin redirects to the root `/admin/`,
-  which Caddy routes elsewhere. Management goes through the JMAP API
-  (`stalwart/configure.sh`).
+- **Stalwart and Keycloak share the `/auth/` prefix.** Stalwart can't run
+  under a path, so its web admin (`/admin/`, `/account/`, `/login`) sits at
+  the host root, and the sign-in it uses calls Stalwart's own OAuth endpoints
+  (`/auth/token`, `/auth/jwks.json`, ...). Caddy sends those exact paths to
+  Stalwart and the rest of `/auth/` to Keycloak, whose paths all sit under
+  `/auth/realms`, `/auth/admin`, `/auth/resources` and `/auth/js`. A
+  Stalwart upgrade that adds an OAuth endpoint needs it added to the list in
+  `caddy/Caddyfile`; `smoke.sh` checks one from each side.
 - **`BIND_ADDRESS` on macOS.** Docker Desktop can publish ports on
   `127.0.0.1` or `0.0.0.0` only, not on one specific other address such as a
   WireGuard interface; a LAN-facing dev stack listens on every interface.

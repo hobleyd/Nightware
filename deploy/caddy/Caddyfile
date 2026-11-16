@@ -26,16 +26,27 @@
 	redir /.well-known/caldav /cloud/remote.php/dav/ 301
 
 	# Keycloak serves under /auth itself (KC_HTTP_RELATIVE_PATH), so no stripping.
+	# Stalwart's own OAuth endpoints share the prefix (its web admin signs in
+	# through them), but none of these exact paths is one of Keycloak's, which
+	# all sit under /auth/realms, /auth/admin, /auth/resources and /auth/js.
 	redir /auth /auth/ 301
 	handle /auth/* {
-		reverse_proxy keycloak:8080
+		@stalwart-oauth path /auth/token /auth/userinfo /auth/jwks.json /auth/register /auth/device /auth/revoke /auth/logout /auth/introspect
+		handle @stalwart-oauth {
+			reverse_proxy stalwart:8080
+		}
+		handle {
+			reverse_proxy keycloak:8080
+		}
 	}
 
 	# Stalwart has no path prefix: its router matches root segments, and the
 	# JMAP session advertises ${PUBLIC_URL}/jmap/... So JMAP lives at the root,
-	# and /mail/* is a stripped alias for everything else it serves (healthz,
-	# WebDAV). Its web admin is not usable through the alias (absolute links).
-	handle /.well-known/jmap {
+	# and so do the web admin (/admin, /account), its sign-in page (/login,
+	# /device, /ui-*.js|css, /logo) and their APIs (/api/*, the OAuth discovery
+	# documents). /mail/* is a stripped alias for the rest (healthz, WebDAV).
+	@stalwart path /.well-known/jmap /.well-known/oauth-authorization-server /.well-known/openid-configuration /admin /admin/* /account /account/* /login /device /device/* /logo /logo/* /ui-* /api/* /calendar/rsvp
+	handle @stalwart {
 		reverse_proxy stalwart:8080
 	}
 	handle /jmap/* {

@@ -53,6 +53,10 @@ code=$(ccurl -L -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${ALICE
 check "un-exchanged NightMail token (aud nightware-api) is rejected by Stalwart (${code})" test "$code" = 401
 check "master-user fallback: Basic alice%admin opens alice's session" \
   bash -c "$CCURL -L -u 'alice@${MAIL_DOMAIN}%${STALWART_ADMIN_USER}:${STALWART_ADMIN_PASSWORD}' '${MAIL_URL}/.well-known/jmap' | jq -e '.username==\"alice@${MAIL_DOMAIN}\"' >/dev/null"
+code=$(ccurl -o /dev/null -w '%{http_code}' "${MAIL_URL}/admin/" 2>/dev/null)
+check "Stalwart web admin at the host root (${code})" test "$code" = 200
+check "Stalwart's /auth/jwks.json reaches Stalwart, not Keycloak" \
+  bash -c "$CCURL '${MAIL_URL}/auth/jwks.json' | jq -e '.keys[0].crv' >/dev/null"
 
 log "Nextcloud (CalDAV)"
 PF='<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><d:current-user-principal/><c:calendar-home-set/></d:prop></d:propfind>'
