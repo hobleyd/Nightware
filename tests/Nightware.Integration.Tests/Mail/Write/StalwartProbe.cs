@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Nightware.Integration.Tests.Directory;
+using Nightware.Integration.Tests.Support;
 
 namespace Nightware.Integration.Tests.Mail.Write;
 
@@ -13,7 +14,7 @@ namespace Nightware.Integration.Tests.Mail.Write;
 /// </summary>
 internal sealed class StalwartProbe(LiveStack stack)
 {
-    private const string MailUrl = "https://mail." + LiveStack.Domain;
+    private static string MailUrl => DevStack.MailBase;
     private readonly Dictionary<string, (string Token, string Account)> _sessions = [];
 
     /// <summary>Runs <paramref name="methodCalls"/> (a JSON array literal; <c>$account</c> is replaced) and returns <c>methodResponses</c>.</summary>

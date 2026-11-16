@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
+using Nightware.Integration.Tests.Support;
 
 namespace Nightware.Integration.Tests.Calendar;
 
@@ -11,9 +12,9 @@ namespace Nightware.Integration.Tests.Calendar;
 /// </summary>
 public sealed class CalendarLiveTests
 {
-    private const string Alice = "alice@nightware.localhost";
-    private const string Bob = "bob@nightware.localhost";
-    private const string Boardroom = "boardroom@nightware.localhost";
+    private static readonly string Alice = DevStack.Address("alice");
+    private static readonly string Bob = DevStack.Address("bob");
+    private static readonly string Boardroom = DevStack.Address("boardroom");
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -190,6 +191,6 @@ public sealed class CalendarLiveTests
         boardroom["isWheelChairAccessible"]!.GetValue<bool>().ShouldBeTrue();
 
         var found = await SendJsonAsync(alice, HttpMethod.Get, "/beta/me/findRooms");
-        found["value"]!.AsArray().Select(r => r!["address"]!.GetValue<string>()).ShouldContain("focus1@nightware.localhost");
+        found["value"]!.AsArray().Select(r => r!["address"]!.GetValue<string>()).ShouldContain(DevStack.Address("focus1"));
     }
 }

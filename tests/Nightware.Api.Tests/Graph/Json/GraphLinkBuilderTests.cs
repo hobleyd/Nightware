@@ -39,6 +39,18 @@ public sealed class GraphLinkBuilderTests
     }
 
     [Fact]
+    public void Next_link_under_a_path_prefix_keeps_the_prefix()
+    {
+        // The dev stack: Caddy strips /graph, the façade sees /v1.0/... and builds on the configured base.
+        var request = Request("/v1.0/me/messages", "?%24top=10", pathBase: "/graph");
+
+        Builder("https://nightware.example.org/graph/v1.0").NextLink(request, "t")
+            .ShouldBe("https://nightware.example.org/graph/v1.0/me/messages?$top=10&$skiptoken=t");
+        Builder().NextLink(Request("/v1.0/me/messages", scheme: "https", host: "nightware.example.org", pathBase: "/graph"), "t")
+            .ShouldBe("https://nightware.example.org/graph/v1.0/me/messages?$skiptoken=t");
+    }
+
+    [Fact]
     public void Relative_path_strips_the_version()
     {
         GraphLinkBuilder.RelativePath(Request("/v1.0/me/mailFolders('inbox')")).ShouldBe("/me/mailFolders('inbox')");

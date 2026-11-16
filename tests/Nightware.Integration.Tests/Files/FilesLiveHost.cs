@@ -14,15 +14,15 @@ namespace Nightware.Integration.Tests.Files;
 
 /// <summary>
 /// An in-process Nightware against the running dev stack for Phase 7 (Nextcloud links): Nextcloud through
-/// its public name, <c>https://cloud.{domain}</c> advertised as the file site, and Collabora reached on its
-/// loopback port (<c>NIGHTWARE_COLLABORA_URL</c>, default <c>http://127.0.0.1:9980/</c>). Seeds files and
+/// its public URL, <c>https://{PUBLIC_HOST}/cloud</c> advertised as the file site, and Collabora reached on its
+/// loopback port under its service root (<c>NIGHTWARE_COLLABORA_URL</c>, default
+/// <c>http://127.0.0.1:9980/office/</c>). Seeds files and
 /// shares as alice directly over WebDAV/OCS, as the Nextcloud web UI would. Opt-in: skips unless
 /// <c>NIGHTWARE_INTEGRATION=1</c>.
 /// </summary>
 internal sealed class FilesLiveHost : IAsyncDisposable
 {
-    public const string Domain = DevStack.Domain;
-    public const string CloudBase = "https://cloud." + Domain;
+    public static string CloudBase => DevStack.CloudBase;
     public const string Alice = "alice";
     public const string Bob = "bob";
 
@@ -36,22 +36,14 @@ internal sealed class FilesLiveHost : IAsyncDisposable
         _stack = stack;
         // Cookie-free: Nextcloud answers a bearer request with a session cookie, and bearer + session is a 401.
         _backchannel = new HttpClient(stack.Trusting(new SocketsHttpHandler { UseCookies = false }));
-        _collabora = new Uri(Environment.GetEnvironmentVariable("NIGHTWARE_COLLABORA_URL") ?? "http://127.0.0.1:9980/");
+        _collabora = new Uri(Environment.GetEnvironmentVariable("NIGHTWARE_COLLABORA_URL") ?? "http://127.0.0.1:9980/office/");
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
-            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Auth:Authority"] = DevStack.Issuer,
-                ["Discovery:GraphBaseUrl"] = DevStack.GraphBase,
-                ["Discovery:GraphBetaBaseUrl"] = DevStack.GraphBetaBase,
-                ["Discovery:FilesBaseUrls:0"] = CloudBase,
-                ["DeltaLinks:SigningKey"] = "integration",
-                ["Directory:KeycloakBaseUrl"] = "https://auth." + Domain,
-                ["Directory:ClientSecret"] = stack.Env("NIGHTWARE_API_CLIENT_SECRET"),
-                ["Dav:BaseUrl"] = CloudBase + "/",
-                ["Collabora:BaseUrl"] = _collabora.AbsoluteUri,
-            }));
+            var settings = stack.FacadeSettings();
+            settings["Discovery:FilesBaseUrls:0"] = CloudBase;
+            settings["Collabora:BaseUrl"] = _collabora.AbsoluteUri;
+            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(settings));
             builder.ConfigureTestServices(stack.Trust);
         });
     }

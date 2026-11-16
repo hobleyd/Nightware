@@ -2,14 +2,15 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Nodes;
+using Nightware.Integration.Tests.Support;
 
 namespace Nightware.Integration.Tests.Directory;
 
 /// <summary>Phase 5A against the running stack: /me, /users, contacts, people and photos for alice and bob.</summary>
 public sealed class DirectoryLiveTests
 {
-    private const string Alice = "alice@nightware.localhost";
-    private const string Bob = "bob@nightware.localhost";
+    private static readonly string Alice = DevStack.Address("alice");
+    private static readonly string Bob = DevStack.Address("bob");
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -72,7 +73,7 @@ public sealed class DirectoryLiveTests
         using var client = await stack.GraphClientAsync("alice", Ct);
         const string select = "?$select=id,displayName,jobTitle,department,companyName,mobilePhone,businessPhones,officeLocation,mail,userPrincipalName";
 
-        var encoded = await GetJsonAsync(client, "/v1.0/users/bob%40nightware.localhost" + select);
+        var encoded = await GetJsonAsync(client, "/v1.0/users/" + Uri.EscapeDataString(Bob) + select);
         var raw = await GetJsonAsync(client, "/v1.0/users/" + Bob + select);
         var byId = await GetJsonAsync(client, "/v1.0/users/" + encoded["id"]!.GetValue<string>() + select);
 
@@ -99,7 +100,7 @@ public sealed class DirectoryLiveTests
         using var client = await stack.GraphClientAsync("alice", Ct);
 
         // Neither test user uploaded a picture; Nextcloud's generated avatar must read as "no photo".
-        using var response = await client.GetAsync("/v1.0/users/bob%40nightware.localhost/photo/$value", Ct);
+        using var response = await client.GetAsync("/v1.0/users/" + Uri.EscapeDataString(Bob) + "/photo/$value", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }

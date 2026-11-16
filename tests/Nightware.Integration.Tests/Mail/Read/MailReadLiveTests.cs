@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
+using Nightware.Integration.Tests.Support;
 
 namespace Nightware.Integration.Tests.Mail.Read;
 
@@ -61,7 +62,7 @@ public sealed class MailReadLiveTests
         (await GetJsonAsync(graph, $"/v1.0/me/mailFolders/{inboxId}/childFolders?$select={FolderSelect}&$top=100"))["value"].ShouldNotBeNull();
 
         // The shared-mailbox probe for a mailbox alice was never given: 404/403, never 401 or 5xx.
-        using var probe = await graph.GetAsync("/v1.0/users/bob%40nightware.localhost/mailFolders/inbox?$select=id", Ct);
+        using var probe = await graph.GetAsync("/v1.0/users/" + Uri.EscapeDataString(DevStack.Address("bob")) + "/mailFolders/inbox?$select=id", Ct);
         probe.StatusCode.ShouldBeOneOf(HttpStatusCode.NotFound, HttpStatusCode.Forbidden);
     }
 

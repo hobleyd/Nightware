@@ -28,8 +28,8 @@ public sealed class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var body = await response.ReadObjectAsync();
         body.Select(p => p.Key).Order().ShouldBe(["authorizationEndpoint", "clientId", "graphBaseUrl", "graphBetaBaseUrl", "scopes", "tokenEndpoint"]);
-        body.Str("graphBaseUrl").ShouldBe("https://graph.nightware.localhost/v1.0");
-        body.Str("graphBetaBaseUrl").ShouldBe("https://graph.nightware.localhost/beta");
+        body.Str("graphBaseUrl").ShouldBe("https://nightware.localhost/graph/v1.0");
+        body.Str("graphBetaBaseUrl").ShouldBe("https://nightware.localhost/graph/beta");
         body.Str("clientId").ShouldBe("nightmail");
         body["scopes"]!.AsArray().Select(s => s!.GetValue<string>()).ShouldContain("offline_access");
         foreach (var key in new[] { "graphBaseUrl", "graphBetaBaseUrl", "authorizationEndpoint", "tokenEndpoint" })
@@ -53,13 +53,13 @@ public sealed class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
         using var client = _factory.WithWebHostBuilder(static b => b.ConfigureAppConfiguration(static (_, c) =>
             c.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Discovery:FilesBaseUrls:0"] = "https://cloud.nightware.localhost",
+                ["Discovery:FilesBaseUrls:0"] = "https://nightware.localhost/cloud",
                 ["Discovery:FilesBaseUrls:1"] = "https://files.example.com/nextcloud",
             }))).CreateClient();
 
         var body = await (await client.GetAsync("/.well-known/nightware", Ct)).ReadObjectAsync();
 
-        body["filesBaseUrls"]!.AsArray().Select(s => s!.GetValue<string>()).ShouldBe(["https://cloud.nightware.localhost", "https://files.example.com/nextcloud"]);
+        body["filesBaseUrls"]!.AsArray().Select(s => s!.GetValue<string>()).ShouldBe(["https://nightware.localhost/cloud", "https://files.example.com/nextcloud"]);
     }
 
     [Theory]
