@@ -1,20 +1,23 @@
 # Nightware development stack.
 #
-#   cd deploy && cp .env.example .env
-#   docker compose -p nightware up -d
+#   cd deploy && ./scripts/init-env.sh   # .env from .env.example, random secrets
+#   docker compose up -d --wait          # project: COMPOSE_PROJECT_NAME (default nightware)
 #   ./bootstrap.sh            # one-time: Stalwart + Nextcloud configuration
 #   ./smoke.sh
 #
 # The Nightware Graph façade itself is behind the `api` profile, because its
 # Dockerfile lives in src/ (phase 1.1):
-#   docker compose -p nightware --profile api up -d
+#   docker compose --profile api up -d
 #
-# Every public hostname (auth./mail./cloud./graph.${BASE_DOMAIN}) is served by
-# Caddy. The same names are network aliases of the caddy container, so other
-# containers reach Keycloak etc. through exactly the URL a client sees: the
-# token issuer is identical inside and outside the Docker network.
+# One public host, https://${PUBLIC_HOST}, served by Caddy with a path per
+# backend: /auth (Keycloak), /cloud (Nextcloud), /office (Collabora), /graph
+# (the façade), and Stalwart's JMAP at the root (/.well-known/jmap, /jmap/*;
+# /mail/* for the rest). PUBLIC_HOST is a network alias of the caddy
+# container, so other containers reach Keycloak etc. through exactly the URL a
+# client sees: the token issuer is identical inside and outside the Docker
+# network. Mail addresses use MAIL_DOMAIN, which need not be PUBLIC_HOST.
 
-name: nightware
+name: ${COMPOSE_PROJECT_NAME:-nightware}
 
 x-restart: &restart
   restart: unless-stopped
@@ -42,24 +45,30 @@ services:
     <<: *restart
     image: caddy:2.11.9-alpine
     environment:
-      BASE_DOMAIN: ${BASE_DOMAIN:-nightware.localhost}
+      PUBLIC_HOST: ${PUBLIC_HOST:-nightware.localhost}
       HTTPS_PORT: ${HTTPS_PORT:-443}
+      # internal | <ACME email> | "/certs/fullchain.crt /certs/privkey.key" (see Caddyfile)
       CADDY_TLS: ${CADDY_TLS:-internal}
     ports:
       # Caddy listens on the same port inside the container as on the host, so
-      # https://auth.${BASE_DOMAIN}:${HTTPS_PORT} is the same URL everywhere.
+      # https://${PUBLIC_HOST}:${HTTPS_PORT} is the same URL everywhere.
       - "${BIND_ADDRESS:-127.0.0.1}:${HTTPS_PORT:-443}:${HTTPS_PORT:-443}"
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificate files for CADDY_TLS="/certs/fullchain.crt /certs/privkey.key"
+      # (scripts/fetch-cert.sh); unused otherwise.
+      - ./.certs:/certs:ro
       - caddy-data:/data
       - caddy-config:/config
     networks:
       nightware:
         aliases:
-          - auth.${BASE_DOMAIN:-nightware.localhost}
-          - mail.${BASE_DOMAIN:-nightware.localhost}
-          - cloud.${BASE_DOMAIN:-nightware.localhost}
-          - graph.${BASE_DOMAIN:-nightware.localhost}
+          - ${PUBLIC_HOST:-nightware.localhost}
+        # Pinned so Nextcloud applies its public-URL overwrites (the /cloud
+        # webroot) to requests from this proxy only (overwritecondaddr in
+        # nextcloud/configure.sh): the façade's direct http://nextcloud calls
+        # keep root-relative hrefs. Inside DOCKER_SUBNET, near the top.
+        ipv4_address: ${CADDY_ADDRESS:-172.31.250.253}
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
       interval: 10s
@@ -95,9 +104,11 @@ services:
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
-      # Fixed front-end URL: `iss` is always https://auth.${BASE_DOMAIN}/realms/nightware
-      KC_HOSTNAME: https://auth.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
-      # Requests that reach Keycloak directly on http://keycloak:8080 get
+      # Served under /auth, the management interface too (/auth/health/ready on 9000).
+      KC_HTTP_RELATIVE_PATH: /auth
+      # Fixed front-end URL: `iss` is always https://${PUBLIC_HOST}/auth/realms/nightware
+      KC_HOSTNAME: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/auth
+      # Requests that reach Keycloak directly on http://keycloak:8080/auth get
       # backchannel endpoints (token, jwks, userinfo) on that internal URL,
       # while `issuer` and the browser-facing endpoints stay public. Nextcloud
       # uses this (its libcurl resolves *.localhost to its own loopback).
@@ -108,8 +119,8 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set in .env}
       # Substituted into keycloak/nightware-realm.json at import time.
-      BASE_DOMAIN: ${BASE_DOMAIN:-nightware.localhost}
-      PUBLIC_PORT_SUFFIX: ${PUBLIC_PORT_SUFFIX:-}
+      PUBLIC_URL: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
+      MAIL_DOMAIN: ${MAIL_DOMAIN:-nightware.localhost}
       TEST_USER_PASSWORD: ${TEST_USER_PASSWORD:?set in .env}
       NIGHTMAIL_WEB_ORIGIN: ${NIGHTMAIL_WEB_ORIGIN:-http://localhost:34572}
       NIGHTWARE_API_CLIENT_SECRET: ${NIGHTWARE_API_CLIENT_SECRET:?set in .env}
@@ -120,7 +131,7 @@ services:
     networks: [nightware]
     healthcheck:
       # The management interface (9000) serves /health/ready; the image has no curl.
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /auth/health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -133,8 +144,9 @@ services:
     init: true
     environment:
       # Published URLs (JMAP session, OAuth metadata) — Caddy terminates TLS.
-      STALWART_PUBLIC_URL: https://mail.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
-      STALWART_HOSTNAME: mail.${BASE_DOMAIN:-nightware.localhost}
+      # The host root, no path: Stalwart's router cannot run under a prefix.
+      STALWART_PUBLIC_URL: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
+      STALWART_HOSTNAME: mail.${MAIL_DOMAIN:-nightware.localhost}
       # Recovery administrator: authenticates locally even though the default
       # directory is Keycloak. Also the master user / impersonation credential
       # (see README "Service-account fallback"). Dev only.
@@ -193,11 +205,14 @@ services:
       REDIS_HOST: nextcloud-redis
       NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER:-admin}
       NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD:?set in .env}
-      NEXTCLOUD_TRUSTED_DOMAINS: cloud.${BASE_DOMAIN:-nightware.localhost} nextcloud localhost
+      NEXTCLOUD_TRUSTED_DOMAINS: ${PUBLIC_HOST:-nightware.localhost} nextcloud localhost
       TRUSTED_PROXIES: 172.16.0.0/12 192.168.0.0/16 10.0.0.0/8
+      # Public URL https://${PUBLIC_HOST}/cloud. nextcloud/configure.sh limits
+      # these overwrites to requests that come through Caddy (overwritecondaddr).
       OVERWRITEPROTOCOL: https
-      OVERWRITEHOST: cloud.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
-      OVERWRITECLIURL: https://cloud.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
+      OVERWRITEHOST: ${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
+      OVERWRITEWEBROOT: /cloud
+      OVERWRITECLIURL: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/cloud
       PHP_MEMORY_LIMIT: 1G
       APACHE_DISABLE_REWRITE_IP: "1"
     volumes:
@@ -233,25 +248,29 @@ services:
       # richdocuments tells Collabora to call back on the internal network.
       aliasgroup1: http://nextcloud:80
       # Browser-facing name: discovery's urlsrc and the editor's own links.
-      server_name: office.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
+      server_name: ${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
       DONT_GEN_SSL_CERT: "1"
-      # Caddy terminates TLS. convert-to is open to private addresses only (the
-      # default net.post_allow), and Caddy refuses it on the public name.
-      # Collabora also fetches richdocuments' settings and templates on the
-      # public cloud. name, whose certificate (Caddy's local CA) it does not
-      # trust: verification is off unless COLLABORA_SSL_VERIFICATION=true
-      # (set it with CADDY_TLS=<acme email>). The image has no shell, so no
+      # Caddy terminates TLS. Collabora serves under /office (net.service_root),
+      # on its internal listener too: http://collabora:9980/office/...
+      # convert-to is open to private addresses only (the default
+      # net.post_allow), and Caddy refuses it on the public name. Collabora
+      # also fetches richdocuments' settings and templates on the public /cloud
+      # URL: verification is off unless COLLABORA_SSL_VERIFICATION=true, which
+      # needs a publicly trusted certificate (CADDY_TLS=<acme email> or
+      # certificate files), not Caddy's local CA. The image has no shell, so no
       # healthcheck; nextcloud/configure.sh waits for its discovery instead.
-      extra_params: --o:ssl.enable=false --o:ssl.termination=true --o:ssl.ssl_verification=${COLLABORA_SSL_VERIFICATION:-false} --o:net.frame_ancestors=cloud.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-} --o:welcome.enable=false
+      extra_params: --o:ssl.enable=false --o:ssl.termination=true --o:ssl.ssl_verification=${COLLABORA_SSL_VERIFICATION:-false} --o:net.service_root=/office --o:net.frame_ancestors=${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-} --o:welcome.enable=false
     ports:
-      # Plain HTTP on loopback, for a façade run on the host (dotnet run, the
-      # live integration tests) to reach convert-to: Docker Desktop forwards
-      # it from a private address, which net.post_allow accepts.
-      - "${BIND_ADDRESS:-127.0.0.1}:${COLLABORA_PORT:-9980}:9980"
+      # Plain HTTP, for a façade run on the host (dotnet run, the live
+      # integration tests) to reach convert-to: Docker Desktop forwards it from
+      # a private address, which net.post_allow accepts. Loopback unless
+      # COLLABORA_BIND_ADDRESS says otherwise: on any other interface it offers
+      # convert-to to the whole network, around Caddy's 403.
+      - "${COLLABORA_BIND_ADDRESS:-127.0.0.1}:${COLLABORA_PORT:-9980}:9980"
     networks: [nightware]
 
   # ---------------------------------------------------- Nightware Graph façade
-  # Only the façade is (re)built:  docker compose -p nightware --profile api up -d --build --no-deps nightware-api
+  # Only the façade is (re)built:  docker compose --profile api up -d --build --no-deps nightware-api
   # Every key is documented in docs/operations/configuration.md.
   nightware-api:
     profiles: [api]
@@ -264,21 +283,21 @@ services:
       ASPNETCORE_HTTP_PORTS: "8080"
       ASPNETCORE_ENVIRONMENT: ${NIGHTWARE_ENVIRONMENT:-Development}
       # Bearer validation: public issuer, keys fetched over the internal network.
-      Auth__Authority: https://auth.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/realms/nightware
-      Auth__MetadataAddress: http://keycloak:8080/realms/nightware/.well-known/openid-configuration
+      Auth__Authority: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/auth/realms/nightware
+      Auth__MetadataAddress: http://keycloak:8080/auth/realms/nightware/.well-known/openid-configuration
       Auth__RequireHttpsMetadata: "false"
       Auth__Audience: nightware-api
       # /.well-known/nightware — every URL is public; links (@odata.nextLink/deltaLink) are built on GraphBaseUrl.
-      Discovery__GraphBaseUrl: https://graph.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/v1.0
-      Discovery__GraphBetaBaseUrl: https://graph.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/beta
-      Discovery__AuthorizationEndpoint: https://auth.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/realms/nightware/protocol/openid-connect/auth
-      Discovery__TokenEndpoint: https://auth.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/realms/nightware/protocol/openid-connect/token
+      Discovery__GraphBaseUrl: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/graph/v1.0
+      Discovery__GraphBetaBaseUrl: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/graph/beta
+      Discovery__AuthorizationEndpoint: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/auth/realms/nightware/protocol/openid-connect/auth
+      Discovery__TokenEndpoint: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/auth/realms/nightware/protocol/openid-connect/token
       Discovery__ClientId: nightmail
       # The façade's root secret: signs delta links and keys the seal on upload/download
       # URLs that carry callers' tokens. No default: a public one would let anyone forge
       # them. scripts/init-env.sh (run by bootstrap.sh, make stack, make api) generates it.
       DeltaLinks__SigningKey: "${NIGHTWARE_DELTA_LINK_KEY:?is not set in deploy/.env - run deploy/scripts/init-env.sh, or set it to the output of openssl rand -hex 32}"
-      Directory__KeycloakBaseUrl: http://keycloak:8080
+      Directory__KeycloakBaseUrl: http://keycloak:8080/auth
       Directory__Realm: nightware
       Directory__ClientId: nightware-api
       Directory__ClientSecret: ${NIGHTWARE_API_CLIENT_SECRET}
@@ -291,8 +310,9 @@ services:
       Dav__BaseUrl: http://nextcloud/
       # Phase 7: Nextcloud links in mail preview through /shares on these hosts
       # (advertised as filesBaseUrls); Office files are rendered to PDF by Collabora.
-      Discovery__FilesBaseUrls__0: https://cloud.${BASE_DOMAIN:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
-      Collabora__BaseUrl: http://collabora:9980/
+      Discovery__FilesBaseUrls__0: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/cloud
+      # Collabora's service root (net.service_root) applies internally too.
+      Collabora__BaseUrl: http://collabora:9980/office/
       # Caddy is the only proxy; trust X-Forwarded-* from this network alone.
       ForwardedHeaders__KnownNetworks__0: ${DOCKER_SUBNET:-172.31.250.0/24}
       # The NightMail web build calls discovery and Graph cross-origin.
@@ -301,8 +321,11 @@ services:
       RateLimiting__Enabled: ${NIGHTWARE_RATE_LIMITING:-true}
       # Off unless set, e.g. http://otel-collector:4317 (see docs/operations/monitoring.md).
       Telemetry__Otlp__Endpoint: ${NIGHTWARE_OTLP_ENDPOINT:-}
-      # Caddy's local CA root, exported by bootstrap.sh, for calls via public names.
-      SSL_CERT_FILE: /certs/caddy-root.crt
+      # Trust for calls via public names: Caddy's local CA root (exported by
+      # bootstrap.sh) with CADDY_TLS=internal; otherwise set
+      # NIGHTWARE_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt (the image's
+      # own bundle). A missing file trusts nothing.
+      SSL_CERT_FILE: ${NIGHTWARE_SSL_CERT_FILE:-/certs/caddy-root.crt}
     volumes:
       - ./.certs:/certs:ro
     depends_on:

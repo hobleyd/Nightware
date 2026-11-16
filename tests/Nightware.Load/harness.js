@@ -4,8 +4,8 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
-const ORIGIN = __ENV.GRAPH_ORIGIN || 'https://graph.nightware.localhost';
-const TOKEN_URL = __ENV.TOKEN_URL || 'https://auth.nightware.localhost/realms/nightware/protocol/openid-connect/token';
+const ORIGIN = __ENV.GRAPH_ORIGIN || 'https://nightware.localhost/graph';
+const TOKEN_URL = __ENV.TOKEN_URL || 'https://nightware.localhost/auth/realms/nightware/protocol/openid-connect/token';
 
 export const options = {
   vus: parseInt(__ENV.VUS || '5', 10),

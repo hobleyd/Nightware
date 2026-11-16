@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # One-time (idempotent) configuration of a running stack:
-#   docker compose -p nightware up -d && ./bootstrap.sh
+#   docker compose up -d --wait && ./bootstrap.sh
 # Safe to re-run; each step converges.
 source "$(dirname "$0")/scripts/lib.sh"
 
 # lib.sh has already run scripts/init-env.sh: .env exists and holds a
 # NIGHTWARE_DELTA_LINK_KEY (generated on first run, never replaced).
 
-log "Exporting Caddy root CA -> .certs/caddy-root.crt"
+internal_tls && log "Exporting Caddy root CA -> .certs/caddy-root.crt"
 export_ca
 
 "$DEPLOY_DIR/keycloak/configure.sh"

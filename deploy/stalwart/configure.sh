@@ -20,37 +20,37 @@ USING='"using":["urn:ietf:params:jmap:core","urn:stalwart:jmap"]'
 call() { stalwart_api "{${USING},\"methodCalls\":$1}"; }
 
 log "Stalwart: waiting for HTTP listener"
-wait_for "stalwart" ccurl -f "${MAIL_URL}/healthz/live"
+wait_for "stalwart" ccurl -f "${MAIL_ALIAS_URL}/healthz/live"
 
 # ---------------------------------------------------------------- 1. bootstrap
 if call '[["x:Bootstrap/get",{"ids":["singleton"]},"c"]]' | jq -e '.methodResponses[0][0]=="x:Bootstrap/get"' >/dev/null \
    && ! call '[["x:Domain/query",{},"c"]]' | jq -e '.methodResponses[0][0]=="x:Domain/query"' >/dev/null; then
   log "Stalwart: bootstrap mode -> submitting Bootstrap object"
-  call "$(jq -cn --arg host "mail.${BASE_DOMAIN}" --arg dom "${BASE_DOMAIN}" '[["x:Bootstrap/set",{"update":{"singleton":{
+  call "$(jq -cn --arg host "mail.${MAIL_DOMAIN}" --arg dom "${MAIL_DOMAIN}" '[["x:Bootstrap/set",{"update":{"singleton":{
       defaultHostname:$host, defaultDomain:$dom,
       requestTlsCertificate:false, generateDkimKeys:true,
       tracer:{"@type":"Stdout",level:"info",ansi:false}}}},"c"]]')" \
     | jq -e '.methodResponses[0][1].updated.singleton' >/dev/null
   dc restart stalwart >/dev/null
   sleep 3
-  wait_for "stalwart restart" ccurl -f "${MAIL_URL}/healthz/live"
+  wait_for "stalwart restart" ccurl -f "${MAIL_ALIAS_URL}/healthz/live"
   for _ in $(seq 1 60); do
     call '[["x:Domain/query",{},"c"]]' 2>/dev/null | grep -q '"x:Domain/query"' && break
     sleep 2
   done
 fi
 
-DOMAIN_ID=$(call "$(jq -cn --arg d "$BASE_DOMAIN" '[["x:Domain/query",{"filter":{"name":$d}},"c"]]')" | jq -er '.methodResponses[0][1].ids[0]')
-log "Stalwart: domain ${BASE_DOMAIN} id=${DOMAIN_ID}"
+DOMAIN_ID=$(call "$(jq -cn --arg d "$MAIL_DOMAIN" '[["x:Domain/query",{"filter":{"name":$d}},"c"]]')" | jq -er '.methodResponses[0][1].ids[0]')
+log "Stalwart: domain ${MAIL_DOMAIN} id=${DOMAIN_ID}"
 
 # ------------------------------------------------------- 2. test user accounts
 existing=$(call '[["x:Account/query",{},"q"],["x:Account/get",{"#ids":{"resultOf":"q","name":"x:Account/query","path":"/ids"},"properties":["name","emailAddress"]},"g"]]' \
   | jq -r '.methodResponses[1][1].list[].emailAddress')
 for u in alice bob; do
-  if grep -qx "${u}@${BASE_DOMAIN}" <<<"$existing"; then
-    log "Stalwart: account ${u}@${BASE_DOMAIN} exists"
+  if grep -qx "${u}@${MAIL_DOMAIN}" <<<"$existing"; then
+    log "Stalwart: account ${u}@${MAIL_DOMAIN} exists"
   else
-    log "Stalwart: creating account ${u}@${BASE_DOMAIN}"
+    log "Stalwart: creating account ${u}@${MAIL_DOMAIN}"
     call "$(jq -cn --arg n "$u" --arg d "$DOMAIN_ID" '[["x:Account/set",{"create":{"u":{"@type":"User",name:$n,domainId:$d,description:($n|ascii_downcase)}}},"c"]]')" \
       | jq -e '.methodResponses[0][1].created.u.id' >/dev/null \
       || { echo "account create failed" >&2; exit 1; }
@@ -58,7 +58,10 @@ for u in alice bob; do
 done
 
 # ------------------------------------------------------- 3. Keycloak directory
-DIR_BODY=$(jq -cn --arg iss "$ISSUER" '{
+# Stalwart fetches discovery and JWKS from ${ISSUER} through Caddy. It cannot
+# verify Caddy's local CA, so certificate checks are off unless
+# STALWART_ALLOW_INVALID_CERTS=false (a publicly trusted certificate).
+DIR_BODY=$(jq -cn --arg iss "$ISSUER" --argjson insecure "${STALWART_ALLOW_INVALID_CERTS:-true}" '{
   "@type":"Oidc",
   description:"Keycloak (nightware realm)",
   issuerUrl:$iss,
@@ -66,7 +69,7 @@ DIR_BODY=$(jq -cn --arg iss "$ISSUER" '{
   claimName:"name",
   acceptedAudiences:{"stalwart":true},
   unscopedTokens:"interoperable",
-  allowInvalidCerts:true
+  allowInvalidCerts:$insecure
 }')
 DIR_ID=$(call '[["x:Directory/query",{},"c"]]' | jq -r '.methodResponses[0][1].ids[0] // empty')
 if [[ -z "$DIR_ID" ]]; then
@@ -133,6 +136,6 @@ call '[["x:Action/set",{"create":{"r":{"@type":"ReloadSettings"}}},"c"]]' \
 if (( RESTART_STALWART )); then
   log "Stalwart: restarting to apply the JMAP request limits"
   dc restart stalwart >/dev/null
-  wait_for "stalwart restart" ccurl -f "${MAIL_URL}/healthz/live"
+  wait_for "stalwart restart" ccurl -f "${MAIL_ALIAS_URL}/healthz/live"
 fi
 log "Stalwart: configured (directory ${DIR_ID} is the default directory)"
