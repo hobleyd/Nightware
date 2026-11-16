@@ -12,3 +12,7 @@ Nextcloud (calendar, contacts, tasks, files) and Keycloak (identity).
 dotnet build
 dotnet test
 ```
+
+## Licence
+
+GNU General Public License v3.0 — see [LICENSE](LICENSE).

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Microsoft.Testing.Extensions.CodeCoverage settings (dotnet test -coverage-settings).
+  Production assemblies only; generated code (regex, LoggerMessage, System.Text.Json) excluded.
+  Static instrumentation rewrites the DLLs on disk, so the architecture tests (ArchUnitNET reads
+  those files) run in their own pass, outside coverage.slnf.
+-->
+<Configuration>
+  <CodeCoverage>
+    <ModulePaths>
+      <Include>
+        <ModulePath>.*[\\/]Nightware\.(Domain|Application|Adapters\.[A-Za-z]+|Api)\.dll$</ModulePath>
+      </Include>
+    </ModulePaths>
+    <Attributes>
+      <Exclude>
+        <Attribute>^System\.CodeDom\.Compiler\.GeneratedCodeAttribute$</Attribute>
+        <Attribute>^System\.Diagnostics\.CodeAnalysis\.ExcludeFromCodeCoverageAttribute$</Attribute>
+      </Exclude>
+    </Attributes>
+    <EnableStaticManagedInstrumentation>True</EnableStaticManagedInstrumentation>
+    <EnableDynamicManagedInstrumentation>False</EnableDynamicManagedInstrumentation>
+  </CodeCoverage>
+</Configuration>
