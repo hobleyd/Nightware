@@ -126,7 +126,13 @@ internal sealed class DevStack : IDisposable
         services.ConfigureAll<HttpClientFactoryOptions>(o => o.HttpMessageHandlerBuilderActions.Add(b => Trusting(b.PrimaryHandler)));
 
         // Configure, not PostConfigure: the framework's own post-configure builds the metadata manager from it.
-        services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, o => o.BackchannelHttpHandler = Trusting(new SocketsHttpHandler()));
+        // The authority too: AddGraphAuthentication reads Auth:Authority while Program registers services, before
+        // the factory's in-memory settings exist, so it would otherwise keep appsettings.json's default issuer.
+        services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, o =>
+        {
+            o.Authority = Issuer;
+            o.BackchannelHttpHandler = Trusting(new SocketsHttpHandler());
+        });
     }
 
     public HttpMessageHandler Trusting(HttpMessageHandler handler)
