@@ -69,10 +69,10 @@ public sealed class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
     [InlineData("https://user:pw@cloud.example.com")]
     public void An_invalid_file_site_fails_at_startup(string url)
     {
-        var broken = _factory.WithWebHostBuilder(b => b.ConfigureAppConfiguration((_, c) =>
-            c.AddInMemoryCollection(new Dictionary<string, string?> { ["Discovery:FilesBaseUrls:0"] = url })));
+        var error = ProgramStartup.Failure(() => _factory.WithWebHostBuilder(b => b.ConfigureAppConfiguration((_, c) =>
+            c.AddInMemoryCollection(new Dictionary<string, string?> { ["Discovery:FilesBaseUrls:0"] = url }))));
 
-        Should.Throw<Exception>(() => broken.CreateClient()).ToString().ShouldContain("FilesBaseUrls");
+        error.ToString().ShouldContain("FilesBaseUrls");
     }
 
     [Fact]

@@ -82,11 +82,7 @@ public sealed class TelemetryTests
         var response = await client.GetAsync("/v1.0/probe", Ct);
 
         var requestId = response.Headers.GetValues("request-id").Single();
-        Activity span;
-        lock (spans)
-        {
-            span = spans.Single(a => a.Kind == ActivityKind.Server && (string?)a.GetTagItem(RequestCorrelationMiddleware.RequestIdTag) == requestId);
-        }
+        var span = await StoppedSpanAsync(spans, a => a.Kind == ActivityKind.Server && (string?)a.GetTagItem(RequestCorrelationMiddleware.RequestIdTag) == requestId);
 
         span.GetTagItem(RequestCorrelationMiddleware.ClientRequestIdTag).ShouldBe("client-abc");
     }
@@ -164,6 +160,28 @@ public sealed class TelemetryTests
             var tagged = measurements.Where(static m => (string?)m.Tags.GetValueOrDefault(NightwareMetrics.BackendTagName) == "jmap-api").ToList();
             tagged.ShouldContain(static m => Equals(m.Tags["http.response.status_code"], 200));
             tagged.ShouldContain(static m => Equals(m.Tags["http.response.status_code"], 503) && (string?)m.Tags["error.type"] == "503");
+        }
+    }
+
+    /// <summary>
+    /// The one span <paramref name="match"/> picks, once it has stopped. The client can read the
+    /// response before the host stops the request's server activity, so the span may land later.
+    /// </summary>
+    private static async Task<Activity> StoppedSpanAsync(List<Activity> spans, Func<Activity, bool> match)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+        while (true)
+        {
+            lock (spans)
+            {
+                if (spans.SingleOrDefault(match) is { } span)
+                {
+                    return span;
+                }
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(10), timeout.Token);
         }
     }
 

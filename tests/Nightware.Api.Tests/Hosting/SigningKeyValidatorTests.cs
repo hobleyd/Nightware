@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting.Internal;
 
 using Nightware.Api.Graph.Json;
 using Nightware.Api.Hosting;
+using Nightware.Api.Tests.Support;
 
 namespace Nightware.Api.Tests.Hosting;
 
@@ -47,9 +48,7 @@ public sealed class SigningKeyValidatorTests
     [Fact]
     public void The_real_Program_refuses_to_start_in_Production_without_a_key()
     {
-        using var factory = ProductionProgram(key: null);
-
-        var error = Should.Throw<Exception>(() => factory.CreateClient()).ToString();
+        var error = ProgramStartup.Failure(static () => ProductionProgram(key: null)).ToString();
 
         error.ShouldContain("DeltaLinks__SigningKey");
         error.ShouldContain("NIGHTWARE_DELTA_LINK_KEY");
