@@ -31,14 +31,14 @@ Or `docker compose` itself refuses with `required variable NIGHTWARE_DELTA_LINK_
 
 **Fix.** Run `deploy/scripts/init-env.sh`, or set `NIGHTWARE_DELTA_LINK_KEY=$(openssl rand -hex 32)`
 in `deploy/.env` yourself. Then recreate the façade:
-`docker compose -p nightware --profile api up -d --no-deps nightware-api`.
+`docker compose --profile api up -d --no-deps nightware-api` (from `deploy/`).
 On a multi-instance deployment use the key the other instances already have, not a new one; a new
 key forces every client to resync ([deployment.md](deployment.md#the-façades-root-secret-nightware_delta_link_key)).
 
 ## Everyone gets 401
 
 **Cause.** Tokens fail validation: issuer mismatch (`Auth:Authority` ≠ the token's `iss`, e.g.
-after changing `BASE_DOMAIN` or `PUBLIC_PORT_SUFFIX`), the façade cannot fetch signing keys
+after changing `PUBLIC_HOST` or `PUBLIC_PORT_SUFFIX`), the façade cannot fetch signing keys
 (`Auth:MetadataAddress` unreachable), the `nightware-api` audience mapper was removed, or **clock
 skew** (below). NightMail answers a 401 by refreshing the token and retrying once, then shows the
 re-auth banner.
@@ -68,9 +68,9 @@ to 5 times, then shows the error; its delta poller counts a strike and resyncs a
 Calendar/contacts keep working. `/healthz` reports the JMAP check unhealthy; `/healthz/live` stays
 healthy (do not restart the façade).
 
-**Confirm.** `docker compose -p nightware ps stalwart`, `docker compose -p nightware logs stalwart`.
+**Confirm.** `docker compose ps stalwart`, `docker compose logs stalwart` (from `deploy/`).
 
-**Fix.** Restart Stalwart (`docker compose -p nightware restart stalwart`). The façade recovers on
+**Fix.** Restart Stalwart (`docker compose restart stalwart`). The façade recovers on
 the next request — no restart, nothing cached to clear. Clients' delta links stay valid.
 
 ## Nextcloud is slow
@@ -80,7 +80,7 @@ the next request — no restart, nothing cached to clear. Clients' delta links s
 for `IDavClient` p95 climbs.
 
 **Confirm.** Nextcloud `occ status`, PHP-FPM/Apache worker saturation, Postgres slow queries,
-Redis reachability (`docker compose -p nightware logs nextcloud nextcloud-redis`), background jobs
+Redis reachability (`docker compose logs nextcloud nextcloud-redis`), background jobs
 (`nextcloud-cron` running?).
 
 **Fix.** Give Nextcloud more workers/memory, make sure Redis is up (file locking and caching fall
@@ -123,7 +123,7 @@ an hour per (sender domain, recipient). In a single-domain organisation that cap
 together* at 25 messages an hour to any one person.
 
 **Confirm.** Stalwart's log shows `smtp.rate-limit-exceeded` for the recipient
-(`docker compose -p nightware logs stalwart | grep rate-limit-exceeded`).
+(`docker compose logs stalwart | grep rate-limit-exceeded`).
 
 **Fix.** `deploy/stalwart/configure.sh` (run by `bootstrap.sh`, idempotent) scopes that throttle to
 **unauthenticated inbound only** (`is_empty(authenticated_as)`); authenticated submissions —
@@ -150,15 +150,34 @@ in Stalwart's web UI, restart Stalwart too.
 token: every one should be 200. If some are 429 with the message above, the limit in force is
 lower than the burst (check the value, then whether Stalwart was restarted since it was set).
 
-## TLS errors after the host slept (dev stack)
+## TLS errors after the host slept (dev stack, `CADDY_TLS=internal`)
 
 **Cause.** Caddy's local CA issues 12-hour certificates and renews them from a 10-minute
 maintenance timer. While a laptop sleeps, Docker's VM is paused, so a certificate can expire with
 no renewal attempt; for up to 10 minutes after waking, clients see `certificate has expired` on
-`auth.`/`mail.`/`graph.`/`cloud.`.
+every path of `PUBLIC_HOST`. ACME certificates (90 days, renewed a month ahead) and certificate
+files are not affected.
 
-**Fix.** Wait for the next maintenance run, or `docker compose -p nightware restart caddy`, which
+**Fix.** Wait for the next maintenance run, or `docker compose restart caddy`, which
 renews expired certificates on start (its volumes, and so the root CA clients trust, are kept).
+
+## TLS certificate renewal (certificate files)
+
+With `CADDY_TLS="/certs/fullchain.crt /certs/privkey.key"` Caddy serves exactly the files in
+`deploy/.certs` and never renews them itself. When the source (another host's Let's Encrypt
+client, say) renews, copy the new files over:
+
+```bash
+make cert          # deploy/scripts/fetch-cert.sh: ssh copy, checks, Caddy reload
+```
+
+**When.** Once a month, forced: a Let's Encrypt certificate lives 90 days and is renewed with
+about 30 left, so a monthly run always picks up the renewal well before expiry. The script refuses
+a certificate that expires within 7 days, does not match its key, or does not cover `PUBLIC_HOST`,
+and leaves the installed files alone then.
+
+**Confirm.** `echo | openssl s_client -connect <host>:443 -servername <host> 2>/dev/null | openssl
+x509 -noout -enddate`.
 
 ## 413 on sending large attachments
 

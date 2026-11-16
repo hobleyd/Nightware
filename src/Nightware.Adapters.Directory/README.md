@@ -49,7 +49,7 @@ Tokens never reach the logs. `BackendCredential.ToString()` and `AccessToken.ToS
 ```jsonc
 {
   "Directory": {
-    "KeycloakBaseUrl": "https://auth.nightware.localhost", // Keycloak root, not the realm URL; an internal URL is fine
+    "KeycloakBaseUrl": "https://nightware.localhost/auth", // Keycloak root (with its relative path), not the realm URL; an internal URL is fine
     "Realm": "nightware",
     "ClientId": "nightware-api",
     "ClientSecret": "<from a secret store / Directory__ClientSecret>",

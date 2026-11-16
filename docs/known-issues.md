@@ -138,6 +138,26 @@ what a fix needs. Ordered by impact within each section.
   tar and every restore are untested (`docs/operations/backup.md`).
 - Docker's VM disk filled up during development (Postgres couldn't start);
   build cache is the usual culprit (`docker builder prune`).
+- **Dev stack TLS trust is off by default between backends.** With
+  `CADDY_TLS=internal` Collabora (`COLLABORA_SSL_VERIFICATION=false`) and
+  Stalwart's OIDC directory (`STALWART_ALLOW_INVALID_CERTS=true`) do not
+  verify the public URL's certificate. With a publicly trusted certificate
+  (ACME or certificate files) both can verify; set
+  `COLLABORA_SSL_VERIFICATION=true` and `STALWART_ALLOW_INVALID_CERTS=false`
+  (verified 2026-11-16 with a Let's Encrypt wildcard).
+- **Stalwart's web admin is not reachable through Caddy.** The single-host
+  layout serves Stalwart's JMAP at the root and everything else under a
+  stripped `/mail/` alias; the web admin redirects to the root `/admin/`,
+  which Caddy routes elsewhere. Management goes through the JMAP API
+  (`stalwart/configure.sh`).
+- **`BIND_ADDRESS` on macOS.** Docker Desktop can publish ports on
+  `127.0.0.1` or `0.0.0.0` only, not on one specific other address such as a
+  WireGuard interface; a LAN-facing dev stack listens on every interface.
+  Collabora's plain port stays on `COLLABORA_BIND_ADDRESS` (loopback), since
+  it offers `convert-to` to any private address.
+- **`occ richdocuments:activate-config` clears the WOPI callback URL**, after
+  which Collabora would call back on the public URL, outside its alias group.
+  Rerun `deploy/nextcloud/configure.sh` after using it.
 
 ## Deferred by design (ADR §43)
 `beta/security/threatSubmission/emailThreats` returns 501: the client gates it

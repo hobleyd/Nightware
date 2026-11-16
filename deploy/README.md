@@ -3,17 +3,67 @@
 A Docker Compose stack in which every backend trusts one OIDC issuer
 (Keycloak). The Nightware Graph façade runs in front of it:
 
+Everything is served on one host, `https://${PUBLIC_HOST}`, with a path per
+backend:
+
 | Public URL | Service | Image (linux/arm64 + linux/amd64 manifests verified) |
 |---|---|---|
-| `https://auth.${BASE_DOMAIN}` | Keycloak, realm `nightware` (+ Postgres) | `quay.io/keycloak/keycloak:26.8.2`, `postgres:17.12-alpine` |
-| `https://mail.${BASE_DOMAIN}` | Stalwart: JMAP, WebDAV, WebUI, management API | `stalwartlabs/stalwart:v1.1.0` |
-| `https://cloud.${BASE_DOMAIN}` | Nextcloud: CalDAV/CardDAV/WebDAV/OCS (+ Postgres, Redis, cron) | `nextcloud:35.0.3-apache`, `redis:8.6.8-alpine` |
-| `https://office.${BASE_DOMAIN}` | Collabora Online (Nextcloud Office) | `collabora/code:26.04.5.2.1` |
-| `https://graph.${BASE_DOMAIN}` | Nightware API (`api` profile) | built from `src/Nightware.Api/Dockerfile` |
+| `/auth/` | Keycloak, realm `nightware` (+ Postgres) | `quay.io/keycloak/keycloak:26.8.2`, `postgres:17.12-alpine` |
+| `/.well-known/jmap`, `/jmap/` (and `/mail/` for the rest) | Stalwart: JMAP, WebDAV, management API | `stalwartlabs/stalwart:v1.1.0` |
+| `/cloud/` | Nextcloud: CalDAV/CardDAV/WebDAV/OCS (+ Postgres, Redis, cron) | `nextcloud:35.0.3-apache`, `redis:8.6.8-alpine` |
+| `/office/` | Collabora Online (Nextcloud Office) | `collabora/code:26.04.5.2.1` |
+| `/graph/` and `/.well-known/nightware` | Nightware API (`api` profile) | built from `src/Nightware.Api/Dockerfile` |
 | (all of the above) | Caddy reverse proxy, TLS | `caddy:2.11.9-alpine` |
 
-`BASE_DOMAIN` defaults to `nightware.localhost`. Browsers and curl resolve
-`*.localhost` to 127.0.0.1, so no `/etc/hosts` entries are needed.
+- `PUBLIC_HOST` defaults to `nightware.localhost`. Browsers and curl resolve
+  `*.localhost` to 127.0.0.1, so no `/etc/hosts` entry is needed.
+- `MAIL_DOMAIN` (default `nightware.localhost`) is the domain of every mail
+  address (alice@, bob@, the rooms, Nextcloud's sender). It is independent of
+  the host: a stack at `nightware.example.com` can serve `@example.org`.
+- Stalwart cannot run under a path prefix (its router matches the first path
+  segment), so its JMAP endpoints are at the host root and its session
+  advertises `https://${PUBLIC_HOST}/jmap/...`. Everything else it serves
+  (`/healthz`, WebDAV) is reachable under the stripped `/mail/` alias.
+- `/` redirects to `/cloud/`; `/.well-known/caldav` and `/.well-known/carddav`
+  redirect to `/cloud/remote.php/dav/`.
+- `BASE_DOMAIN`, the old five-hostname setting (`auth.`/`mail.`/`cloud.`/
+  `office.`/`graph.${BASE_DOMAIN}`), is deprecated. `scripts/init-env.sh`
+  copies it into `PUBLIC_HOST` and `MAIL_DOMAIN` when those are missing, but a
+  stack bootstrapped with the old layout needs fresh volumes (see Known
+  limitations).
+- `COMPOSE_PROJECT_NAME` (default `nightware`) names the containers, volumes
+  and network. Every script, `make` target and the k6 runner read it from
+  `.env`, so a second checkout with its own name and `DOCKER_SUBNET` keeps a
+  separate stack.
+
+### TLS
+
+`CADDY_TLS` picks where the certificate comes from:
+
+| `CADDY_TLS` | Certificate | Clients |
+|---|---|---|
+| `internal` (default) | Caddy's local CA | must trust `.certs/caddy-root.crt` (`bootstrap.sh` exports it; the scripts use it) |
+| an e-mail address | Let's Encrypt (ACME); needs a public DNS name and inbound 443 or 80 | system trust |
+| `"/certs/fullchain.crt /certs/privkey.key"` | your own files in `deploy/.certs` (mounted read-only into Caddy) | system trust |
+
+With a publicly trusted certificate (either of the last two) also set
+`COLLABORA_SSL_VERIFICATION=true`, `STALWART_ALLOW_INVALID_CERTS=false` and
+`NIGHTWARE_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` (the façade
+container's own bundle instead of Caddy's root).
+
+`scripts/fetch-cert.sh` (`make cert`) copies a certificate chain and key from
+another host over ssh: `CERT_SOURCE_HOST`, `CERT_SOURCE_CERT` and
+`CERT_SOURCE_KEY` in `.env` say where from. A root-only key is read by a
+throwaway `alpine` container on that host (removed again if the script pulled
+it). It checks that the key matches, that the certificate covers
+`PUBLIC_HOST` and is valid for 7 more days, only then replaces the files
+(mode 600), and reloads a running Caddy. Rerun it after the source host
+renews (docs/operations/runbook.md, "TLS certificate renewal").
+
+The scripts reach `PUBLIC_HOST` through DNS. For a name that does not resolve
+yet, set `NIGHTWARE_CONNECT_ADDRESS=127.0.0.1` in the environment: `curl
+--resolve` in the scripts and a connect hook in the live integration tests
+send its connections there.
 
 Nextcloud apps installed by the bootstrap: calendar 6.6.5, contacts 8.10.0,
 tasks 0.18.1, user_oidc 8.13.0, calendar_resource_management 1.0.0,
@@ -23,22 +73,28 @@ richdocuments 12.0.2.
 
 ```bash
 cd deploy
-./scripts/init-env.sh                    # .env from .env.example + a random NIGHTWARE_DELTA_LINK_KEY
-                                         # (dev defaults otherwise; change secrets for anything shared)
-docker compose -p nightware up -d        # ~1-2 min until Keycloak + Nextcloud are healthy
+./scripts/init-env.sh                    # .env from .env.example, every secret random
+                                         # (then set PUBLIC_HOST, MAIL_DOMAIN, CADDY_TLS ... as needed)
+docker compose up -d --wait              # ~1-2 min until Keycloak + Nextcloud are healthy
 ./bootstrap.sh                           # one-time, idempotent (~1 min on a fresh volume)
 ./smoke.sh                               # exit status = number of failed checks
 ```
 
-Every compose command needs `NIGHTWARE_DELTA_LINK_KEY` in `.env`; the compose file has no default
-for it. `scripts/init-env.sh` generates it and is idempotent. `bootstrap.sh` and the other scripts
-(through `scripts/lib.sh`), `make stack` and `make api` run it for you.
+Every compose command needs `NIGHTWARE_DELTA_LINK_KEY` and the backend secrets in `.env`; the
+compose file has no defaults for them. `scripts/init-env.sh` generates every one that is absent or
+empty (hex, so nothing needs quoting) and is idempotent. It never replaces a value: the backends
+store theirs when they are bootstrapped. An older `.env` still holding the passwords this repository
+used to publish (`nightware-kc-admin` …) gets a warning only. That is acceptable on loopback; before
+binding a stack to a network (`BIND_ADDRESS=0.0.0.0`) start it from fresh volumes with a fresh
+`.env`. `bootstrap.sh` and the other scripts (through `scripts/lib.sh`), `make stack` and `make api`
+run it for you.
 
 `bootstrap.sh` runs, in order:
 
-1. Exports Caddy's local root CA to `.certs/caddy-root.crt`. All scripts use it
-   with `curl --cacert`. Trust it in your OS or browser if you want to open
-   the URLs without warnings. On macOS:
+1. With `CADDY_TLS=internal`, exports Caddy's local root CA to
+   `.certs/caddy-root.crt`. All scripts then use it with `curl --cacert`. Trust
+   it in your OS or browser if you want to open the URLs without warnings. On
+   macOS:
    `sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain .certs/caddy-root.crt`
 2. `keycloak/configure.sh` declares the mailboxSettings attributes in the
    user profile (see "User → backend mapping"), makes `email` and `username`
@@ -59,10 +115,12 @@ The façade itself (`api` profile; only this container is built and replaced, th
 left alone):
 
 ```bash
-docker compose -p nightware --profile api up -d --build --no-deps nightware-api   # or: make api
+docker compose --profile api up -d --build --no-deps nightware-api   # or: make api
 ```
 
-It listens on 8080 inside its container, behind Caddy at `https://graph.${BASE_DOMAIN}`, and has a
+It listens on 8080 inside its container, behind Caddy at `https://${PUBLIC_HOST}/graph` (Caddy strips
+`/graph` and sends `X-Forwarded-Prefix: /graph`; links are built on `Discovery:GraphBaseUrl`,
+`https://${PUBLIC_HOST}/graph/v1.0`), and serves `/.well-known/nightware` at the host root. It has a
 liveness healthcheck on `/healthz/live`. `/healthz` is readiness (every backend, cached for 10 s). `smoke.sh` checks
 `/healthz` and `GET /v1.0/me` with alice's token. Settings it takes from `.env`:
 
@@ -72,6 +130,7 @@ liveness healthcheck on `/healthz/live`. `/healthz` is readiness (every backend,
 | `NIGHTWARE_DELTA_LINK_KEY` | `DeltaLinks:SigningKey`: the façade's root secret (delta links and sealed upload/download URLs) | **required**, no default; `scripts/init-env.sh` generates one |
 | `NIGHTWARE_API_CLIENT_SECRET` | `Directory:ClientSecret` | required |
 | `DOCKER_SUBNET` | `ForwardedHeaders:KnownNetworks:0` (only Caddy may set `X-Forwarded-*`) | `172.31.250.0/24` |
+| `NIGHTWARE_SSL_CERT_FILE` | `SSL_CERT_FILE` (trust for calls via the public URL) | `/certs/caddy-root.crt`; `/etc/ssl/certs/ca-certificates.crt` with a publicly trusted certificate |
 | `NIGHTMAIL_WEB_ORIGIN` | `Cors:AllowedOrigins:0` | `http://localhost:34572` |
 | `NIGHTWARE_RATE_LIMITING` | `RateLimiting:Enabled` | `true` |
 | `NIGHTWARE_OTLP_ENDPOINT` | `Telemetry:Otlp:Endpoint` | empty (no export) |
@@ -80,7 +139,7 @@ Every other key, production deployment, monitoring, backups and the runbook are 
 [`docs/operations/`](../docs/operations/README.md). Building images fills Docker's build cache;
 reclaim it with `docker builder prune` (never prune volumes).
 
-Tear down with `docker compose -p nightware down`. Add `-v` to also delete
+Tear down with `docker compose down`. Add `-v` to also delete
 all data. A re-bootstrap from empty volumes is fully scripted.
 
 ## Test users
@@ -92,10 +151,13 @@ all data. A re-bootstrap from empty volumes is fully scripted.
 
 Admin consoles (credentials are in `.env`):
 
-- Keycloak: `https://auth.nightware.localhost/admin` (master realm `admin`).
-- Stalwart WebUI: `https://mail.nightware.localhost/admin`, as the recovery
-  admin `admin`.
-- Nextcloud: `https://cloud.nightware.localhost`. Log in as `admin`, or use
+- Keycloak: `https://nightware.localhost/auth/admin` (master realm `admin`).
+- Stalwart WebUI: **not proxied.** `/mail/admin` redirects to the root path
+  `/admin/`, which Caddy does not route to Stalwart. Reach it with
+  `docker compose exec stalwart` tooling, or temporarily publish port 8080 of
+  the `stalwart` service on loopback. The management API itself is JMAP
+  (`/jmap/`, as the recovery admin `admin`), which `stalwart/configure.sh` uses.
+- Nextcloud: `https://nightware.localhost/cloud`. Log in as `admin`, or use
   "Log in with Keycloak".
 
 ## Identity model
@@ -119,7 +181,7 @@ exchanges the inbound user token once per backend and caches it until
 
 ```bash
 curl -u nightware-api:$NIGHTWARE_API_CLIENT_SECRET \
-  https://auth.nightware.localhost/realms/nightware/protocol/openid-connect/token \
+  https://nightware.localhost/auth/realms/nightware/protocol/openid-connect/token \
   -d grant_type=urn:ietf:params:oauth:grant-type:token-exchange \
   -d subject_token=$USER_ACCESS_TOKEN \
   -d subject_token_type=urn:ietf:params:oauth:token-type:access_token \
@@ -137,7 +199,7 @@ The subject token must contain `nightware-api` in `aud`, which every
 
 | Claim | Value |
 |---|---|
-| `iss` | `https://auth.nightware.localhost/realms/nightware` (fixed by `KC_HOSTNAME`; the same inside and outside Docker) |
+| `iss` | `https://nightware.localhost/auth/realms/nightware` (fixed by `KC_HOSTNAME`; the same inside and outside Docker) |
 | `aud` | `["nightware-api","account"]` (`account` comes from Keycloak's default roles) |
 | `azp` | `nightmail` |
 | `typ` | `Bearer` (header `typ: JWT`, RS256) |
@@ -163,9 +225,9 @@ Lifetime is 15 minutes (`accessTokenLifespan` 900). Refresh with
   service account. Get its token with
   `grant_type=client_credentials&scope=kc-admin-api` (Basic
   `nightware-api:<secret>`). Then call
-  `https://auth.../admin/realms/nightware/users?email=...`, adding
+  `https://${PUBLIC_HOST}/auth/admin/realms/nightware/users?email=...`, adding
   `exact=true` and `briefRepresentation` as needed. Both the Caddy URL and
-  `http://keycloak:8080` work.
+  `http://keycloak:8080/auth` work.
   > **Without `scope=kc-admin-api` the admin API answers 401**, even though
   > the token's `aud` includes `realm-management` and it carries
   > `view-users`/`query-users`/`manage-users`. Keycloak 26.8 accepts
@@ -196,14 +258,15 @@ Lifetime is 15 minutes (`accessTokenLifespan` 900). Refresh with
 
 ### Stalwart (JMAP)
 
-- Session: `GET https://mail.nightware.localhost/.well-known/jmap` returns
+- Session: `GET https://nightware.localhost/.well-known/jmap` returns
   `307` to `/jmap/session`. Inside Docker, `http://stalwart:8080/jmap/session`
-  also works without TLS.
+  also works without TLS. Health: `https://nightware.localhost/mail/healthz/live`.
 - The session's `apiUrl`, `downloadUrl`, `uploadUrl` and `eventSourceUrl`
-  are **public** URLs (`https://mail.nightware.localhost/jmap/...`, from
-  `STALWART_PUBLIC_URL`). A façade container reaches them because
-  `mail.${BASE_DOMAIN}` is a network alias of Caddy. It must trust
-  `.certs/caddy-root.crt`, or rewrite the host to `http://stalwart:8080`.
+  are **public** URLs (`https://nightware.localhost/jmap/...`, from
+  `STALWART_PUBLIC_URL`, the host root). A façade container reaches them
+  because `PUBLIC_HOST` is a network alias of Caddy; by default it rewrites
+  them to the session URL's origin, `http://stalwart:8080`
+  (`Jmap:UseSessionUrlOrigin`).
 - Account ids are short, opaque and per-install (alice is `c`, bob is `d` on
   a fresh volume). Always read them from
   `primaryAccounts["urn:ietf:params:jmap:mail"]`.
@@ -230,7 +293,7 @@ Lifetime is 15 minutes (`accessTokenLifespan` 900). Refresh with
 
 ### Nextcloud (DAV)
 
-| What | URL (relative to `https://cloud.nightware.localhost`, or `http://nextcloud` inside Docker) |
+| What | URL (relative to `https://nightware.localhost/cloud`, or `http://nextcloud` inside Docker) |
 |---|---|
 | DAV root | `/remote.php/dav/` (`/.well-known/caldav` and `/.well-known/carddav` redirect here) |
 | User principal | `/remote.php/dav/principals/users/{uid}/` |
@@ -250,6 +313,14 @@ Lifetime is 15 minutes (`accessTokenLifespan` 900). Refresh with
 
   Both are in the building "Nightware HQ", Level 1, at 1 Example Street,
   Sydney NSW 2000.
+- Nextcloud's public URL overwrites (`overwritehost`, `overwriteprotocol`,
+  `overwritewebroot=/cloud`) apply only to requests from Caddy's pinned address
+  (`CADDY_ADDRESS`, `overwritecondaddr` in `nextcloud/configure.sh`). A request
+  through Caddy gets hrefs under `/cloud/remote.php/dav/`; the façade's direct
+  `http://nextcloud/` calls get `/remote.php/dav/`, which is what its
+  `Dav:BaseUrl` expects. Widening the condition (or dropping it) makes every
+  internal href carry `/cloud` and the façade rejects them as outside its DAV
+  root.
 - Room metadata uses the namespace `http://nextcloud.com/ns`, in the
   properties `room-type`, `room-seating-capacity`, `room-building-address`
   and `room-features`. Note that this is `.com`, while Nextcloud's other
@@ -273,27 +344,32 @@ Lifetime is 15 minutes (`accessTokenLifespan` 900). Refresh with
 
 Nextcloud Office (`richdocuments`) edits documents in the browser through the
 `collabora` service, and the façade asks the same Collabora for PDFs of Office
-files when NightMail previews a Nextcloud link (Phase 7). Three URLs are
-involved, because `*.localhost` names do not work between containers:
+files when NightMail previews a Nextcloud link (Phase 7). Collabora serves
+under `/office` (`net.service_root`), on its internal listener too. Three URLs
+are involved, because `*.localhost` names do not work between containers:
 
 | Who | Calls | Configured by |
 |---|---|---|
-| Nextcloud (discovery, server-side) | `http://collabora:9980` | `richdocuments:setup --wopi-url` |
-| The browser (editor iframe) | `https://office.${BASE_DOMAIN}` | Collabora `server_name`; richdocuments reads it from discovery as `public_wopi_url` |
+| Nextcloud (discovery, server-side) | `http://collabora:9980/office` | `richdocuments:setup --wopi-url` |
+| The browser (editor iframe) | `https://${PUBLIC_HOST}/office` | Collabora `server_name` + service root; discovery's `urlsrc` carries it |
 | Collabora (WOPI callbacks) | `http://nextcloud` | `richdocuments:setup --callback-url`; Collabora's `aliasgroup1` allows only this host |
-| The façade (`convert-to/pdf`) | `http://collabora:9980/` (`Collabora__BaseUrl`); `http://127.0.0.1:9980/` from the host | Collabora's default `net.post_allow` (private addresses) |
+| The façade (`convert-to/pdf`) | `http://collabora:9980/office/` (`Collabora__BaseUrl`); `http://127.0.0.1:9980/office/` from the host | Collabora's default `net.post_allow` (private addresses) |
 
 - Nextcloud accepts WOPI requests only from the compose subnet
   (`wopi_allowlist = ${DOCKER_SUBNET}`), which is where Collabora's callbacks
   come from.
-- Caddy answers `403` for `/cool/convert-to` on `office.` — through the proxy
+- Caddy answers `403` for `/office/cool/convert-to` — through the proxy
   every client would arrive from Caddy's private address and pass `post_allow`.
 - Collabora also fetches richdocuments' settings and templates on the public
-  `cloud.` name, whose Caddy-CA certificate it does not trust. Its outgoing
-  TLS verification is therefore **off** by default
-  (`COLLABORA_SSL_VERIFICATION=false`); turn it on with a publicly trusted
-  certificate (`CADDY_TLS=<acme email>`). Without this the editor closes with
+  `/cloud` URL. It does not trust Caddy's local CA, so its outgoing TLS
+  verification is **off** by default (`COLLABORA_SSL_VERIFICATION=false`);
+  turn it on with a publicly trusted certificate (ACME or certificate files).
+  With verification on and an untrusted certificate the editor closes with
   `configfailed` right after loading.
+- `occ richdocuments:activate-config` resets the callback URL to autodetect
+  (`wopi_callback_url` empty), after which Collabora is told to call back on
+  the public URL, outside its alias group. Rerun `nextcloud/configure.sh`
+  afterwards.
 - The image has no shell or curl, so there is no compose healthcheck; the
   image's own reports unhealthy. `nextcloud/configure.sh` waits for discovery.
 - **The façade is exempt from Nextcloud's brute-force throttling.** It reads
@@ -310,11 +386,13 @@ involved, because `*.localhost` names do not work between containers:
   sign-in to do so, and the façade's per-user rate limit bounds it.
   Share *creation* is also rate-limited per user (OCS 429), which
   only matters to repeated live-test runs.
-- Port 9980 is published on `BIND_ADDRESS` (`COLLABORA_PORT`) so a façade run
-  on the host (`dotnet run`, the live integration tests) can convert.
+- Port 9980 is published on `COLLABORA_BIND_ADDRESS` (default `127.0.0.1`,
+  `COLLABORA_PORT`) so a façade run on the host (`dotnet run`, the live
+  integration tests) can convert. Not on `BIND_ADDRESS`: on a LAN interface it
+  would offer `convert-to` to every client there, around Caddy's 403.
 - Verified (2026-11-15, CODE 26.04.5.2 on arm64): alice's `.docx` opened
   through richdocuments' direct-editing session, loaded in Collabora over
-  `wss://office.nightware.localhost` (WOPI CheckFileInfo/GetFile as alice,
+  `wss://nightware.localhost/office` (WOPI CheckFileInfo/GetFile as alice,
   `perm: edit`), was typed into and saved back (PutFile) — the file in
   Nextcloud changed size and contains the typed text.
 
@@ -359,15 +437,15 @@ configuration in its data store and manages it through the JMAP API. The v1
 equivalent is an account with the `impersonate` permission, and in this
 stack that account is the **recovery administrator** from
 `STALWART_RECOVERY_ADMIN` (`${STALWART_ADMIN_USER}:${STALWART_ADMIN_PASSWORD}`,
-default `admin:nightware-stalwart-admin`). Two login forms are verified, and
+random per `.env`). Two login forms are verified, and
 `smoke.sh` checks the first:
 
 - **Master-user login.** The username is `<target address>%<master user>`
   and the password is the master user's own:
 
   ```bash
-  curl -u 'alice@nightware.localhost%admin:nightware-stalwart-admin' \
-       https://mail.nightware.localhost/jmap/session
+  curl -u "alice@nightware.localhost%admin:$STALWART_ADMIN_PASSWORD" \
+       https://nightware.localhost/jmap/session
   ```
 
   The session that opens belongs to alice (`username` =
@@ -410,8 +488,8 @@ The password grant by hand:
 
 ```bash
 curl --cacert .certs/caddy-root.crt \
-  https://auth.nightware.localhost/realms/nightware/protocol/openid-connect/token \
-  -d grant_type=password -d client_id=nightware-dev -d client_secret=nightware-dev-secret \
+  https://nightware.localhost/auth/realms/nightware/protocol/openid-connect/token \
+  -d grant_type=password -d client_id=nightware-dev -d "client_secret=$NIGHTWARE_DEV_CLIENT_SECRET" \
   -d username=alice -d 'password=Nightware-Dev-1!' -d scope=openid
 ```
 
@@ -447,39 +525,46 @@ bootstrapped stack and seeds a little more test data on each run.
    deprecated.
 3. **`STALWART_RECOVERY_ADMIN` is a standing full-access credential**
    (dev only). Its password is in `.env`.
-4. **Stalwart's OIDC directory runs with `allowInvalidCerts: true`.** It
-   fetches discovery and JWKS from `https://auth.${BASE_DOMAIN}` through
-   Caddy, whose CA it does not trust. Turn the flag off with a publicly
-   trusted certificate (`CADDY_TLS=<acme email>`). The directory also uses
+4. **Stalwart's OIDC directory runs with `allowInvalidCerts: true`** by
+   default. It fetches discovery and JWKS from `https://${PUBLIC_HOST}/auth`
+   through Caddy, whose local CA it does not trust. With a publicly trusted
+   certificate set `STALWART_ALLOW_INVALID_CERTS=false` (applied by
+   `stalwart/configure.sh`). The directory also uses
    `unscopedTokens: "interoperable"`, because Keycloak issues
    `openid email profile`, not the `urn:ietf:params:oauth:scope:*` scopes.
    The strict audience check (`acceptedAudiences: {stalwart}`) is what
    limits which tokens get in.
 5. **Nextcloud reaches Keycloak on the backchannel** (`http://keycloak:8080`,
    with `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`), not on
-   `https://auth.nightware.localhost`. PHP's libcurl resolves every
+   `https://nightware.localhost/auth`. PHP's libcurl resolves every
    `*.localhost` name to its own 127.0.0.1 (RFC 6761) and never asks Docker
    DNS, so the request failed with
-   `cURL error 7: Failed to connect to auth.nightware.localhost port 443`.
+   `cURL error 7: Failed to connect to nightware.localhost port 443`.
    The `issuer` still matches the tokens. Stalwart (Rust) does use Docker DNS
    for these names, and so does `getent hosts` (glibc) in both containers;
    only libcurl short-circuits. Check this for the .NET
    façade too: if it fails, call Keycloak at `http://keycloak:8080` the same
-   way, or set a non-`.localhost` `BASE_DOMAIN`.
+   way, or set a non-`.localhost` `PUBLIC_HOST`.
 6. **Stalwart cannot look up recipients in OIDC.** An address exists only
    once its account exists. The bootstrap pre-creates alice and bob through
    the API. A new Keycloak user receives no mail (mail to the address
    bounces) until they sign in once or are created with `x:Account/set`.
    SCIM provisioning would remove this, but it is Enterprise-only.
 7. **Phones and other devices** cannot reach `*.localhost`. For device
-   testing, set `BASE_DOMAIN` to a name that resolves on the LAN, and either
-   install `.certs/caddy-root.crt` on the device or use
-   `CADDY_TLS=<acme email>` with a public domain. NightMail needs valid TLS
-   for the Keycloak endpoints that `/.well-known/nightware` advertises.
+   testing, set `PUBLIC_HOST` to a name that resolves on the LAN,
+   `BIND_ADDRESS=0.0.0.0`, and either install `.certs/caddy-root.crt` on the
+   device or use a publicly trusted certificate (ACME, or certificate files
+   via `scripts/fetch-cert.sh`). NightMail needs valid TLS for the Keycloak
+   endpoints that `/.well-known/nightware` advertises. Docker Desktop on macOS
+   can bind only `127.0.0.1` or `0.0.0.0`, not one specific other address
+   (a WireGuard interface, say).
 8. `HTTPS_PORT` other than 443 requires `PUBLIC_PORT_SUFFIX=:<port>`. That
    path is wired through Keycloak, Stalwart and Nextcloud but **not
-   tested**. Changing `BASE_DOMAIN` or the port after the first bootstrap
-   needs `down -v`: Stalwart and Keycloak store the hostnames.
+   tested**. Changing `PUBLIC_HOST`, `MAIL_DOMAIN` or the port after the
+   first bootstrap needs `down -v`: Stalwart and Keycloak store the host names
+   and the domain. That includes a stack bootstrapped with the old
+   five-hostname layout (`BASE_DOMAIN`): start it again from fresh volumes, or
+   keep it under its old compose file.
 9. Stalwart downloads its WebUI and spam rules from GitHub on first start,
    so outbound HTTPS is required.
 

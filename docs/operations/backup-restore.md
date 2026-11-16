@@ -21,6 +21,7 @@ lives in Stalwart, the event in Nextcloud, and the users in Keycloak.
 **Primary: the Postgres database** (online, consistent):
 
 ```bash
+# From deploy/. The project is COMPOSE_PROJECT_NAME in .env (default nightware); -p names it explicitly.
 docker compose -p nightware exec -T keycloak-db pg_dump -U keycloak -d keycloak -Fc > keycloak-$(date +%F).dump
 ```
 
