@@ -17,7 +17,7 @@
     <OutputType>Exe</OutputType>
     <!-- Test names read as sentences; async void-style analyzer noise is irrelevant here. -->
     <NoWarn>$(NoWarn);CA1707;CA1515;CA2007;CA1861</NoWarn>
-    <!-- Every endpoint test builds a fresh host, so the suite is mostly first-call JIT; PGO instrumentation more than doubles it. -->
+    <!-- Test processes run mostly cold code once; PGO instrumentation only slows them (Api.Tests ~6%). -->
     <TieredPGO>false</TieredPGO>
   </PropertyGroup>
 

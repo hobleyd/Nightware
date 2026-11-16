@@ -16,8 +16,13 @@ internal static class ScheduleEndpoints
 {
     public const string ContextFragment = "Collection(microsoft.graph.scheduleInformation)";
 
-    public static void Map(RouteGroupBuilder graph) =>
-        graph.MapMailboxPost("/calendar/getSchedule", GetScheduleAsync);
+    public static void Map(RouteGroupBuilder graph)
+    {
+        foreach (var scope in graph.MapMailboxGroups())
+        {
+            scope.MapPost("/calendar/getSchedule", GetScheduleAsync);
+        }
+    }
 
     private static async Task<IResult> GetScheduleAsync(
         Mailbox mailbox, ScheduleRequestDto? body, PreferHeader prefer, HttpContext http, GetSchedule getSchedule, CancellationToken cancellationToken)

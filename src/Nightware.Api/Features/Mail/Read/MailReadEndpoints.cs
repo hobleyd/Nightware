@@ -30,17 +30,20 @@ public static class MailReadEndpoints
     /// <summary>Maps the mail read routes. Owned by Phase 2.</summary>
     public static RouteGroupBuilder MapMailReadEndpoints(this RouteGroupBuilder graph)
     {
-        graph.MapMailboxGet("/mailFolders", ListFoldersAsync);
-        graph.MapMailboxGet("/mailFolders/{folderId}", GetFolderAsync);
-        graph.MapMailboxGet("/mailFolders/{folderId}/childFolders", ListChildFoldersAsync);
-        graph.MapMailboxGet("/mailFolders/{folderId}/messages", ListFolderMessagesAsync);
-        graph.MapMailboxGet("/mailFolders/{folderId}/messages/delta", DeltaAsync);
-        graph.MapMailboxGet("/messages", ListMessagesAsync);
-        graph.MapMailboxGet("/messages/{messageId}", GetMessageAsync);
-        graph.MapMailboxGet("/messages/{messageId}/$value", GetMimeAsync);
-        graph.MapMailboxGet("/messages/{messageId}/attachments", ListAttachmentsAsync);
-        graph.MapMailboxGet("/messages/{messageId}/attachments/{attachmentId}", GetAttachmentAsync);
-        graph.MapMailboxGet("/messages/{messageId}/attachments/{attachmentId}/$value", GetAttachmentContentAsync);
+        foreach (var scope in graph.MapMailboxGroups())
+        {
+            scope.MapGet("/mailFolders", ListFoldersAsync);
+            scope.MapGet("/mailFolders/{folderId}", GetFolderAsync);
+            scope.MapGet("/mailFolders/{folderId}/childFolders", ListChildFoldersAsync);
+            scope.MapGet("/mailFolders/{folderId}/messages", ListFolderMessagesAsync);
+            scope.MapGet("/mailFolders/{folderId}/messages/delta", DeltaAsync);
+            scope.MapGet("/messages", ListMessagesAsync);
+            scope.MapGet("/messages/{messageId}", GetMessageAsync);
+            scope.MapGet("/messages/{messageId}/$value", GetMimeAsync);
+            scope.MapGet("/messages/{messageId}/attachments", ListAttachmentsAsync);
+            scope.MapGet("/messages/{messageId}/attachments/{attachmentId}", GetAttachmentAsync);
+            scope.MapGet("/messages/{messageId}/attachments/{attachmentId}/$value", GetAttachmentContentAsync);
+        }
         return graph;
     }
 

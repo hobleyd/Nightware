@@ -8,6 +8,8 @@
   </ItemGroup>
 
   <PropertyGroup>
+    <!-- Request delegates generated at compile time; see docs/api-plumbing.md §2. -->
+    <EnableRequestDelegateGenerator>true</EnableRequestDelegateGenerator>
   </PropertyGroup>
 
   <ItemGroup>

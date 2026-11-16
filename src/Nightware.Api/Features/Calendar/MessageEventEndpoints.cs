@@ -28,19 +28,22 @@ internal static class MessageEventEndpoints
 
     public static void Map(RouteGroupBuilder graph)
     {
-        foreach (var cast in Casts)
+        foreach (var scope in graph.MapMailboxGroups())
         {
-            var segment = cast.Length == 0 ? string.Empty : "/" + cast;
-            graph.MapMailboxGet($"/messages/{{messageId}}{segment}/event", (Mailbox mailbox, string messageId, ODataQuery odata, PreferHeader prefer, HttpContext http, GetMessageEvent resolve, CancellationToken ct) =>
-                LinkedEventAsync(mailbox, messageId, segment, odata, prefer, http, resolve, ct));
-        }
+            foreach (var cast in Casts)
+            {
+                var segment = cast.Length == 0 ? string.Empty : "/" + cast;
+                scope.MapGet($"/messages/{{messageId}}{segment}/event", (Mailbox mailbox, string messageId, ODataQuery odata, PreferHeader prefer, HttpContext http, GetMessageEvent resolve, CancellationToken ct) =>
+                    LinkedEventAsync(mailbox, messageId, segment, odata, prefer, http, resolve, ct));
+            }
 
-        graph.MapMailboxPost("/messages/{messageId}/accept", (Mailbox mailbox, string messageId, RsvpBodyDto? body, RespondToMessage respond, CancellationToken ct) =>
-            RespondAsync(mailbox, messageId, RsvpResponse.Accept, body, respond, ct));
-        graph.MapMailboxPost("/messages/{messageId}/tentativelyAccept", (Mailbox mailbox, string messageId, RsvpBodyDto? body, RespondToMessage respond, CancellationToken ct) =>
-            RespondAsync(mailbox, messageId, RsvpResponse.TentativelyAccept, body, respond, ct));
-        graph.MapMailboxPost("/messages/{messageId}/decline", (Mailbox mailbox, string messageId, RsvpBodyDto? body, RespondToMessage respond, CancellationToken ct) =>
-            RespondAsync(mailbox, messageId, RsvpResponse.Decline, body, respond, ct));
+            scope.MapPost("/messages/{messageId}/accept", (Mailbox mailbox, string messageId, RsvpBodyDto? body, RespondToMessage respond, CancellationToken ct) =>
+                RespondAsync(mailbox, messageId, RsvpResponse.Accept, body, respond, ct));
+            scope.MapPost("/messages/{messageId}/tentativelyAccept", (Mailbox mailbox, string messageId, RsvpBodyDto? body, RespondToMessage respond, CancellationToken ct) =>
+                RespondAsync(mailbox, messageId, RsvpResponse.TentativelyAccept, body, respond, ct));
+            scope.MapPost("/messages/{messageId}/decline", (Mailbox mailbox, string messageId, RsvpBodyDto? body, RespondToMessage respond, CancellationToken ct) =>
+                RespondAsync(mailbox, messageId, RsvpResponse.Decline, body, respond, ct));
+        }
     }
 
     private static async Task<IResult> LinkedEventAsync(

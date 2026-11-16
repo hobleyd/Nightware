@@ -39,19 +39,23 @@ public sealed class PipelineTests : IAsyncLifetime
             app =>
             {
                 var graph = app.MapGroup(GraphPaths.V1).RequireAuthorization().AddEndpointFilter<GraphBindingFilter>();
-                graph.MapMailboxGet("/probe", static (Mailbox mailbox, ODataQuery odata, PreferHeader prefer, HttpContext http) =>
+                foreach (var scope in graph.MapMailboxGroups())
                 {
-                    prefer.MarkTimeZoneApplied(http.Response);
-                    return Results.Json(new { mailbox = mailbox.Ref.Address, isMe = mailbox.IsMe, top = odata.Query.Top });
-                });
-                graph.MapMailboxGet("/pipelineFolders", static async (Mailbox mailbox, ODataQuery odata, IMailFolderReader reader, CancellationToken ct) =>
-                    GraphResults.Match(
-                        await reader.ListAsync(mailbox.Ref, null, odata.Query, ct),
-                        page => GraphResults.Page(page, MessageDtoMapper.ToDto, $"{mailbox.ContextSegment}/mailFolders", odata.Query)));
-                graph.MapMailboxGet("/pipelineFolders/{folderId}", static async (Mailbox mailbox, string folderId, ODataQuery odata, IMailFolderReader reader, CancellationToken ct) =>
-                    GraphResults.Match(
-                        await reader.GetAsync(mailbox.Ref, new FolderRef.ById(new FolderId(folderId)), ct),
-                        folder => GraphResults.Entity(MessageDtoMapper.ToDto(folder), $"{mailbox.ContextSegment}/mailFolders", odata.Query.Select)));
+                    scope.MapGet("/probe", static (Mailbox mailbox, ODataQuery odata, PreferHeader prefer, HttpContext http) =>
+                    {
+                        prefer.MarkTimeZoneApplied(http.Response);
+                        return Results.Json(new { mailbox = mailbox.Ref.Address, isMe = mailbox.IsMe, top = odata.Query.Top });
+                    });
+                    scope.MapGet("/pipelineFolders", static async (Mailbox mailbox, ODataQuery odata, IMailFolderReader reader, CancellationToken ct) =>
+                        GraphResults.Match(
+                            await reader.ListAsync(mailbox.Ref, null, odata.Query, ct),
+                            page => GraphResults.Page(page, MessageDtoMapper.ToDto, $"{mailbox.ContextSegment}/mailFolders", odata.Query)));
+                    scope.MapGet("/pipelineFolders/{folderId}", static async (Mailbox mailbox, string folderId, ODataQuery odata, IMailFolderReader reader, CancellationToken ct) =>
+                        GraphResults.Match(
+                            await reader.GetAsync(mailbox.Ref, new FolderRef.ById(new FolderId(folderId)), ct),
+                            folder => GraphResults.Entity(MessageDtoMapper.ToDto(folder), $"{mailbox.ContextSegment}/mailFolders", odata.Query.Select)));
+                }
+
                 graph.MapGet("/boom", static IResult () => throw new InvalidOperationException("secret internals"));
                 graph.MapPost("/body", static (MailFolderDto folder) => Results.Ok(folder.DisplayName));
                 graph.MapGet("/scheme", static (HttpContext http) => $"{http.Request.Scheme}://{http.Request.Host}{http.Request.PathBase}");
@@ -188,9 +192,13 @@ public sealed class PipelineTests : IAsyncLifetime
         var host = await TestHost.StartAsync(
             services => services.AddSingleton(NotImplementedPort<IMailFolderReader>.Create()),
             app =>
-            app.MapGroup(GraphPaths.V1).RequireAuthorization().AddEndpointFilter<GraphBindingFilter>()
-                .MapMailboxGet("/pipelineFolders", static async (Mailbox mailbox, IMailFolderReader reader, CancellationToken ct) =>
-                    GraphResults.Match(await reader.ListAsync(mailbox.Ref, null, ItemQuery.Default, ct), _ => Results.Ok())));
+            {
+                foreach (var scope in app.MapGroup(GraphPaths.V1).RequireAuthorization().AddEndpointFilter<GraphBindingFilter>().MapMailboxGroups())
+                {
+                    scope.MapGet("/pipelineFolders", static async (Mailbox mailbox, IMailFolderReader reader, CancellationToken ct) =>
+                        GraphResults.Match(await reader.ListAsync(mailbox.Ref, null, ItemQuery.Default, ct), _ => Results.Ok()));
+                }
+            });
         await using var _ = host;
 
         var response = await host.AuthorizedClient().GetAsync("/v1.0/me/pipelineFolders", Ct);

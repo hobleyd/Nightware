@@ -40,14 +40,17 @@ public static partial class TasksEndpoints
     public static RouteGroupBuilder MapTasksEndpoints(this RouteGroupBuilder graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
-        graph.MapMailboxGet(Lists, ListListsAsync);
-        graph.MapMailboxGet(Tasks, ListTasksAsync);
-        graph.MapMailboxPost(Tasks, CreateTaskAsync);
-        graph.MapMailboxPatch(Task, UpdateTaskAsync);
-        graph.MapMailboxGet(Attachments, ListAttachmentsAsync);
-        graph.MapMailboxPost(Attachments, AddAttachmentAsync);
-        graph.MapMailboxGet(Attachments + "/{attachmentId}/$value", GetAttachmentContentAsync);
-        graph.MapMailboxPost(Attachments + "/createUploadSession", BeginUploadAsync);
+        foreach (var scope in graph.MapMailboxGroups())
+        {
+            scope.MapGet(Lists, ListListsAsync);
+            scope.MapGet(Tasks, ListTasksAsync);
+            scope.MapPost(Tasks, CreateTaskAsync);
+            scope.MapPatch(Task, UpdateTaskAsync);
+            scope.MapGet(Attachments, ListAttachmentsAsync);
+            scope.MapPost(Attachments, AddAttachmentAsync);
+            scope.MapGet(Attachments + "/{attachmentId}/$value", GetAttachmentContentAsync);
+            scope.MapPost(Attachments + "/createUploadSession", BeginUploadAsync);
+        }
 
         // The upload URL is PUT without a bearer: SelfAuthorisingUrlMiddleware recovers the caller's
         // token from it before authentication, so the route is authorised like any other — and by

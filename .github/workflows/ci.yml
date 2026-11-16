@@ -31,7 +31,7 @@ jobs:
   build:
     name: build, test, coverage
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -93,7 +93,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.integration
     runs-on: ubuntu-24.04
     needs: build
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4

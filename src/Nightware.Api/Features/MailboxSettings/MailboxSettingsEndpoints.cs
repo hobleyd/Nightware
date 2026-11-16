@@ -19,8 +19,11 @@ public static class MailboxSettingsEndpoints
     /// </summary>
     public static RouteGroupBuilder MapMailboxSettingsEndpoints(this RouteGroupBuilder graph)
     {
-        graph.MapMailboxGet("/mailboxSettings", GetAsync);
-        graph.MapMailboxPatch("/mailboxSettings", UpdateAsync);
+        foreach (var scope in graph.MapMailboxGroups())
+        {
+            scope.MapGet("/mailboxSettings", GetAsync);
+            scope.MapPatch("/mailboxSettings", UpdateAsync);
+        }
         return graph;
     }
 

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Builder;
+
 using Nightware.Api.Features.Mail.Dto;
 using Nightware.Api.Graph;
 using Nightware.Api.Graph.OData;
@@ -31,11 +33,17 @@ public sealed class ExampleArrangements : IConformanceArrangements
         {
             // Graph beta emits wellKnownName; the façade's v1.0 mailFolder DTO does not.
             IgnorePaths = ["value/*/wellKnownName"],
-            MapEndpoints = static graph => graph.MapMailboxGet("/conformanceExample/mailFolders", static async (
-                Mailbox mailbox, ODataQuery odata, IMailFolderReader folders, CancellationToken cancellationToken) =>
-                GraphResults.Match(
-                    await folders.ListAsync(mailbox.Ref, null, odata.Query, cancellationToken),
-                    page => GraphResults.Page(page, MessageDtoMapper.ToDto, $"{mailbox.ContextSegment}/mailFolders", odata.Query))),
+            MapEndpoints = static graph =>
+            {
+                foreach (var scope in graph.MapMailboxGroups())
+                {
+                    scope.MapGet("/conformanceExample/mailFolders", static async (
+                        Mailbox mailbox, ODataQuery odata, IMailFolderReader folders, CancellationToken cancellationToken) =>
+                        GraphResults.Match(
+                            await folders.ListAsync(mailbox.Ref, null, odata.Query, cancellationToken),
+                            page => GraphResults.Page(page, MessageDtoMapper.ToDto, $"{mailbox.ContextSegment}/mailFolders", odata.Query)));
+                }
+            },
         };
     }
 }

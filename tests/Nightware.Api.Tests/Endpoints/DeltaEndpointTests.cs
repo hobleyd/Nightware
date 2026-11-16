@@ -31,21 +31,27 @@ public sealed class DeltaEndpointTests : IAsyncLifetime
     {
         _host = await TestHost.StartAsync(
             services => services.AddSingleton(_delta),
-            app => app.MapGroup(GraphPaths.V1).RequireAuthorization().AddEndpointFilter<GraphBindingFilter>()
-                .MapMailboxGet("/testFolders/{folderId}/messages/delta", static async (
-                    Mailbox mailbox, string folderId, ODataQuery odata, HttpRequest request, DeltaLinkCodec links, IMailDeltaReader reader, CancellationToken ct) =>
+            app =>
+            {
+                var graph = app.MapGroup(GraphPaths.V1).RequireAuthorization().AddEndpointFilter<GraphBindingFilter>();
+                foreach (var scope in graph.MapMailboxGroups())
                 {
-                    var cursor = links.ReadCursor(request.Query, odata.Query);
-                    if (!cursor.IsSuccess)
+                    scope.MapGet("/testFolders/{folderId}/messages/delta", static async (
+                        Mailbox mailbox, string folderId, ODataQuery odata, HttpRequest request, DeltaLinkCodec links, IMailDeltaReader reader, CancellationToken ct) =>
                     {
-                        return GraphResults.Error(cursor.Error);
-                    }
+                        var cursor = links.ReadCursor(request.Query, odata.Query);
+                        if (!cursor.IsSuccess)
+                        {
+                            return GraphResults.Error(cursor.Error);
+                        }
 
-                    var c = cursor.Value;
-                    var page = await reader.DeltaAsync(mailbox.Ref, new FolderRef.ById(new FolderId(folderId)), c.Token,
-                        new DeltaRequest(c.Top ?? DeltaRequest.DefaultPageSize, c.Select), ct);
-                    return GraphResults.Match(page, p => GraphResults.Delta(p, m => MessageDtoMapper.ToDto(m), c, "message", "#microsoft.graph.message"));
-                }));
+                        var c = cursor.Value;
+                        var page = await reader.DeltaAsync(mailbox.Ref, new FolderRef.ById(new FolderId(folderId)), c.Token,
+                            new DeltaRequest(c.Top ?? DeltaRequest.DefaultPageSize, c.Select), ct);
+                        return GraphResults.Match(page, p => GraphResults.Delta(p, m => MessageDtoMapper.ToDto(m), c, "message", "#microsoft.graph.message"));
+                    });
+                }
+            });
     }
 
     public async ValueTask DisposeAsync() => await _host.DisposeAsync();

@@ -19,14 +19,17 @@ internal static class MessageWriteEndpoints
     public static void Map(IEndpointRouteBuilder graph)
     {
         // mail.messages.update-read-state and mail.drafts.update share this route; the body decides.
-        graph.MapMailboxPatch("/messages/{messageId}", UpdateAsync);
-        graph.MapMailboxPost("/messages", CreateDraftAsync);
-        graph.MapMailboxDelete("/messages/{messageId}", DeleteAsync);
-        graph.MapMailboxPost("/messages/{messageId}/move", MoveAsync);
-        graph.MapMailboxPost("/messages/{messageId}/permanentDelete", PermanentDeleteAsync);
-        graph.MapMailboxPost("/mailFolders/{folderId}/messages", ImportAsync);
-        graph.MapMailboxPost("/messages/{messageId}/attachments", AddAttachmentAsync);
-        graph.MapMailboxDelete("/messages/{messageId}/attachments/{attachmentId}", RemoveAttachmentAsync);
+        foreach (var scope in graph.MapMailboxGroups())
+        {
+            scope.MapPatch("/messages/{messageId}", UpdateAsync);
+            scope.MapPost("/messages", CreateDraftAsync);
+            scope.MapDelete("/messages/{messageId}", DeleteAsync);
+            scope.MapPost("/messages/{messageId}/move", MoveAsync);
+            scope.MapPost("/messages/{messageId}/permanentDelete", PermanentDeleteAsync);
+            scope.MapPost("/mailFolders/{folderId}/messages", ImportAsync);
+            scope.MapPost("/messages/{messageId}/attachments", AddAttachmentAsync);
+            scope.MapDelete("/messages/{messageId}/attachments/{attachmentId}", RemoveAttachmentAsync);
+        }
     }
 
     private static async Task<IResult> UpdateAsync(

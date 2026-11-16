@@ -19,12 +19,15 @@ internal static class EventEndpoints
 
     public static void Map(RouteGroupBuilder graph)
     {
-        graph.MapMailboxGet("/calendarView", CalendarViewAsync);
-        graph.MapMailboxGet("/events", ListAsync);
-        graph.MapMailboxPost("/events", CreateAsync);
-        graph.MapMailboxGet("/events/{eventId}", GetAsync);
-        graph.MapMailboxPatch("/events/{eventId}", UpdateAsync);
-        graph.MapMailboxDelete("/events/{eventId}", DeleteAsync);
+        foreach (var scope in graph.MapMailboxGroups())
+        {
+            scope.MapGet("/calendarView", CalendarViewAsync);
+            scope.MapGet("/events", ListAsync);
+            scope.MapPost("/events", CreateAsync);
+            scope.MapGet("/events/{eventId}", GetAsync);
+            scope.MapPatch("/events/{eventId}", UpdateAsync);
+            scope.MapDelete("/events/{eventId}", DeleteAsync);
+        }
     }
 
     private static async Task<IResult> CalendarViewAsync(

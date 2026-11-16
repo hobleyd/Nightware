@@ -14,14 +14,17 @@ internal static class SchedulingEndpoints
 {
     public static void Map(RouteGroupBuilder graph)
     {
-        graph.MapMailboxPost("/events/{eventId}/accept", (Mailbox mailbox, string eventId, RsvpBodyDto? body, RespondToEvent respond, CancellationToken ct) =>
-            RespondAsync(mailbox, eventId, RsvpResponse.Accept, body, respond, ct));
-        graph.MapMailboxPost("/events/{eventId}/tentativelyAccept", (Mailbox mailbox, string eventId, RsvpBodyDto? body, RespondToEvent respond, CancellationToken ct) =>
-            RespondAsync(mailbox, eventId, RsvpResponse.TentativelyAccept, body, respond, ct));
-        graph.MapMailboxPost("/events/{eventId}/decline", (Mailbox mailbox, string eventId, RsvpBodyDto? body, RespondToEvent respond, CancellationToken ct) =>
-            RespondAsync(mailbox, eventId, RsvpResponse.Decline, body, respond, ct));
-        graph.MapMailboxPost("/events/{eventId}/cancel", CancelAsync);
-        graph.MapMailboxPost("/events/{eventId}/forward", ForwardAsync);
+        foreach (var scope in graph.MapMailboxGroups())
+        {
+            scope.MapPost("/events/{eventId}/accept", (Mailbox mailbox, string eventId, RsvpBodyDto? body, RespondToEvent respond, CancellationToken ct) =>
+                RespondAsync(mailbox, eventId, RsvpResponse.Accept, body, respond, ct));
+            scope.MapPost("/events/{eventId}/tentativelyAccept", (Mailbox mailbox, string eventId, RsvpBodyDto? body, RespondToEvent respond, CancellationToken ct) =>
+                RespondAsync(mailbox, eventId, RsvpResponse.TentativelyAccept, body, respond, ct));
+            scope.MapPost("/events/{eventId}/decline", (Mailbox mailbox, string eventId, RsvpBodyDto? body, RespondToEvent respond, CancellationToken ct) =>
+                RespondAsync(mailbox, eventId, RsvpResponse.Decline, body, respond, ct));
+            scope.MapPost("/events/{eventId}/cancel", CancelAsync);
+            scope.MapPost("/events/{eventId}/forward", ForwardAsync);
+        }
     }
 
     /// <summary>Maps an RSVP body; <c>sendResponse</c> defaults to true, as in Graph.</summary>

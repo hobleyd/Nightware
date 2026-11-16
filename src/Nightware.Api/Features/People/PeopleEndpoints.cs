@@ -17,7 +17,10 @@ public static class PeopleEndpoints
     /// </summary>
     public static RouteGroupBuilder MapPeopleEndpoints(this RouteGroupBuilder graph)
     {
-        graph.MapMailboxGet("/people", ListAsync);
+        foreach (var scope in graph.MapMailboxGroups())
+        {
+            scope.MapGet("/people", ListAsync);
+        }
         return graph;
     }
 

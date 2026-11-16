@@ -19,10 +19,13 @@ internal static class FolderWriteEndpoints
 {
     public static void Map(IEndpointRouteBuilder graph)
     {
-        graph.MapMailboxPost("/mailFolders/{folderId}/childFolders", CreateChildAsync);
-        graph.MapMailboxPatch("/mailFolders/{folderId}", RenameAsync);
-        graph.MapMailboxDelete("/mailFolders/{folderId}", DeleteAsync);
-        graph.MapMailboxPost("/mailFolders/{folderId}/move", MoveAsync);
+        foreach (var scope in graph.MapMailboxGroups())
+        {
+            scope.MapPost("/mailFolders/{folderId}/childFolders", CreateChildAsync);
+            scope.MapPatch("/mailFolders/{folderId}", RenameAsync);
+            scope.MapDelete("/mailFolders/{folderId}", DeleteAsync);
+            scope.MapPost("/mailFolders/{folderId}/move", MoveAsync);
+        }
     }
 
     private static async Task<IResult> CreateChildAsync(

@@ -33,16 +33,24 @@ Do not edit `Program.cs` or `Composition/`.
 
 ## 2. Routing a mailbox-scoped operation
 
-`{mailbox}` operations need two routes: `/me/...` and `/users/{user}/...`. Use
-`MailboxRoutes` (`Nightware.Api.Graph.Routing`) to declare the route once:
+`{mailbox}` operations need two routes: `/me/...` and `/users/{user}/...`.
+`MailboxRoutes.MapMailboxGroups` (`Nightware.Api.Graph.Routing`) returns the two
+route groups; map each route once per group:
 
 ```csharp
-graph.MapMailboxGet("/mailFolders/{folderId}/messages", Handler);
-// also MapMailboxPost / Patch / Put / Delete, or MapMailbox(methods, pattern, handler)
+foreach (var scope in graph.MapMailboxGroups())
+{
+    scope.MapGet("/mailFolders/{folderId}/messages", Handler);
+}
 ```
 
-The call returns a `MailboxRouteBuilder`. Conventions you add to it (filters,
-metadata) apply to both forms.
+Call the framework's `MapGet`/`MapPost`/`MapPatch`/`MapDelete` directly, with the
+handler written at the call site (a method group or lambda). The Request Delegate
+Generator (`EnableRequestDelegateGenerator` in `Nightware.Api.csproj`) generates
+the request delegate for every call it can see at compile time. A handler passed
+through a `Delegate` parameter cannot be generated: the build fails with RDG002,
+and at runtime the handler would be compiled from expression trees on every host
+start.
 
 Add a `Mailbox mailbox` parameter to get the resolved mailbox. The resolver
 works as follows:
