@@ -242,4 +242,17 @@ public sealed class DashboardAndReadFailureTests : IDisposable
         incomplete.ShouldContain("<button type=\"submit\">Finish offboarding</button>");
         incomplete.ShouldNotContain("class=\"warning\"");
     }
+
+    [Fact]
+    public async Task Signing_keys_read_as_a_state_and_addresses_without_brackets()
+    {
+        _host.MailDomains.FindAsync(ConsoleHost.Domain("acme.example"), Arg.Any<CancellationToken>()).Returns(new MailDomainInfo("d", ConsoleHost.Domain("acme.example"), false));
+        _host.Entities.ListAdminsAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([new IdentityAccount("u-dan", "dan", "dan@acme.example", true)]));
+
+        string html = await GetAsync("/entities/" + ConsoleHost.Acme);
+
+        html.ShouldContain("<span class=\"chip missing\">Missing</span>");
+        html.ShouldContain("<span class=\"hint\">dan@acme.example</span>");
+        html.ShouldNotContain("&lt;dan@acme.example&gt;");
+    }
 }

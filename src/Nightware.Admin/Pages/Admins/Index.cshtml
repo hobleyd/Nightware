@@ -4,7 +4,8 @@
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 <h1>Global administrators</h1>
 <partial name="_Messages" />
-<p class="hint">They manage every entity, create entities and domains, and may delete a disabled user's data. Grant the role from a user's page; new administrators must set up an authenticator app.</p>
+<p>They manage every entity, create entities and domains, and may delete a disabled user's data. To grant the role, <a asp-page="/Users/Find">find the user</a> and use their page; new administrators must set up an authenticator app.</p>
+<section class="panel" aria-label="Current global administrators">
 <table>
     <thead><tr><th>Name</th><th>Address</th></tr></thead>
     <tbody>
@@ -17,6 +18,7 @@
     }
     </tbody>
 </table>
+</section>
 
 @{ var removable = Model.Admins.Where(a => a.Id != Model.Actor.UserId).ToList(); }
 @if (removable.Count > 0)

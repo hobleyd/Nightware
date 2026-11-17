@@ -5,8 +5,9 @@
 <h1>Entities</h1>
 <partial name="_Messages" />
 
+<section class="panel" aria-label="All entities">
 <table>
-    <thead><tr><th>Entity</th><th>Short name</th><th>Domains</th><th></th></tr></thead>
+    <thead><tr><th>Entity</th><th>Short name</th><th>Domains</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
     <tbody>
     @foreach (var e in Model.Entities)
     {
@@ -19,6 +20,7 @@
     }
     </tbody>
 </table>
+</section>
 
 @if (Model.Actor.IsGlobal)
 {
