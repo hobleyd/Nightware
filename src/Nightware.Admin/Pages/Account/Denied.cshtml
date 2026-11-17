@@ -1,0 +1,13 @@
+@page "/account/denied"
+@model Nightware.Admin.Pages.Account.DeniedModel
+@{ ViewData["Title"] = "Access denied"; }
+<h1>Access denied</h1>
+@if (Model.Reason == "signin")
+{
+    <p>The sign-in was not accepted. The console requires multi-factor authentication; set up an authenticator app in Keycloak and try again.</p>
+}
+else
+{
+    <p>You are signed in, but you are not an administrator of any entity. Ask a global administrator for access.</p>
+}
+<p><a asp-page="/Account/SignIn">Try again</a></p>

@@ -1,0 +1,44 @@
+@{
+    var actor = (ViewData.Model as ConsolePageModel)?.Actor;
+    var signedIn = User.Identity?.IsAuthenticated == true;
+}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>@(ViewData["Title"] is string t ? t + " · " : "")Nightware console</title>
+    <link rel="stylesheet" href="~/console.css" asp-append-version="true">
+</head>
+<body>
+<header class="top">
+    <a class="brand" asp-page="/Index">Nightware console</a>
+    @if (signedIn && actor?.IsAdmin == true)
+    {
+        <nav>
+            <a asp-page="/Entities/Index">Entities</a>
+            @if (actor.IsGlobal)
+            {
+                <a asp-page="/Admins/Index">Global admins</a>
+            }
+        </nav>
+    }
+    @if (signedIn)
+    {
+        <form method="post" asp-page="/Account/SignOut" class="signout">
+            <span class="who">@User.Identity!.Name@(actor?.IsGlobal == true ? " · global admin" : actor?.IsAdmin == true ? " · entity admin" : "")</span>
+            <button type="submit" class="link">Sign out</button>
+        </form>
+    }
+</header>
+<main>
+    @if (ViewData.Model is ConsolePageModel { Notice: { Length: > 0 } notice })
+    {
+        <p class="notice" role="status">@notice</p>
+    }
+    <div asp-validation-summary="All" class="errors" role="alert"></div>
+    @RenderBody()
+</main>
+</body>
+</html>

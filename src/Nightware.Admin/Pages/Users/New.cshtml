@@ -1,0 +1,76 @@
+@page "/entities/{entity}/users/new"
+@model Nightware.Admin.Pages.Users.NewModel
+@{ ViewData["Title"] = "Add or link a user"; }
+<h1>Add or link a user — @Model.Detail.Entity.Name</h1>
+
+@if (Model.Result is { } result)
+{
+    <section class="panel">
+        <h2>Done: @result.User.DisplayName &lt;@result.User.Email&gt;</h2>
+        <partial name="_Links" model="result.Links" />
+        @if (result.Links.Any(l => l.State == LinkState.Error))
+        {
+            <p class="warning">Some systems could not be set up. Nothing that existed before was removed. Open the user and use <strong>Repair</strong> once the system is reachable.</p>
+        }
+        @if (result.Credential is { } credential)
+        {
+            <div class="secret">
+                <p><strong>Temporary password — shown once.</strong> Give it to the person by a channel other than this mailbox. They must change it at first sign-in.</p>
+                <p><code>@credential.Password</code></p>
+            </div>
+        }
+        else if (result.CredentialError is { } error)
+        {
+            <p class="warning">The password could not be delivered: @error. Use <strong>Reset password</strong> on the user's page.</p>
+        }
+        else if (Model.Form.Delivery == CredentialDelivery.ActionEmail)
+        {
+            <p>Keycloak has e-mailed a set-password link to @result.User.Email.</p>
+        }
+        <p><a asp-page="/Users/Detail" asp-route-id="@result.User.Id">Open the user</a> · <a asp-page="/Users/New" asp-route-entity="@Model.Entity">Add another</a></p>
+    </section>
+}
+else
+{
+    <form method="post" class="panel">
+        <h2>1. Who</h2>
+        <div class="row">
+            <label>First name <input asp-for="Form.FirstName" autocomplete="off"></label>
+            <label>Last name <input asp-for="Form.LastName" autocomplete="off"></label>
+        </div>
+        <div class="row">
+            <label>Address <input asp-for="Form.LocalPart" placeholder="carol.jones" autocomplete="off"></label>
+            <label>@@
+                <select asp-for="Form.Domain">
+                    @foreach (var d in Model.Detail.Entity.Domains)
+                    {
+                        <option value="@d.Name">@d.Name</option>
+                    }
+                </select>
+            </label>
+        </div>
+        <label>Username <input asp-for="Form.Username" placeholder="(the existing user's, or the address before the @@)" autocomplete="off"></label>
+        <label>Other addresses (aliases) <input asp-for="Form.Aliases" placeholder="c.jones@@@Model.Form.Domain, sales@@@Model.Form.Domain" autocomplete="off"><span class="hint">comma-separated, on this entity's domains</span></label>
+        <fieldset>
+            <legend>First password</legend>
+            <label class="choice"><input type="radio" asp-for="Form.Delivery" value="@CredentialDelivery.TemporaryPassword"> Generate a one-time password to give them (changed at first sign-in)</label>
+            <label class="choice"><input type="radio" asp-for="Form.Delivery" value="@CredentialDelivery.ActionEmail"> E-mail a set-password link to the address (only if they can already read it)</label>
+            <label class="choice"><input type="radio" asp-for="Form.Delivery" value="@CredentialDelivery.None"> None (they already have a Keycloak password)</label>
+        </fieldset>
+        <button type="submit" asp-page-handler="Plan" class="secondary">Check what will happen</button>
+
+        @if (Model.Plan is { } plan)
+        {
+            <h2>2. What will happen</h2>
+            <partial name="_Plan" model="plan" />
+            @if (plan.HasConflict)
+            {
+                <p class="warning">Resolve the conflict first: nothing is created or linked while one remains. The console never merges accounts that disagree.</p>
+            }
+            else
+            {
+                <button type="submit" asp-page-handler="Apply">Create and link</button>
+            }
+        }
+    </form>
+}

@@ -1,0 +1,39 @@
+@page
+@model IndexModel
+@{ ViewData["Title"] = "Dashboard"; }
+<h1>Dashboard</h1>
+
+<section>
+    <h2>Systems</h2>
+    <ul class="chips">
+        @foreach (var h in Model.Health)
+        {
+            var name = h.Backend switch { BackendKind.Identity => "Keycloak", BackendKind.Mail => "Stalwart", _ => "Nextcloud" };
+            <li class="chip @(h.Healthy ? "linked" : "error")" title="@h.Detail">@name: @(h.Healthy ? "OK" : "Unavailable")</li>
+        }
+    </ul>
+</section>
+
+<section>
+    <h2>@(Model.Actor.IsGlobal ? "Entities" : "Your entities")</h2>
+    @if (Model.Entities.Count == 0)
+    {
+        <p>No entities yet. @if (Model.Actor.IsGlobal) { <a asp-page="/Entities/Index">Create the first one</a> }</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Entity</th><th>Domains</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var e in Model.Entities)
+            {
+                <tr>
+                    <td><a asp-page="/Entities/Detail" asp-route-id="@e.Id">@e.Name</a></td>
+                    <td>@string.Join(", ", e.Domains.Select(d => d.Name))</td>
+                    <td><a asp-page="/Users/Index" asp-route-entity="@e.Id">Users</a> · <a asp-page="/Users/New" asp-route-entity="@e.Id">Add user</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</section>

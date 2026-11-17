@@ -1,0 +1,28 @@
+@page "/entities/{id}/dns/{domain}"
+@model Nightware.Admin.Pages.Entities.DnsModel
+@{ ViewData["Title"] = "DNS for " + Model.Domain; }
+<h1>DNS records for @Model.Domain</h1>
+<p class="hint">Publish these at your DNS provider so mail for @Model.Domain is delivered here and your outgoing mail passes SPF, DKIM and DMARC checks. Select a value to copy it.</p>
+<p><a asp-page="/Entities/Detail" asp-route-id="@Model.Id">Back to the entity</a></p>
+
+@if (Model.Records.Count == 0)
+{
+    <p>The mail server has no records for this domain yet. Use Repair on the entity page.</p>
+}
+else
+{
+    <table class="dns">
+        <thead><tr><th>Type</th><th>Name</th><th>TTL</th><th>Value</th></tr></thead>
+        <tbody>
+        @foreach (var r in Model.Records.OrderBy(r => r.Type, StringComparer.Ordinal).ThenBy(r => r.Name, StringComparer.Ordinal))
+        {
+            <tr>
+                <td>@r.Type</td>
+                <td><input readonly value="@r.Name" aria-label="Name"></td>
+                <td>@r.Ttl</td>
+                <td><textarea readonly rows="@(r.Value.Length > 80 ? 3 : 1)" aria-label="Value">@r.Value</textarea></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

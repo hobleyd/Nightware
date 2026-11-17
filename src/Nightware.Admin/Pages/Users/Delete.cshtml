@@ -1,0 +1,34 @@
+@page "/users/{id}/delete/{target}"
+@model Nightware.Admin.Pages.Users.DeleteModel
+@{
+    var p = Model.Preview;
+    var what = p.Target == DeletionTarget.Mail ? "mail" : "Nextcloud data";
+    ViewData["Title"] = "Delete " + what;
+}
+<h1>Delete @what of @p.User.Identity.DisplayName</h1>
+<p><a asp-page="/Users/Detail" asp-route-id="@Model.Id">Back to the user</a></p>
+
+@if (p.AlreadyAbsent)
+{
+    <p>There is nothing to delete: it is already gone.</p>
+}
+else
+{
+    <section class="panel danger-zone">
+        <h2>This permanently deletes</h2>
+        <ul>
+            @foreach (var item in p.Removes) { <li>@item</li> }
+            @if (p.MailboxBytes is { } bytes) { <li>@((bytes / 1048576.0).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)) MB of stored mail</li> }
+        </ul>
+        <h2>It keeps</h2>
+        <ul>
+            @foreach (var item in p.Keeps) { <li>@item</li> }
+        </ul>
+        <form method="post">
+            <label>Type <strong>@p.User.Identity.Email</strong> to confirm
+                <input name="confirmation" autocomplete="off" required spellcheck="false">
+            </label>
+            <button type="submit" class="danger">Delete @what permanently</button>
+        </form>
+    </section>
+}

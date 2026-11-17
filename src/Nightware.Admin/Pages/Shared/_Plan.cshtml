@@ -1,0 +1,15 @@
+@model ProvisioningPlan
+<table class="plan">
+    <thead><tr><th>System</th><th>Action</th><th>Detail</th></tr></thead>
+    <tbody>
+    @foreach (var step in Model.Steps)
+    {
+        var name = step.Backend switch { BackendKind.Identity => "Keycloak", BackendKind.Mail => "Mail (Stalwart)", _ => "Nextcloud" };
+        <tr class="@step.Action.ToString().ToLowerInvariant()">
+            <td>@name</td>
+            <td><strong>@(step.Action switch { PlannedAction.Create => "Will be created", PlannedAction.Link => "Will be linked", PlannedAction.Update => "Will be re-enabled", PlannedAction.Skip => "Created at first sign-in", _ => "Conflict" })</strong></td>
+            <td>@step.Reason</td>
+        </tr>
+    }
+    </tbody>
+</table>

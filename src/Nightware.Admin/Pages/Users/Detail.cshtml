@@ -1,0 +1,116 @@
+@page "/users/{id}"
+@model Nightware.Admin.Pages.Users.DetailModel
+@{
+    var u = Model.Subject.User;
+    var id = u.Identity;
+    var self = id.Id == Model.Actor.UserId;
+    ViewData["Title"] = id.DisplayName;
+}
+<h1>@id.DisplayName <small>@id.Email</small></h1>
+<p>
+    Username <code>@id.Username</code>
+    @if (u.EntityId is not null)
+    {
+        <text> · <a asp-page="/Entities/Detail" asp-route-id="@u.EntityId">entity</a></text>
+    }
+    @if (u.IsGlobalAdmin) { <text> · <strong>global administrator</strong></text> }
+    else if (u.IsEntityAdmin) { <text> · entity administrator</text> }
+</p>
+
+<section class="panel">
+    <h2>Systems</h2>
+    <table>
+        <tbody>
+        @foreach (var link in Model.Subject.Links)
+        {
+            var name = link.Backend switch { BackendKind.Identity => "Keycloak", BackendKind.Mail => "Mail (Stalwart)", _ => "Nextcloud" };
+            <tr>
+                <td>@name</td>
+                <td><span class="chip @link.State.ToString().ToLowerInvariant()">@link.State</span></td>
+                <td>@link.Detail</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    @if (id.Enabled)
+    {
+        <form method="post" asp-page-handler="Repair"><button type="submit" class="secondary">Repair</button> <span class="hint">Creates what is missing; never changes a conflicting account.</span></form>
+    }
+</section>
+
+@if (Model.Credential is { } credential)
+{
+    <div class="secret">
+        <p><strong>Temporary password — shown once.</strong> They must change it at their next sign-in.</p>
+        <p><code>@credential.Password</code></p>
+    </div>
+}
+
+@if (id.Enabled && !self)
+{
+    <section class="panel">
+        <h2>Password</h2>
+        <form method="post" asp-page-handler="Reset" class="row">
+            <button type="submit" name="delivery" value="@CredentialDelivery.TemporaryPassword" class="secondary">Generate a temporary password</button>
+            <button type="submit" name="delivery" value="@CredentialDelivery.ActionEmail" class="secondary">E-mail a set-password link</button>
+        </form>
+    </section>
+
+    <section class="panel">
+        <h2>Other addresses</h2>
+        <form method="post" asp-page-handler="Aliases" class="row">
+            <label>Aliases <input name="aliases" value="@string.Join(", ", id.Aliases)" autocomplete="off"></label>
+            <button type="submit" class="secondary">Save</button>
+        </form>
+    </section>
+}
+
+@if (!self)
+{
+    <section class="panel">
+        <h2>Access</h2>
+        @if (id.Enabled)
+        {
+            <form method="post" asp-page-handler="Offboard">
+                <p>Offboarding disables sign-in everywhere and ends their sessions. Their mail keeps arriving and is kept, as are their files, calendars and contacts. It can be undone.</p>
+                <label class="choice"><input type="checkbox" name="confirm" value="true"> Offboard @id.DisplayName</label>
+                <button type="submit" class="danger">Offboard</button>
+            </form>
+        }
+        else
+        {
+            <form method="post" asp-page-handler="Reinstate">
+                <p>This user is offboarded.</p>
+                @if (Model.Subject.For(BackendKind.Mail).State == LinkState.Missing)
+                {
+                    <label class="choice"><input type="checkbox" name="recreateMailbox" value="true"> Create a new, empty mailbox for @id.Email</label>
+                }
+                <button type="submit">Reinstate</button>
+            </form>
+        }
+
+        @if (Model.Actor.IsGlobal)
+        {
+            <form method="post" asp-page-handler="GlobalAdmin">
+                @if (u.IsGlobalAdmin)
+                {
+                    <button type="submit" name="grant" value="false" class="secondary">Remove global administrator rights</button>
+                }
+                else
+                {
+                    <button type="submit" name="grant" value="true" class="secondary">Make global administrator</button>
+                }
+            </form>
+        }
+    </section>
+
+    @if (!id.Enabled && Model.MayDeleteData)
+    {
+        <section class="panel danger-zone">
+            <h2>Danger zone</h2>
+            <p>Deleting cannot be undone. Each deletion asks you to sign in again and to retype the address.</p>
+            <a class="button danger" asp-page="/Users/Delete" asp-route-id="@id.Id" asp-route-target="@DeletionTarget.Mail">Delete mail…</a>
+            <a class="button danger" asp-page="/Users/Delete" asp-route-id="@id.Id" asp-route-target="@DeletionTarget.GroupwareData">Delete Nextcloud data…</a>
+        </section>
+    }
+}

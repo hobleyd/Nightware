@@ -1,0 +1,27 @@
+@page "/entities/{entity}/users"
+@model Nightware.Admin.Pages.Users.IndexModel
+@{ ViewData["Title"] = "Users of " + Model.Detail.Entity.Name; }
+<h1>Users of <a asp-page="/Entities/Detail" asp-route-id="@Model.Entity">@Model.Detail.Entity.Name</a></h1>
+<form method="get" class="row">
+    <label>Search <input name="q" value="@Model.Q" autocomplete="off"></label>
+    <button type="submit" class="secondary">Filter</button>
+    <a class="button" asp-page="/Users/New" asp-route-entity="@Model.Entity">Add or link a user</a>
+</form>
+
+<table>
+    <thead><tr><th>Name</th><th>Address</th><th>Status</th></tr></thead>
+    <tbody>
+    @foreach (var u in Model.Users)
+    {
+        <tr class="@(u.User.Identity.Enabled ? "" : "disabled")">
+            <td><a asp-page="/Users/Detail" asp-route-id="@u.User.Identity.Id">@u.User.Identity.DisplayName</a></td>
+            <td>@u.User.Identity.Email</td>
+            <td><partial name="_Links" model="u.Links" /></td>
+        </tr>
+    }
+    </tbody>
+</table>
+@if (Model.Users.Count == 0)
+{
+    <p>No users@(string.IsNullOrEmpty(Model.Q) ? "" : " match") yet.</p>
+}

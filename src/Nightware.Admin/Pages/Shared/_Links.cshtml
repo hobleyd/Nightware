@@ -1,0 +1,8 @@
+@model IReadOnlyList<BackendLink>
+<ul class="chips">
+    @foreach (var link in Model)
+    {
+        var name = link.Backend switch { BackendKind.Identity => "Keycloak", BackendKind.Mail => "Mail", _ => "Nextcloud" };
+        <li class="chip @link.State.ToString().ToLowerInvariant()" title="@link.Detail">@name: @link.State</li>
+    }
+</ul>

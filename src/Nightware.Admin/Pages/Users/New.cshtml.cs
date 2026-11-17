@@ -1,0 +1,127 @@
+using System.ComponentModel.DataAnnotations;
+
+using Microsoft.AspNetCore.Mvc;
+
+using Nightware.Application.Administration;
+using Nightware.Application.Administration.Entities;
+using Nightware.Application.Administration.Users;
+using Nightware.Domain.Administration;
+
+namespace Nightware.Admin.Pages.Users;
+
+/// <summary>
+/// The add-or-link wizard: 1 who, 2 the plan (what will be created and what linked), 3 the result. The
+/// plan is recomputed when applied; nothing from step 2's page is trusted.
+/// </summary>
+public sealed class NewModel(IAdminActor actor, GetEntity getEntity, PlanUserProvisioning plan, ApplyUserProvisioning apply) : ConsolePageModel(actor)
+{
+    [BindProperty(SupportsGet = true)]
+    public string Entity { get; set; } = string.Empty;
+
+    [BindProperty]
+    public NewUserForm Form { get; set; } = new();
+
+    public EntityDetail Detail { get; private set; } = null!;
+
+    public ProvisioningPlan? Plan { get; private set; }
+
+    public ProvisioningResult? Result { get; private set; }
+
+    public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken) =>
+        await LoadAsync(cancellationToken) ?? Page();
+
+    public async Task<IActionResult> OnPostPlanAsync(CancellationToken cancellationToken)
+    {
+        if (await LoadAsync(cancellationToken) is { } failure)
+        {
+            return failure;
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return Page();
+        }
+
+        var planned = await plan.ExecuteAsync(ToRequest(), cancellationToken);
+        if (planned.IsSuccess)
+        {
+            Plan = planned.Value;
+            return Page();
+        }
+
+        return Fail(planned.Error) ?? Page();
+    }
+
+    public async Task<IActionResult> OnPostApplyAsync(CancellationToken cancellationToken)
+    {
+        if (await LoadAsync(cancellationToken) is { } failure)
+        {
+            return failure;
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return Page();
+        }
+
+        var applied = await apply.ExecuteAsync(ToRequest(), Form.Delivery, cancellationToken);
+        if (applied.IsSuccess)
+        {
+            // Rendered, not redirected: a temporary password is shown on this response only (no-store).
+            Result = applied.Value;
+            return Page();
+        }
+
+        if (Fail(applied.Error) is { } outcome)
+        {
+            return outcome;
+        }
+
+        var replanned = await plan.ExecuteAsync(ToRequest(), cancellationToken);
+        Plan = replanned.IsSuccess ? replanned.Value : null;
+        return Page();
+    }
+
+    private NewUserRequest ToRequest() =>
+        new(Entity, $"{Form.LocalPart.Trim()}@{Form.Domain}", Form.Username, Form.FirstName, Form.LastName,
+            (Form.Aliases ?? string.Empty).Split([',', ';', '\n', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+    private async Task<IActionResult?> LoadAsync(CancellationToken cancellationToken)
+    {
+        if (!TryGet(await getEntity.ExecuteAsync(Entity, cancellationToken), out EntityDetail detail, out IActionResult? failure))
+        {
+            return failure;
+        }
+
+        Detail = detail;
+        if (string.IsNullOrEmpty(Form.Domain) && detail.Entity.Domains.Count > 0)
+        {
+            Form.Domain = detail.Entity.Domains[0].Name;
+        }
+
+        return null;
+    }
+
+    public sealed class NewUserForm
+    {
+        [StringLength(100), Display(Name = "First name")]
+        public string? FirstName { get; set; }
+
+        [StringLength(100), Display(Name = "Last name")]
+        public string? LastName { get; set; }
+
+        [Required, StringLength(64), Display(Name = "Address")]
+        public string LocalPart { get; set; } = string.Empty;
+
+        [Required, StringLength(253)]
+        public string Domain { get; set; } = string.Empty;
+
+        [StringLength(64)]
+        public string? Username { get; set; }
+
+        [StringLength(2000)]
+        public string? Aliases { get; set; }
+
+        public CredentialDelivery Delivery { get; set; } = CredentialDelivery.TemporaryPassword;
+    }
+}

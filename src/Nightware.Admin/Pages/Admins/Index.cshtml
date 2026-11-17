@@ -1,0 +1,27 @@
+@page "/admins"
+@model Nightware.Admin.Pages.Admins.IndexModel
+@{ ViewData["Title"] = "Global administrators"; }
+<h1>Global administrators</h1>
+<p class="hint">They manage every entity, create entities and domains, and may delete a disabled user's data. Grant the role from a user's page; new administrators must set up an authenticator app.</p>
+<table>
+    <thead><tr><th>Name</th><th>Address</th><th></th></tr></thead>
+    <tbody>
+    @foreach (var a in Model.Admins)
+    {
+        <tr>
+            <td><a asp-page="/Users/Detail" asp-route-id="@a.Id">@a.DisplayName</a></td>
+            <td>@a.Email</td>
+            <td>
+                @if (a.Id != Model.Actor.UserId)
+                {
+                    <form method="post" asp-page-handler="Revoke" class="inline"><input type="hidden" name="userId" value="@a.Id"><button type="submit" class="secondary">Remove</button></form>
+                }
+                else
+                {
+                    <span class="hint">you</span>
+                }
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
