@@ -245,7 +245,7 @@ Native `<button>` elements, compact and unadorned.
 
 ### Chips (state)
 - **Style:** pill, Chip Grey fill, 12.75px, no border, never wrapping.
-- **State:** the text colour carries the state and the word says it: linked green, missing and pending amber, conflict and error red and bold, disabled Slate. An error link reads "Failed" (the system gave no usable answer for this account), never "Unreachable", which belongs to the dashboard's health check alone; on the worklist its reason follows in a hint. Signing keys on the entity page are a chip too. Detail for a conflict or error appears inline beneath the chips as a hint, never only in a tooltip.
+- **State:** the text colour carries the state and the word says it: linked green, missing and pending amber, conflict and error red and bold, disabled Slate. An error link reads "Failed" (the system gave no usable answer for this account), never "Unreachable", which belongs to the dashboard's health check alone; on the worklist its reason follows in a hint. Signing keys on the entity page are a chip too. For an offboarded user, an account that does not exist reads "None" in Slate, not amber "Missing": nothing there can let them in, so it asks for nothing (`Systems.LinkLabel`). Detail for a conflict or error appears inline beneath the chips as a hint, never only in a tooltip.
 
 ### Status chip
 - One status per user, derived once (`UserStatuses.Of`): Active (green), Needs repair (amber), Conflict and Offboarding incomplete (red, bold), Offboarded (Slate). The same chip and words sit beside the user's name, in an entity's user list, in Find and on the dashboard. Labels live in `Systems.StatusLabel`.
@@ -254,7 +254,7 @@ Native `<button>` elements, compact and unadorned.
 - **Corner Style:** 8px. **Background:** Panel White. **Border:** 1px Hairline, Fault Red for the danger zone. **Padding:** 16px.
 - **Use:** one panel per topic, on every page including the dashboard; a list that is a page's whole subject still sits in one (labelled, without a repeated heading).
 - **Folded:** rare changes on a user's page (other addresses, administrator rights) share one `details.more` panel whose summary names what is inside; it opens itself when a post there fails.
-- **Incomplete offboarding:** the Access panel takes the Fault Red border itself, matching its red status chip; no callout card is nested inside a panel.
+- **Incomplete offboarding:** the Access panel takes the Fault Red border itself, matching its red status chip; no callout card is nested inside a panel. The Danger zone is left out until the offboarding is complete, so one red panel carries the alarm and its fix.
 
 ### Callouts
 - **Notice** (success after a redirect, `role=status`), **Warning** (partial results, blocked steps, an incomplete offboarding) and **Errors** (the validation summary, `role=alert`): Panel White with a full 1px border in the state colour, 8px radius, 8px × 12px padding. No side stripe.

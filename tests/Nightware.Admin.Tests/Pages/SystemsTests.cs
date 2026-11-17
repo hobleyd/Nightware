@@ -38,4 +38,18 @@ public sealed class SystemsTests
         Systems.StatusClass(UserStatus.OffboardingIncomplete).ShouldBe("error");
         Systems.StatusClass(UserStatus.Active).ShouldBe("linked");
     }
+
+    [Fact]
+    public void An_offboarded_users_missing_account_is_harmless_absence_and_nothing_else_changes()
+    {
+        var missing = new BackendLink(BackendKind.Mail, LinkState.Missing);
+        var failed = new BackendLink(BackendKind.Mail, LinkState.Error);
+
+        Systems.LinkLabel(missing, offboarded: true).ShouldBe("None");
+        Systems.LinkClass(missing, offboarded: true).ShouldBe("disabled");
+        Systems.LinkLabel(missing, offboarded: false).ShouldBe("Missing");
+        Systems.LinkClass(missing, offboarded: false).ShouldBe("missing");
+        Systems.LinkLabel(failed, offboarded: true).ShouldBe("Failed");
+        Systems.LinkClass(failed, offboarded: true).ShouldBe("error");
+    }
 }

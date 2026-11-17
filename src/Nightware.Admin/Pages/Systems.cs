@@ -46,6 +46,23 @@ public static class Systems
         _ => "Published",
     };
 
+    /// <summary>
+    /// A user's link in words. For an offboarded user a missing account is no problem (nothing there can let them
+    /// in), so it reads "None", muted, instead of the amber "Missing" that asks for a repair.
+    /// </summary>
+    public static string LinkLabel(BackendLink link, bool offboarded) =>
+        IsHarmlessAbsence(link, offboarded) ? "None" : StateLabel(link.State);
+
+    /// <summary>The chip class for <see cref="LinkLabel"/>.</summary>
+    public static string LinkClass(BackendLink link, bool offboarded) =>
+        IsHarmlessAbsence(link, offboarded) ? "disabled" : link.State.ToString().ToLowerInvariant();
+
+    private static bool IsHarmlessAbsence(BackendLink link, bool offboarded)
+    {
+        ArgumentNullException.ThrowIfNull(link);
+        return offboarded && link.State == LinkState.Missing;
+    }
+
     /// <summary>What a domain Repair achieved, the same on every page.</summary>
     public static string DomainRepairNotice(DomainStatus status) => status switch
     {

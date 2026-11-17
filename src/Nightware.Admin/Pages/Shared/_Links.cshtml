@@ -1,9 +1,11 @@
 @model IReadOnlyList<BackendLink>
+@* ViewData["Offboarded"]: the user is offboarded, so an account they lack reads as "None", not a problem. *@
+@{ var offboarded = ViewData["Offboarded"] is true; }
 <ul class="chips">
     @foreach (var link in Model)
     {
         var name = Systems.ShortName(link.Backend);
-        <li class="chip @link.State.ToString().ToLowerInvariant()">@name: @Systems.StateLabel(link.State)</li>
+        <li class="chip @Systems.LinkClass(link, offboarded)">@name: @Systems.LinkLabel(link, offboarded)</li>
     }
 </ul>
 @foreach (var link in Model.Where(l => l.State is LinkState.Conflict or LinkState.Error))

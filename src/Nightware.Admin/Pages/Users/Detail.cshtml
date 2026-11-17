@@ -37,7 +37,7 @@
             var name = Systems.Name(link.Backend);
             <tr>
                 <td>@name</td>
-                <td data-label="State"><span class="chip @link.State.ToString().ToLowerInvariant()">@Systems.StateLabel(link.State)</span></td>
+                <td data-label="State"><span class="chip @Systems.LinkClass(link, !id.Enabled)">@Systems.LinkLabel(link, !id.Enabled)</span></td>
                 <td data-label="Detail">@link.Detail</td>
             </tr>
         }
@@ -171,20 +171,14 @@
         </details>
     }
 
-    @if (!id.Enabled && Model.MayDeleteData)
+    @* Held while an offboarding is incomplete: the Access panel above already says so, and offers the fix. *@
+    @if (!id.Enabled && Model.MayDeleteData && !incomplete)
     {
         <section class="panel danger-zone">
             <h2>Danger zone</h2>
-            @if (Nightware.Application.Administration.Users.OffboardUser.IsIncomplete(Model.Subject))
-            {
-                <p>Finish offboarding before deleting data: a mailbox or Nextcloud account may still let them sign in.</p>
-            }
-            else
-            {
-                <p>Deleting cannot be undone. Each deletion asks you to sign in again and to retype the address.</p>
-                <a class="button danger" asp-page="/Users/Delete" asp-route-id="@id.Id" asp-route-target="@DeletionTarget.Mail">Delete mail…</a>
-                <a class="button danger" asp-page="/Users/Delete" asp-route-id="@id.Id" asp-route-target="@DeletionTarget.GroupwareData">Delete files &amp; calendar data…</a>
-            }
+            <p>Deleting cannot be undone. Each deletion asks you to sign in again and to retype the address.</p>
+            <a class="button danger" asp-page="/Users/Delete" asp-route-id="@id.Id" asp-route-target="@DeletionTarget.Mail">Delete mail…</a>
+            <a class="button danger" asp-page="/Users/Delete" asp-route-id="@id.Id" asp-route-target="@DeletionTarget.GroupwareData">Delete files &amp; calendar data…</a>
         </section>
     }
 }

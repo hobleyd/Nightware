@@ -32,7 +32,7 @@ else
                 <td><a asp-page="/Users/Detail" asp-route-id="@u.User.Identity.Id">@u.User.Identity.DisplayName</a></td>
                 <td data-label="Address">@u.User.Identity.Email</td>
                 <td data-label="Status"><partial name="_Status" model="u" /></td>
-                <td data-label="Systems"><partial name="_Links" model="u.Links" /></td>
+                <td data-label="Systems"><partial name="_Links" model="u.Links" view-data="@(new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(ViewData) { ["Offboarded"] = !u.User.Identity.Enabled })" /></td>
             </tr>
         }
         </tbody>

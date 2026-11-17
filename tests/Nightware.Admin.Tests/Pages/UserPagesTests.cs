@@ -207,8 +207,35 @@ public sealed class UserPagesTests : IDisposable
 
         string html = await (await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri("/users/u-dan", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
 
-        html.ShouldContain("Finish offboarding before deleting data");
+        html.ShouldNotContain("Danger zone");
         html.ShouldNotContain("Delete mail…");
+        html.ShouldContain("Finish offboarding</button>");
+    }
+
+    [Fact]
+    public async Task An_offboarded_users_missing_account_reads_as_none_not_as_a_problem()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example", enabled: false);
+        _host.Entities.ListMembersAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([new IdentityAccount("u-dan", "dan", "dan@acme.example", false)]));
+        HttpClient client = _host.ClientAs(ConsoleHost.GlobalAdmin);
+
+        string user = await (await client.GetAsync(new Uri("/users/u-dan", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+        user.ShouldContain("<span class=\"chip disabled\">None</span>");
+        user.ShouldNotContain("chip missing");
+
+        string list = await (await client.GetAsync(new Uri($"/entities/{ConsoleHost.Acme}/users", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+        list.ShouldContain("<li class=\"chip disabled\">Mail: None</li>");
+        list.ShouldNotContain("chip missing");
+    }
+
+    [Fact]
+    public async Task An_active_users_missing_account_still_reads_as_missing()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+
+        string user = await (await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri("/users/u-dan", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+
+        user.ShouldContain("<span class=\"chip missing\">Missing</span>");
     }
 
     [Fact]
