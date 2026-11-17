@@ -1,8 +1,10 @@
 @page "/entities/{entity}/users"
 @model Nightware.Admin.Pages.Users.IndexModel
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 @{ ViewData["Title"] = "Users of " + Model.Detail.Entity.Name; }
 <nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Entities/Index">Entities</a> › <a asp-page="/Entities/Detail" asp-route-id="@Model.Entity">@Model.Detail.Entity.Name</a> › <span aria-current="page">Users</span></nav>
 <h1>Users of @Model.Detail.Entity.Name</h1>
+<partial name="_Messages" />
 <form method="get" class="row">
     <label>Search <input name="q" value="@Model.Q" autocomplete="off"></label>
     <button type="submit" class="secondary">Filter</button>

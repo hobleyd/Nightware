@@ -1,7 +1,9 @@
 @page "/entities"
 @model Nightware.Admin.Pages.Entities.IndexModel
 @{ ViewData["Title"] = "Entities"; }
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 <h1>Entities</h1>
+<partial name="_Messages" />
 
 <table>
     <thead><tr><th>Entity</th><th>Short name</th><th>Domains</th><th></th></tr></thead>

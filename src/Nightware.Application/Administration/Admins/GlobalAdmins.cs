@@ -45,6 +45,11 @@ public sealed class SetGlobalAdmin(IAdminActor actor, IIdentityAccounts identiti
             return target.Error;
         }
 
+        if (granted && !target.Value.Enabled)
+        {
+            return Error.Conflict($"{target.Value.DisplayName} is offboarded; reinstate them before granting global administrator rights.");
+        }
+
         Result result = await identities.SetGlobalAdminAsync(userId, granted, cancellationToken).ConfigureAwait(false);
         if (result.IsSuccess && granted)
         {

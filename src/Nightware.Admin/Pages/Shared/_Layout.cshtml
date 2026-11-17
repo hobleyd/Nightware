@@ -44,12 +44,13 @@
     }
 </header>
 <main id="main">
-    @if (ViewData.Model is ConsolePageModel { Notice: { Length: > 0 } notice })
+    @{ var body = RenderBody(); }
+    @* Pages place their messages under their heading; the body renders first, so this only catches pages that do not. *@
+    @if (Context.Items["messages-shown"] is not true)
     {
-        <p class="notice" role="status">@notice</p>
+        <partial name="_Messages" />
     }
-    <div asp-validation-summary="All" class="errors" role="alert"></div>
-    @RenderBody()
+    @body
 </main>
 </body>
 </html>

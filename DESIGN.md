@@ -210,7 +210,7 @@ A cool, faintly indigo neutral field under a night band, with a single envelope-
 
 A single centred column, at most 1080px wide with 16px padding, under a full-width night band. The band holds the mark and product name, the role-gated navigation (Entities, plus Global admins for global admins; the current section is marked with `aria-current`), the find-a-user search, and, pushed to the far edge, the signed-in identity, Change password and Sign out. On narrow screens the band wraps onto several lines rather than collapsing into a menu. A skip link leads past it to the content.
 
-Entity, user, DNS and delete pages open with a breadcrumb (Entity › Users › Person) above the h1. The dashboard reads top-down as a worklist: Needs attention, then Systems, then Entities.
+Entity, user, DNS and delete pages open with a breadcrumb (Entity › Users › Person) above the h1. The notice and errors for a request sit directly under the h1 (the `_Messages` partial), so they are read with the page they concern. The dashboard reads top-down as a worklist: Needs attention, then Systems, then Entities.
 
 The spacing steps are 6, 8, 12 and 16px. Panels sit 16px apart with 16px inner padding, and a panel's first heading sits flush to its top. Form rows use a 12px gap; chips use a 6px gap; table cells have 8px padding.
 
@@ -237,9 +237,9 @@ Gently rounded and low-key. Controls (buttons, inputs, fieldsets) have a 6px rad
 ### Buttons
 Native `<button>` elements, compact and unadorned.
 - **Shape:** 6px radius, 6px × 14px padding, body type.
-- **Primary:** Envelope Indigo fill. Used for the step that commits: "Create and link", "Reinstate", "Make global administrator", "Add", "Grant".
-- **Secondary:** transparent with an indigo outline. Used for safe, repeatable or preparatory actions: "Check what will happen", "Repair" (everywhere), "Save", the password actions, "Remove".
-- **Danger:** Fault Red fill. Used for "Offboard", "Finish offboarding" and the "Delete …" links.
+- **Primary:** Envelope Indigo fill. Used for the step that commits: "Create and link", "Add", "Make administrator" (entity).
+- **Secondary:** transparent with an indigo outline. Used for safe, repeatable or preparatory actions and for rare, powerful ones that must not lead the page: "Check what will happen", "Repair" and "Finish offboarding" (everywhere, including dashboard rows), "Save", the password actions, "Reinstate", "Make global administrator", "Remove".
+- **Danger:** Fault Red fill. Used for "Offboard" and the "Delete …" links only.
 - **Link:** no chrome, link colour. Used for Sign out only.
 - **Focus:** a 2px outline in the accent (Moonlit Link on the night band), 2px offset.
 
@@ -256,6 +256,7 @@ Native `<button>` elements, compact and unadorned.
 
 ### Callouts
 - **Notice** (success after a redirect, `role=status`), **Warning** (partial results, blocked steps, an incomplete offboarding) and **Errors** (the validation summary, `role=alert`): Panel White with a full 1px border in the state colour, 8px radius, 8px × 12px padding. No side stripe.
+- **Could not read** (`_Unread`): when a page's own data cannot be read, the page shows its heading and a warning naming the failure, "Try again" and the dashboard, and nothing else. No empty table or "none yet" ever stands in for a failed read.
 - An invalid field also takes a Fault Red border.
 
 ### Inputs / Fields
@@ -274,6 +275,10 @@ Native `<button>` elements, compact and unadorned.
 ### Needs attention (signature)
 The dashboard's first panel: users whose offboarding is incomplete, who conflict or who need repair (most urgent first, each with the systems at fault), domains the mail server does not serve or that lack signing keys, and any entity that could not be checked. Empty, it says "Nothing needs you." It is read on each visit and never stored.
 
+Each row carries its fix when the fix is safe to repeat: "Finish offboarding" (only for someone already offboarded; the dashboard never offboards an active user), "Repair" for a user or, for global admins, a domain. A conflict needs a person to decide, so its row links to the user instead. A domain lacking keys links to its DNS records.
+
+The Systems chips below agree with it: a system that answers its health check but failed for someone in the sweep reads "Reachable, failed for N" in amber, with the names beneath, never a plain "OK".
+
 ### Secret Box (signature)
 The one moment of emphasis. A one-time credential appears in a box with a 2px dashed amber border at 8px radius, under the bolded instruction "Temporary password — shown once." and the advice to deliver it by another channel. The value is mono at 1.3em with `user-select: all`. It is never shown twice.
 
@@ -291,6 +296,8 @@ The "What will happen" step: before any write, a table lists each system's actio
 - **Do** set copyable values in mono and make them easy to select.
 - **Do** show a user's state with the status chip, in the same words on every page.
 - **Do** put a confirming checkbox that names the consequence beside any change to who can get in.
+- **Do** offer only the choices that can succeed (only removable domains, granting only to someone who can sign in), and say why when there are none.
+- **Do** word a next step for the reader's role: an entity admin is sent to their operator, not to a button they lack.
 
 ### Don't:
 - **Don't** add shadows, gradients, overlays or modals. The board is flat and there is no script.

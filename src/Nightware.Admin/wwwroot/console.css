@@ -92,6 +92,7 @@ table { width: 100%; border-collapse: collapse; background: var(--panel); }
 th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
 tr.disabled td { color: var(--muted); }
 .actions { white-space: nowrap; }
+.actions a + form.inline { margin-left: 8px; }
 .plan tr.conflict td { color: var(--bad); }
 .dns input, .dns textarea { width: 100%; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em; border: 1px solid var(--control-line); background: var(--bg); color: var(--text); resize: vertical; }
 
@@ -107,6 +108,8 @@ form label.choice { display: flex; gap: 8px; align-items: baseline; }
 .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .row label { flex: 1 1 200px; }
 form.inline { display: inline; }
+button + .hint { margin-left: 8px; }
+li > form.inline, li > a:last-child:not(:first-child) { margin-left: 8px; }
 input:not([type=radio]):not([type=checkbox]), select, textarea { display: block; width: 100%; padding: 6px 8px; border: 1px solid var(--control-line); border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; }
 input.input-validation-error, select.input-validation-error, textarea.input-validation-error { border-color: var(--bad); }
 fieldset { border: 1px solid var(--line); border-radius: 6px; margin: 12px 0; }

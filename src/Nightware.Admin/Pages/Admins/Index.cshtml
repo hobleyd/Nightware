@@ -1,7 +1,9 @@
 @page "/admins"
 @model Nightware.Admin.Pages.Admins.IndexModel
 @{ ViewData["Title"] = "Global administrators"; }
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 <h1>Global administrators</h1>
+<partial name="_Messages" />
 <p class="hint">They manage every entity, create entities and domains, and may delete a disabled user's data. Grant the role from a user's page; new administrators must set up an authenticator app.</p>
 <table>
     <thead><tr><th>Name</th><th>Address</th></tr></thead>

@@ -1,7 +1,9 @@
 @page "/users/find"
 @model Nightware.Admin.Pages.Users.FindModel
 @{ ViewData["Title"] = "Find a user"; }
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 <h1>Find a user</h1>
+<partial name="_Messages" />
 <form method="get" class="row" role="search">
     <label>Name, username or address <input name="q" value="@Model.Q" autocomplete="off" required></label>
     <button type="submit" class="secondary">Find</button>

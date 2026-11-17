@@ -1,0 +1,8 @@
+@* Stands in for a page whose own data could not be read: nothing is shown that could pass for an empty list. *@
+@{ var console = (ConsolePageModel)ViewData.Model!; }
+<h1>@(ViewData["Title"] as string ?? "Could not load this page")</h1>
+<partial name="_Messages" />
+<div class="warning" role="alert">
+    <p><strong>Could not read this page's information.</strong> @console.Unread?.Message</p>
+    <p>Nothing was changed, and nothing is listed here, so that a missing answer is not mistaken for an empty one. <a href="@console.ReturnUrl()">Try again</a>, or check Systems on the <a asp-page="/Index">dashboard</a>.</p>
+</div>

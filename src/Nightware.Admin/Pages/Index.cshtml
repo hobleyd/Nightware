@@ -1,7 +1,9 @@
 @page
 @model IndexModel
 @{ ViewData["Title"] = "Dashboard"; }
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 <h1>Dashboard</h1>
+<partial name="_Messages" />
 
 <section class="panel attention">
     <h2>Needs attention</h2>
@@ -14,7 +16,7 @@
         @if (Model.Attention.Users.Count > 0)
         {
             <table>
-                <thead><tr><th>User</th><th>Entity</th><th>Status</th><th>What is wrong</th></tr></thead>
+                <thead><tr><th>User</th><th>Entity</th><th>Status</th><th>What is wrong</th><th><span class="visually-hidden">Fix</span></th></tr></thead>
                 <tbody>
                 @foreach (var a in Model.Attention.Users)
                 {
@@ -35,6 +37,20 @@
                                 <span class="detail">@Systems.ShortName(link.Backend): @Systems.StateLabel(link.State)</span>
                             }
                         </td>
+                        <td class="actions">
+                            @switch (a.Status)
+                            {
+                                case Nightware.Application.Administration.Users.UserStatus.OffboardingIncomplete:
+                                    <form method="post" asp-page-handler="FinishOffboarding" class="inline"><input type="hidden" name="userId" value="@identity.Id"><button type="submit" class="secondary">Finish offboarding</button></form>
+                                    break;
+                                case Nightware.Application.Administration.Users.UserStatus.NeedsRepair:
+                                    <form method="post" asp-page-handler="RepairUser" class="inline"><input type="hidden" name="userId" value="@identity.Id"><button type="submit" class="secondary">Repair</button></form>
+                                    break;
+                                default:
+                                    <a asp-page="/Users/Detail" asp-route-id="@identity.Id">Decide on their page</a>
+                                    break;
+                            }
+                        </td>
                     </tr>
                 }
                 </tbody>
@@ -45,7 +61,18 @@
             <ul class="plain">
                 @foreach (var d in Model.Attention.Domains)
                 {
-                    <li><a asp-page="/Entities/Detail" asp-route-id="@d.Entity.Id">@d.Domain.Domain</a> (@d.Entity.Name): @(d.Domain.Mail.State != LinkState.Linked ? $"the mail server does not serve it ({Systems.StateLabel(d.Domain.Mail.State)})" : "no signing (DKIM) keys")</li>
+                    var served = d.Domain.Mail.State == LinkState.Linked;
+                    <li>
+                        <a asp-page="/Entities/Detail" asp-route-id="@d.Entity.Id">@d.Domain.Domain</a> (@d.Entity.Name): @(served ? "no signing (DKIM) keys" : $"the mail server does not serve it ({Systems.StateLabel(d.Domain.Mail.State)})")
+                        @if (!served && Model.Actor.IsGlobal)
+                        {
+                            <form method="post" asp-page-handler="RepairDomain" class="inline"><input type="hidden" name="entityId" value="@d.Entity.Id"><input type="hidden" name="domain" value="@d.Domain.Domain.Name"><button type="submit" class="secondary">Repair</button></form>
+                        }
+                        else if (served)
+                        {
+                            <a asp-page="/Entities/Dns" asp-route-id="@d.Entity.Id" asp-route-domain="@d.Domain.Domain.Name">DNS records</a>
+                        }
+                    </li>
                 }
             </ul>
         }
@@ -62,12 +89,20 @@
         @foreach (var h in Model.Health)
         {
             var name = Systems.Name(h.Backend);
-            <li class="chip @(h.Healthy ? "linked" : "error")">@name: @(h.Healthy ? "OK" : "Unreachable")</li>
+            var failed = h.Healthy ? Model.FailedFor(h.Backend) : [];
+            <li class="chip @(!h.Healthy ? "error" : failed.Count > 0 ? "missing" : "linked")">@name: @(!h.Healthy ? "Unreachable" : failed.Count > 0 ? $"Reachable, failed for {failed.Count}" : "OK")</li>
         }
     </ul>
-    @foreach (var h in Model.Health.Where(h => !h.Healthy && !string.IsNullOrEmpty(h.Detail)))
+    @foreach (var h in Model.Health)
     {
-        <p class="hint detail">@Systems.Name(h.Backend): @h.Detail</p>
+        if (!h.Healthy && !string.IsNullOrEmpty(h.Detail))
+        {
+            <p class="hint detail">@Systems.Name(h.Backend): @h.Detail</p>
+        }
+        else if (h.Healthy && Model.FailedFor(h.Backend) is { Count: > 0 } failed)
+        {
+            <p class="hint detail">@Systems.Name(h.Backend) answers its health check but failed to answer for @string.Join(", ", failed). It may be partly down; see Needs attention.</p>
+        }
     }
 </section>
 
@@ -80,7 +115,7 @@
     else
     {
         <table>
-            <thead><tr><th>Entity</th><th>Domains</th><th></th></tr></thead>
+            <thead><tr><th>Entity</th><th>Domains</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
             <tbody>
             @foreach (var e in Model.Entities)
             {

@@ -1,5 +1,6 @@
 @page "/users/{id}/delete/{target}"
 @model Nightware.Admin.Pages.Users.DeleteModel
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 @{
     var p = Model.Preview;
     var what = p.Target == DeletionTarget.Mail ? "mail" : "files & calendar data";
@@ -7,6 +8,7 @@
 }
 <nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Users/Detail" asp-route-id="@Model.Id">@p.User.Identity.DisplayName</a> › <span aria-current="page">Delete @what</span></nav>
 <h1>Delete @what of @p.User.Identity.DisplayName</h1>
+<partial name="_Messages" />
 
 @if (p.AlreadyAbsent)
 {

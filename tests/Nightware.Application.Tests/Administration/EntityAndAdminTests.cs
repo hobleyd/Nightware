@@ -189,6 +189,20 @@ public sealed class EntityAndAdminTests
     }
 
     [Fact]
+    public async Task An_offboarded_user_cannot_be_granted_global_admin_but_can_lose_it()
+    {
+        _bed.AddUser("u-eve", "eve", "eve@acme.example", enabled: false);
+        var set = new SetGlobalAdmin(_bed.Actor, _bed.Identities, _bed.Audit, _bed.Options, _bed.Time);
+
+        Error refused = (await set.ExecuteAsync("u-eve", true, Ct)).Error!;
+        refused.Kind.ShouldBe(ErrorKind.Conflict);
+        refused.Message.ShouldContain("reinstate them");
+        await _bed.Identities.DidNotReceiveWithAnyArgs().SetGlobalAdminAsync(default!, default, Ct);
+
+        (await set.ExecuteAsync("u-eve", false, Ct)).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task Granting_global_admin_needs_a_fresh_sign_in_but_revoking_does_not()
     {
         _bed.AddUser("u-dan", "dan", "dan@acme.example");

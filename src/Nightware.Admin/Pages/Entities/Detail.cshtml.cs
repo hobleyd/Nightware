@@ -28,6 +28,10 @@ public sealed class DetailModel(
 
     public IReadOnlyList<UserDetail> Members { get; private set; } = [];
 
+    /// <summary>How many of the entity's addresses (primary and aliases) are on the domain; such a domain cannot be removed.</summary>
+    public int AddressesOn(MailDomain domain) =>
+        Members.Sum(m => m.User.Identity.Aliases.Prepend(m.User.Identity.Email).Count(a => a.EndsWith("@" + domain.Name, StringComparison.OrdinalIgnoreCase)));
+
     public Task<IActionResult> OnGetAsync(CancellationToken cancellationToken) => RenderAsync(cancellationToken);
 
     public async Task<IActionResult> OnPostAddDomainAsync(string domain, CancellationToken cancellationToken) =>
@@ -36,7 +40,9 @@ public sealed class DetailModel(
             : $"{s.Domain} added in Keycloak; the mail server does not serve it yet ({s.Mail.Detail}). Try Repair.", cancellationToken);
 
     public async Task<IActionResult> OnPostRepairDomainAsync(string domain, CancellationToken cancellationToken) =>
-        await AfterAsync(await addDomain.ExecuteAsync(Id, domain, cancellationToken), s => $"{s.Domain}: {s.Mail.State}.", cancellationToken);
+        await AfterAsync(await addDomain.ExecuteAsync(Id, domain, cancellationToken), s => s.Mail.State == LinkState.Linked
+            ? $"{s.Domain} is served by the mail server."
+            : $"{s.Domain} is still not served by the mail server ({s.Mail.Detail}).", cancellationToken);
 
     public async Task<IActionResult> OnPostRemoveDomainAsync(string domain, bool confirm, CancellationToken cancellationToken) =>
         !confirm

@@ -74,7 +74,7 @@ public sealed class DetailModel(
         }
 
         Result<UserDetail> offboarded = await offboard.ExecuteAsync(Id, cancellationToken);
-        return await AfterAsync(offboarded, offboarded.IsSuccess ? OffboardedNotice(offboarded.Value) : string.Empty, cancellationToken);
+        return await AfterAsync(offboarded, offboarded.IsSuccess ? OffboardingNotice.For(offboarded.Value, options.AccessTokenLifespan) : string.Empty, cancellationToken);
     }
 
     public async Task<IActionResult> OnPostReinstateAsync(bool recreateMailbox, bool confirm, CancellationToken cancellationToken)
@@ -98,14 +98,6 @@ public sealed class DetailModel(
 
         Result result = await setGlobalAdmin.ExecuteAsync(Id, grant, cancellationToken);
         return await AfterAsync(result.IsSuccess ? Result<bool>.Success(true) : result.Error, grant ? "Global administrator rights granted." : "Global administrator rights removed.", cancellationToken);
-    }
-
-    /// <summary>What each system now says, so the admin can be sure every way in is shut.</summary>
-    private string OffboardedNotice(UserDetail user)
-    {
-        IEnumerable<string> downstream = user.Links.Where(l => l.Backend != BackendKind.Identity).Select(l => (l.Detail?.TrimEnd('.') ?? $"{l.Backend}: {l.State}") + ".");
-        return $"Offboarded. Sign-in is disabled and their sessions ended. {string.Join(" ", downstream)} "
-            + $"Apps already signed in lose access within {(int)options.AccessTokenLifespan.TotalMinutes} minutes, when their tokens expire. Mail and files are kept.";
     }
 
     private async Task<IActionResult> AfterAsync<T>(Result<T> result, string notice, CancellationToken cancellationToken)

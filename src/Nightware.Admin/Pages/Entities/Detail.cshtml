@@ -1,5 +1,6 @@
 @page "/entities/{id}"
 @model Nightware.Admin.Pages.Entities.DetailModel
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 @{
     var entity = Model.Entity.Entity;
     ViewData["Title"] = entity.Name;
@@ -7,6 +8,7 @@
 }
 <nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Entities/Index">Entities</a> › <span aria-current="page">@entity.Name</span></nav>
 <h1>@entity.Name <small>@entity.Alias</small></h1>
+<partial name="_Messages" />
 <p><a asp-page="/Users/Index" asp-route-entity="@entity.Id">@Model.Members.Count @(Model.Members.Count == 1 ? "user" : "users")</a> · <a asp-page="/Users/New" asp-route-entity="@entity.Id">Add or link a user</a></p>
 
 <section class="panel">
@@ -34,6 +36,10 @@
         }
         </tbody>
     </table>
+    @if (!Model.Actor.IsGlobal && Model.Entity.Domains.Any(d => d.Mail.State != LinkState.Linked))
+    {
+        <p class="hint">Only your Nightware operator can repair a domain the mail server does not serve.</p>
+    }
     @if (Model.Actor.IsGlobal)
     {
         <form method="post" asp-page-handler="AddDomain" class="row">
@@ -42,22 +48,32 @@
         </form>
         @if (Model.Entity.Domains.Count > 0)
         {
-            <form method="post" asp-page-handler="RemoveDomain" class="remove">
+            var removableDomains = Model.Entity.Domains.Where(d => Model.AddressesOn(d.Domain) == 0).ToList();
+            <div class="remove">
                 <h3>Remove a domain</h3>
-                <p class="hint">Takes the domain away from @entity.Name; the mail server keeps it. A domain that users' addresses still use cannot be removed.</p>
-                <div class="row">
-                    <label>Domain
-                        <select name="domain">
-                            @foreach (var d in Model.Entity.Domains)
-                            {
-                                <option value="@d.Domain.Name">@d.Domain.Name</option>
-                            }
-                        </select>
-                    </label>
-                </div>
-                <label class="choice"><input type="checkbox" name="confirm" value="true" required> Remove it from @entity.Name</label>
-                <button type="submit" class="secondary">Remove domain</button>
-            </form>
+                @if (removableDomains.Count == 0)
+                {
+                    <p class="hint">Every domain still has users' addresses on it (@string.Join(", ", Model.Entity.Domains.Select(d => $"{d.Domain}: {Model.AddressesOn(d.Domain)}"))). Change those addresses before removing a domain.</p>
+                }
+                else
+                {
+                    <form method="post" asp-page-handler="RemoveDomain">
+                        <p class="hint">Takes the domain away from @entity.Name; the mail server keeps it. Only domains no user's address is on are listed.</p>
+                        <div class="row">
+                            <label>Domain
+                                <select name="domain">
+                                    @foreach (var d in removableDomains)
+                                    {
+                                        <option value="@d.Domain.Name">@d.Domain.Name</option>
+                                    }
+                                </select>
+                            </label>
+                        </div>
+                        <label class="choice"><input type="checkbox" name="confirm" value="true" required> Remove it from @entity.Name</label>
+                        <button type="submit" class="secondary">Remove domain</button>
+                    </form>
+                }
+            </div>
         }
     }
 </section>

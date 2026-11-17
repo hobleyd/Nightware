@@ -1,0 +1,7 @@
+@* The one-off notice and the errors for this request, placed by the page under its heading. *@
+@{ Context.Items["messages-shown"] = true; }
+@if (ViewData.Model is ConsolePageModel { Notice: { Length: > 0 } notice })
+{
+    <p class="notice" role="status">@notice</p>
+}
+<div asp-validation-summary="All" class="errors" role="alert"></div>

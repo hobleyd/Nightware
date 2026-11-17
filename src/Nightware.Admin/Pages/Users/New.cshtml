@@ -1,8 +1,10 @@
 @page "/entities/{entity}/users/new"
 @model Nightware.Admin.Pages.Users.NewModel
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 @{ ViewData["Title"] = "Add or link a user"; }
 <nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Entities/Detail" asp-route-id="@Model.Entity">@Model.Detail.Entity.Name</a> › <a asp-page="/Users/Index" asp-route-entity="@Model.Entity">Users</a> › <span aria-current="page">Add or link</span></nav>
 <h1>Add or link a user — @Model.Detail.Entity.Name</h1>
+<partial name="_Messages" />
 
 @if (Model.Result is { } result)
 {
@@ -41,7 +43,7 @@ else
             <label>Last name <input asp-for="Form.LastName" autocomplete="off"></label>
         </div>
         <div class="row">
-            <label>Address <input asp-for="Form.LocalPart" placeholder="carol.jones" autocomplete="off"></label>
+            <label>Address, before the @@ <input asp-for="Form.LocalPart" placeholder="carol.jones" autocomplete="off"></label>
             <label>Domain
                 <select asp-for="Form.Domain">
                     @foreach (var d in Model.Detail.Entity.Domains)
