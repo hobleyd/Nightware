@@ -46,7 +46,8 @@ Dependencies point inward only. Enforced by `tests/Nightware.Architecture.Tests`
 | `Nightware.Adapters.Jmap` | Application | Stalwart JMAP client + mail/mailbox-settings/spam port implementations. |
 | `Nightware.Adapters.Dav` | Application | Nextcloud CalDAV/CardDAV/WebDAV/OCS client + calendar, contacts, tasks, rooms, file-share port implementations. |
 | `Nightware.Adapters.Directory` | Application | Keycloak admin/userinfo + Nextcloud avatar: user lookup, photos. |
-| `Nightware.Api` | Application, all Adapters (composition root only) | ASP.NET Core host, JWT auth, Graph routes, OData-subset parsing, `Prefer` header handling, Graph JSON DTOs + mappers, Graph error envelope. |
+| `Nightware.Hosting` | nothing in the solution (ASP.NET Core only) | Hosting code shared by the hosts (ADR 0002 §D2): security headers with a configurable CSP, trusted-proxy (`ForwardedHeaders`) registration, the cookie-free `HttpClient` filter, log redaction. |
+| `Nightware.Api` | Application, all Adapters (composition root only), Hosting | ASP.NET Core host, JWT auth, Graph routes, OData-subset parsing, `Prefer` header handling, Graph JSON DTOs + mappers, Graph error envelope. |
 
 The Api references adapters **only** in `Composition/` (DI wiring). Endpoint
 code depends on Application use cases, never on adapters.

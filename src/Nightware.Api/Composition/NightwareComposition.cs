@@ -32,6 +32,7 @@ using Nightware.Api.Observability;
 using Nightware.Api.Throttling;
 using Nightware.Application;
 using Nightware.Application.Common.Identity;
+using Nightware.Hosting.Http;
 
 namespace Nightware.Api.Composition;
 

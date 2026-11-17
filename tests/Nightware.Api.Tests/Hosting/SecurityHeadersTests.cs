@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 
-using Nightware.Api.Hosting;
 using Nightware.Api.Tests.Support;
 
 namespace Nightware.Api.Tests.Hosting;
@@ -41,7 +40,7 @@ public sealed class SecurityHeadersTests
 
         response.Headers.GetValues("X-Content-Type-Options").Single().ShouldBe("nosniff");
         response.Headers.GetValues("X-Frame-Options").Single().ShouldBe("DENY");
-        response.Headers.GetValues("Content-Security-Policy").Single().ShouldBe(SecurityHeadersMiddleware.ContentSecurityPolicy);
+        response.Headers.GetValues("Content-Security-Policy").Single().ShouldBe("default-src 'none'; frame-ancestors 'none'; sandbox");
         response.Headers.GetValues("Referrer-Policy").Single().ShouldBe("no-referrer");
         response.Headers.CacheControl!.NoStore.ShouldBeTrue();
     }

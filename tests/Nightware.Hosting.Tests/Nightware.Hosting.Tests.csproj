@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Nightware.Hosting\Nightware.Hosting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- TestServer (Microsoft.AspNetCore.TestHost) for the middleware tests. -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+  </ItemGroup>
+</Project>

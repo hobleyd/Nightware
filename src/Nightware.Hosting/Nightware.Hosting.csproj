@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Hosting code shared by the Graph façade (Nightware.Api) and the admin console
+       (Nightware.Admin): security headers, trusted proxies, cookie-free HttpClients, log
+       redaction. References no other Nightware project (ADR 0002 §D2). -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

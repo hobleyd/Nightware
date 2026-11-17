@@ -1,10 +1,10 @@
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
+
+using Nightware.Hosting;
 
 namespace Nightware.Api.Hosting;
 
@@ -21,11 +21,8 @@ public static class HostingServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        AddValidated<ProxyOptions, ProxyOptionsValidator>(services, configuration, ProxyOptions.SectionName);
-        services.AddOptions<ForwardedHeadersOptions>()
-            .Configure<IOptions<ProxyOptions>>(static (forwarded, proxies) => proxies.Value.ApplyTo(forwarded));
-
-        services.AddOptions<SecurityHeadersOptions>().Bind(configuration.GetSection(SecurityHeadersOptions.SectionName));
+        services.AddTrustedProxies(configuration);
+        services.AddSecurityHeaders(configuration);
         AddValidated<RequestLimitOptions, RequestLimitOptionsValidator>(services, configuration, RequestLimitOptions.SectionName);
         AddValidated<RequestBudgetOptions, RequestBudgetOptionsValidator>(services, configuration, RequestBudgetOptions.SectionName);
 
@@ -39,7 +36,7 @@ public static class HostingServiceCollectionExtensions
                 kestrel.Limits.MaxRequestBodySize = limits.Value.MaxRequestBodyBytes);
 
         // Pooled primary handlers are shared across users: no client may keep cookies.
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHttpMessageHandlerBuilderFilter, CookielessHttpClientsFilter>());
+        services.AddCookielessHttpClients();
 
         services.AddGraphCors(configuration);
         return services;

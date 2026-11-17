@@ -9,7 +9,7 @@
   <CodeCoverage>
     <ModulePaths>
       <Include>
-        <ModulePath>.*[\\/]Nightware\.(Domain|Application|Adapters\.[A-Za-z]+|Api)\.dll$</ModulePath>
+        <ModulePath>.*[\\/]Nightware\.(Domain|Application|Adapters\.[A-Za-z]+|Api|Hosting)\.dll$</ModulePath>
       </Include>
     </ModulePaths>
     <Attributes>

@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Globalization;
 
+using Nightware.Hosting.Observability;
+
 using OpenTelemetry;
 
 namespace Nightware.Api.Observability;

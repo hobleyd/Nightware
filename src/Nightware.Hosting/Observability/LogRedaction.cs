@@ -4,7 +4,7 @@ using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Nightware.Api.Observability;
+namespace Nightware.Hosting.Observability;
 
 /// <summary>
 /// What the façade must never log — <c>Authorization</c>, tokens, cookies, message bodies, URL secrets — and
@@ -29,7 +29,7 @@ namespace Nightware.Api.Observability;
 /// (<see cref="UrlRedaction"/>: a share id, a Nextcloud public-share token) are replaced wherever a path is
 /// recorded: in every log scope (<see cref="RedactingScopeProvider"/>), in HttpClient's request logs
 /// (<see cref="RedactingHttpClientLoggingFilter"/>, which replaces the default logger that redacts only the
-/// query) and on exported spans (<see cref="RedactingSpanProcessor"/>). <c>LogRedactionTests</c> pins the whole
+/// query) and on exported spans (<c>RedactingSpanProcessor</c> in the host). <c>LogRedactionTests</c> pins the whole
 /// pipeline.</para>
 /// </remarks>
 public static class LogRedaction

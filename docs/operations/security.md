@@ -70,14 +70,14 @@ configured on the Keycloak `nightmail` client (web origins), not here.
 Only `ForwardedHeaders:KnownProxies/KnownNetworks` may set `X-Forwarded-*` (default: loopback). An
 untrusted sender cannot choose the client address (rate-limit partition, logs) or the scheme/host.
 
-## Response headers (`Hosting/SecurityHeadersMiddleware.cs`)
+## Response headers (`Nightware.Hosting/Http/SecurityHeadersMiddleware.cs`)
 
 Every response: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
 `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; sandbox` (an HTML attachment
 opened from `$value` cannot run script), `Referrer-Policy: no-referrer`, and `Cache-Control: no-store`
 unless the endpoint set its own. HSTS on HTTPS requests. No `Server` header.
 
-## Logging and telemetry redaction (`Observability/LogRedaction.cs`)
+## Logging and telemetry redaction (`Nightware.Hosting/Observability/LogRedaction.cs`)
 
 Never logged or exported: `Authorization` headers, tokens (user, exchanged, service-account),
 client secrets, cookies, request and response bodies, query strings.
@@ -107,7 +107,7 @@ a session cookie in answer to a bearer request) on the next user's call: this ha
 and a path to another user's data). Rules:
 
 1. Every backend client is cookie-free. The adapters build their primary handlers with
-   `UseCookies = false`, and `Hosting/CookielessHttpClientsFilter` turns cookies off on the primary
+   `UseCookies = false`, and `Nightware.Hosting/Http/CookielessHttpClientsFilter` turns cookies off on the primary
    handler of **every** factory client in the process, so a client added later cannot regress it.
 2. Never create a backend `HttpClient` outside `IHttpClientFactory`, and never give one a
    `CookieContainer`. The façade is stateless towards its backends: every call carries its own
