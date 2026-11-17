@@ -1,10 +1,19 @@
 @page "/users/{id}/delete/{target}"
 @model Nightware.Admin.Pages.Users.DeleteModel
 @{
-    var whose = Model.Subject?.User.Identity.DisplayName;
-    ViewData["Title"] = whose is null ? "Delete data" : $"Delete data of {whose}";
+    // Entity › Users › person, as on the person's own page, whether or not the deletion is possible.
+    var whose = Model.Subject?.User.Identity.DisplayName ?? (Model.Unread is null ? Model.Preview.User.Identity.DisplayName : null);
+    var crumbs = new List<(string Text, string? Href)>();
+    if (Model.EntityId is not null)
+    {
+        crumbs.Add((Model.EntityName ?? "Entity", Url.Page("/Entities/Detail", new { id = Model.EntityId })));
+        crumbs.Add(("Users", Url.Page("/Users/Index", new { entity = Model.EntityId })));
+    }
+
+    crumbs.Add((whose ?? "User", Url.Page("/Users/Detail", new { id = Model.Id })));
+    ViewData["Title"] = whose is null ? $"Delete {Model.What}" : $"Delete {Model.What} of {whose}";
     ViewData["Back"] = Url.Page("/Users/Detail", new { id = Model.Id });
-    ViewData["Crumbs"] = new (string, string?)[] { (whose ?? "User", Url.Page("/Users/Detail", new { id = Model.Id })) };
+    ViewData["Crumbs"] = crumbs;
 }
 @if (Model.Unread is not null)
 {
@@ -21,10 +30,9 @@
 }
 @{
     var p = Model.Preview;
-    var what = p.Target == DeletionTarget.Mail ? "mail" : "files & calendar data";
-    ViewData["Title"] = "Delete " + what;
+    var what = Model.What;
 }
-<nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Users/Detail" asp-route-id="@Model.Id">@p.User.Identity.DisplayName</a> › <span aria-current="page">Delete @what</span></nav>
+<nav class="crumbs" aria-label="Breadcrumb">@foreach (var c in crumbs) { <a href="@c.Href">@c.Text</a><text> › </text> }<span aria-current="page">Delete @what</span></nav>
 <h1>Delete @what of @p.User.Identity.DisplayName</h1>
 <partial name="_Messages" />
 

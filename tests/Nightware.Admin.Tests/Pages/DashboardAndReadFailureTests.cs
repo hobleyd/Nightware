@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 
 using Nightware.Admin.Tests.Support;
 using Nightware.Application.Administration;
@@ -7,7 +8,7 @@ using Nightware.Domain.Kernel;
 
 namespace Nightware.Admin.Tests.Pages;
 
-public sealed class DashboardAndReadFailureTests : IDisposable
+public sealed partial class DashboardAndReadFailureTests : IDisposable
 {
     private readonly ConsoleHost _host = new();
 
@@ -16,6 +17,16 @@ public sealed class DashboardAndReadFailureTests : IDisposable
     private static string DnsUrl => $"/entities/{ConsoleHost.Acme}/dns/acme.example";
 
     public void Dispose() => _host.Dispose();
+
+    /// <summary>The breadcrumb's words, tags stripped and spacing collapsed.</summary>
+    private static string Crumbs(string html) =>
+        WhiteSpace().Replace(Tags().Replace(Regex.Match(html, "<nav class=\"crumbs\"[^>]*>(.*?)</nav>", RegexOptions.Singleline).Groups[1].Value, ""), " ").Trim();
+
+    [GeneratedRegex("<[^>]+>")]
+    private static partial Regex Tags();
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex WhiteSpace();
 
     private async Task<string> GetAsync(string url, string sub = ConsoleHost.GlobalAdmin) =>
         await (await _host.ClientAs(sub).GetAsync(new Uri(url, UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
@@ -34,6 +45,18 @@ public sealed class DashboardAndReadFailureTests : IDisposable
         html.ShouldContain("Connection refused (mail.example:443).");
         html.ShouldContain("Try again");
         html.ShouldNotContain("no records for this domain yet");
+        Crumbs(html).ShouldBe("Entities › Acme Pty › DNS records for acme.example");
+    }
+
+    [Fact]
+    public async Task A_dns_page_whose_entity_cannot_be_read_keeps_a_way_back_to_it()
+    {
+        _host.Entities.GetAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("Keycloak is down."));
+
+        string html = await GetAsync(DnsUrl);
+
+        Crumbs(html).ShouldBe("Entities › Entity › DNS records for acme.example");
+        html.ShouldContain("<a href=\"/entities/e-acme\">Entity</a>");
     }
 
     [Fact]
@@ -219,7 +242,8 @@ public sealed class DashboardAndReadFailureTests : IDisposable
         string html = await GetAsync("/users/u-eve/delete/Mail");
 
         html.ShouldContain("Finish offboarding first");
-        html.ShouldContain("<h1>Delete data of eve</h1>");
+        html.ShouldContain("<h1>Delete mail of eve</h1>");
+        Crumbs(html).ShouldBe("Acme Pty › Users › eve › Delete mail of eve");
         html.ShouldContain("href=\"/users/u-eve\">Go back</a>");
         html.ShouldContain("action=\"/users/u-eve?handler=Offboard\"");
         html.ShouldNotContain("Could not read");
@@ -293,5 +317,16 @@ public sealed class DashboardAndReadFailureTests : IDisposable
         html.ShouldContain("<span class=\"chip missing\">Missing</span>");
         html.ShouldContain("<span class=\"hint\">dan@acme.example</span>");
         html.ShouldNotContain("&lt;dan@acme.example&gt;");
+    }
+
+    [Fact]
+    public async Task The_delete_page_sits_under_the_users_entity_and_says_which_data()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example", enabled: false);
+
+        string html = await GetAsync("/users/u-dan/delete/GroupwareData");
+
+        Crumbs(html).ShouldBe("Acme Pty › Users › dan › Delete files &amp; calendar data");
+        html.ShouldContain("<h1>Delete files &amp; calendar data of dan</h1>");
     }
 }
