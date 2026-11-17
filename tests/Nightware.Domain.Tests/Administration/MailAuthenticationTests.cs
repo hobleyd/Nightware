@@ -86,7 +86,8 @@ public sealed class MailAuthenticationTests
     {
         SpfRecord.Parse(SpfRecord.Default.Value).IsSuccess.ShouldBeTrue();
         DmarcRecord fallback = DmarcRecord.Default(Acme);
-        fallback.Value.ShouldBe("v=DMARC1; p=quarantine; rua=mailto:postmaster@acme.example");
+        fallback.Value.ShouldBe("v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s; rua=mailto:postmaster@acme.example");
+        fallback.Policy.ShouldBe("reject");
         DmarcRecord.Parse(fallback.Value).Value.ShouldBe(fallback);
     }
 
@@ -138,6 +139,27 @@ public sealed class MailAuthenticationTests
             new DnsRecord("acme.example", "TXT", null, SpfRecord.Default.Value),
             new DnsRecord("_dmarc.acme.example", "TXT", null, DmarcRecord.Default(Acme).Value),
         ]);
+    }
+
+    [Fact]
+    public void Missing_spf_names_the_servers_public_address_when_it_is_known()
+    {
+        IReadOnlyList<DnsRecord> mxOnly = [ServerRecords[0]];
+
+        var records = DomainMailPolicy.MailServerDefault.ApplyTo(Acme, mxOnly, [System.Net.IPAddress.Parse("81.2.69.160")]);
+
+        DomainMailPolicy.SpfIn(Acme, records).ShouldBe("v=spf1 ip4:81.2.69.160 -all");
+    }
+
+    [Fact]
+    public void The_spf_fallback_is_needed_only_when_neither_the_server_nor_the_domain_has_one()
+    {
+        IReadOnlyList<DnsRecord> mxOnly = [ServerRecords[0]];
+
+        DomainMailPolicy.MailServerDefault.NeedsSpfFallback(Acme, mxOnly).ShouldBeTrue();
+        DomainMailPolicy.MailServerDefault.NeedsSpfFallback(Acme, ServerRecords).ShouldBeFalse();
+        new DomainMailPolicy(Spf("v=spf1 mx -all"), null).NeedsSpfFallback(Acme, mxOnly).ShouldBeFalse();
+        DomainMailPolicy.MailServerDefault.NeedsSpfFallback(Acme, []).ShouldBeFalse();
     }
 
     [Fact]

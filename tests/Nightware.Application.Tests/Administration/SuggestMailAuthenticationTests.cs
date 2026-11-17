@@ -29,7 +29,7 @@ public sealed class SuggestMailAuthenticationTests
         _hosting.FindZoneAsync(default!, default!, Ct).ReturnsForAnyArgs(OperatorZone);
     }
 
-    private SuggestMailAuthentication Suggest() => new(_bed.Actor, _bed.Entities, new DnsTokenVault(_bed.Entities, new PrefixSealer()), _hosting, _dns, _bed.Options);
+    private SuggestMailAuthentication Suggest() => new(_bed.Actor, _bed.Entities, new PublicAddresses(new DnsTokenVault(_bed.Entities, new PrefixSealer()), _hosting, _dns, _bed.Options));
 
     private void WithCloudflare(params ZoneRecord[] records)
     {

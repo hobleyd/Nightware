@@ -88,6 +88,9 @@ internal sealed class AdminTestBed
 
     public RecordingAuditLog Audit { get; } = new();
 
+    /// <summary>Public DNS; answers nothing unless a test arranges it. Consulted only when <c>Options.PublicHost</c> is set.</summary>
+    public IPublicDns PublicDns { get; } = Substitute.For<IPublicDns>();
+
     public AdministrationOptions Options { get; } = new();
 
     public FakeTimeProvider Time { get; } = new(new DateTimeOffset(2026, 11, 17, 9, 0, 0, TimeSpan.Zero));
@@ -144,6 +147,9 @@ internal sealed class AdminTestBed
     public CredentialIssuer Credentials() => new(Identities, Passwords, Options);
 
     public DomainProvisioning DomainProvisioning() => new(MailDomains);
+
+    /// <summary>The server's public addresses, found through <see cref="PublicDns"/> (no entity's Cloudflare token is readable here).</summary>
+    public PublicAddresses PublicAddresses() => new(new DnsTokenVault(Entities, Substitute.For<ISecretSealer>()), Substitute.For<IDnsHosting>(), PublicDns, Options);
 
     public DeletionGuard DeletionGuard() => new(Actor, UserAccess(), Options, Time);
 

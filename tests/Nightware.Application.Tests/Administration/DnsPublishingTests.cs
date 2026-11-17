@@ -38,7 +38,7 @@ public sealed class DnsPublishingTests
 
     private SetEntityDnsToken SetToken() => new(_bed.Actor, _bed.Entities, _hosting, Vault(), _bed.Audit);
 
-    private PlanDnsPublication Planner() => new(_bed.Actor, new GetEntityDnsRecords(_bed.Actor, _bed.Entities, _bed.MailDomains), _hosting, Vault());
+    private PlanDnsPublication Planner() => new(_bed.Actor, new GetEntityDnsRecords(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.PublicAddresses()), _hosting, Vault());
 
     private PublishDnsRecords Publisher() => new(_bed.Actor, Planner(), _hosting, _bed.Audit);
 

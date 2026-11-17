@@ -21,14 +21,10 @@ public static class SecureMailDefaults
             .. addresses.Where(IsPublic).Distinct().Take(MaxAddresses)
                 .Select(static a => (a.AddressFamily == AddressFamily.InterNetworkV6 ? "ip6:" : "ip4:") + a),
         ];
-        return SpfRecord.Parse(mechanisms.Length == 0 ? "v=spf1 mx -all" : $"v=spf1 {string.Join(' ', mechanisms)} -all").Value;
+        return mechanisms.Length == 0 ? SpfRecord.Default : SpfRecord.Parse($"v=spf1 {string.Join(' ', mechanisms)} -all").Value;
     }
 
-    public static DmarcRecord Dmarc(MailDomain domain)
-    {
-        ArgumentNullException.ThrowIfNull(domain);
-        return DmarcRecord.Parse($"v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s; rua=mailto:postmaster@{domain.Name}").Value;
-    }
+    public static DmarcRecord Dmarc(MailDomain domain) => DmarcRecord.Default(domain);
 
     /// <summary>
     /// Whether mail from <paramref name="address"/> could reach the internet as it stands: not private (RFC 1918),

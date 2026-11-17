@@ -8,9 +8,10 @@ public sealed record DomainDns(Entity Entity, MailDomain Domain, IReadOnlyList<D
 
 /// <summary>
 /// The DNS records one of an entity's domains needs (MX, SPF, DKIM, DMARC, …): the mail server's, with the
-/// entity's own SPF and DMARC records in place of the server's (<see cref="DomainMailPolicy.ApplyTo"/>).
+/// entity's own SPF and DMARC records in place of the server's (<see cref="DomainMailPolicy.ApplyTo"/>). Where neither
+/// the server nor the entity has one, the hardened records go in, SPF naming the server's public addresses.
 /// </summary>
-public sealed class GetEntityDnsRecords(IAdminActor actor, IEntityRegistry entities, IMailDomains domains)
+public sealed class GetEntityDnsRecords(IAdminActor actor, IEntityRegistry entities, IMailDomains domains, PublicAddresses publicAddresses)
 {
     public async Task<Result<DomainDns>> ExecuteAsync(string entityId, string domain, CancellationToken cancellationToken)
     {
@@ -34,6 +35,15 @@ public sealed class GetEntityDnsRecords(IAdminActor actor, IEntityRegistry entit
 
         DomainMailPolicy policy = entity.Value.MailPolicyFor(mailDomain);
         Result<IReadOnlyList<DnsRecord>> records = await domains.GetDnsRecordsAsync(mailDomain, cancellationToken).ConfigureAwait(false);
-        return records.Map(r => new DomainDns(entity.Value, mailDomain, policy.ApplyTo(mailDomain, r), policy));
+        if (!records.IsSuccess)
+        {
+            return records.Error;
+        }
+
+        // Only when the hardened SPF fallback goes in is the server's address worth looking up.
+        IReadOnlyList<System.Net.IPAddress> addresses = policy.NeedsSpfFallback(mailDomain, records.Value)
+            ? (await publicAddresses.FindAsync(entity.Value, cancellationToken).ConfigureAwait(false)).Addresses
+            : [];
+        return new DomainDns(entity.Value, mailDomain, policy.ApplyTo(mailDomain, records.Value, addresses), policy);
     }
 }

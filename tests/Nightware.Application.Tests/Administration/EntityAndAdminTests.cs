@@ -154,7 +154,7 @@ public sealed class EntityAndAdminTests
     {
         DnsRecord mx = new("acme.example.", "MX", 3600, "10 mail.acme.example.");
         _bed.MailDomains.GetDnsRecordsAsync(AdminTestBed.Domain("acme.example"), Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<DnsRecord>>.Success([mx]));
-        var dns = new GetEntityDnsRecords(_bed.Actor, _bed.Entities, _bed.MailDomains);
+        var dns = new GetEntityDnsRecords(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.PublicAddresses());
 
         DomainDns acme = (await dns.ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Value;
         acme.Records[0].ShouldBe(mx);
@@ -174,7 +174,7 @@ public sealed class EntityAndAdminTests
         _bed.MailDomains.GetDnsRecordsAsync(acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<DnsRecord>>.Success(
             [new("acme.example.", "TXT", 3600, "v=spf1 mx -all"), new("_dmarc.acme.example.", "TXT", 3600, "v=DMARC1; p=reject")]));
 
-        DomainDns dns = (await new GetEntityDnsRecords(_bed.Actor, _bed.Entities, _bed.MailDomains).ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Value;
+        DomainDns dns = (await new GetEntityDnsRecords(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.PublicAddresses()).ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Value;
 
         dns.Records.Select(r => r.Value).ShouldBe(["v=spf1 mx -all", "v=DMARC1; p=none"]);
         dns.Policy.Dmarc.ShouldBe(dmarc);
@@ -277,6 +277,32 @@ public sealed class EntityAndAdminTests
 
         (await new ListEntityAdmins(_bed.Actor, _bed.Entities).ExecuteAsync(AdminTestBed.Acme, Ct)).IsSuccess.ShouldBeTrue();
         (await new ListEntityAdmins(_bed.Actor, _bed.Entities).ExecuteAsync(AdminTestBed.Other, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+    }
+
+    [Fact]
+    public async Task Without_an_spf_record_from_the_server_the_hardened_one_names_the_servers_public_address()
+    {
+        _bed.Options.PublicHost = "mail.operator.example";
+        _bed.PublicDns.ResolveAsync("mail.operator.example", Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<System.Net.IPAddress>>.Success([System.Net.IPAddress.Parse("81.2.69.160")]));
+        _bed.MailDomains.GetDnsRecordsAsync(default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<DnsRecord>>.Success([new DnsRecord("acme.example", "MX", 3600, "10 mail.acme.example")]));
+        var dns = new GetEntityDnsRecords(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.PublicAddresses());
+
+        DomainDns found = (await dns.ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Value;
+
+        DomainMailPolicy.SpfIn(AdminTestBed.Domain("acme.example"), found.Records).ShouldBe("v=spf1 ip4:81.2.69.160 -all");
+        DomainMailPolicy.DmarcIn(AdminTestBed.Domain("acme.example"), found.Records).ShouldBe("v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s; rua=mailto:postmaster@acme.example");
+    }
+
+    [Fact]
+    public async Task When_the_server_publishes_spf_no_address_is_looked_up()
+    {
+        _bed.Options.PublicHost = "mail.operator.example";
+        _bed.MailDomains.GetDnsRecordsAsync(default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<DnsRecord>>.Success(
+            [new DnsRecord("acme.example", "MX", 3600, "10 mail.acme.example"), new DnsRecord("acme.example", "TXT", 3600, "v=spf1 mx -all")]));
+
+        (await new GetEntityDnsRecords(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.PublicAddresses()).ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).IsSuccess.ShouldBeTrue();
+
+        await _bed.PublicDns.DidNotReceiveWithAnyArgs().ResolveAsync(default!, Ct);
     }
 
     [Fact]

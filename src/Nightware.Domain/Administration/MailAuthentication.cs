@@ -10,7 +10,10 @@ public sealed record SpfRecord
 {
     private SpfRecord(string value) => Value = value;
 
-    /// <summary>Only the domain's MX hosts may send its mail.</summary>
+    /// <summary>
+    /// Only the domain's MX hosts may send its mail, and everyone else is refused: the strictest SPF possible
+    /// while the server's own address is unknown (<see cref="SecureMailDefaults.Spf"/> names it when known).
+    /// </summary>
     public static SpfRecord Default { get; } = new("v=spf1 mx -all");
 
     public string Value { get; }
@@ -50,11 +53,14 @@ public sealed record DmarcRecord
     /// <summary>What receivers do with mail that fails: <c>none</c>, <c>quarantine</c> or <c>reject</c>.</summary>
     public string Policy { get; }
 
-    /// <summary>Failing mail goes to spam; aggregate reports go to the domain's postmaster.</summary>
+    /// <summary>
+    /// Failing mail is refused, for subdomains too, and both SPF and DKIM must align strictly with the domain;
+    /// aggregate reports go to the domain's postmaster.
+    /// </summary>
     public static DmarcRecord Default(MailDomain domain)
     {
         ArgumentNullException.ThrowIfNull(domain);
-        return new DmarcRecord($"v=DMARC1; p=quarantine; rua=mailto:postmaster@{domain.Name}", "quarantine");
+        return new DmarcRecord($"v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s; rua=mailto:postmaster@{domain.Name}", "reject");
     }
 
     public static Result<DmarcRecord> Parse(string? value)
@@ -126,10 +132,11 @@ public sealed record DomainMailPolicy(SpfRecord? Spf, DmarcRecord? Dmarc)
     /// <summary>
     /// The mail server's records for <paramref name="domain"/> with this policy's SPF and DMARC in place of the
     /// server's own (never beside them: two SPF records at one name fail evaluation). Where the server publishes
-    /// no SPF or DMARC record, <see cref="SpfRecord.Default"/> or <see cref="DmarcRecord.Default"/> is added. An
-    /// empty list stays empty: until the mail server serves the domain there is nothing to publish.
+    /// no SPF or DMARC record and none was chosen, the hardened ones are added: SPF naming only
+    /// <paramref name="serverAddresses"/> (the MX hosts when none are known) and <see cref="DmarcRecord.Default"/>.
+    /// An empty list stays empty: until the mail server serves the domain there is nothing to publish.
     /// </summary>
-    public IReadOnlyList<DnsRecord> ApplyTo(MailDomain domain, IReadOnlyList<DnsRecord> records)
+    public IReadOnlyList<DnsRecord> ApplyTo(MailDomain domain, IReadOnlyList<DnsRecord> records, IEnumerable<System.Net.IPAddress>? serverAddresses = null)
     {
         ArgumentNullException.ThrowIfNull(domain);
         ArgumentNullException.ThrowIfNull(records);
@@ -140,9 +147,20 @@ public sealed record DomainMailPolicy(SpfRecord? Spf, DmarcRecord? Dmarc)
 
         string dmarcName = "_dmarc." + domain.Name;
         List<DnsRecord> result = [.. records];
-        Replace(result, domain.Name, "v=spf1", Spf?.Value ?? (Find(records, domain.Name, "v=spf1") is null ? SpfRecord.Default.Value : null));
+        Replace(result, domain.Name, "v=spf1", Spf?.Value ?? (Find(records, domain.Name, "v=spf1") is null ? SecureMailDefaults.Spf(serverAddresses ?? []).Value : null));
         Replace(result, dmarcName, "v=DMARC1", Dmarc?.Value ?? (Find(records, dmarcName, "v=DMARC1") is null ? DmarcRecord.Default(domain).Value : null));
         return result;
+    }
+
+    /// <summary>
+    /// Whether <see cref="ApplyTo"/> would add the fallback SPF to <paramref name="records"/>, which is when the
+    /// server's addresses are worth looking up.
+    /// </summary>
+    public bool NeedsSpfFallback(MailDomain domain, IReadOnlyList<DnsRecord> records)
+    {
+        ArgumentNullException.ThrowIfNull(domain);
+        ArgumentNullException.ThrowIfNull(records);
+        return Spf is null && records.Count > 0 && Find(records, domain.Name, "v=spf1") is null;
     }
 
     /// <summary>The domain's SPF value in <paramref name="records"/> (as <see cref="ApplyTo"/> returns them), if any.</summary>
