@@ -24,6 +24,12 @@ public static class AdminAuthentication
     /// <summary>The <c>auth_time</c> claim: when the person last proved who they are.</summary>
     public const string AuthTimeClaim = "auth_time";
 
+    /// <summary>
+    /// When the session began, in the ticket's properties. Unlike <c>IssuedUtc</c>, which every sliding refresh
+    /// renews, it survives refreshes, so the absolute lifetime really is absolute.
+    /// </summary>
+    public const string SessionStartedItem = "nightware.session_started";
+
     /// <summary>Set on a challenge that must re-prompt for credentials (<c>max_age=0</c>).</summary>
     public const string ForceReauthenticationItem = "nightware.reauth";
 
@@ -59,7 +65,9 @@ public static class AdminAuthentication
         cookie.Events.OnValidatePrincipal = context =>
         {
             TimeProvider time = context.HttpContext.RequestServices.GetRequiredService<TimeProvider>();
-            if (context.Properties.IssuedUtc is not { } issued || time.GetUtcNow() - issued > admin.AbsoluteLifetime)
+            if (!context.Properties.Items.TryGetValue(SessionStartedItem, out string? started)
+                || !long.TryParse(started, NumberStyles.Integer, CultureInfo.InvariantCulture, out long seconds)
+                || time.GetUtcNow() - DateTimeOffset.FromUnixTimeSeconds(seconds) > admin.AbsoluteLifetime)
             {
                 context.RejectPrincipal();
                 return context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -120,12 +128,17 @@ public static class AdminAuthentication
                 return Task.CompletedTask;
             }
 
+            TimeProvider time = context.HttpContext.RequestServices.GetRequiredService<TimeProvider>();
+            string now = time.GetUtcNow().ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
             if (context.Principal?.Identity is ClaimsIdentity identity && identity.FindFirst(AuthTimeClaim) is null)
             {
                 // Without auth_time the sign-in itself is the best evidence of when the person authenticated.
-                TimeProvider time = context.HttpContext.RequestServices.GetRequiredService<TimeProvider>();
-                identity.AddClaim(new Claim(AuthTimeClaim, time.GetUtcNow().ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64));
+                identity.AddClaim(new Claim(AuthTimeClaim, now, ClaimValueTypes.Integer64));
             }
+
+            // Each credential sign-in (re-authentication included) starts the session clock; refreshes never do.
+            context.Properties ??= new AuthenticationProperties();
+            context.Properties.Items.TryAdd(SessionStartedItem, now);
 
             return Task.CompletedTask;
         };

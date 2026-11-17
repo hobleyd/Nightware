@@ -71,7 +71,9 @@ public sealed class AdminAuthenticationTests
         AdminAuthentication.ConfigureCookie(cookie, Options());
         var time = new FakeTimeProvider(new DateTimeOffset(2026, 11, 17, 18, 0, 0, TimeSpan.Zero));
         var http = new DefaultHttpContext { RequestServices = Services(time) };
-        var properties = new AuthenticationProperties { IssuedUtc = time.GetUtcNow().AddHours(-hoursOld) };
+        // IssuedUtc is fresh (a sliding refresh renews it); only the session's start stamp is old.
+        var properties = new AuthenticationProperties { IssuedUtc = time.GetUtcNow() };
+        properties.Items[AdminAuthentication.SessionStartedItem] = time.GetUtcNow().AddHours(-hoursOld).ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
         var context = new CookieValidatePrincipalContext(http, new AuthenticationScheme("Cookies", null, typeof(CookieAuthenticationHandler)), cookie, new AuthenticationTicket(new ClaimsPrincipal(new ClaimsIdentity("x")), properties, "Cookies"));
 
         await cookie.Events.OnValidatePrincipal(context);
@@ -93,6 +95,7 @@ public sealed class AdminAuthenticationTests
         await oidc.Events.OnTokenValidated(strong);
         strong.Result.ShouldBeNull();
         strong.Principal!.FindFirst(AdminAuthentication.AuthTimeClaim).ShouldNotBeNull();
+        strong.Properties!.Items.ShouldContainKey(AdminAuthentication.SessionStartedItem);
     }
 
     [Fact]
