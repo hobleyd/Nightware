@@ -1,0 +1,490 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-17T08:40:00+00:00",
+  "title": "Design System: Nightware console",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Switchboard Blue",
+        "canonical": "#2f5bd3",
+        "oklch": "oklch(51.4% 0.192 265)",
+        "tonalRamp": [
+          "oklch(15% 0.094 265)",
+          "oklch(26% 0.125 265)",
+          "oklch(38% 0.155 265)",
+          "oklch(49% 0.186 265)",
+          "oklch(61% 0.167 265)",
+          "oklch(72% 0.136 265)",
+          "oklch(84% 0.105 265)",
+          "oklch(95% 0.075 265)"
+        ]
+      },
+      "ok": {
+        "role": "status",
+        "displayName": "Line Green",
+        "canonical": "#1f7a3f",
+        "oklch": "oklch(51.3% 0.124 151)",
+        "tonalRamp": [
+          "oklch(15% 0.061 151)",
+          "oklch(26% 0.081 151)",
+          "oklch(38% 0.101 151)",
+          "oklch(49% 0.121 151)",
+          "oklch(61% 0.108 151)",
+          "oklch(72% 0.088 151)",
+          "oklch(84% 0.068 151)",
+          "oklch(95% 0.048 151)"
+        ]
+      },
+      "warn": {
+        "role": "status",
+        "displayName": "Signal Amber",
+        "canonical": "#9a5b00",
+        "oklch": "oklch(53.1% 0.119 65)",
+        "tonalRamp": [
+          "oklch(15% 0.056 65)",
+          "oklch(26% 0.075 65)",
+          "oklch(38% 0.094 65)",
+          "oklch(49% 0.113 65)",
+          "oklch(61% 0.106 65)",
+          "oklch(72% 0.087 65)",
+          "oklch(84% 0.068 65)",
+          "oklch(95% 0.049 65)"
+        ]
+      },
+      "bad": {
+        "role": "status",
+        "displayName": "Fault Red",
+        "canonical": "#b3261e",
+        "oklch": "oklch(50.1% 0.178 29)",
+        "tonalRamp": [
+          "oklch(15% 0.091 29)",
+          "oklch(26% 0.119 29)",
+          "oklch(38% 0.148 29)",
+          "oklch(49% 0.176 29)",
+          "oklch(61% 0.152 29)",
+          "oklch(72% 0.123 29)",
+          "oklch(84% 0.095 29)",
+          "oklch(95% 0.066 29)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#1d1f23",
+        "oklch": "oklch(23.9% 0.008 264)",
+        "tonalRamp": [
+          "oklch(15% 0.007 264)",
+          "oklch(26% 0.008 264)",
+          "oklch(38% 0.007 264)",
+          "oklch(49% 0.005 264)",
+          "oklch(61% 0.004 264)",
+          "oklch(72% 0.003 264)",
+          "oklch(84% 0.001 264)",
+          "oklch(95% 0.001 264)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Slate",
+        "canonical": "#5d6470",
+        "oklch": "oklch(50.1% 0.021 261)",
+        "tonalRamp": [
+          "oklch(15% 0.011 261)",
+          "oklch(26% 0.014 261)",
+          "oklch(38% 0.017 261)",
+          "oklch(49% 0.021 261)",
+          "oklch(61% 0.018 261)",
+          "oklch(72% 0.015 261)",
+          "oklch(84% 0.011 261)",
+          "oklch(95% 0.008 261)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#dcdfe4",
+        "oklch": "oklch(90.3% 0.008 261)",
+        "tonalRamp": [
+          "oklch(15% 0.001 261)",
+          "oklch(26% 0.001 261)",
+          "oklch(38% 0.002 261)",
+          "oklch(49% 0.003 261)",
+          "oklch(61% 0.004 261)",
+          "oklch(72% 0.006 261)",
+          "oklch(84% 0.007 261)",
+          "oklch(95% 0.007 261)"
+        ]
+      },
+      "bg": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#f7f7f5",
+        "oklch": "oklch(97.6% 0.003 106)",
+        "tonalRamp": [
+          "oklch(15% 0.000 106)",
+          "oklch(26% 0.000 106)",
+          "oklch(38% 0.000 106)",
+          "oklch(49% 0.001 106)",
+          "oklch(61% 0.001 106)",
+          "oklch(72% 0.002 106)",
+          "oklch(84% 0.002 106)",
+          "oklch(95% 0.003 106)"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Panel White",
+        "canonical": "#ffffff",
+        "oklch": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "chip-bg": {
+        "role": "neutral",
+        "displayName": "Chip Grey",
+        "canonical": "#eef0f3",
+        "oklch": "oklch(95.4% 0.005 258)",
+        "tonalRamp": [
+          "oklch(15% 0.001 258)",
+          "oklch(26% 0.001 258)",
+          "oklch(38% 0.001 258)",
+          "oklch(49% 0.002 258)",
+          "oklch(61% 0.002 258)",
+          "oklch(72% 0.003 258)",
+          "oklch(84% 0.004 258)",
+          "oklch(95% 0.005 258)"
+        ]
+      },
+      "accent-dark": {
+        "role": "primary",
+        "displayName": "Switchboard Blue (dark)",
+        "canonical": "#7ea2ff",
+        "oklch": "oklch(72.5% 0.142 267)",
+        "tonalRamp": [
+          "oklch(15% 0.028 267)",
+          "oklch(26% 0.050 267)",
+          "oklch(38% 0.073 267)",
+          "oklch(49% 0.095 267)",
+          "oklch(61% 0.118 267)",
+          "oklch(72% 0.141 267)",
+          "oklch(84% 0.120 267)",
+          "oklch(95% 0.097 267)"
+        ]
+      },
+      "ok-dark": {
+        "role": "status",
+        "displayName": "Line Green (dark)",
+        "canonical": "#5fcf86",
+        "oklch": "oklch(77.1% 0.147 153)",
+        "tonalRamp": [
+          "oklch(15% 0.022 153)",
+          "oklch(26% 0.043 153)",
+          "oklch(38% 0.066 153)",
+          "oklch(49% 0.090 153)",
+          "oklch(61% 0.114 153)",
+          "oklch(72% 0.137 153)",
+          "oklch(84% 0.134 153)",
+          "oklch(95% 0.110 153)"
+        ]
+      },
+      "warn-dark": {
+        "role": "status",
+        "displayName": "Signal Amber (dark)",
+        "canonical": "#e6a74b",
+        "oklch": "oklch(77.1% 0.130 74)",
+        "tonalRamp": [
+          "oklch(15% 0.020 74)",
+          "oklch(26% 0.038 74)",
+          "oklch(38% 0.059 74)",
+          "oklch(49% 0.080 74)",
+          "oklch(61% 0.100 74)",
+          "oklch(72% 0.121 74)",
+          "oklch(84% 0.119 74)",
+          "oklch(95% 0.098 74)"
+        ]
+      },
+      "bad-dark": {
+        "role": "status",
+        "displayName": "Fault Red (dark)",
+        "canonical": "#ff7b72",
+        "oklch": "oklch(73.4% 0.163 26)",
+        "tonalRamp": [
+          "oklch(15% 0.030 26)",
+          "oklch(26% 0.056 26)",
+          "oklch(38% 0.082 26)",
+          "oklch(49% 0.108 26)",
+          "oklch(61% 0.134 26)",
+          "oklch(72% 0.160 26)",
+          "oklch(84% 0.140 26)",
+          "oklch(95% 0.114 26)"
+        ]
+      },
+      "text-dark": {
+        "role": "neutral",
+        "displayName": "Ink (dark)",
+        "canonical": "#e6e8eb",
+        "oklch": "oklch(93.0% 0.005 258)",
+        "tonalRamp": [
+          "oklch(15% 0.001 258)",
+          "oklch(26% 0.001 258)",
+          "oklch(38% 0.001 258)",
+          "oklch(49% 0.002 258)",
+          "oklch(61% 0.003 258)",
+          "oklch(72% 0.003 258)",
+          "oklch(84% 0.004 258)",
+          "oklch(95% 0.004 258)"
+        ]
+      },
+      "muted-dark": {
+        "role": "neutral",
+        "displayName": "Slate (dark)",
+        "canonical": "#9aa1ab",
+        "oklch": "oklch(70.7% 0.017 257)",
+        "tonalRamp": [
+          "oklch(15% 0.004 257)",
+          "oklch(26% 0.006 257)",
+          "oklch(38% 0.009 257)",
+          "oklch(49% 0.012 257)",
+          "oklch(61% 0.014 257)",
+          "oklch(72% 0.016 257)",
+          "oklch(84% 0.014 257)",
+          "oklch(95% 0.011 257)"
+        ]
+      },
+      "line-dark": {
+        "role": "neutral",
+        "displayName": "Hairline (dark)",
+        "canonical": "#33373d",
+        "oklch": "oklch(33.5% 0.012 258)",
+        "tonalRamp": [
+          "oklch(15% 0.009 258)",
+          "oklch(26% 0.011 258)",
+          "oklch(38% 0.011 258)",
+          "oklch(49% 0.009 258)",
+          "oklch(61% 0.007 258)",
+          "oklch(72% 0.005 258)",
+          "oklch(84% 0.004 258)",
+          "oklch(95% 0.002 258)"
+        ]
+      },
+      "bg-dark": {
+        "role": "neutral",
+        "displayName": "Paper (dark)",
+        "canonical": "#15171a",
+        "oklch": "oklch(20.4% 0.007 258)",
+        "tonalRamp": [
+          "oklch(15% 0.006 258)",
+          "oklch(26% 0.006 258)",
+          "oklch(38% 0.005 258)",
+          "oklch(49% 0.004 258)",
+          "oklch(61% 0.003 258)",
+          "oklch(72% 0.002 258)",
+          "oklch(84% 0.001 258)",
+          "oklch(95% 0.001 258)"
+        ]
+      },
+      "panel-dark": {
+        "role": "neutral",
+        "displayName": "Panel White (dark)",
+        "canonical": "#1d2024",
+        "oklch": "oklch(24.2% 0.009 256)",
+        "tonalRamp": [
+          "oklch(15% 0.008 256)",
+          "oklch(26% 0.009 256)",
+          "oklch(38% 0.007 256)",
+          "oklch(49% 0.006 256)",
+          "oklch(61% 0.004 256)",
+          "oklch(72% 0.003 256)",
+          "oklch(84% 0.001 256)",
+          "oklch(95% 0.001 256)"
+        ]
+      },
+      "chip-bg-dark": {
+        "role": "neutral",
+        "displayName": "Chip Grey (dark)",
+        "canonical": "#2a2e34",
+        "oklch": "oklch(30.0% 0.012 258)",
+        "tonalRamp": [
+          "oklch(15% 0.010 258)",
+          "oklch(26% 0.012 258)",
+          "oklch(38% 0.011 258)",
+          "oklch(49% 0.009 258)",
+          "oklch(61% 0.007 258)",
+          "oklch(72% 0.005 258)",
+          "oklch(84% 0.003 258)",
+          "oklch(95% 0.002 258)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "One h1 per page naming the subject."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "h2 per panel; numbered in multi-step forms."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Everything else."
+      },
+      "hint": {
+        "displayName": "Hint",
+        "purpose": "One-line explanations in Slate."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "State chips only."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Copyable values: usernames, DNS, one-time passwords."
+      }
+    },
+    "shadows": [],
+    "motion": [],
+    "breakpoints": [
+      {
+        "name": "stack",
+        "value": "640px",
+        "purpose": "Below this, tables collapse to stacked records."
+      }
+    ],
+    "themes": {
+      "mechanism": "prefers-color-scheme",
+      "darkTokenSuffix": "-dark"
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The step that commits: Create and link, Reinstate.",
+      "html": "<button class=\"ds-btn-primary\">Create and link</button>",
+      "css": ".ds-btn-primary { display:inline-block; padding:6px 14px; border-radius:6px; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; cursor:pointer; text-decoration:none; border:1px solid var(--accent, #2f5bd3); background:var(--accent, #2f5bd3); color:#fff; } .ds-btn-primary:focus-visible { outline:2px solid var(--accent, #2f5bd3); outline-offset:2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Safe or preparatory actions: Check what will happen, Repair, Save.",
+      "html": "<button class=\"ds-btn-secondary\">Check what will happen</button>",
+      "css": ".ds-btn-secondary { display:inline-block; padding:6px 14px; border-radius:6px; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; cursor:pointer; text-decoration:none; border:1px solid var(--accent, #2f5bd3); background:transparent; color:var(--accent, #2f5bd3); } .ds-btn-secondary:focus-visible { outline:2px solid var(--accent, #2f5bd3); outline-offset:2px; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destructive actions: Offboard, Delete mail…",
+      "html": "<button class=\"ds-btn-danger\">Offboard</button>",
+      "css": ".ds-btn-danger { display:inline-block; padding:6px 14px; border-radius:6px; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; cursor:pointer; text-decoration:none; border:1px solid var(--bad, #b3261e); background:var(--bad, #b3261e); color:#fff; } .ds-btn-danger:focus-visible { outline:2px solid var(--bad, #b3261e); outline-offset:2px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Full-width field wrapped by its label.",
+      "html": "<label class=\"ds-label\">Address <input class=\"ds-input\" placeholder=\"carol.jones\"></label>",
+      "css": ".ds-label { display:block; margin:8px 0; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; color:var(--text, #1d1f23); } .ds-input { display:block; width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid var(--line, #dcdfe4); border-radius:6px; background:var(--panel, #ffffff); color:var(--text, #1d1f23); font:inherit; } .ds-input:focus-visible { outline:2px solid var(--accent, #2f5bd3); outline-offset:1px; }"
+    },
+    {
+      "name": "State Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Per-backend link state; colour of the text carries the state.",
+      "html": "<ul class=\"ds-chips\"><li class=\"ds-chip ds-linked\">Keycloak: Linked</li><li class=\"ds-chip ds-pending\">Mail: Pending</li><li class=\"ds-chip ds-conflict\">Nextcloud: Conflict</li><li class=\"ds-chip ds-disabled\">Mail: Disabled</li></ul>",
+      "css": ".ds-chips { list-style:none; display:flex; flex-wrap:wrap; gap:6px; margin:0; padding:0; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; } .ds-chip { display:inline-block; padding:1px 8px; border-radius:999px; background:var(--chip-bg, #eef0f3); font-size:0.85em; white-space:nowrap; } .ds-linked { color:var(--ok, #1f7a3f); } .ds-pending { color:var(--warn, #9a5b00); } .ds-conflict { color:var(--bad, #b3261e); font-weight:600; } .ds-disabled { color:var(--muted, #5d6470); }"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "One topic per panel on a detail page.",
+      "html": "<section class=\"ds-panel\"><h2>Systems</h2><p class=\"ds-hint\">Repair creates what is missing; never changes a conflicting account.</p></section>",
+      "css": ".ds-panel { background:var(--panel, #ffffff); border:1px solid var(--line, #dcdfe4); border-radius:8px; padding:16px; color:var(--text, #1d1f23); font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; } .ds-panel h2 { font-size:22.5px; margin:0 0 8px; } .ds-hint { color:var(--muted, #5d6470); font-size:0.9em; margin:0; }"
+    },
+    {
+      "name": "Header Navigation",
+      "kind": "nav",
+      "description": "Brand, role-gated links, identity and sign-out.",
+      "html": "<header class=\"ds-top\"><a class=\"ds-brand\" href=\"#\">Nightware console</a><nav class=\"ds-nav\"><a href=\"#\">Entities</a><a href=\"#\">Global admins</a></nav><span class=\"ds-who\">admin@example.com · global admin <button class=\"ds-link\">Sign out</button></span></header>",
+      "css": ".ds-top { display:flex; flex-wrap:wrap; gap:16px; align-items:center; padding:10px 16px; background:var(--panel, #ffffff); border-bottom:1px solid var(--line, #dcdfe4); font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; } .ds-brand { font-weight:600; text-decoration:none; color:var(--text, #1d1f23); } .ds-nav { display:flex; gap:14px; } .ds-nav a { color:var(--accent, #2f5bd3); } .ds-who { margin-left:auto; color:var(--muted, #5d6470); display:flex; gap:10px; align-items:center; } .ds-link { background:none; border:none; padding:0; color:var(--accent, #2f5bd3); font:inherit; cursor:pointer; } .ds-nav a:focus-visible, .ds-link:focus-visible { outline:2px solid var(--accent, #2f5bd3); outline-offset:2px; }"
+    },
+    {
+      "name": "Secret Box",
+      "kind": "custom",
+      "description": "One-time credential, shown once.",
+      "html": "<div class=\"ds-secret\"><p><strong>Temporary password — shown once.</strong> They must change it at their next sign-in.</p><p><code>q7Fh-2mLx-9Rtz</code></p></div>",
+      "css": ".ds-secret { border:2px dashed var(--warn, #9a5b00); padding:12px 16px; border-radius:8px; background:var(--panel, #ffffff); color:var(--text, #1d1f23); font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; } .ds-secret code { font-family:ui-monospace, Menlo, Consolas, monospace; font-size:1.3em; user-select:all; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Switchboard",
+    "overview": "**Creative North Star: \"The Switchboard\"**\n\nThe console is a switchboard: one quiet panel where every line from a person to every backend is visible, and the state of each line is plain. Nothing on the board is decorative. The surface stays neutral so that the few coloured marks (a green link, an amber pending, a red conflict) are the first things the eye finds. An admin who has not visited in months should be able to read the board cold.\n\nDensity is moderate and the structure is document-like. Pages are a single centred column of headings, flat panels, tables and forms in reading order, server-rendered with no script. Buttons, inputs, checkboxes and radios are the browser's own, lightly styled, so they behave exactly as the platform expects. The theme follows the operating system: every colour has a light value and a dark value, and the dark theme is a full counterpart, not an inversion.\n\nThe system is **restrained and exact**. Restraint is the default; exactness lives in the state colours, the confirmation copy and the one-time secret box.",
+    "keyCharacteristics": [
+      "Flat, shadow-free surfaces separated by 1px hairlines",
+      "System UI type at 15px, browser-default heading scale",
+      "One accent for actions and links; three state colours for meaning only",
+      "Automatic light and dark themes from `prefers-color-scheme`",
+      "Tables become stacked records below 640px",
+      "No script, no icons, no imagery"
+    ],
+    "rules": [
+      {
+        "name": "The Signal-Only Rule",
+        "body": "Green, amber and red appear only where they report a state or warn about a consequence. They are never decoration, section colour or emphasis.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Accent Rule",
+        "body": "Switchboard Blue is the only colour that means \"interactive\". A second accent dilutes it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Paired Theme Rule",
+        "body": "A new colour is not finished until it has its `-dark` counterpart defined in the same `prefers-color-scheme` block.",
+        "section": "colors"
+      },
+      {
+        "name": "The Plain Words Rule",
+        "body": "Hierarchy comes from the heading scale and the copy, not from extra weights, uppercase labels or letter-spacing. The system has two weights, regular and bold.",
+        "section": "typography"
+      },
+      {
+        "name": "The Reading-Order Rule",
+        "body": "A page reads top to bottom in the order the admin acts: what this is, its state, what you can do, and what is destructive (last).",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Board Rule",
+        "body": "Nothing floats. If something needs attention, it earns it through state colour or position, never a shadow or overlay.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** define every new colour twice: in `:root` and in the `prefers-color-scheme: dark` block.",
+      "**Do** report state with the chip vocabulary (linked, missing, pending, conflict, error, disabled). Don't invent a new indicator.",
+      "**Do** put destructive actions last on the page, in a panel with a red border, behind a confirming checkbox or retyped value.",
+      "**Do** set copyable values in mono and make them easy to select.",
+      "**Do** keep tables usable below 640px by letting them collapse into stacked records."
+    ],
+    "donts": [
+      "**Don't** add shadows, gradients, overlays or modals. The board is flat and there is no script.",
+      "**Don't** use green, amber or red for anything that is not a state or a consequence.",
+      "**Don't** add a second accent colour.",
+      "**Don't** spread the 4px leading-stripe callout to new components; it is under review.",
+      "**Don't** treat today's neutral grey and generic blue as the NightMail family identity. PRODUCT.md commits the console to the NightMail family (name and the `../nightmail/assets/logo.png` icon), and that link is **not yet expressed visually**. Close the gap deliberately, for example through `colorize` or `polish`. Don't drift into it piecemeal."
+    ]
+  }
+}
