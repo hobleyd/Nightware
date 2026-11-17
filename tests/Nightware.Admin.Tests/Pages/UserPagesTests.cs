@@ -180,6 +180,18 @@ public sealed class UserPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task The_dashboard_says_what_needs_attention_or_that_nothing_does()
+    {
+        HttpClient client = _host.ClientAs(ConsoleHost.GlobalAdmin);
+        (await (await client.GetAsync(new Uri("/", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct)).ShouldContain("Nothing needs you.");
+
+        _host.Entities.ListMembersAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([new IdentityAccount("u-dan", "dan", "dan@acme.example", true)]));
+        string html = await (await client.GetAsync(new Uri("/", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+        html.ShouldContain("Needs repair");
+        html.ShouldContain("Mail: Missing");
+    }
+
+    [Fact]
     public async Task The_offboard_box_is_required_in_the_form()
     {
         _host.AddUser("u-dan", "dan", "dan@acme.example");
