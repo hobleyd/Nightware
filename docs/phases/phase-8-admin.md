@@ -1,5 +1,12 @@
 # Phase 8 — Admin console (entities, users, downstream linking)
 
+> **Status (2026-11-17): implemented.** Where the build differed from this plan
+> (Stalwart API key instead of a password, extra Keycloak roles, off-limits
+> accounts, offboarding that blocks mail sign-in, token handling) is recorded in
+> ADR 0002 "Implementation notes". Not done from this plan: `smoke.sh` checks and
+> the `Nightware.Integration.Tests` suites for the console; the live walk-through
+> scripts in `deploy/scripts/console-e2e/` cover the same ground by hand.
+
 **Goal:** a global or entity administrator signs in once (OIDC + MFA) at
 `https://${PUBLIC_HOST}/console/`, manages entities (organisations owning mail
 domains) and their users, and the console links accounts that already exist in

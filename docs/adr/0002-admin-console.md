@@ -466,8 +466,51 @@ Where the build refined the decisions above:
 - **MFA switch.** `ADMIN_REQUIRED_ACR` (default `mfa`) feeds
   `Admin:AcceptedAcrValues`; an empty value turns the requirement off and is
   refused in Production.
-- **Stalwart principal (D8)** login is overridable as a whole
-  (`STALWART_MANAGEMENT_LOGIN`) for the recovery-admin fallback.
+- **Stalwart principal (D8), verified live: an API key, not a password.**
+  Stalwart refuses credentials on internal accounts while Keycloak is the
+  directory ("Cannot set credentials for accounts in an external directory").
+  `stalwart/configure.sh` creates `nightware-admin@MAIL_DOMAIN` with a custom
+  role extending the built-in `User` role (which carries `authenticate`), mints
+  it an API key usable only from the console's address, records the key and its
+  id in `.env`, and on re-minting destroys the account's other keys. The
+  recovery-admin fallback (`STALWART_MANAGEMENT_LOGIN`/`_PASSWORD`) remains.
+- **Keycloak service-account roles (D8)** also include `query-clients` (to find
+  `realm-management` for the administrator check, with the client id taken from
+  the service account's own role mappings because `query-clients` alone lists
+  nothing) and the read-only `view-realm` (`/roles/{name}` and its users answer
+  403 without it). `view-clients` is never granted: it would expose every
+  client's secret.
+- **Off-limits accounts (D6).** Nobody manages through the console a Keycloak
+  administrator or service account (any effective `realm-management` role), a
+  privileged Stalwart account (an `Admin`/`Custom` role or permissions of its
+  own; fails closed), or a Nextcloud administrator or sub-administrator. They are
+  never linked, reset, offboarded or deleted. Reserved local parts
+  (`nightware-admin`, `noreply`, `postmaster`, …) are never assigned, and an
+  alias can't be another Keycloak user's address.
+- **Offboarding (D10)** also blocks every sign-in to the mailbox: app passwords
+  and API keys a user made in Stalwart outlive the Keycloak account, so the
+  console merges away the account's `authenticate` permission (delivery is a
+  separate permission and continues; verified). Reinstating, repair and
+  re-linking restore it. An offboarded administrator loses the console within
+  the one-minute scope cache, and nobody reinstates themselves. The wizard
+  refuses an offboarded user ("reinstate instead") and never resets an existing
+  person's password.
+- **Tokens (D7).** `SaveTokens` stays off; only the ID token is kept, in the
+  encrypted cookie, as the `id_token_hint` Keycloak needs at sign-out. `acr` and
+  `auth_time` are kept in the session (ASP.NET deletes them by default). A token
+  without `auth_time` is refused, and a forced re-authentication must report an
+  `auth_time` at or after the console's request (Keycloak does; verified).
+- **NightMail sign-in unchanged.** Turning Organizations on activates the
+  identity-first step of Keycloak's browser flow (username, then password on a
+  second page); `configure-console.sh` disables that step in the realm's bound
+  browser flow. The console's own step-up flow is bound to its client only.
+- **Verified end to end** on an isolated stack (Keycloak 26.8.2, Stalwart 1.1.0,
+  Nextcloud 35): MFA sign-in, entity and domain creation (DNS records shown),
+  linking existing users, creating a user who then signs in to NightMail and
+  reads mail through the façade (one Stalwart account), aliases, offboarding,
+  reinstating (with a recreated mailbox), deleting mail and Nextcloud data after
+  a forced re-authentication, entity admins confined to their entity, global
+  admin grants, sign-out. Scripts: `deploy/scripts/console-e2e/`.
 
 ## Open questions
 
