@@ -11,6 +11,7 @@ internal_tls && log "Exporting Caddy root CA -> .certs/caddy-root.crt"
 export_ca
 
 "$DEPLOY_DIR/keycloak/configure.sh"
+"$DEPLOY_DIR/keycloak/configure-console.sh"
 "$DEPLOY_DIR/stalwart/configure.sh"
 "$DEPLOY_DIR/nextcloud/configure.sh"
 

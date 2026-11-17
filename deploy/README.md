@@ -13,6 +13,7 @@ backend:
 | `/cloud/` | Nextcloud: CalDAV/CardDAV/WebDAV/OCS (+ Postgres, Redis, cron) | `nextcloud:35.0.3-apache`, `redis:8.6.8-alpine` |
 | `/office/` | Collabora Online (Nextcloud Office) | `collabora/code:26.04.5.2.1` |
 | `/graph/` and `/.well-known/nightware` | Nightware API (`api` profile) | built from `src/Nightware.Api/Dockerfile` |
+| `/console/` | Nightware admin console (`api` profile) | built from `src/Nightware.Admin/Dockerfile` |
 | (all of the above) | Caddy reverse proxy, TLS | `caddy:2.11.9-alpine` |
 
 - `PUBLIC_HOST` defaults to `nightware.localhost`. Browsers and curl resolve
@@ -254,6 +255,57 @@ Lifetime is 15 minutes (`accessTokenLifespan` 900). Refresh with
   `attributes` (every value is an array of strings), and `PUT` the whole
   representation back. `zoneinfo` and `locale` also appear as token claims
   after the next refresh.
+
+## Admin console
+
+`https://${PUBLIC_HOST}/console/` (the `api` profile, service `nightware-admin`)
+manages **entities** (organisations owning mail domains), their **users** and
+those users' accounts in Keycloak, Stalwart and Nextcloud, so nobody has to sign
+in to the three backends to set someone up. Design: `docs/adr/0002-admin-console.md`.
+
+```bash
+./scripts/init-env.sh                       # generates the console's three secrets
+./keycloak/configure-console.sh             # client, roles, MFA flow, default entity (bootstrap.sh runs it)
+./stalwart/configure.sh && ./nextcloud/configure.sh   # the console's own backend accounts
+docker compose --profile api up -d --build nightware-admin
+```
+
+- **Who can sign in.** Global administrators (realm role
+  `nightware-global-admin`; the first ones from `ADMIN_BOOTSTRAP_USERS`, alice
+  on a seeded dev stack) and entity administrators (members of an entity's
+  `admins` organization group). Sign-in needs an authenticator app (OTP); the
+  first sign-in asks to set one up. `ADMIN_REQUIRED_ACR=` (empty) turns that off
+  on a loopback dev stack only; Production refuses to start without it.
+- **Linking, not recreating.** The new-user wizard looks each person up by
+  their keys first (Keycloak e-mail and username, the Stalwart address, the
+  Nextcloud uid), shows what will be **created** and what **linked**, and stops
+  on a **conflict** (an account with the key that disagrees) instead of merging.
+  Existing users with an `@MAIL_DOMAIN` address are already members of the
+  default entity (`NIGHTWARE_DEFAULT_ENTITY_NAME`); **Repair** on a user creates
+  only what is missing.
+- **First password.** A generated one-time password shown once (changed at
+  first sign-in), or Keycloak's set-password e-mail to the new address (the realm
+  sends through Stalwart when it has no SMTP of its own).
+- **Offboarding** disables sign-in and the Nextcloud account and keeps all
+  data. Deleting mail or Nextcloud data is a separate action for a disabled user,
+  global administrators only (`ADMIN_ENTITY_ADMINS_MAY_DELETE_DATA=true` extends
+  it to entity admins), after a fresh MFA sign-in and retyping the address.
+- **New domains.** Adding a domain to an entity creates it in Stalwart with DKIM
+  keys; the entity's *DNS records* page lists the MX, SPF, DKIM and DMARC
+  records to publish.
+- **Its credentials** are its own: Keycloak client `nightware-admin`
+  (`NIGHTWARE_ADMIN_CLIENT_SECRET`), Stalwart account `nightware-admin@MAIL_DOMAIN`
+  with a custom role (`STALWART_MANAGEMENT_PASSWORD`), Nextcloud local admin
+  `nightware-admin` (`NEXTCLOUD_PROVISIONING_PASSWORD`).
+- **Not yet verified on a live stack** (phase 8 step 0): that Stalwart lets an
+  internal password account use the management API while Keycloak is the
+  default directory (`stalwart/configure.sh` checks and prints the fallback:
+  `STALWART_MANAGEMENT_LOGIN=admin` with the recovery admin's password, a
+  full-access credential); the step-up flow and organization role names that
+  `keycloak/configure-console.sh` creates (it warns on each failure; the console
+  then refuses sign-in rather than skip MFA); alias replacement in Stalwart.
+- **Reach.** Caddy admits `ADMIN_ALLOWED_CIDRS` (default anywhere). Narrow it to
+  a management network or VPN if you have one.
 
 ## Backend facts for adapter developers
 
