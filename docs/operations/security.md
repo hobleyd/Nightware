@@ -146,12 +146,22 @@ credentials with it.
   token. A generated temporary password appears once, on a no-store response,
   and is never logged.
 - **Backend credentials** are the console's own and least-privilege where the
-  backend allows it: Keycloak service account of `nightware-admin`
-  (`manage-users`, organizations), a Stalwart account with a custom role (no
-  impersonation, no domain deletion), and a Nextcloud local administrator
+  backend allows it: the Keycloak service account of `nightware-admin`
+  (`manage-users`, organizations, `query-clients`, read-only `view-realm`; never
+  `view-clients`), a Stalwart account with a custom role and an API key usable
+  only from the console's address, and a Nextcloud local administrator
   (Nextcloud has no narrower role that can create users).
+- **Off-limits accounts.** Keycloak administrators and service accounts,
+  privileged Stalwart accounts and Nextcloud administrators are never linked,
+  reset, offboarded or deleted through the console; reserved system addresses are
+  never assigned; an alias can't be another person's sign-in address.
+- **Offboarding** blocks every sign-in to the mailbox as well (Stalwart app
+  passwords and API keys outlive the Keycloak account otherwise), and an
+  offboarded administrator loses the console within a minute.
 - **Exposure.** Caddy admits `ADMIN_ALLOWED_CIDRS` (default: anywhere). Narrow
-  it to a management network or VPN where you have one.
+  it to a management network or VPN where you have one. The console shares an
+  origin with Nextcloud, Stalwart's UI and Keycloak; an XSS in one of them could
+  act in the console (`docs/known-issues.md`, fix: a host of its own).
 - **Audit.** Every action logs one `admin.audit` event naming the human actor;
   Keycloak's admin events record the console's service account for Keycloak
   writes.

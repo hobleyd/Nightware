@@ -264,48 +264,70 @@ those users' accounts in Keycloak, Stalwart and Nextcloud, so nobody has to sign
 in to the three backends to set someone up. Design: `docs/adr/0002-admin-console.md`.
 
 ```bash
-./scripts/init-env.sh                       # generates the console's three secrets
+./scripts/init-env.sh                       # the console's Keycloak client secret and Nextcloud password
 ./keycloak/configure-console.sh             # client, roles, MFA flow, default entity (bootstrap.sh runs it)
-./stalwart/configure.sh && ./nextcloud/configure.sh   # the console's own backend accounts
+./stalwart/configure.sh                     # the console's Stalwart account and its API key (-> .env)
+./nextcloud/configure.sh                    # the console's Nextcloud account
 docker compose --profile api up -d --build nightware-admin
 ```
+
+All three scripts are idempotent and were run end to end against an isolated
+stack (Keycloak 26.8.2, Stalwart 1.1.0, Nextcloud 35); they are safe to re-run
+on a live realm (nothing needs a re-import or fresh volumes). Read their
+output: anything they cannot do is printed as a WARNING.
 
 - **Who can sign in.** Global administrators (realm role
   `nightware-global-admin`; the first ones from `ADMIN_BOOTSTRAP_USERS`, alice
   on a seeded dev stack) and entity administrators (members of an entity's
-  `admins` organization group). Sign-in needs an authenticator app (OTP); the
-  first sign-in asks to set one up. `ADMIN_REQUIRED_ACR=` (empty) turns that off
-  on a loopback dev stack only; Production refuses to start without it.
+  `admins` organization group). Sign-in needs an authenticator app: the console
+  has its own step-up flow (password, then OTP for `acr=mfa`), and the first
+  sign-in asks to set one up. `ADMIN_REQUIRED_ACR=` (empty) turns MFA off for a
+  loopback dev stack only; Production refuses to start without it.
+- **NightMail's sign-in is unchanged.** Turning Organizations on would make
+  Keycloak's login page identity-first (username, then password on a second
+  page); `configure-console.sh` disables that step in the realm's browser flow.
 - **Linking, not recreating.** The new-user wizard looks each person up by
   their keys first (Keycloak e-mail and username, the Stalwart address, the
   Nextcloud uid), shows what will be **created** and what **linked**, and stops
   on a **conflict** (an account with the key that disagrees) instead of merging.
-  Existing users with an `@MAIL_DOMAIN` address are already members of the
-  default entity (`NIGHTWARE_DEFAULT_ENTITY_NAME`); **Repair** on a user creates
-  only what is missing.
+  Linking never changes an existing person's password. Existing users with an
+  `@MAIL_DOMAIN` address are already members of the default entity
+  (`NIGHTWARE_DEFAULT_ENTITY_NAME`); **Repair** creates only what is missing.
+- **Off-limits accounts.** The console never links, resets or deletes
+  administrators: Keycloak admins and service accounts, privileged Stalwart
+  accounts (its own included) and Nextcloud administrators. Reserved addresses
+  (`postmaster@`, `noreply@`, `nightware-admin@`, …) are never given to a person.
 - **First password.** A generated one-time password shown once (changed at
   first sign-in), or Keycloak's set-password e-mail to the new address (the realm
   sends through Stalwart when it has no SMTP of its own).
-- **Offboarding** disables sign-in and the Nextcloud account and keeps all
-  data. Deleting mail or Nextcloud data is a separate action for a disabled user,
-  global administrators only (`ADMIN_ENTITY_ADMINS_MAY_DELETE_DATA=true` extends
-  it to entity admins), after a fresh MFA sign-in and retyping the address.
+- **Offboarding** disables Keycloak sign-in and ends sessions, blocks every
+  sign-in to the mailbox (app passwords and API keys made in Stalwart included;
+  mail is still delivered and kept) and disables the Nextcloud account. An
+  offboarded administrator loses the console within a minute. Deleting mail or
+  Nextcloud data is a separate action for a disabled user, global administrators
+  only (`ADMIN_ENTITY_ADMINS_MAY_DELETE_DATA=true` extends it to entity admins),
+  after a fresh MFA sign-in and retyping the address.
 - **New domains.** Adding a domain to an entity creates it in Stalwart with DKIM
-  keys; the entity's *DNS records* page lists the MX, SPF, DKIM and DMARC
-  records to publish.
-- **Its credentials** are its own: Keycloak client `nightware-admin`
-  (`NIGHTWARE_ADMIN_CLIENT_SECRET`), Stalwart account `nightware-admin@MAIL_DOMAIN`
-  with a custom role (`STALWART_MANAGEMENT_PASSWORD`), Nextcloud local admin
-  `nightware-admin` (`NEXTCLOUD_PROVISIONING_PASSWORD`).
-- **Not yet verified on a live stack** (phase 8 step 0): that Stalwart lets an
-  internal password account use the management API while Keycloak is the
-  default directory (`stalwart/configure.sh` checks and prints the fallback:
-  `STALWART_MANAGEMENT_LOGIN=admin` with the recovery admin's password, a
-  full-access credential); the step-up flow and organization role names that
-  `keycloak/configure-console.sh` creates (it warns on each failure; the console
-  then refuses sign-in rather than skip MFA); alias replacement in Stalwart.
-- **Reach.** Caddy admits `ADMIN_ALLOWED_CIDRS` (default anywhere). Narrow it to
-  a management network or VPN if you have one.
+  keys; the entity's *DNS records* page lists the MX, SPF, DKIM, DMARC, SRV and
+  CNAME records to publish. Stalwart rejects reserved TLDs such as `.example`.
+- **Its credentials** are its own:
+  - Keycloak client `nightware-admin` (`NIGHTWARE_ADMIN_CLIENT_SECRET`); its
+    service account holds `manage-users` and friends, the organization roles,
+    `query-clients` and the read-only `view-realm` (needed to read and list the
+    global-admin role), never `view-clients` (which would expose client secrets).
+  - Stalwart account `nightware-admin@MAIL_DOMAIN` with a custom role extending
+    `User` (no impersonation, no domain deletion). Stalwart refuses passwords on
+    internal accounts while Keycloak is the directory, so `stalwart/configure.sh`
+    mints it an **API key usable only from the console's address**
+    (`STALWART_MANAGEMENT_API_KEY`, `_ID`), and on re-minting destroys older
+    keys. Fallback, full access: `STALWART_MANAGEMENT_LOGIN=admin` and
+    `STALWART_MANAGEMENT_PASSWORD` = the recovery admin's, with the key empty.
+  - Nextcloud local administrator `nightware-admin`
+    (`NEXTCLOUD_PROVISIONING_PASSWORD`; Nextcloud has no narrower role).
+- **Reach.** Caddy admits `ADMIN_ALLOWED_CIDRS` (default anywhere). The console
+  shares its origin with Nextcloud, Stalwart's UI and Keycloak (see
+  `docs/known-issues.md`); narrow `ADMIN_ALLOWED_CIDRS` to a management network
+  or VPN if you have one.
 
 ## Backend facts for adapter developers
 

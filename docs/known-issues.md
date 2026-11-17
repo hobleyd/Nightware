@@ -167,3 +167,30 @@ what a fix needs. Ordered by impact within each section.
 off for NightMail Server accounts (a phishing report is a junk move or a
 Phishing Inbox forward). `DeferredOperationsTests` asserts the 501. The
 `/shares` operations were implemented in phase 7.
+
+## Admin console (phase 8)
+
+- **Shares an origin with Nextcloud, Stalwart's web UI, Keycloak and Collabora.**
+  The console lives at `https://PUBLIC_HOST/console`; a cross-site-scripting flaw
+  in any of those apps would run with the console's cookie in reach (a cookie
+  path is not a security boundary). Fix: serve the console from its own host
+  (e.g. `admin.PUBLIC_HOST`, needs a DNS name and certificate) with a `__Host-`
+  cookie. Until then, keep `ADMIN_ALLOWED_CIDRS` narrow where you can.
+- **Alias uniqueness against other users' aliases** is checked against mailboxes
+  and Keycloak e-mail addresses, not against other users' `nightware_aliases`
+  attributes.
+- **Keycloak user updates are read-modify-write** (no ETag); an alias or marker
+  write racing an offboarding could write `enabled: true` back. The console's
+  own writes are sequential per request; two admins acting on one user at the
+  same moment could still collide.
+- **The user list** asks Stalwart and Nextcloud about each member (8 at a time,
+  up to 200 members; above that it shows Keycloak only). An address missing from
+  Stalwart costs a bounded scan of all accounts (no alias filter in Stalwart).
+- **Nextcloud has no narrower role than administrator** for provisioning, so the
+  console's Nextcloud account is a full administrator with a static password.
+- **Stalwart rejects reserved test TLDs** (`.example`) as domains; use `.test` or
+  a real domain on test stacks.
+- **Not yet covered by automated live tests:** the walk-through in the phase
+  report was run by hand against an isolated stack; `smoke.sh` and
+  `Nightware.Integration.Tests` do not exercise the console yet.
+

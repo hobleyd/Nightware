@@ -116,3 +116,31 @@ regardless of configuration, because URLs can carry credentials — see [securit
 |---|---|
 | `/healthz/live` | Liveness: the process answers. Never consults a backend. |
 | `/healthz` | Readiness: every backend check (Stalwart session, Nextcloud DAV, Keycloak realm). The result is cached for 10 s and shared by all callers, so hitting it in a loop costs the backends at most one round of checks per 10 s. |
+
+## Admin console (`Nightware.Admin`, ADR 0002)
+
+The console reads the same way (`appsettings.json`, then environment variables). Compose sets every key
+from `deploy/.env`.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Admin:Authority` | — | Keycloak realm URL as tokens name it (`iss`). Required. |
+| `Admin:MetadataAddress` | — | Discovery URL when it differs (inside compose: `http://keycloak:8080/auth/...`). |
+| `Admin:RequireHttpsMetadata` | `true` | `false` only for the internal compose discovery URL. |
+| `Admin:ClientId` / `Admin:ClientSecret` 🔒 | `nightware-admin` / — | The console's own confidential client. |
+| `Admin:AcceptedAcrValues:0` | `mfa` | `acr` a sign-in must carry. Empty turns MFA off; refused in Production, warned about otherwise. |
+| `Admin:IdleTimeout` / `Admin:AbsoluteLifetime` | `00:20:00` / `08:00:00` | Session limits. |
+| `Admin:DestructiveActionMaxAge` | `00:05:00` | How recent a sign-in must be to delete a user's data. |
+| `Admin:EntityAdminsMayDeleteData` | `false` | Lets entity admins delete data of their own entity's disabled users. |
+| `Admin:ActionEmailLifespan` | `3.00:00:00` | Validity of a set-password e-mail link. |
+| `Admin:ScopeCacheLifetime` | `00:01:00` | How long an admin's rights, read from Keycloak, are reused. |
+| `Directory:*` | as the façade | Keycloak admin API, bound to `nightware-admin`'s service account. |
+| `StalwartManagement:ApiUrl` | — | Stalwart management (JMAP) endpoint, e.g. `http://stalwart:8080/jmap/`. |
+| `StalwartManagement:ApiKey` 🔒 | — | The console account's API key (minted by `stalwart/configure.sh`). Or, for the recovery-admin fallback, `Username` + `Password` 🔒. Exactly one of the two. |
+| `StalwartManagement:AttemptTimeout` / `MaxRetryAttempts` | `00:00:10` / `2` | Per-attempt time; retries for read-only calls. |
+| `StalwartManagement:MaxAccountsScanned` / `AccountPageSize` | `10000` / `250` | Bound on the alias lookup's account scan. |
+| `NextcloudProvisioning:BaseUrl` | — | Nextcloud base URL (compose: `http://nextcloud/`). |
+| `NextcloudProvisioning:Username` / `Password` 🔒 | `nightware-admin` / — | The console's Nextcloud administrator. |
+| `NextcloudProvisioning:OidcProviderId` | `keycloak` | user_oidc provider (identifier or numeric id) for pre-provisioning. |
+| `NextcloudProvisioning:IdentityProviderBackends:0` | `user_oidc` | User backends that sign in through Keycloak. |
+
