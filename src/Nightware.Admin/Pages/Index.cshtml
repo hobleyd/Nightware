@@ -68,7 +68,11 @@
                         {
                             <form method="post" asp-page-handler="RepairDomain" class="inline"><input type="hidden" name="entityId" value="@d.Entity.Id"><input type="hidden" name="domain" value="@d.Domain.Domain.Name"><button type="submit" class="secondary">Repair</button></form>
                         }
-                        else if (served)
+                        else if (!served)
+                        {
+                            <span class="hint">Ask your Nightware operator to repair it.</span>
+                        }
+                        else
                         {
                             <a asp-page="/Entities/Dns" asp-route-id="@d.Entity.Id" asp-route-domain="@d.Domain.Domain.Name">DNS records</a>
                         }

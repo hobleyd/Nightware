@@ -168,4 +168,29 @@ public sealed class DashboardAndReadFailureTests : IDisposable
         _host.AddUser("u-eve", "eve", "eve@acme.example", enabled: false);
         (await GetAsync("/users/u-eve")).ShouldNotContain("Make global administrator");
     }
+
+    [Fact]
+    public async Task A_refused_deletion_reads_as_a_refusal_with_a_way_back_not_as_an_outage()
+    {
+        _host.AddUser("u-eve", "eve", "eve@acme.example", enabled: false);
+        _host.Mail.FindByAddressAsync("eve@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-eve", "eve@acme.example", true));
+
+        string html = await GetAsync("/users/u-eve/delete/Mail");
+
+        html.ShouldContain("Finish offboarding first");
+        html.ShouldContain("href=\"/users/u-eve\">Go back</a>");
+        html.ShouldNotContain("Could not read");
+        html.ShouldNotContain("Try again");
+    }
+
+    [Fact]
+    public async Task An_entity_admin_is_sent_to_the_operator_for_a_domain_the_mail_server_does_not_serve()
+    {
+        _host.MailDomains.FindAsync(ConsoleHost.Domain("acme.example"), Arg.Any<CancellationToken>()).Returns(Error.NotFound("Not on the mail server."));
+
+        string html = await GetAsync("/", ConsoleHost.EntityAdmin);
+
+        html.ShouldContain("Ask your Nightware operator to repair it.");
+        html.ShouldNotContain("handler=RepairDomain");
+    }
 }

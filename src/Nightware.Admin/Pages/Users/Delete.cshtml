@@ -1,5 +1,6 @@
 @page "/users/{id}/delete/{target}"
 @model Nightware.Admin.Pages.Users.DeleteModel
+@{ ViewData["Title"] = "Delete data"; ViewData["Back"] = Url.Page("/Users/Detail", new { id = Model.Id }); }
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 @{
     var p = Model.Preview;

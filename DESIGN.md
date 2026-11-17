@@ -256,7 +256,7 @@ Native `<button>` elements, compact and unadorned.
 
 ### Callouts
 - **Notice** (success after a redirect, `role=status`), **Warning** (partial results, blocked steps, an incomplete offboarding) and **Errors** (the validation summary, `role=alert`): Panel White with a full 1px border in the state colour, 8px radius, 8px × 12px padding. No side stripe.
-- **Could not read** (`_Unread`): when a page's own data cannot be read, the page shows its heading and a warning naming the failure, "Try again" and the dashboard, and nothing else. No empty table or "none yet" ever stands in for a failed read.
+- **Could not read** (`_Unread`): when a page's own data cannot be had, the page shows its heading and one warning, and nothing else. A system that did not answer reads "Could not read this page's information" with "Try again" and the dashboard; a refusal (validation, conflict, not found) states its reason with "Nothing was changed" and a way back. No empty table or "none yet" ever stands in for either.
 - An invalid field also takes a Fault Red border.
 
 ### Inputs / Fields

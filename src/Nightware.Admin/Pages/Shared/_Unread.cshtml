@@ -1,8 +1,23 @@
-@* Stands in for a page whose own data could not be read: nothing is shown that could pass for an empty list. *@
-@{ var console = (ConsolePageModel)ViewData.Model!; }
-<h1>@(ViewData["Title"] as string ?? "Could not load this page")</h1>
+@using Nightware.Domain.Kernel
+@* Stands in for a page whose own data could not be had: nothing is shown that could pass for an empty list.
+   A system that did not answer is an outage worth retrying; anything else is a refusal that says why. *@
+@{
+    var console = (ConsolePageModel)ViewData.Model!;
+    var error = console.Unread!;
+    var outage = error.Kind is not (ErrorKind.NotFound or ErrorKind.Conflict or ErrorKind.Validation or ErrorKind.Unsupported);
+    var back = ViewData["Back"] as string;
+}
+<h1>@(ViewData["Title"] as string ?? (outage ? "Could not load this page" : "Not possible"))</h1>
 <partial name="_Messages" />
 <div class="warning" role="alert">
-    <p><strong>Could not read this page's information.</strong> @console.Unread?.Message</p>
-    <p>Nothing was changed, and nothing is listed here, so that a missing answer is not mistaken for an empty one. <a href="@console.ReturnUrl()">Try again</a>, or check Systems on the <a asp-page="/Index">dashboard</a>.</p>
+    @if (outage)
+    {
+        <p><strong>Could not read this page's information.</strong> @error.Message</p>
+        <p>Nothing was changed, and nothing is listed here, so that a missing answer is not mistaken for an empty one. <a href="@console.ReturnUrl()">Try again</a>, or check Systems on the <a asp-page="/Index">dashboard</a>.</p>
+    }
+    else
+    {
+        <p><strong>@error.Message</strong></p>
+        <p>Nothing was changed. @if (back is not null) { <a href="@back">Go back</a> } else { <a asp-page="/Index">Back to the dashboard</a> }</p>
+    }
 </div>
