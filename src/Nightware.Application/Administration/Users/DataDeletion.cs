@@ -1,0 +1,204 @@
+using Nightware.Domain.Administration;
+using Nightware.Domain.Kernel;
+
+namespace Nightware.Application.Administration.Users;
+
+public sealed record DeletionOutcome(bool AlreadyAbsent, long? BytesDeleted);
+
+/// <summary>
+/// The guard rails every data deletion passes (ADR 0002 D10): permission to delete data, not the actor's own
+/// account, a disabled target, a fresh and strong sign-in, the retyped address, and a downstream account
+/// that provably belongs to this user. Checked in the use case, so a forged POST meets the same rules.
+/// </summary>
+public sealed class DeletionGuard(IAdminActor actor, UserAccess users, AdministrationOptions options, TimeProvider time)
+{
+    public async Task<Result<UserDetail>> LoadAsync(string userId, CancellationToken cancellationToken)
+    {
+        Result self = AdminAuthorization.RequireNotSelf(actor.Current, userId);
+        if (!self.IsSuccess)
+        {
+            return self.Error;
+        }
+
+        Result<UserDetail> loaded = await users.LoadWithLinksAsync(userId, cancellationToken).ConfigureAwait(false);
+        if (!loaded.IsSuccess)
+        {
+            return loaded.Error;
+        }
+
+        Result allowed = AdminAuthorization.RequireMayDeleteData(actor.Current, loaded.Value.User.EntityId, options);
+        if (allowed.IsSuccess)
+        {
+            allowed = AdminAuthorization.RequireDisabled(loaded.Value.User.Identity);
+        }
+
+        return allowed.IsSuccess ? loaded : allowed.Error;
+    }
+
+    public Result Confirm(UserDetail user, string? typedAddress)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        Result fresh = AdminAuthorization.RequireFreshAuthentication(actor.Current, time.GetUtcNow(), options);
+        return fresh.IsSuccess ? AdminAuthorization.RequireTypedConfirmation(typedAddress, user.User.Identity.Email) : fresh;
+    }
+
+    public static Error? RefuseConflict(BackendLink link) =>
+        link.State is LinkState.Conflict or LinkState.Error
+            ? Error.Conflict($"Not deleted: {link.Detail} The console only deletes an account it can prove is this user's.")
+            : null;
+}
+
+/// <summary>What deleting a user's mail or Nextcloud data would remove and keep, for the confirmation page.</summary>
+public sealed class GetDeletionPreview(DeletionGuard guard, IMailAccounts mail)
+{
+    public async Task<Result<DeletionPreview>> ExecuteAsync(string userId, DeletionTarget target, CancellationToken cancellationToken)
+    {
+        Result<UserDetail> loaded = await guard.LoadAsync(userId, cancellationToken).ConfigureAwait(false);
+        if (!loaded.IsSuccess)
+        {
+            return loaded.Error;
+        }
+
+        UserDetail user = loaded.Value;
+        IdentityAccount identity = user.User.Identity;
+        if (target == DeletionTarget.Mail)
+        {
+            BackendLink mailbox = user.For(BackendKind.Mail);
+            long? bytes = null;
+            if (mailbox.State == LinkState.Linked)
+            {
+                Result<long> usage = await mail.GetUsageAsync(mailbox.DownstreamId!, cancellationToken).ConfigureAwait(false);
+                bytes = usage.IsSuccess ? usage.Value : null;
+            }
+
+            return new DeletionPreview(
+                user.User,
+                target,
+                mailbox.State == LinkState.Missing,
+                bytes,
+                [$"The mailbox {identity.Email} and every message in it", "Its aliases, identities, filters and vacation reply", $"Mail sent to {identity.Email} afterwards bounces"],
+                [$"The Keycloak user {identity.Username} (disabled)", "Nextcloud files, calendars, contacts and tasks"]);
+        }
+
+        BackendLink cloud = user.For(BackendKind.Groupware);
+        return new DeletionPreview(
+            user.User,
+            target,
+            cloud.State == LinkState.Missing,
+            null,
+            [$"The Nextcloud user {identity.Username}", "Their files, calendars, contacts, tasks and shares"],
+            [$"The Keycloak user {identity.Username} (disabled)", $"The mailbox {identity.Email} and its mail"]);
+    }
+}
+
+/// <summary>Destroys a disabled user's mailbox and every message in it. Keycloak and Nextcloud are untouched.</summary>
+public sealed class DeleteUserMail(IAdminActor actor, DeletionGuard guard, IMailAccounts mail, IIdentityAccounts identities, TimeProvider time, IAuditLog audit)
+{
+    public async Task<Result<DeletionOutcome>> ExecuteAsync(string userId, string? typedAddress, CancellationToken cancellationToken)
+    {
+        Result<UserDetail> loaded = await guard.LoadAsync(userId, cancellationToken).ConfigureAwait(false);
+        if (!loaded.IsSuccess)
+        {
+            return loaded.Error;
+        }
+
+        Result confirmed = guard.Confirm(loaded.Value, typedAddress);
+        if (!confirmed.IsSuccess)
+        {
+            return confirmed.Error;
+        }
+
+        BackendLink mailbox = loaded.Value.For(BackendKind.Mail);
+        if (DeletionGuard.RefuseConflict(mailbox) is { } conflict)
+        {
+            Record(loaded.Value, false, "refused:" + mailbox.State, null);
+            return conflict;
+        }
+
+        if (mailbox.State == LinkState.Missing)
+        {
+            Record(loaded.Value, true, "already absent", null);
+            return new DeletionOutcome(AlreadyAbsent: true, BytesDeleted: null);
+        }
+
+        Result<long> usage = await mail.GetUsageAsync(mailbox.DownstreamId!, cancellationToken).ConfigureAwait(false);
+        long? bytes = usage.IsSuccess ? usage.Value : null;
+        Result destroyed = await mail.DestroyAsync(mailbox.DownstreamId!, cancellationToken).ConfigureAwait(false);
+        bool absent = !destroyed.IsSuccess && destroyed.Error.Kind == ErrorKind.NotFound;
+        if (!destroyed.IsSuccess && !absent)
+        {
+            Record(loaded.Value, false, "failed", bytes);
+            return destroyed.Error;
+        }
+
+        Result marked = await identities.SetDeletionMarkerAsync(userId, DeletionTarget.Mail, time.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+        Record(loaded.Value, true, absent ? "already absent" : marked.IsSuccess ? "deleted" : "deleted; marker not written", bytes);
+        return new DeletionOutcome(absent, absent ? null : bytes);
+    }
+
+    private void Record(UserDetail user, bool succeeded, string outcome, long? bytes) =>
+        audit.Record(new AuditEvent("user.mail.deleted", actor.Current.UserId, succeeded)
+        {
+            TargetUserId = user.User.Identity.Id,
+            EntityId = user.User.EntityId,
+            Details = new Dictionary<string, string?>
+            {
+                ["address"] = user.User.Identity.Email,
+                ["mailbox"] = user.For(BackendKind.Mail).DownstreamId,
+                ["bytes"] = bytes?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["outcome"] = outcome,
+            },
+        });
+}
+
+/// <summary>Deletes a disabled user's Nextcloud account and everything in it. Keycloak and the mailbox are untouched.</summary>
+public sealed class DeleteUserGroupwareData(IAdminActor actor, DeletionGuard guard, IGroupwareAccounts groupware, IIdentityAccounts identities, TimeProvider time, IAuditLog audit)
+{
+    public async Task<Result<DeletionOutcome>> ExecuteAsync(string userId, string? typedAddress, CancellationToken cancellationToken)
+    {
+        Result<UserDetail> loaded = await guard.LoadAsync(userId, cancellationToken).ConfigureAwait(false);
+        if (!loaded.IsSuccess)
+        {
+            return loaded.Error;
+        }
+
+        Result confirmed = guard.Confirm(loaded.Value, typedAddress);
+        if (!confirmed.IsSuccess)
+        {
+            return confirmed.Error;
+        }
+
+        BackendLink cloud = loaded.Value.For(BackendKind.Groupware);
+        if (DeletionGuard.RefuseConflict(cloud) is { } conflict)
+        {
+            Record(loaded.Value, false, "refused:" + cloud.State);
+            return conflict;
+        }
+
+        if (cloud.State == LinkState.Missing)
+        {
+            Record(loaded.Value, true, "already absent");
+            return new DeletionOutcome(AlreadyAbsent: true, BytesDeleted: null);
+        }
+
+        Result deleted = await groupware.DeleteAsync(cloud.DownstreamId!, cancellationToken).ConfigureAwait(false);
+        bool absent = !deleted.IsSuccess && deleted.Error.Kind == ErrorKind.NotFound;
+        if (!deleted.IsSuccess && !absent)
+        {
+            Record(loaded.Value, false, "failed");
+            return deleted.Error;
+        }
+
+        Result marked = await identities.SetDeletionMarkerAsync(userId, DeletionTarget.GroupwareData, time.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+        Record(loaded.Value, true, absent ? "already absent" : marked.IsSuccess ? "deleted" : "deleted; marker not written");
+        return new DeletionOutcome(absent, null);
+    }
+
+    private void Record(UserDetail user, bool succeeded, string outcome) =>
+        audit.Record(new AuditEvent("user.groupware.deleted", actor.Current.UserId, succeeded)
+        {
+            TargetUserId = user.User.Identity.Id,
+            EntityId = user.User.EntityId,
+            Details = new Dictionary<string, string?> { ["uid"] = user.User.Identity.Username, ["outcome"] = outcome },
+        });
+}
