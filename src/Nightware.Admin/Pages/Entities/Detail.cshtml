@@ -26,7 +26,7 @@
                     <a asp-page="/Entities/Dns" asp-route-id="@entity.Id" asp-route-domain="@d.Domain.Name">DNS records</a>
                     @if (Model.Actor.IsGlobal)
                     {
-                        @if (d.Mail.State != LinkState.Linked)
+                        @if (d.Mail.State != LinkState.Linked || !d.DkimPresent)
                         {
                             <form method="post" asp-page-handler="RepairDomain" class="inline"><input type="hidden" name="domain" value="@d.Domain.Name"><button type="submit" class="secondary">Repair</button></form>
                         }

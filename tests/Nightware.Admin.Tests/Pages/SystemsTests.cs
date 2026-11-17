@@ -17,6 +17,18 @@ public sealed class SystemsTests
     }
 
     [Fact]
+    public void A_domain_repair_says_whether_the_dkim_keys_arrived()
+    {
+        MailDomain acme = MailDomain.TryParse("acme.example", out MailDomain? d) ? d : throw new InvalidOperationException();
+        BackendLink served = new(BackendKind.Mail, LinkState.Linked, "Served.", "d1");
+
+        Systems.DomainRepairNotice(new DomainStatus(acme, served, true)).ShouldBe("acme.example is served by the mail server, with DKIM keys.");
+        Systems.DomainRepairNotice(new DomainStatus(acme, served, false)).ShouldBe("acme.example is served by the mail server, but still has no DKIM keys.");
+        Systems.DomainRepairNotice(new DomainStatus(acme, new BackendLink(BackendKind.Mail, LinkState.Error, "Refused."), false))
+            .ShouldBe("acme.example is still not served by the mail server (Refused.).");
+    }
+
+    [Fact]
     public void States_and_statuses_read_as_words()
     {
         Systems.StateLabel(LinkState.Error).ShouldBe("Unreachable");

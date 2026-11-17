@@ -56,6 +56,7 @@ internal sealed class AdminTestBed
         Mail.DestroyAsync(default!, default).ReturnsForAnyArgs(Result.Success());
 
         MailDomains.FindAsync(default!, default).ReturnsForAnyArgs(Error.NotFound("no domain"));
+        MailDomains.ReloadSettingsAsync(default).ReturnsForAnyArgs(Result.Success());
         MailDomains.CreateAsync(default!, default!, default).ReturnsForAnyArgs(c => c.Arg<MailDomain?>() is { } d ? Result<MailDomainInfo>.Success(new MailDomainInfo("d-new", d, true)) : default);
 
         Groupware.FindAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Error.NotFound("no user"));

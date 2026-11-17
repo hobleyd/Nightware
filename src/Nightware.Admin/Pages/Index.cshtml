@@ -64,15 +64,15 @@
                     var served = d.Domain.Mail.State == LinkState.Linked;
                     <li>
                         <a asp-page="/Entities/Detail" asp-route-id="@d.Entity.Id">@d.Domain.Domain</a> (@d.Entity.Name): @(served ? "no signing (DKIM) keys" : $"the mail server does not serve it ({Systems.StateLabel(d.Domain.Mail.State)})")
-                        @if (!served && Model.Actor.IsGlobal)
+                        @if (Model.Actor.IsGlobal)
                         {
                             <form method="post" asp-page-handler="RepairDomain" class="inline"><input type="hidden" name="entityId" value="@d.Entity.Id"><input type="hidden" name="domain" value="@d.Domain.Domain.Name"><button type="submit" class="secondary">Repair</button></form>
                         }
-                        else if (!served)
+                        else
                         {
                             <span class="hint">Ask your Nightware operator to repair it.</span>
                         }
-                        else
+                        @if (served)
                         {
                             <a asp-page="/Entities/Dns" asp-route-id="@d.Entity.Id" asp-route-domain="@d.Domain.Domain.Name">DNS records</a>
                         }

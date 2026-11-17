@@ -33,6 +33,14 @@ public static class Systems
         _ => state.ToString(),
     };
 
+    /// <summary>What a domain Repair achieved, the same on every page.</summary>
+    public static string DomainRepairNotice(DomainStatus status) => status switch
+    {
+        { Mail.State: not LinkState.Linked } => $"{status.Domain} is still not served by the mail server ({status.Mail.Detail}).",
+        { DkimPresent: false } => $"{status.Domain} is served by the mail server, but still has no DKIM keys.",
+        _ => $"{status.Domain} is served by the mail server, with DKIM keys.",
+    };
+
     /// <summary>A user's one-line status, the same on every page.</summary>
     public static string StatusLabel(UserStatus status) => status switch
     {

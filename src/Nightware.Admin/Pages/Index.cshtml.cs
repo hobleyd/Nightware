@@ -65,9 +65,7 @@ public sealed class IndexModel(
         await AfterAsync(await repair.ExecuteAsync(userId, cancellationToken), u => $"Repair finished for {u.User.Identity.DisplayName}.", cancellationToken);
 
     public async Task<IActionResult> OnPostRepairDomainAsync(string entityId, string domain, CancellationToken cancellationToken) =>
-        await AfterAsync(await repairDomain.ExecuteAsync(entityId, domain, cancellationToken), d => d.Mail.State == LinkState.Linked
-            ? $"{d.Domain} is served by the mail server."
-            : $"{d.Domain} is still not served by the mail server ({d.Mail.Detail}).", cancellationToken);
+        await AfterAsync(await repairDomain.ExecuteAsync(entityId, domain, cancellationToken), Systems.DomainRepairNotice, cancellationToken);
 
     private async Task<IActionResult> AfterAsync<T>(Result<T> result, Func<T, string> notice, CancellationToken cancellationToken)
     {

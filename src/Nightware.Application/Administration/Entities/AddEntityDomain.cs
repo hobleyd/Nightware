@@ -5,7 +5,7 @@ namespace Nightware.Application.Administration.Entities;
 
 /// <summary>
 /// Adds a domain to an entity, or repairs one it already has: Keycloak first, then the mail server.
-/// Idempotent, so "Repair" on a domain the mail server is missing is the same call.
+/// Idempotent, so "Repair" on a domain the mail server is missing, or serves without DKIM keys, is the same call.
 /// </summary>
 public sealed class AddEntityDomain(IAdminActor actor, IEntityRegistry entities, DomainProvisioning domains, IAuditLog audit)
 {

@@ -35,8 +35,8 @@ internal sealed partial class StalwartMailDomains(IStalwartManagementClient clie
             ["dnsManagement"] = new JsonObject { ["@type"] = "Manual" },
         };
 
-        // The reload rides in the same HTTP request (calls run in order), so a created domain is never
-        // left waiting for a reload that a later Repair — which finds the domain and stops — would not send.
+        // The reload rides in the same HTTP request (calls run in order), so a created domain normally loads
+        // its DKIM keys straight away; when the reload fails, Repair sends it again (ReloadSettingsAsync).
         var request = new JmapRequestBuilder();
         var set = request.Add(StalwartMethods.DomainSet, new StalwartSetRequest { Create = new Dictionary<string, JsonObject> { ["d"] = create } });
         var reload = request.Add(StalwartMethods.ActionSet, ReloadSettings());
@@ -56,11 +56,25 @@ internal sealed partial class StalwartMailDomains(IStalwartManagementClient clie
         Result<StalwartCreated> reloaded = response.Value.Get(reload).Bind(r => r.Created("r"));
         if (!reloaded.IsSuccess)
         {
-            LogReloadFailed(logger, domain.Name, reloaded.Error.Kind);
+            LogCreatedReloadFailed(logger, domain.Name, reloaded.Error.Kind);
             return Error.BackendUnavailable($"The mail server created {domain.Name} but did not reload its settings ({reloaded.Error.Message}); DKIM keys may be missing until it does.");
         }
 
         return await WithDkimAsync(domain, created.Value.Id, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<Result> ReloadSettingsAsync(CancellationToken cancellationToken)
+    {
+        var request = new JmapRequestBuilder();
+        var reload = request.Add(StalwartMethods.ActionSet, ReloadSettings());
+        Result<StalwartCreated> reloaded = (await client.SendAsync(request, cancellationToken).ConfigureAwait(false))
+            .Bind(r => r.Get(reload)).Bind(r => r.Created("r"));
+        if (!reloaded.IsSuccess)
+        {
+            LogReloadFailed(logger, reloaded.Error.Kind);
+        }
+
+        return reloaded.ToResult();
     }
 
     public async Task<Result<IReadOnlyList<DnsRecord>>> GetDnsRecordsAsync(MailDomain domain, CancellationToken cancellationToken)
@@ -122,7 +136,10 @@ internal sealed partial class StalwartMailDomains(IStalwartManagementClient clie
     private static partial void LogCreated(ILogger logger, string domain, string domainId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Stalwart created domain {Domain} but ReloadSettings failed ({Kind})")]
-    private static partial void LogReloadFailed(ILogger logger, string domain, ErrorKind kind);
+    private static partial void LogCreatedReloadFailed(ILogger logger, string domain, ErrorKind kind);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Stalwart ReloadSettings failed ({Kind})")]
+    private static partial void LogReloadFailed(ILogger logger, ErrorKind kind);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Skipped {Count} unreadable line(s) of Stalwart's DNS zone for {Domain}")]
     private static partial void LogSkippedLines(ILogger logger, string domain, int count);

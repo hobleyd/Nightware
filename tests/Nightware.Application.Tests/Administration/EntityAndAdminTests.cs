@@ -96,6 +96,48 @@ public sealed class EntityAndAdminTests
     }
 
     [Fact]
+    public async Task Repairing_a_served_domain_without_dkim_keys_reloads_the_mail_server()
+    {
+        MailDomain org = AdminTestBed.Domain("acme.org");
+        _bed.Entities.AddDomainAsync(AdminTestBed.Acme, Arg.Any<MailDomain>(), Arg.Any<CancellationToken>()).Returns(AdminTestBed.AcmeEntity);
+        _bed.MailDomains.FindAsync(org, Arg.Any<CancellationToken>()).Returns(new MailDomainInfo("d2", org, false), new MailDomainInfo("d2", org, true));
+
+        DomainStatus status = (await new AddEntityDomain(_bed.Actor, _bed.Entities, _bed.DomainProvisioning(), _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct)).Value;
+
+        status.Mail.State.ShouldBe(LinkState.Linked);
+        status.DkimPresent.ShouldBeTrue();
+        await _bed.MailDomains.Received(1).ReloadSettingsAsync(Arg.Any<CancellationToken>());
+        await _bed.MailDomains.DidNotReceiveWithAnyArgs().CreateAsync(default!, default!, Ct);
+    }
+
+    [Fact]
+    public async Task A_refused_reload_leaves_the_domain_in_error_with_the_reason()
+    {
+        MailDomain org = AdminTestBed.Domain("acme.org");
+        _bed.Entities.AddDomainAsync(AdminTestBed.Acme, Arg.Any<MailDomain>(), Arg.Any<CancellationToken>()).Returns(AdminTestBed.AcmeEntity);
+        _bed.MailDomains.FindAsync(org, Arg.Any<CancellationToken>()).Returns(new MailDomainInfo("d2", org, false));
+        _bed.MailDomains.ReloadSettingsAsync(Arg.Any<CancellationToken>()).Returns(Error.Forbidden("Insufficient permissions"));
+
+        DomainStatus status = (await new AddEntityDomain(_bed.Actor, _bed.Entities, _bed.DomainProvisioning(), _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct)).Value;
+
+        status.Mail.State.ShouldBe(LinkState.Error);
+        status.Mail.Detail!.ShouldContain("without DKIM keys");
+        status.Mail.Detail!.ShouldContain("Insufficient permissions");
+    }
+
+    [Fact]
+    public async Task A_domain_with_dkim_keys_is_not_reloaded()
+    {
+        MailDomain org = AdminTestBed.Domain("acme.org");
+        _bed.Entities.AddDomainAsync(AdminTestBed.Acme, Arg.Any<MailDomain>(), Arg.Any<CancellationToken>()).Returns(AdminTestBed.AcmeEntity);
+        _bed.MailDomains.FindAsync(org, Arg.Any<CancellationToken>()).Returns(new MailDomainInfo("d2", org, true));
+
+        await new AddEntityDomain(_bed.Actor, _bed.Entities, _bed.DomainProvisioning(), _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct);
+
+        await _bed.MailDomains.DidNotReceiveWithAnyArgs().ReloadSettingsAsync(Ct);
+    }
+
+    [Fact]
     public async Task A_domain_in_use_cannot_be_removed()
     {
         _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success(

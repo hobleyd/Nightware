@@ -138,6 +138,9 @@ public interface IMailDomains
     /// <summary>Creates the domain with automatic DKIM keys.</summary>
     Task<Result<MailDomainInfo>> CreateAsync(MailDomain domain, string description, CancellationToken cancellationToken);
 
+    /// <summary>Reloads the mail server's settings, which loads the DKIM keys of a domain created without a reload.</summary>
+    Task<Result> ReloadSettingsAsync(CancellationToken cancellationToken);
+
     /// <summary>The records the domain needs in public DNS (MX, SPF, DKIM, DMARC, …).</summary>
     Task<Result<IReadOnlyList<DnsRecord>>> GetDnsRecordsAsync(MailDomain domain, CancellationToken cancellationToken);
 }

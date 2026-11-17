@@ -15,7 +15,10 @@ public sealed class DomainProvisioning(IMailDomains domains)
         return ToStatus(domain, await domains.FindAsync(domain, cancellationToken).ConfigureAwait(false));
     }
 
-    /// <summary>Creates the domain (with DKIM keys) on the mail server unless it is already there.</summary>
+    /// <summary>
+    /// Creates the domain (with DKIM keys) on the mail server unless it is already there. A domain that is there
+    /// without DKIM keys (created, but the reload that loads its keys failed) gets that reload now.
+    /// </summary>
     public async Task<DomainStatus> EnsureAsync(Entity entity, MailDomain domain, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entity);
@@ -24,6 +27,13 @@ public sealed class DomainProvisioning(IMailDomains domains)
         if (!found.IsSuccess && found.Error.Kind == ErrorKind.NotFound)
         {
             found = await domains.CreateAsync(domain, $"{entity.Name} ({entity.Alias})", cancellationToken).ConfigureAwait(false);
+        }
+        else if (found.IsSuccess && !found.Value.DkimPresent)
+        {
+            Result reloaded = await domains.ReloadSettingsAsync(cancellationToken).ConfigureAwait(false);
+            found = reloaded.IsSuccess
+                ? await domains.FindAsync(domain, cancellationToken).ConfigureAwait(false)
+                : Error.BackendUnavailable($"The mail server serves {domain.Name} without DKIM keys and did not reload its settings ({reloaded.Error!.Message}).");
         }
 
         return ToStatus(domain, found);

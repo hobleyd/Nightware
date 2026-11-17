@@ -184,6 +184,22 @@ public sealed class DashboardAndReadFailureTests : IDisposable
     }
 
     [Fact]
+    public async Task A_served_domain_without_dkim_keys_offers_repair_to_a_global_admin()
+    {
+        _host.MailDomains.FindAsync(ConsoleHost.Domain("acme.example"), Arg.Any<CancellationToken>()).Returns(new MailDomainInfo("d", ConsoleHost.Domain("acme.example"), false));
+
+        (await GetAsync("/")).ShouldContain("handler=RepairDomain");
+        (await GetAsync("/entities/" + ConsoleHost.Acme)).ShouldContain("handler=RepairDomain");
+        (await GetAsync("/", ConsoleHost.EntityAdmin)).ShouldContain("Ask your Nightware operator to repair it.");
+    }
+
+    [Fact]
+    public async Task A_served_domain_with_dkim_keys_offers_no_repair()
+    {
+        (await GetAsync("/entities/" + ConsoleHost.Acme)).ShouldNotContain("handler=RepairDomain");
+    }
+
+    [Fact]
     public async Task An_entity_admin_is_sent_to_the_operator_for_a_domain_the_mail_server_does_not_serve()
     {
         _host.MailDomains.FindAsync(ConsoleHost.Domain("acme.example"), Arg.Any<CancellationToken>()).Returns(Error.NotFound("Not on the mail server."));

@@ -138,6 +138,26 @@ public sealed class StalwartMailDomainsTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Reloads_settings_on_its_own()
+    {
+        _host.Stub("x:Action/set", """[["x:Action/set",{"created":{"r":{"id":"a1"}}},"c0"]]""");
+
+        (await Domains().ReloadSettingsAsync(Ct)).IsSuccess.ShouldBeTrue();
+
+        var reload = _host.Calls("x:Action/set").Single();
+        reload[1]!["create"]!["r"]!["@type"]!.GetValue<string>().ShouldBe("ReloadSettings");
+    }
+
+    [Fact]
+    public async Task A_refused_reload_is_reported_and_logged()
+    {
+        _host.Stub("x:Action/set", """[["x:Action/set",{"notCreated":{"r":{"type":"forbidden","description":"Insufficient permissions"}}},"c0"]]""");
+
+        (await Domains().ReloadSettingsAsync(Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        _host.Logs.AllText.ShouldContain("ReloadSettings failed (Forbidden)");
+    }
+
+    [Fact]
     public async Task Reads_the_dns_records_from_the_zone_file()
     {
         const string zone = "$ORIGIN acme.example.\\n@ 3600 IN MX 10 mail.acme.example.\\n_dmarc IN TXT \\\"v=DMARC1; p=reject\\\"\\n";

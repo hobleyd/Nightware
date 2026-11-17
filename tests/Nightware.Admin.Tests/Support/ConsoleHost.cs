@@ -65,6 +65,7 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
         Mail.GetUsageAsync(default!, default).ReturnsForAnyArgs(Result<long>.Success(5 * 1048576));
         Mail.DestroyAsync(default!, default).ReturnsForAnyArgs(Result.Success());
         MailDomains.FindAsync(default!, default).ReturnsForAnyArgs(c => c.Arg<MailDomain?>() is { } d ? Result<MailDomainInfo>.Success(new MailDomainInfo("d", d, true)) : default);
+        MailDomains.ReloadSettingsAsync(default).ReturnsForAnyArgs(Result.Success());
         Groupware.FindAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Error.NotFound("no user"));
         Groupware.PreProvisionAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
         Groupware.SetEnabledAsync(default!, default, default).ReturnsForAnyArgs(Result.Success());
