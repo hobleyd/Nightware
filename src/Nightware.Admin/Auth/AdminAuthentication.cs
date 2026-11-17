@@ -94,6 +94,10 @@ public static class AdminAuthentication
         oidc.SaveTokens = false;
         oidc.GetClaimsFromUserInfoEndpoint = false;
         oidc.MapInboundClaims = false;
+        // The handler's default claim actions delete acr and auth_time from the identity; the console needs both
+        // (MFA and freshness checks), so keep them.
+        oidc.ClaimActions.Remove(AcrClaim);
+        oidc.ClaimActions.Remove(AuthTimeClaim);
         oidc.Scope.Clear();
         oidc.Scope.Add("openid");
         oidc.Scope.Add("profile");

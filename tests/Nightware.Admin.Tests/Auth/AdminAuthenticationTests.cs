@@ -45,6 +45,16 @@ public sealed class AdminAuthenticationTests
         oidc.ClientId.ShouldBe("nightware-admin");
         oidc.TokenValidationParameters.ValidAudience.ShouldBe("nightware-admin");
         oidc.Scope.ShouldBe(["openid", "profile", "email"]);
+        // ASP.NET deletes acr and auth_time by default; the MFA and freshness checks need them in the session.
+        var json = System.Text.Json.JsonElement.Parse("""{"acr":"mfa","auth_time":1700000000,"nonce":"n"}""");
+        var identity = new ClaimsIdentity([new Claim("acr", "mfa"), new Claim("auth_time", "1700000000"), new Claim("nonce", "n")]);
+        foreach (var action in oidc.ClaimActions)
+        {
+            action.Run(json, identity, "issuer");
+        }
+
+        identity.FindFirst("acr").ShouldNotBeNull();
+        identity.FindFirst("auth_time").ShouldNotBeNull();
     }
 
     [Fact]
