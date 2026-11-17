@@ -107,6 +107,8 @@ public sealed class DashboardAndReadFailureTests : IDisposable
         string html = await GetAsync("/");
 
         html.ShouldContain("Reachable, failed for 1");
+        html.ShouldContain("Mail: Failed <span class=\"hint\">(Connection refused)</span>");
+        html.ShouldNotContain(">Unreachable<");
         html.ShouldContain("answers its health check but failed to answer for eve");
     }
 
@@ -178,7 +180,9 @@ public sealed class DashboardAndReadFailureTests : IDisposable
         string html = await GetAsync("/users/u-eve/delete/Mail");
 
         html.ShouldContain("Finish offboarding first");
+        html.ShouldContain("<h1>Delete data of eve</h1>");
         html.ShouldContain("href=\"/users/u-eve\">Go back</a>");
+        html.ShouldContain("action=\"/users/u-eve?handler=Offboard\"");
         html.ShouldNotContain("Could not read");
         html.ShouldNotContain("Try again");
     }
@@ -208,5 +212,17 @@ public sealed class DashboardAndReadFailureTests : IDisposable
 
         html.ShouldContain("Ask your Nightware operator to repair it.");
         html.ShouldNotContain("handler=RepairDomain");
+    }
+
+    [Fact]
+    public async Task A_page_that_cannot_be_read_keeps_a_way_up_the_breadcrumb()
+    {
+        _host.Identities.GetAsync("u-dan", Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("Keycloak is down."));
+
+        string html = await GetAsync("/users/u-dan");
+
+        html.ShouldContain("<a href=\"/entities\">Entities</a> › <span aria-current=\"page\">User</span></nav>");
+        html.ShouldContain("<h1>User</h1>");
+        html.ShouldContain("Keycloak is down.");
     }
 }

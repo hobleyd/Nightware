@@ -1,7 +1,24 @@
 @page "/users/{id}/delete/{target}"
 @model Nightware.Admin.Pages.Users.DeleteModel
-@{ ViewData["Title"] = "Delete data"; ViewData["Back"] = Url.Page("/Users/Detail", new { id = Model.Id }); }
-@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
+@{
+    var whose = Model.Subject?.User.Identity.DisplayName;
+    ViewData["Title"] = whose is null ? "Delete data" : $"Delete data of {whose}";
+    ViewData["Back"] = Url.Page("/Users/Detail", new { id = Model.Id });
+    ViewData["Crumbs"] = new (string, string?)[] { (whose ?? "User", Url.Page("/Users/Detail", new { id = Model.Id })) };
+}
+@if (Model.Unread is not null)
+{
+    <partial name="_Unread" />
+    @* The refusal names its fix; offer it here rather than one page away. *@
+    @if (Model.MayFinishOffboarding)
+    {
+        <form method="post" asp-page="/Users/Detail" asp-route-id="@Model.Id" asp-page-handler="Offboard">
+            <input type="hidden" name="confirm" value="true">
+            <button type="submit">Finish offboarding</button> <span class="hint">Safe to repeat. Then come back to delete.</span>
+        </form>
+    }
+    return;
+}
 @{
     var p = Model.Preview;
     var what = p.Target == DeletionTarget.Mail ? "mail" : "files & calendar data";

@@ -25,11 +25,14 @@ public static class Systems
         _ => "Files & calendar",
     };
 
-    /// <summary>A link state in words: "Unreachable", not the enum's "Error".</summary>
+    /// <summary>
+    /// A link state in words, not the enum's. "Failed" claims only that the system gave no usable answer for this
+    /// account (down, or refusing it); "Unreachable" is kept for the health check, which tests the system itself.
+    /// </summary>
     public static string StateLabel(LinkState state) => state switch
     {
         LinkState.Pending => "Pending first sign-in",
-        LinkState.Error => "Unreachable",
+        LinkState.Error => "Failed",
         _ => state.ToString(),
     };
 

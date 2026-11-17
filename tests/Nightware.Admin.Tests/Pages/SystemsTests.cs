@@ -31,7 +31,7 @@ public sealed class SystemsTests
     [Fact]
     public void States_and_statuses_read_as_words()
     {
-        Systems.StateLabel(LinkState.Error).ShouldBe("Unreachable");
+        Systems.StateLabel(LinkState.Error).ShouldBe("Failed");
         Systems.StateLabel(LinkState.Pending).ShouldBe("Pending first sign-in");
         Systems.StateLabel(LinkState.Linked).ShouldBe("Linked");
         Systems.StatusLabel(UserStatus.OffboardingIncomplete).ShouldBe("Offboarding incomplete");

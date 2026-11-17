@@ -1,5 +1,6 @@
 @page "/users/{id}"
 @model Nightware.Admin.Pages.Users.DetailModel
+@{ ViewData["Title"] = "User"; ViewData["Crumbs"] = new (string, string?)[] { ("Entities", Url.Page("/Entities/Index")) }; }
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 @{
     var u = Model.Subject.User;

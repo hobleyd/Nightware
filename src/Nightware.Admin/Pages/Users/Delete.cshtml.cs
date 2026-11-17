@@ -14,6 +14,7 @@ namespace Nightware.Admin.Pages.Users;
 public sealed class DeleteModel(
     IAdminActor actor,
     GetDeletionPreview preview,
+    GetUser getUser,
     DeleteUserMail deleteMail,
     DeleteUserGroupwareData deleteGroupware,
     AdministrationOptions options,
@@ -28,6 +29,12 @@ public sealed class DeleteModel(
     public DeletionPreview Preview { get; private set; } = null!;
 
     public DeletionOutcome? Outcome { get; private set; }
+
+    /// <summary>Whose data, read when the preview refuses, so the refusal can name them; null when unknown.</summary>
+    public UserDetail? Subject { get; private set; }
+
+    /// <summary>The refusal is an offboarding that has not finished, which the page can offer to finish.</summary>
+    public bool MayFinishOffboarding => Subject is { User.Identity.Enabled: false } && OffboardUser.IsIncomplete(Subject);
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
@@ -60,6 +67,11 @@ public sealed class DeleteModel(
     {
         if (!TryGet(await preview.ExecuteAsync(Id, Target, cancellationToken), out DeletionPreview loaded, out IActionResult? failure))
         {
+            if (Unread is { Kind: ErrorKind.Validation or ErrorKind.Conflict } && await getUser.ExecuteAsync(Id, cancellationToken) is { IsSuccess: true } user)
+            {
+                Subject = user.Value;
+            }
+
             return failure!;
         }
 
