@@ -271,8 +271,9 @@ Native `<button>` elements, compact and unadorned.
 - **Find a user:** a compact transparent search field with a Dusk outline and a visually hidden label. One match opens the user; several are listed with their entity.
 
 ### Confirmed changes
-- Every change to who can get in names its consequence in a checkbox beside the button: offboard, reinstate, grant or remove global rights, grant or remove an entity administrator, remove a domain. Reopening access (reinstate, granting global rights) also asks for a fresh sign-in.
-- Reversals and removals live in their own block under a hairline with a small heading ("Undo offboarding", "Remove a domain", "Remove an administrator"), never in a table row beside a routine link, and use the secondary button.
+- Every change to who can get in names its consequence in a checkbox beside the button: offboard, reinstate, grant or remove global rights, grant or remove an entity administrator. Reopening access (reinstate, granting global rights) also asks for a fresh sign-in.
+- Reversals and removals live in their own block under a hairline with a small heading ("Undo offboarding", "Remove an administrator"), never in a table row beside a routine link, and use the secondary button.
+- The one exception is removing a domain: a red ✕ at the right end of its row in the entity's domain table, shown only when no user's address is on the domain, confirmed in a browser dialog that names the domain and the entity.
 
 ### Needs attention (signature)
 The dashboard's first panel: users whose offboarding is incomplete, who conflict or who need repair (most urgent first, each with the systems at fault), domains the mail server does not serve or that lack signing keys, and any entity that could not be checked. Empty, it says "Nothing needs you." It is read on each visit and never stored.

@@ -122,18 +122,17 @@ public sealed class DashboardAndReadFailureTests : IDisposable
 
         string html = await GetAsync("/entities/" + ConsoleHost.Acme);
 
-        html.ShouldContain("<option value=\"spare.example\">");
-        html.ShouldNotContain("<option value=\"acme.example\">");
+        html.ShouldContain("aria-label=\"Remove spare.example\"");
+        html.ShouldNotContain("aria-label=\"Remove acme.example\"");
     }
 
     [Fact]
-    public async Task When_every_domain_is_in_use_removal_says_why_instead_of_offering_a_form()
+    public async Task When_every_domain_is_in_use_no_removal_is_offered()
     {
         Members(new IdentityAccount("u-dan", "dan", "dan@acme.example", true));
 
         string html = await GetAsync("/entities/" + ConsoleHost.Acme);
 
-        html.ShouldContain("Every domain still has users' addresses on it (acme.example: 1)");
         html.ShouldNotContain("handler=RemoveDomain");
     }
 

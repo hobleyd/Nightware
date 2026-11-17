@@ -15,7 +15,7 @@
 <section class="panel">
     <h2>Mail domains</h2>
     <table>
-        <thead><tr><th>Domain</th><th>Mail server</th><th>Signing (DKIM)</th><th>SPF</th><th>DMARC</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+        <thead><tr><th>Domain</th><th>Mail server</th><th>Signing (DKIM)</th><th>SPF</th><th>DMARC</th><th><span class="visually-hidden">Actions</span></th>@if (Model.Actor.IsGlobal) { <th><span class="visually-hidden">Remove</span></th> }</tr></thead>
         <tbody>
         @foreach (var d in Model.Entity.Domains)
         {
@@ -36,6 +36,18 @@
                         }
                     }
                 </td>
+                @if (Model.Actor.IsGlobal)
+                {
+                    <td class="remove-cell">
+                        @if (Model.AddressesOn(d.Domain) == 0)
+                        {
+                            <form method="post" asp-page-handler="RemoveDomain" class="inline" data-confirm="Remove @d.Domain.Name from @entity.Name? The mail server keeps the domain." onsubmit="return confirm(this.dataset.confirm)">
+                                <input type="hidden" name="domain" value="@d.Domain.Name"><input type="hidden" name="confirm" value="true">
+                                <button type="submit" class="icon danger quiet" title="Remove @d.Domain.Name" aria-label="Remove @d.Domain.Name">&#x2715;</button>
+                            </form>
+                        }
+                    </td>
+                }
             </tr>
         }
         </tbody>
@@ -50,35 +62,6 @@
             <label>Add domain <input name="domain" placeholder="acme.org" autocomplete="off" required></label>
             <button type="submit">Add</button>
         </form>
-        @if (Model.Entity.Domains.Count > 0)
-        {
-            var removableDomains = Model.Entity.Domains.Where(d => Model.AddressesOn(d.Domain) == 0).ToList();
-            <div class="remove">
-                <h3>Remove a domain</h3>
-                @if (removableDomains.Count == 0)
-                {
-                    <p class="hint">Every domain still has users' addresses on it (@string.Join(", ", Model.Entity.Domains.Select(d => $"{d.Domain}: {Model.AddressesOn(d.Domain)}"))). Change those addresses before removing a domain.</p>
-                }
-                else
-                {
-                    <form method="post" asp-page-handler="RemoveDomain">
-                        <p class="hint">Takes the domain away from @entity.Name; the mail server keeps it. Only domains no user's address is on are listed.</p>
-                        <div class="row">
-                            <label>Domain
-                                <select name="domain">
-                                    @foreach (var d in removableDomains)
-                                    {
-                                        <option value="@d.Domain.Name">@d.Domain.Name</option>
-                                    }
-                                </select>
-                            </label>
-                        </div>
-                        <label class="choice"><input type="checkbox" name="confirm" value="true" required> Remove it from @entity.Name</label>
-                        <button type="submit" class="secondary">Remove domain</button>
-                    </form>
-                }
-            </div>
-        }
     }
 </section>
 
