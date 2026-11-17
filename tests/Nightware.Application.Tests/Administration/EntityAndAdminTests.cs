@@ -175,7 +175,7 @@ public sealed class EntityAndAdminTests
     public async Task Global_admin_role_is_global_only_never_self_and_requires_a_second_factor()
     {
         _bed.AddUser("u-dan", "dan", "dan@acme.example");
-        var set = new SetGlobalAdmin(_bed.Actor, _bed.Identities, _bed.Audit);
+        var set = new SetGlobalAdmin(_bed.Actor, _bed.Identities, _bed.Audit, _bed.Options, _bed.Time);
 
         (await set.ExecuteAsync("u-dan", true, Ct)).IsSuccess.ShouldBeTrue();
         await _bed.Identities.Received(1).AddRequiredActionAsync("u-dan", RequiredAction.ConfigureTotp, Arg.Any<CancellationToken>());
@@ -186,6 +186,20 @@ public sealed class EntityAndAdminTests
         _bed.ActAsEntityAdmin();
         (await set.ExecuteAsync("u-dan", true, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         (await new ListGlobalAdmins(_bed.Actor, _bed.Identities).ExecuteAsync(Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+    }
+
+    [Fact]
+    public async Task Granting_global_admin_needs_a_fresh_sign_in_but_revoking_does_not()
+    {
+        _bed.AddUser("u-dan", "dan", "dan@acme.example");
+        var set = new SetGlobalAdmin(_bed.Actor, _bed.Identities, _bed.Audit, _bed.Options, _bed.Time);
+        _bed.SignedInAgo(TimeSpan.FromMinutes(10));
+
+        (await set.ExecuteAsync("u-dan", true, Ct)).Error!.Code.ShouldBe("reauthenticationRequired");
+        await _bed.Identities.DidNotReceiveWithAnyArgs().SetGlobalAdminAsync(default!, default, Ct);
+
+        (await set.ExecuteAsync("u-dan", false, Ct)).IsSuccess.ShouldBeTrue();
+        await _bed.Identities.Received(1).SetGlobalAdminAsync("u-dan", false, Arg.Any<CancellationToken>());
     }
 
     [Fact]

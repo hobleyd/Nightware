@@ -102,6 +102,57 @@ public sealed class UserLifecycleTests
     }
 
     [Fact]
+    public async Task Offboarding_fails_when_the_mail_server_cannot_be_checked_and_still_shuts_the_rest()
+    {
+        Carol();
+        _bed.Mail.FindByAddressAsync("carol@acme.example", Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("Stalwart is down."));
+
+        Error error = (await Offboard().ExecuteAsync("u-carol", Ct)).Error!;
+
+        error.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+        error.Message.ShouldContain("Mail could not be checked");
+        await _bed.Identities.Received(1).SetEnabledAsync("u-carol", false, Arg.Any<CancellationToken>());
+        await _bed.Groupware.Received(1).SetEnabledAsync("carol", false, Arg.Any<CancellationToken>());
+        _bed.Audit.Single("user.offboarded").Succeeded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Offboarding_keeps_shutting_mail_and_nextcloud_when_keycloak_fails()
+    {
+        Carol();
+        _bed.Identities.SetEnabledAsync("u-carol", false, Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("Keycloak timed out."));
+
+        (await Offboard().ExecuteAsync("u-carol", Ct)).Error!.Message.ShouldContain("Keycloak: Keycloak timed out.");
+
+        await _bed.Mail.Received(1).SetEnabledAsync("m-carol", false, Arg.Any<CancellationToken>());
+        await _bed.Groupware.Received(1).SetEnabledAsync("carol", false, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Offboarding_a_disabled_user_again_finishes_what_was_left_open()
+    {
+        Carol(enabled: false);
+        UserDetail before = (await new GetUser(_bed.UserAccess()).ExecuteAsync("u-carol", Ct)).Value;
+        OffboardUser.IsIncomplete(before).ShouldBeTrue();
+        OffboardUser.StillOpen(before).Select(l => l.Backend).ShouldBe([BackendKind.Mail]);
+
+        (await Offboard().ExecuteAsync("u-carol", Ct)).IsSuccess.ShouldBeTrue();
+
+        await _bed.Mail.Received(1).SetEnabledAsync("m-carol", false, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task An_offboarding_is_complete_when_nothing_downstream_can_still_be_signed_in_to()
+    {
+        Carol(enabled: false);
+        _bed.Mail.FindByAddressAsync("carol@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-carol", "carol@acme.example", true) { Enabled = false });
+
+        OffboardUser.IsIncomplete((await new GetUser(_bed.UserAccess()).ExecuteAsync("u-carol", Ct)).Value).ShouldBeFalse();
+    }
+
+    private OffboardUser Offboard() => new(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit);
+
+    [Fact]
     public async Task Nobody_offboards_themselves()
     {
         Carol();

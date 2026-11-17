@@ -39,6 +39,9 @@ public sealed class AdminAuthOptions
     /// <summary>How long a set-password e-mail link stays valid.</summary>
     public TimeSpan ActionEmailLifespan { get; set; } = TimeSpan.FromDays(3);
 
+    /// <summary>The realm's <c>accessTokenLifespan</c> (keep them equal); shown when offboarding.</summary>
+    public TimeSpan AccessTokenLifespan { get; set; } = TimeSpan.FromMinutes(15);
+
     /// <summary>How long an administrator's scope, resolved from Keycloak, is reused.</summary>
     public TimeSpan ScopeCacheLifetime { get; set; } = TimeSpan.FromSeconds(60);
 }

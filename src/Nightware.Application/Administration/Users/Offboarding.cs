@@ -6,7 +6,9 @@ namespace Nightware.Application.Administration.Users;
 /// <summary>
 /// Offboards a user (ADR 0002 D10): disables sign-in, ends their sessions, blocks every sign-in to their mailbox
 /// (app passwords included) and disables their Nextcloud account. Deletes nothing: mail keeps arriving and is
-/// kept, as are their files, calendars and contacts.
+/// kept, as are their files, calendars and contacts. Every step runs even when an earlier one fails, and a step
+/// the console could not take or could not check is a failure, never a skip: the admin must be able to trust
+/// that a successful offboarding shut every way in. Running it again on a disabled user finishes the job.
 /// </summary>
 public sealed class OffboardUser(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IMailAccounts mail, IGroupwareAccounts groupware, IAuditLog audit)
 {
@@ -24,26 +26,70 @@ public sealed class OffboardUser(IAdminActor actor, UserAccess users, IIdentityA
             return loaded.Error;
         }
 
+        var failures = new List<string>();
         Result result = await identities.SetEnabledAsync(userId, false, cancellationToken).ConfigureAwait(false);
         if (result.IsSuccess)
         {
             result = await identities.EndSessionsAsync(userId, cancellationToken).ConfigureAwait(false);
         }
 
+        if (!result.IsSuccess)
+        {
+            failures.Add($"Keycloak: {result.Error.Message}");
+        }
+
         // Mail sign-in too: app passwords and API keys the user made in Stalwart outlive their Keycloak account.
         BackendLink mailbox = loaded.Value.For(BackendKind.Mail);
-        if (result.IsSuccess && mailbox.State == LinkState.Linked)
+        if (await ShutAsync("Mail", mailbox, () => mail.SetEnabledAsync(mailbox.DownstreamId!, false, cancellationToken)).ConfigureAwait(false) is { } mailFailure)
         {
-            result = await mail.SetEnabledAsync(mailbox.DownstreamId!, false, cancellationToken).ConfigureAwait(false);
+            failures.Add(mailFailure);
         }
 
-        if (result.IsSuccess && loaded.Value.For(BackendKind.Groupware).State == LinkState.Linked)
+        string username = loaded.Value.User.Identity.Username;
+        if (await ShutAsync("Nextcloud", loaded.Value.For(BackendKind.Groupware), () => groupware.SetEnabledAsync(username, false, cancellationToken)).ConfigureAwait(false) is { } cloudFailure)
         {
-            result = await groupware.SetEnabledAsync(loaded.Value.User.Identity.Username, false, cancellationToken).ConfigureAwait(false);
+            failures.Add(cloudFailure);
         }
 
-        audit.Record(new AuditEvent("user.offboarded", actor.Current.UserId, result.IsSuccess) { TargetUserId = userId, EntityId = loaded.Value.User.EntityId });
-        return result.IsSuccess ? await users.LoadWithLinksAsync(userId, cancellationToken).ConfigureAwait(false) : result.Error;
+        audit.Record(new AuditEvent("user.offboarded", actor.Current.UserId, failures.Count == 0) { TargetUserId = userId, EntityId = loaded.Value.User.EntityId });
+        return failures.Count == 0
+            ? await users.LoadWithLinksAsync(userId, cancellationToken).ConfigureAwait(false)
+            : Error.BackendUnavailable($"Offboarding is incomplete. {string.Join(" ", failures)} Use Finish offboarding once it is reachable.");
+    }
+
+    /// <summary>
+    /// Disabled in Keycloak, but a mailbox or Nextcloud account may still let them sign in (or could not be
+    /// checked): offboarding has to be run again.
+    /// </summary>
+    public static bool IsIncomplete(UserDetail user)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        return !user.User.Identity.Enabled && StillOpen(user).Any();
+    }
+
+    /// <summary>The downstream accounts that may still let a disabled user sign in.</summary>
+    public static IEnumerable<BackendLink> StillOpen(UserDetail user)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        return user.Links.Where(l => l.Backend != BackendKind.Identity && l.State is LinkState.Linked or LinkState.Error);
+    }
+
+    /// <summary>
+    /// Disables a linked account. Disabled, missing and pending accounts have nothing to shut; a conflicting
+    /// one is not this user's and is never touched; one that could not be checked is a failure.
+    /// </summary>
+    private static async Task<string?> ShutAsync(string name, BackendLink link, Func<Task<Result>> disable)
+    {
+        switch (link.State)
+        {
+            case LinkState.Linked:
+                Result result = await disable().ConfigureAwait(false);
+                return result.IsSuccess ? null : $"{name}: {result.Error.Message}";
+            case LinkState.Error:
+                return $"{name} could not be checked ({link.Detail}), so signing in there is not blocked yet.";
+            default:
+                return null;
+        }
     }
 }
 

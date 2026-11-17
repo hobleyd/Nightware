@@ -133,6 +133,7 @@ from `deploy/.env`.
 | `Admin:DestructiveActionMaxAge` | `00:05:00` | How recent a sign-in must be to delete a user's data. |
 | `Admin:EntityAdminsMayDeleteData` | `false` | Lets entity admins delete data of their own entity's disabled users. |
 | `Admin:ActionEmailLifespan` | `3.00:00:00` | Validity of a set-password e-mail link. |
+| `Admin:AccessTokenLifespan` | `00:15:00` | Keep equal to the realm's `accessTokenLifespan`; the console tells the admin an offboarding is fully effective after this long. |
 | `Admin:ScopeCacheLifetime` | `00:01:00` | How long an admin's rights, read from Keycloak, are reused. |
 | `Directory:*` | as the façade | Keycloak admin API, bound to `nightware-admin`'s service account. |
 | `StalwartManagement:ApiUrl` | — | Stalwart management (JMAP) endpoint, e.g. `http://stalwart:8080/jmap/`. |

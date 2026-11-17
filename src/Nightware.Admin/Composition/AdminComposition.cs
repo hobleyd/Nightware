@@ -56,6 +56,7 @@ public static partial class AdminComposition
                 DestructiveActionMaxAge = admin.DestructiveActionMaxAge,
                 EntityAdminsMayDeleteData = admin.EntityAdminsMayDeleteData,
                 ActionEmailLifespan = admin.ActionEmailLifespan,
+                AccessTokenLifespan = admin.AccessTokenLifespan,
             };
             foreach (string acr in admin.AcceptedAcrValues)
             {

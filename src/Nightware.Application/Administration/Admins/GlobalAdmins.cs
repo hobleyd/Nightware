@@ -15,9 +15,10 @@ public sealed class ListGlobalAdmins(IAdminActor actor, IIdentityAccounts identi
 
 /// <summary>
 /// Grants or revokes the global administrator role. Global admins only, never on themselves; a new
-/// global admin must set up a second factor before they can use the console.
+/// global admin must set up a second factor before they can use the console. Granting the widest role there
+/// is needs the same fresh, strong sign-in as deleting data; revoking narrows access and does not.
 /// </summary>
-public sealed class SetGlobalAdmin(IAdminActor actor, IIdentityAccounts identities, IAuditLog audit)
+public sealed class SetGlobalAdmin(IAdminActor actor, IIdentityAccounts identities, IAuditLog audit, AdministrationOptions options, TimeProvider time)
 {
     public async Task<Result> ExecuteAsync(string userId, bool granted, CancellationToken cancellationToken)
     {
@@ -26,6 +27,11 @@ public sealed class SetGlobalAdmin(IAdminActor actor, IIdentityAccounts identiti
         if (allowed.IsSuccess)
         {
             allowed = AdminAuthorization.RequireNotSelf(actor.Current, userId);
+        }
+
+        if (allowed.IsSuccess && granted)
+        {
+            allowed = AdminAuthorization.RequireFreshAuthentication(actor.Current, time.GetUtcNow(), options);
         }
 
         if (!allowed.IsSuccess)

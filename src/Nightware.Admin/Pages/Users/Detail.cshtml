@@ -81,36 +81,65 @@
         {
             <form method="post" asp-page-handler="Offboard">
                 <p>Offboarding disables sign-in everywhere and ends their sessions. Their mail keeps arriving and is kept, as are their files, calendars and contacts. It can be undone.</p>
-                <label class="choice"><input type="checkbox" name="confirm" value="true"> Offboard @id.DisplayName</label>
+                <label class="choice"><input type="checkbox" name="confirm" value="true" required> Offboard @id.DisplayName</label>
                 <button type="submit" class="danger">Offboard</button>
             </form>
         }
         else
         {
+            var open = Nightware.Application.Administration.Users.OffboardUser.StillOpen(Model.Subject).ToList();
+            if (open.Count > 0)
+            {
+                <div class="warning" role="alert">
+                    <p><strong>Offboarding incomplete.</strong> Keycloak sign-in is disabled, but these may still let them in:</p>
+                    <ul>
+                        @foreach (var link in open)
+                        {
+                            <li>@(link.Backend == BackendKind.Mail ? "Mail (Stalwart)" : "Nextcloud"): @link.Detail</li>
+                        }
+                    </ul>
+                    <form method="post" asp-page-handler="Offboard">
+                        <input type="hidden" name="confirm" value="true">
+                        <button type="submit" class="danger">Finish offboarding</button>
+                        <span class="hint">Safe to repeat; run it again once the system is reachable.</span>
+                    </form>
+                </div>
+            }
+            else
+            {
+                <p>This user is offboarded: sign-in is disabled in every system.</p>
+            }
             <form method="post" asp-page-handler="Reinstate">
-                <p>This user is offboarded.</p>
                 @if (Model.Subject.For(BackendKind.Mail).State == LinkState.Missing)
                 {
                     <label class="choice"><input type="checkbox" name="recreateMailbox" value="true"> Create a new, empty mailbox for @id.Email</label>
                 }
-                <button type="submit">Reinstate</button>
-            </form>
-        }
-
-        @if (Model.Actor.IsGlobal)
-        {
-            <form method="post" asp-page-handler="GlobalAdmin">
-                @if (u.IsGlobalAdmin)
-                {
-                    <button type="submit" name="grant" value="false" class="secondary">Remove global administrator rights</button>
-                }
-                else
-                {
-                    <button type="submit" name="grant" value="true" class="secondary">Make global administrator</button>
-                }
+                <button type="submit" class="@(open.Count > 0 ? "secondary" : null)">Reinstate</button>
             </form>
         }
     </section>
+
+    @if (Model.Actor.IsGlobal)
+    {
+        <section class="panel">
+            <h2>Administrator rights</h2>
+            @if (u.IsGlobalAdmin)
+            {
+                <form method="post" asp-page-handler="GlobalAdmin">
+                    <p>@id.DisplayName is a global administrator.</p>
+                    <button type="submit" name="grant" value="false" class="secondary">Remove global administrator rights</button>
+                </form>
+            }
+            else
+            {
+                <form method="post" asp-page-handler="GlobalAdmin">
+                    <p class="hint">A global administrator manages every entity, creates entities and domains, and may delete a disabled user's data. Granting it asks you to sign in again; they must set up an authenticator app.</p>
+                    <label class="choice"><input type="checkbox" name="confirm" value="true" required> Give @id.DisplayName global administrator rights</label>
+                    <button type="submit" name="grant" value="true">Make global administrator</button>
+                </form>
+            }
+        </section>
+    }
 
     @if (!id.Enabled && Model.MayDeleteData)
     {

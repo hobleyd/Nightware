@@ -211,6 +211,12 @@ public sealed class AdministrationOptions
     public TimeSpan ActionEmailLifespan { get; set; } = TimeSpan.FromDays(3);
 
     /// <summary>
+    /// The realm's <c>accessTokenLifespan</c>: how long a token issued before an offboarding keeps working,
+    /// which the console tells the admin.
+    /// </summary>
+    public TimeSpan AccessTokenLifespan { get; set; } = TimeSpan.FromMinutes(15);
+
+    /// <summary>
     /// Local parts never given to a person, on any domain: the console's own mail principal, the realm's
     /// sender, and the role addresses mail systems rely on.
     /// </summary>

@@ -109,6 +109,65 @@ public sealed class UserPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task The_offboard_box_is_required_in_the_form()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+
+        string html = await (await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri("/users/u-dan", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain("<input type=\"checkbox\" name=\"confirm\" value=\"true\" required> Offboard dan");
+    }
+
+    [Fact]
+    public async Task A_disabled_user_whose_mailbox_still_signs_in_shows_offboarding_incomplete()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example", enabled: false);
+        _host.Mail.FindByAddressAsync("dan@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-dan", "dan@acme.example", true));
+
+        string html = await (await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri("/users/u-dan", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain("Offboarding incomplete.");
+        html.ShouldContain("Finish offboarding");
+        html.ShouldNotContain("sign-in is disabled in every system");
+    }
+
+    [Fact]
+    public async Task A_completed_offboarding_says_so_and_offers_no_finish()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example", enabled: false);
+
+        string html = await (await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri("/users/u-dan", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain("sign-in is disabled in every system");
+        html.ShouldNotContain("Finish offboarding");
+    }
+
+    [Fact]
+    public async Task Granting_global_admin_needs_the_confirmation_box()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+        HttpClient client = _host.ClientAs(ConsoleHost.GlobalAdmin);
+
+        string html = await (await ConsoleHost.PostFormAsync(client, "/users/u-dan", "/users/u-dan?handler=GlobalAdmin", new Dictionary<string, string> { ["grant"] = "true" })).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain("Tick the box to confirm the global administrator rights.");
+        await _host.Identities.DidNotReceiveWithAnyArgs().SetGlobalAdminAsync(default!, default, Ct);
+    }
+
+    [Fact]
+    public async Task Granting_global_admin_with_a_stale_sign_in_returns_to_the_user_page_after_signing_in_again()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+        HttpClient client = _host.ClientAs(ConsoleHost.GlobalAdmin, authAge: TimeSpan.FromMinutes(10));
+
+        using HttpResponseMessage response = await ConsoleHost.PostFormAsync(client, "/users/u-dan", "/users/u-dan?handler=GlobalAdmin", new Dictionary<string, string> { ["grant"] = "true", ["confirm"] = "true" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        response.Headers.Location!.OriginalString.ShouldBe("/account/reauthenticate?returnUrl=%2Fusers%2Fu-dan");
+        await _host.Identities.DidNotReceiveWithAnyArgs().SetGlobalAdminAsync(default!, default, Ct);
+    }
+
+    [Fact]
     public async Task The_danger_zone_is_global_only_and_only_for_disabled_users()
     {
         _host.AddUser("u-dan", "dan", "dan@acme.example", enabled: false);

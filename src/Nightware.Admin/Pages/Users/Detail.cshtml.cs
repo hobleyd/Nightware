@@ -68,16 +68,31 @@ public sealed class DetailModel(
             return await RenderAsync(cancellationToken);
         }
 
-        return await AfterAsync(await offboard.ExecuteAsync(Id, cancellationToken), "Offboarded: sign-in is disabled and sessions ended. Mail and files are kept.", cancellationToken);
+        Result<UserDetail> offboarded = await offboard.ExecuteAsync(Id, cancellationToken);
+        return await AfterAsync(offboarded, offboarded.IsSuccess ? OffboardedNotice(offboarded.Value) : string.Empty, cancellationToken);
     }
 
     public async Task<IActionResult> OnPostReinstateAsync(bool recreateMailbox, CancellationToken cancellationToken) =>
         await AfterAsync(await reinstate.ExecuteAsync(Id, recreateMailbox, cancellationToken), "Reinstated.", cancellationToken);
 
-    public async Task<IActionResult> OnPostGlobalAdminAsync(bool grant, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostGlobalAdminAsync(bool grant, bool confirm, CancellationToken cancellationToken)
     {
+        if (grant && !confirm)
+        {
+            ModelState.AddModelError(string.Empty, "Tick the box to confirm the global administrator rights.");
+            return await RenderAsync(cancellationToken);
+        }
+
         Result result = await setGlobalAdmin.ExecuteAsync(Id, grant, cancellationToken);
         return await AfterAsync(result.IsSuccess ? Result<bool>.Success(true) : result.Error, grant ? "Global administrator rights granted." : "Global administrator rights removed.", cancellationToken);
+    }
+
+    /// <summary>What each system now says, so the admin can be sure every way in is shut.</summary>
+    private string OffboardedNotice(UserDetail user)
+    {
+        IEnumerable<string> downstream = user.Links.Where(l => l.Backend != BackendKind.Identity).Select(l => (l.Detail?.TrimEnd('.') ?? $"{l.Backend}: {l.State}") + ".");
+        return $"Offboarded. Keycloak sign-in is disabled and their sessions ended. {string.Join(" ", downstream)} "
+            + $"Apps already signed in lose access within {(int)options.AccessTokenLifespan.TotalMinutes} minutes, when their tokens expire. Mail and files are kept.";
     }
 
     private async Task<IActionResult> AfterAsync<T>(Result<T> result, string notice, CancellationToken cancellationToken)

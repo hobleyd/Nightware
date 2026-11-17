@@ -33,11 +33,21 @@ public abstract class ConsolePageModel(IAdminActor actor) : PageModel
             case ErrorKind.Forbidden:
                 return StatusCode(StatusCodes.Status403Forbidden);
             case ErrorKind.Unauthorized when error.Code == "reauthenticationRequired":
-                return RedirectToPage("/Account/Reauthenticate", new { returnUrl = Request.PathBase + Request.Path + Request.QueryString });
+                return RedirectToPage("/Account/Reauthenticate", new { returnUrl = ReturnUrl() });
             default:
                 ModelState.AddModelError(error.Target ?? string.Empty, error.Message);
                 return null;
         }
+    }
+
+    /// <summary>
+    /// Where to come back to after signing in again: this page, without a POST's <c>handler</c>, which would
+    /// otherwise turn the return into a GET of a handler that does not exist.
+    /// </summary>
+    private string ReturnUrl()
+    {
+        QueryString query = QueryString.Create(Request.Query.Where(static q => !string.Equals(q.Key, "handler", StringComparison.OrdinalIgnoreCase)));
+        return Request.PathBase + Request.Path + query;
     }
 
     /// <summary>The value, or the page outcome for its error.</summary>
