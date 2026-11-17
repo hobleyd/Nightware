@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
+using Nightware.Adapters.Dav.Administration;
 using Nightware.Admin.Auth;
 using Nightware.Admin.Hosting;
 using Nightware.Application.Administration;
@@ -112,5 +113,7 @@ public static class AdminComposition
     }
 
     /// <summary>The ports, bound to each backend's console-only credentials (ADR 0002 D8).</summary>
-    private static IServiceCollection AddConsoleBackends(this IServiceCollection services, IConfiguration configuration) => services;
+    private static IServiceCollection AddConsoleBackends(this IServiceCollection services, IConfiguration configuration) =>
+        services
+            .AddNextcloudAdministration(configuration);
 }

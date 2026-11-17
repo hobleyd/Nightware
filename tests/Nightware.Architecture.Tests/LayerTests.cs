@@ -17,6 +17,10 @@ public sealed class LayerTests
     private const string Hosting = "Nightware.Hosting";
     private const string Composition = "Nightware.Api.Composition";
     private const string Features = "Nightware.Api.Features";
+    private const string Admin = "Nightware.Admin";
+    private const string AdminComposition = "Nightware.Admin.Composition";
+    private const string Administration = "Nightware.Application.Administration";
+    private const string AnyAdministrationAdapter = @"^Nightware\.Adapters\.[^.]+\.Administration(\..*)?$";
     private const string AnyAdapter = @"^Nightware\.Adapters(\..*)?$";
 
     private static readonly string[] Adapters = ["Nightware.Adapters.Jmap", "Nightware.Adapters.Dav", "Nightware.Adapters.Directory"];
@@ -29,7 +33,8 @@ public sealed class LayerTests
             typeof(Nightware.Adapters.Dav.DavAdapterServiceCollectionExtensions).Assembly,
             typeof(Nightware.Adapters.Directory.DirectoryAdapterServiceCollectionExtensions).Assembly,
             typeof(Nightware.Api.Composition.NightwareComposition).Assembly,
-            typeof(Nightware.Hosting.HostingDefaultsServiceCollectionExtensions).Assembly)
+            typeof(Nightware.Hosting.HostingDefaultsServiceCollectionExtensions).Assembly,
+            typeof(Nightware.Admin.Composition.AdminComposition).Assembly)
         .Build();
 
     private static ArchUnitNET.Fluent.Syntax.Elements.Types.GivenTypesConjunction InNamespace(string root) => Types().That().ResideInNamespaceOrBelow(root);
@@ -126,6 +131,38 @@ public sealed class LayerTests
             .DependOnAny(Types().That().ResideInNamespaceMatching(AnyAdapter))
             .AndShould().DependOnAny(InNamespace(Application))
             .AndShould().DependOnAny(InNamespace(Hosting))
+            .Check(Architecture);
+    }
+
+    [Fact]
+    public void The_console_and_the_graph_facade_never_depend_on_each_other()
+    {
+        Types().That().ResideInNamespaceOrBelow(Admin).Should().NotDependOnAny(InNamespace(Api))
+            .Because("ADR 0002 D2: the console is a separate host")
+            .Check(Architecture);
+        Types().That().ResideInNamespaceOrBelow(Api).Should()
+            .NotDependOnAny(InNamespace(Admin))
+            .AndShould().NotDependOnAny(InNamespace(Administration))
+            .AndShould().NotDependOnAny(Types().That().ResideInNamespaceMatching(AnyAdministrationAdapter))
+            .Because("ADR 0002 D2: the Graph façade has no administration surface")
+            .Check(Architecture);
+    }
+
+    [Fact]
+    public void Only_the_console_composition_root_depends_on_adapters()
+    {
+        Types().That().ResideInNamespaceOrBelow(Admin).And().DoNotResideInNamespaceOrBelow(AdminComposition).Should()
+            .NotDependOnAny(Types().That().ResideInNamespaceMatching(AnyAdapter))
+            .Because("console pages talk to Application use cases only")
+            .Check(Architecture);
+    }
+
+    [Fact]
+    public void The_console_rules_can_see_dependencies_at_all()
+    {
+        Types().That().HaveFullName("Nightware.Admin.Composition.AdminComposition").Should()
+            .DependOnAny(Types().That().ResideInNamespaceMatching(AnyAdministrationAdapter))
+            .AndShould().DependOnAny(InNamespace(Administration))
             .Check(Architecture);
     }
 }

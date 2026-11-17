@@ -151,6 +151,16 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
         builder.UseSetting("Admin:ClientSecret", "test-secret");
         builder.UseSetting("Admin:AcceptedAcrValues:0", "mfa");
         builder.UseSetting("Admin:EntityAdminsMayDeleteData", EntityAdminsMayDeleteData ? "true" : "false");
+        // The real adapters are registered and validated on start; the tests replace their ports below.
+        builder.UseSetting("NextcloudProvisioning:BaseUrl", "https://cloud.example/cloud");
+        builder.UseSetting("NextcloudProvisioning:Username", "nightware-admin");
+        builder.UseSetting("NextcloudProvisioning:Password", "nc-test-password");
+        builder.UseSetting("StalwartManagement:ApiUrl", "https://mail.example/jmap");
+        builder.UseSetting("StalwartManagement:Username", "nightware-admin@acme.example");
+        builder.UseSetting("StalwartManagement:Password", "stalwart-test-password");
+        builder.UseSetting("Directory:Authority", "https://kc.example/auth/realms/nightware");
+        builder.UseSetting("Directory:ClientId", "nightware-admin");
+        builder.UseSetting("Directory:ClientSecret", "kc-test-secret");
         builder.ConfigureLogging(logging => logging.AddProvider(Logs));
         builder.ConfigureTestServices(services =>
         {
@@ -165,6 +175,7 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Time);
             services.AddSingleton(Entities).AddSingleton(Identities).AddSingleton(Scopes).AddSingleton(Mail).AddSingleton(MailDomains).AddSingleton(Groupware);
+            services.RemoveAll<IBackendStatus>();
             foreach (IBackendStatus status in Statuses)
             {
                 services.AddSingleton(status);

@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Nightware.Api\Nightware.Api.csproj" />
+    <ProjectReference Include="..\..\src\Nightware.Admin\Nightware.Admin.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

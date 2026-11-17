@@ -61,11 +61,12 @@ public sealed class UserPagesTests : IDisposable
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         response.Headers.CacheControl!.NoStore.ShouldBeTrue();
         html.ShouldContain("shown once");
-        string password = System.Text.RegularExpressions.Regex.Match(html, "<code>([^<]{20})</code>").Groups[1].Value;
+        // Razor encodes symbols such as '+' and '='; compare the decoded text.
+        string password = WebUtility.HtmlDecode(System.Text.RegularExpressions.Regex.Match(html, "<code>([^<]+)</code>").Groups[1].Value);
         password.Length.ShouldBe(20);
-        await _host.Identities.Received(1).SetTemporaryPasswordAsync("u-new", Arg.Is<TemporaryCredential>(c => c.Password == System.Net.WebUtility.HtmlDecode(password)), Arg.Any<CancellationToken>());
+        await _host.Identities.Received(1).SetTemporaryPasswordAsync("u-new", Arg.Is<TemporaryCredential>(c => c.Password == password), Arg.Any<CancellationToken>());
         _host.Logs.Lines.ShouldContain(l => l.Contains("admin.audit user.provisioned by u-eadmin", StringComparison.Ordinal));
-        _host.Logs.Lines.ShouldNotContain(l => l.Contains(System.Net.WebUtility.HtmlDecode(password), StringComparison.Ordinal));
+        _host.Logs.Lines.ShouldNotContain(l => l.Contains(password, StringComparison.Ordinal));
     }
 
     [Fact]
