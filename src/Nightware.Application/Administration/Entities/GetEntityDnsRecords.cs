@@ -3,10 +3,16 @@ using Nightware.Domain.Kernel;
 
 namespace Nightware.Application.Administration.Entities;
 
-/// <summary>The DNS records one of an entity's domains needs (MX, SPF, DKIM, DMARC, …), from the mail server.</summary>
+/// <summary>The records a domain should publish, and the SPF/DMARC choice they carry.</summary>
+public sealed record DomainDns(Entity Entity, MailDomain Domain, IReadOnlyList<DnsRecord> Records, DomainMailPolicy Policy);
+
+/// <summary>
+/// The DNS records one of an entity's domains needs (MX, SPF, DKIM, DMARC, …): the mail server's, with the
+/// entity's own SPF and DMARC records in place of the server's (<see cref="DomainMailPolicy.ApplyTo"/>).
+/// </summary>
 public sealed class GetEntityDnsRecords(IAdminActor actor, IEntityRegistry entities, IMailDomains domains)
 {
-    public async Task<Result<IReadOnlyList<DnsRecord>>> ExecuteAsync(string entityId, string domain, CancellationToken cancellationToken)
+    public async Task<Result<DomainDns>> ExecuteAsync(string entityId, string domain, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(entityId);
         Result allowed = AdminAuthorization.RequireEntity(actor.Current, entityId);
@@ -26,6 +32,8 @@ public sealed class GetEntityDnsRecords(IAdminActor actor, IEntityRegistry entit
             return Error.NotFound("The entity has no such domain.", "domain");
         }
 
-        return await domains.GetDnsRecordsAsync(mailDomain, cancellationToken).ConfigureAwait(false);
+        DomainMailPolicy policy = entity.Value.MailPolicyFor(mailDomain);
+        Result<IReadOnlyList<DnsRecord>> records = await domains.GetDnsRecordsAsync(mailDomain, cancellationToken).ConfigureAwait(false);
+        return records.Map(r => new DomainDns(entity.Value, mailDomain, policy.ApplyTo(mailDomain, r), policy));
     }
 }

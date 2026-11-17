@@ -105,11 +105,51 @@ public sealed class KeycloakAdministrationMapperTests
         KeycloakAdministrationMapper.ToEntity(new KeycloakOrganization { Id = "o1", Name = "Empty" }).Domains.ShouldBeEmpty();
     }
 
+    [Fact]
+    public void Reads_each_domains_spf_and_dmarc_choice_from_organization_attributes()
+    {
+        Entity entity = KeycloakAdministrationMapper.ToEntity(new KeycloakOrganization
+        {
+            Id = "o1",
+            Name = "Acme",
+            Domains = [new KeycloakOrganizationDomain { Name = "acme.example" }, new KeycloakOrganizationDomain { Name = "zeta.example" }, new KeycloakOrganizationDomain { Name = "plain.example" }],
+            Attributes = new Dictionary<string, IReadOnlyList<string>>
+            {
+                ["nightware_spf:acme.example"] = ["v=spf1 mx -all"],
+                ["nightware_dmarc:acme.example"] = ["v=DMARC1; p=none"],
+                ["nightware_dmarc:zeta.example"] = ["not dmarc"],
+                ["nightware_spf:gone.example"] = ["v=spf1 -all"],
+                ["billing"] = ["internal"],
+            },
+        });
+
+        MailDomain acme = entity.Domains[0];
+        entity.MailPolicies.Keys.ShouldBe([acme]);
+        entity.MailPolicyFor(acme).Spf!.Value.ShouldBe("v=spf1 mx -all");
+        entity.MailPolicyFor(acme).Dmarc!.Policy.ShouldBe("none");
+        entity.MailPolicyFor(entity.Domains[2]).IsDefault.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void An_organization_without_choices_maps_to_an_entity_equal_to_a_plain_one()
+    {
+        Entity entity = KeycloakAdministrationMapper.ToEntity(new KeycloakOrganization { Id = "o1", Name = "Acme", Alias = "acme" });
+        entity.ShouldBe(new Entity("o1", "acme", "Acme", entity.Domains));
+    }
+
     [Theory]
     [InlineData(RequiredAction.UpdatePassword, "UPDATE_PASSWORD")]
     [InlineData(RequiredAction.ConfigureTotp, "CONFIGURE_TOTP")]
     public void Required_actions_use_keycloaks_aliases(RequiredAction action, string alias) =>
         KeycloakAdminNames.Alias(action).ShouldBe(alias);
+
+    [Fact]
+    public void Mail_policy_attributes_are_named_per_domain()
+    {
+        MailDomain.TryParse("acme.example", out MailDomain? acme).ShouldBeTrue();
+        KeycloakAdminNames.SpfAttribute(acme).ShouldBe("nightware_spf:acme.example");
+        KeycloakAdminNames.DmarcAttribute(acme).ShouldBe("nightware_dmarc:acme.example");
+    }
 
     [Theory]
     [InlineData(DeletionTarget.Mail, "nightware_mail_deleted_at")]

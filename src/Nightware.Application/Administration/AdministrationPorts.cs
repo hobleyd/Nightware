@@ -28,7 +28,11 @@ public interface IEntityRegistry
     /// <summary>Conflict when another entity owns the domain; adding a domain the entity has is a no-op.</summary>
     Task<Result<Entity>> AddDomainAsync(string entityId, MailDomain domain, CancellationToken cancellationToken);
 
+    /// <summary>Also forgets the domain's SPF and DMARC choice.</summary>
     Task<Result<Entity>> RemoveDomainAsync(string entityId, MailDomain domain, CancellationToken cancellationToken);
+
+    /// <summary>Stores the domain's SPF and DMARC choice (a null record returns it to the mail server's default). NotFound when the entity lacks the domain.</summary>
+    Task<Result<Entity>> SetMailPolicyAsync(string entityId, MailDomain domain, DomainMailPolicy policy, CancellationToken cancellationToken);
 
     Task<Result<IReadOnlyList<IdentityAccount>>> ListMembersAsync(string entityId, CancellationToken cancellationToken);
 

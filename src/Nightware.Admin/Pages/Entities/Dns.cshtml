@@ -1,18 +1,38 @@
 @page "/entities/{id}/dns/{domain}"
 @model Nightware.Admin.Pages.Entities.DnsModel
-@{ ViewData["Title"] = "DNS for " + Model.Domain; }
+@{ ViewData["Title"] = "DNS records for " + Model.Domain; }
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
-<nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Entities/Index">Entities</a> › <a asp-page="/Entities/Detail" asp-route-id="@Model.Id">@(Model.EntityName ?? "This entity")</a> › <span aria-current="page">DNS for @Model.Domain</span></nav>
+<nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Entities/Index">Entities</a> › <a asp-page="/Entities/Detail" asp-route-id="@Model.Id">@Model.Entity.Entity.Name</a> › <span aria-current="page">DNS records for @Model.Domain</span></nav>
 <h1>DNS records for @Model.Domain</h1>
 <partial name="_Messages" />
-<p class="hint">Publish these at your DNS provider so mail for @Model.Domain is delivered here and your outgoing mail passes SPF, DKIM and DMARC checks. Select a value to copy it.</p>
+
+@if (Model.Repairable)
+{
+    <div class="warning">
+        <p>@(Model.Status.Mail.State == LinkState.Linked
+            ? $"The mail server serves {Model.Domain} but has not loaded its signing (DKIM) keys, so the records below are incomplete and outgoing mail cannot be signed."
+            : $"The mail server does not serve {Model.Domain} yet, so there are no records to publish. {Model.Status.Mail.Detail}")</p>
+        @if (Model.Actor.IsGlobal)
+        {
+            <form method="post" asp-page-handler="Repair"><button type="submit" class="secondary">Repair</button><span class="hint">Creates the domain on the mail server, or reloads it so its keys are loaded. Safe to repeat.</span></form>
+        }
+        else
+        {
+            <p>Ask your Nightware operator to repair the domain.</p>
+        }
+    </div>
+}
 
 @if (Model.Records.Count == 0)
 {
-    <p>The mail server has no records for this domain yet. @(Model.Actor.IsGlobal ? "Use Repair on the entity page." : "Ask your Nightware operator to repair the domain.")</p>
+    @if (!Model.Repairable)
+    {
+        <p>The mail server serves @Model.Domain with its signing keys but returned no records for it. Repair would not change that. @(Model.Actor.IsGlobal ? "Check the domain in the mail server's own settings." : "Tell your Nightware operator.")</p>
+    }
 }
 else
 {
+    <p class="hint">Publish these at your DNS provider so mail for @Model.Domain is delivered here and your outgoing mail passes SPF, DKIM and DMARC checks. Select a value to copy it.</p>
     <table class="dns">
         <thead><tr><th>Type</th><th>Name</th><th>TTL</th><th>Value</th></tr></thead>
         <tbody>
@@ -28,3 +48,32 @@ else
         </tbody>
     </table>
 }
+
+<section class="panel">
+    <h2>SPF and DMARC</h2>
+    <p class="hint">SPF lists the servers allowed to send mail for @Model.Domain. DMARC tells receiving servers what to do with mail that fails SPF and DKIM, and where to send reports. Unless you set your own, the domain uses the mail server's records.</p>
+    @if (Model.Actor.IsGlobal)
+    {
+        <form method="post" asp-page-handler="MailPolicy">
+            <label>SPF record
+                <textarea asp-for="Spf" rows="2" class="mono" placeholder="@Model.SpfPlaceholder" aria-describedby="spf-hint"></textarea>
+            </label>
+            <p id="spf-hint" class="hint">@(Model.Policy.Spf is null ? "Using the mail server's record. " : "")For example <code>v=spf1 mx -all</code>; add <code>include:</code> for any other service that sends as @Model.Domain. Leave blank for the mail server's record.</p>
+            <label>DMARC record
+                <textarea asp-for="Dmarc" rows="2" class="mono" placeholder="@Model.DmarcPlaceholder" aria-describedby="dmarc-hint"></textarea>
+            </label>
+            <p id="dmarc-hint" class="hint">@(Model.Policy.Dmarc is null ? "Using the mail server's record. " : "")For example <code>v=DMARC1; p=quarantine; rua=mailto:postmaster@@@Model.Domain</code>. Start with <code>p=none</code> while other services still send as @Model.Domain. Reports sent to a <code>rua=</code> address need a mailbox there. Leave blank for the mail server's record.</p>
+            <button type="submit">Save</button>
+        </form>
+        @if (!Model.Policy.IsDefault)
+        {
+            <form method="post" asp-page-handler="DefaultMailPolicy">
+                <button type="submit" class="secondary">Use the mail server's records</button>
+            </form>
+        }
+    }
+    else
+    {
+        <p>SPF: @(Model.Policy.Spf is null ? "the mail server's record" : "set for this domain"). DMARC: @(Model.Policy.Dmarc is null ? "the mail server's record" : $"set for this domain (p={Model.Policy.Dmarc.Policy})"). Only your Nightware operator can change them.</p>
+    }
+</section>

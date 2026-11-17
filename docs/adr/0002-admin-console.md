@@ -426,6 +426,8 @@ admin choose a password:
 | Nextcloud OCS provisioning endpoints and headers; `user_oidc` pre-provisioning API; `soft_auto_provision`; `occ user:auth-tokens:add` | verified (Nextcloud admin manual, user_oidc README) |
 | OCS `GET users/{uid}` `backend` value for `user_oidc` users; how to read the provider id | **unverified** (step 0) |
 | Caddy `remote_ip {$ADMIN_ALLOWED_CIDRS}` placeholder expansion | **unverified** (step 9) |
+| Organization `PUT` without an attribute key deletes that attribute (SPF/DMARC reset, domain removal) | **unverified** (adapter tested against a stub only) |
+| Organization attribute values hold 255 characters (SPF/DMARC records are capped there) | **unverified**; the cap is also one TXT string's limit |
 
 ## Decisions taken (2026-11-17)
 
@@ -513,6 +515,18 @@ Where the build refined the decisions above:
   identity-first step of Keycloak's browser flow (username, then password on a
   second page); `configure-console.sh` disables that step in the realm's bound
   browser flow. The console's own step-up flow is bound to its client only.
+- **SPF and DMARC per domain (D4).** Stalwart's `Domain` has no SPF or DMARC
+  setting (only `reportAddressUri`), and with `dnsManagement: Manual` the zone
+  it generates is a recommendation anyway. So a domain's own records are
+  organization attributes `nightware_spf:<domain>` and
+  `nightware_dmarc:<domain>` in Keycloak; without them the domain uses
+  Stalwart's records. The DNS page replaces Stalwart's apex `v=spf1` TXT and
+  `_dmarc` TXT with the chosen ones (never adds beside them: two SPF records
+  fail evaluation); where Stalwart publishes none it adds `v=spf1 mx -all` and
+  `v=DMARC1; p=quarantine; rua=mailto:postmaster@<domain>`
+  (`DomainMailPolicy`). Global administrators edit them on the DNS page
+  (`SetDomainMailPolicy`, audited `entity.domain.mail-policy`); removing a
+  domain drops its attributes. Nothing is checked against live DNS.
 - **Verified end to end** on an isolated stack (Keycloak 26.8.2, Stalwart 1.1.0,
   Nextcloud 35): MFA sign-in, entity and domain creation (DNS records shown),
   linking existing users, creating a user who then signs in to NightMail and

@@ -32,6 +32,7 @@ public static class AdministrationServiceCollectionExtensions
         services.TryAddScoped<AddEntityDomain>();
         services.TryAddScoped<RemoveEntityDomain>();
         services.TryAddScoped<GetEntityDnsRecords>();
+        services.TryAddScoped<SetDomainMailPolicy>();
         services.TryAddScoped<ListEntityAdmins>();
         services.TryAddScoped<GrantEntityAdmin>();
         services.TryAddScoped<RevokeEntityAdmin>();

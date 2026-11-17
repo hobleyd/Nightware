@@ -216,6 +216,75 @@ public sealed class KeycloakEntityRegistryTests : IDisposable
     }
 
     [Fact]
+    public async Task Removing_a_domain_forgets_its_spf_and_dmarc_choice()
+    {
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, """{"id":"0b7f3a52-9c41-4d6e-8a2f-5e1c9d3b7a10","name":"Nightware","alias":"nightware","domains":[{"name":"nightware.localhost"},{"name":"second.example"}],"attributes":{"billing":["internal"],"nightware_spf:second.example":["v=spf1 -all"],"nightware_dmarc:second.example":["v=DMARC1; p=none"],"nightware_spf:nightware.localhost":["v=spf1 mx -all"]}}""");
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 204, method: "PUT");
+        await using AdapterHost host = Host();
+
+        Entity entity = (await host.Scoped<IEntityRegistry>().RemoveDomainAsync(OrgId, Domain("second.example"), Ct)).Value;
+
+        JsonObject attributes = JsonNode.Parse(_keycloak.Admin("PUT", $"/organizations/{OrgId}").Single().Body!)!["attributes"]!.AsObject();
+        attributes.Select(static a => a.Key).ShouldBe(["billing", "nightware_spf:nightware.localhost"], ignoreOrder: true);
+        entity.MailPolicyFor(Domain("nightware.localhost")).Spf!.Value.ShouldBe("v=spf1 mx -all");
+    }
+
+    [Fact]
+    public async Task Sets_a_domains_spf_and_dmarc_as_organization_attributes_keeping_the_others()
+    {
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, Fixture.Load("organization-nightware.json"));
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 204, method: "PUT");
+        await using AdapterHost host = Host();
+        DomainMailPolicy policy = new(SpfRecord.Parse("v=spf1 mx -all").Value, DmarcRecord.Parse("v=DMARC1; p=quarantine").Value);
+
+        Entity entity = (await host.Scoped<IEntityRegistry>().SetMailPolicyAsync(OrgId, Domain("nightware.localhost"), policy, Ct)).Value;
+
+        entity.MailPolicyFor(Domain("nightware.localhost")).ShouldBe(policy);
+        JsonObject body = JsonNode.Parse(_keycloak.Admin("PUT", $"/organizations/{OrgId}").Single().Body!)!.AsObject();
+        body["attributes"]!["nightware_spf:nightware.localhost"]!.AsArray().Single()!.GetValue<string>().ShouldBe("v=spf1 mx -all");
+        body["attributes"]!["nightware_dmarc:nightware.localhost"]!.AsArray().Single()!.GetValue<string>().ShouldBe("v=DMARC1; p=quarantine");
+        body["attributes"]!["billing"].ShouldNotBeNull();
+        body["domains"]!.AsArray().Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Returning_a_domain_to_the_mail_servers_records_removes_its_attributes()
+    {
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, """{"id":"0b7f3a52-9c41-4d6e-8a2f-5e1c9d3b7a10","name":"Nightware","alias":"nightware","domains":[{"name":"nightware.localhost"}],"attributes":{"nightware_spf:nightware.localhost":["v=spf1 -all"]}}""");
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 204, method: "PUT");
+        await using AdapterHost host = Host();
+
+        Entity entity = (await host.Scoped<IEntityRegistry>().SetMailPolicyAsync(OrgId, Domain("nightware.localhost"), DomainMailPolicy.MailServerDefault, Ct)).Value;
+
+        entity.MailPolicies.ShouldBeEmpty();
+        JsonNode.Parse(_keycloak.Admin("PUT", $"/organizations/{OrgId}").Single().Body!)!["attributes"]!.AsObject().Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Setting_the_policy_already_stored_writes_nothing()
+    {
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, """{"id":"0b7f3a52-9c41-4d6e-8a2f-5e1c9d3b7a10","name":"Nightware","alias":"nightware","domains":[{"name":"nightware.localhost"}],"attributes":{"nightware_spf:nightware.localhost":["v=spf1 -all"]}}""");
+        await using AdapterHost host = Host();
+
+        (await host.Scoped<IEntityRegistry>().SetMailPolicyAsync(OrgId, Domain("nightware.localhost"), new DomainMailPolicy(SpfRecord.Parse("v=spf1 -all").Value, null), Ct)).IsSuccess.ShouldBeTrue();
+
+        _keycloak.Admin("PUT", $"/organizations/{OrgId}").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Setting_a_policy_for_a_domain_the_entity_lacks_is_not_found_without_a_write()
+    {
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, Fixture.Load("organization-nightware.json"));
+        await using AdapterHost host = Host();
+
+        Result<Entity> result = await host.Scoped<IEntityRegistry>().SetMailPolicyAsync(OrgId, Domain("other.example"), DomainMailPolicy.MailServerDefault, Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        result.Error.Target.ShouldBe("domain");
+        _keycloak.Admin("PUT", $"/organizations/{OrgId}").ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Removing_a_domain_the_entity_lacks_is_a_no_op()
     {
         _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, Fixture.Load("organization-nightware.json"));

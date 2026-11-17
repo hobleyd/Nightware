@@ -318,6 +318,9 @@ output: anything they cannot do is printed as a WARNING.
 - **New domains.** Adding a domain to an entity creates it in Stalwart with DKIM
   keys; the entity's *DNS records* page lists the MX, SPF, DKIM, DMARC, SRV and
   CNAME records to publish. Stalwart rejects reserved TLDs such as `.example`.
+  SPF and DMARC are Stalwart's unless a global administrator sets the domain's
+  own on that page (kept as Keycloak organization attributes); start DMARC at
+  `p=none` while other services still send as the domain.
 - **Its credentials** are its own:
   - Keycloak client `nightware-admin` (`NIGHTWARE_ADMIN_CLIENT_SECRET`); its
     service account holds `manage-users` and friends, the organization roles,

@@ -3,8 +3,9 @@ using Nightware.Domain.Administration;
 namespace Nightware.Adapters.Directory.Administration;
 
 /// <summary>
-/// The names the console relies on in the realm (ADR 0002 D1, D5, D10): realm roles, the user-profile
-/// attributes it writes, and Keycloak's required-action aliases. <c>deploy/keycloak</c> declares the same names.
+/// The names the console relies on in the realm (ADR 0002 D1, D4, D5, D10): realm roles, the user-profile and
+/// organization attributes it writes, and Keycloak's required-action aliases. <c>deploy/keycloak</c> declares
+/// the same names.
 /// </summary>
 internal static class KeycloakAdminNames
 {
@@ -22,6 +23,12 @@ internal static class KeycloakAdminNames
 
     /// <summary>User attribute: when the console deleted the user's Nextcloud data (ISO-8601 round-trip).</summary>
     public const string GroupwareDeletedAtAttribute = "nightware_groupware_deleted_at";
+
+    /// <summary>Organization attribute <c>nightware_spf:&lt;domain&gt;</c>: the domain's chosen SPF record.</summary>
+    public static string SpfAttribute(MailDomain domain) => "nightware_spf:" + domain.Name;
+
+    /// <summary>Organization attribute <c>nightware_dmarc:&lt;domain&gt;</c>: the domain's chosen DMARC record.</summary>
+    public static string DmarcAttribute(MailDomain domain) => "nightware_dmarc:" + domain.Name;
 
     public static string Alias(RequiredAction action) => action switch
     {

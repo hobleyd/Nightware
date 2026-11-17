@@ -38,8 +38,25 @@ internal static class KeycloakAdministrationMapper
                 .Distinct()
                 .OrderBy(static d => d.Name, StringComparer.Ordinal),
         ];
-        return new Entity(organization.Id ?? string.Empty, organization.Alias ?? string.Empty, organization.Name, domains);
+        Dictionary<MailDomain, DomainMailPolicy> policies = [];
+        foreach (MailDomain domain in domains)
+        {
+            DomainMailPolicy policy = MailPolicy(organization, domain);
+            if (!policy.IsDefault)
+            {
+                policies[domain] = policy;
+            }
+        }
+
+        Entity entity = new(organization.Id ?? string.Empty, organization.Alias ?? string.Empty, organization.Name, domains);
+        return policies.Count == 0 ? entity : entity with { MailPolicies = policies };
     }
+
+    /// <summary>A record edited by hand in Keycloak's console that no longer parses counts as the mail server's default.</summary>
+    private static DomainMailPolicy MailPolicy(KeycloakOrganization organization, MailDomain domain) =>
+        new(
+            organization.Attribute(KeycloakAdminNames.SpfAttribute(domain)) is { } spf && SpfRecord.Parse(spf) is { IsSuccess: true } parsedSpf ? parsedSpf.Value : null,
+            organization.Attribute(KeycloakAdminNames.DmarcAttribute(domain)) is { } dmarc && DmarcRecord.Parse(dmarc) is { IsSuccess: true } parsedDmarc ? parsedDmarc.Value : null);
 
     /// <summary>The marker format: ISO-8601 round-trip, always UTC.</summary>
     public static string FormatMarker(DateTimeOffset at) => at.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);

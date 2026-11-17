@@ -97,11 +97,44 @@ internal sealed class KeycloakEntityRegistry(IKeycloakAdminClient keycloak, Keyc
                     }
 
                     domains.RemoveAt(index);
+                    SetAttribute(representation, KeycloakAdminNames.SpfAttribute(domain), null);
+                    SetAttribute(representation, KeycloakAdminNames.DmarcAttribute(domain), null);
                     return true;
                 },
                 cancellationToken)
             .ConfigureAwait(false);
         return updated.Map(KeycloakAdministrationMapper.ToEntity);
+    }
+
+    public async Task<Result<Entity>> SetMailPolicyAsync(string entityId, MailDomain domain, DomainMailPolicy policy, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(entityId);
+        ArgumentNullException.ThrowIfNull(domain);
+        ArgumentNullException.ThrowIfNull(policy);
+
+        bool owned = false;
+        Result<KeycloakOrganization> updated = await keycloak.UpdateOrganizationAsync(
+                entityId,
+                representation =>
+                {
+                    owned = IndexOf(DomainsOf(representation), domain) >= 0;
+                    if (!owned)
+                    {
+                        return false;
+                    }
+
+                    bool spf = SetAttribute(representation, KeycloakAdminNames.SpfAttribute(domain), policy.Spf?.Value);
+                    bool dmarc = SetAttribute(representation, KeycloakAdminNames.DmarcAttribute(domain), policy.Dmarc?.Value);
+                    return spf || dmarc;
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (!updated.IsSuccess)
+        {
+            return updated.Error;
+        }
+
+        return owned ? KeycloakAdministrationMapper.ToEntity(updated.Value) : Error.NotFound($"The entity has no domain {domain}.", "domain");
     }
 
     public async Task<Result<IReadOnlyList<IdentityAccount>>> ListMembersAsync(string entityId, CancellationToken cancellationToken)
@@ -179,6 +212,31 @@ internal sealed class KeycloakEntityRegistry(IKeycloakAdminClient keycloak, Keyc
         JsonArray created = [];
         representation["domains"] = created;
         return created;
+    }
+
+    /// <summary>Sets a single-valued attribute, or removes it when <paramref name="value"/> is null; whether anything changed.</summary>
+    private static bool SetAttribute(JsonObject representation, string name, string? value)
+    {
+        JsonObject? attributes = representation["attributes"] as JsonObject;
+        string? current = attributes?[name] is JsonArray { Count: > 0 } values && values[0] is JsonValue first && first.TryGetValue(out string? text) ? text : null;
+        if (value is null)
+        {
+            return attributes?.Remove(name) == true;
+        }
+
+        if (string.Equals(current, value, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (attributes is null)
+        {
+            attributes = [];
+            representation["attributes"] = attributes;
+        }
+
+        attributes[name] = new JsonArray(value);
+        return true;
     }
 
     private static int IndexOf(JsonArray domains, MailDomain domain)

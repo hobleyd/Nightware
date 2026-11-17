@@ -6,6 +6,18 @@ namespace Nightware.Domain.Administration;
 /// </summary>
 public sealed record Entity(string Id, string Alias, string Name, IReadOnlyList<MailDomain> Domains)
 {
+    /// <summary>Shared, so entities without choices still compare equal.</summary>
+    private static readonly IReadOnlyDictionary<MailDomain, DomainMailPolicy> NoPolicies = new Dictionary<MailDomain, DomainMailPolicy>();
+
+    /// <summary>
+    /// The SPF and DMARC choices of domains not left at the mail server's default. Filled when one entity is
+    /// read; a listing of entities may leave it empty.
+    /// </summary>
+    public IReadOnlyDictionary<MailDomain, DomainMailPolicy> MailPolicies { get; init; } = NoPolicies;
+
+    public DomainMailPolicy MailPolicyFor(MailDomain domain) =>
+        MailPolicies.TryGetValue(domain, out DomainMailPolicy? policy) ? policy : DomainMailPolicy.MailServerDefault;
+
     /// <summary>Whether <paramref name="address"/> is on one of this entity's domains.</summary>
     public bool Owns(MailAddress address)
     {

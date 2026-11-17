@@ -156,8 +156,74 @@ public sealed class EntityAndAdminTests
         _bed.MailDomains.GetDnsRecordsAsync(AdminTestBed.Domain("acme.example"), Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<DnsRecord>>.Success([mx]));
         var dns = new GetEntityDnsRecords(_bed.Actor, _bed.Entities, _bed.MailDomains);
 
-        (await dns.ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Value.ShouldBe([mx]);
+        DomainDns acme = (await dns.ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Value;
+        acme.Records[0].ShouldBe(mx);
+        acme.Policy.ShouldBe(DomainMailPolicy.MailServerDefault);
         (await dns.ExecuteAsync(AdminTestBed.Acme, "other.example", Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task Dns_records_carry_the_entitys_own_spf_and_dmarc_in_place_of_the_mail_servers()
+    {
+        MailDomain acme = AdminTestBed.Domain("acme.example");
+        DmarcRecord dmarc = DmarcRecord.Parse("v=DMARC1; p=none").Value;
+        _bed.Entities.GetAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(AdminTestBed.AcmeEntity with
+        {
+            MailPolicies = new Dictionary<MailDomain, DomainMailPolicy> { [acme] = new(null, dmarc) },
+        });
+        _bed.MailDomains.GetDnsRecordsAsync(acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<DnsRecord>>.Success(
+            [new("acme.example.", "TXT", 3600, "v=spf1 mx -all"), new("_dmarc.acme.example.", "TXT", 3600, "v=DMARC1; p=reject")]));
+
+        DomainDns dns = (await new GetEntityDnsRecords(_bed.Actor, _bed.Entities, _bed.MailDomains).ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Value;
+
+        dns.Records.Select(r => r.Value).ShouldBe(["v=spf1 mx -all", "v=DMARC1; p=none"]);
+        dns.Policy.Dmarc.ShouldBe(dmarc);
+    }
+
+    [Fact]
+    public async Task A_global_admin_sets_and_clears_a_domains_spf_and_dmarc()
+    {
+        MailDomain acme = AdminTestBed.Domain("acme.example");
+        _bed.Entities.SetMailPolicyAsync(default!, default!, default!, Ct).ReturnsForAnyArgs(AdminTestBed.AcmeEntity);
+        var set = new SetDomainMailPolicy(_bed.Actor, _bed.Entities, _bed.Audit);
+
+        DomainMailPolicy policy = (await set.ExecuteAsync(AdminTestBed.Acme, "Acme.Example", " v=spf1 mx -all ", "v=DMARC1; p=quarantine", Ct)).Value;
+        DomainMailPolicy cleared = (await set.ExecuteAsync(AdminTestBed.Acme, "acme.example", "", "  ", Ct)).Value;
+
+        policy.Spf!.Value.ShouldBe("v=spf1 mx -all");
+        policy.Dmarc!.Policy.ShouldBe("quarantine");
+        cleared.IsDefault.ShouldBeTrue();
+        await _bed.Entities.Received(1).SetMailPolicyAsync(AdminTestBed.Acme, acme, policy, Arg.Any<CancellationToken>());
+        await _bed.Entities.Received(1).SetMailPolicyAsync(AdminTestBed.Acme, acme, DomainMailPolicy.MailServerDefault, Arg.Any<CancellationToken>());
+        AuditEvent first = _bed.Audit.Events.First(e => e.Action == "entity.domain.mail-policy");
+        first.Succeeded.ShouldBeTrue();
+        first.Details["dmarc"].ShouldBe("v=DMARC1; p=quarantine");
+    }
+
+    [Fact]
+    public async Task A_malformed_record_or_an_entity_admin_changes_nothing()
+    {
+        var set = new SetDomainMailPolicy(_bed.Actor, _bed.Entities, _bed.Audit);
+
+        (await set.ExecuteAsync(AdminTestBed.Acme, "acme.example", "mx -all", null, Ct)).Error!.Target.ShouldBe("spf");
+        (await set.ExecuteAsync(AdminTestBed.Acme, "acme.example", null, "v=DMARC1", Ct)).Error!.Target.ShouldBe("dmarc");
+        (await set.ExecuteAsync(AdminTestBed.Acme, "not a domain", null, null, Ct)).Error!.Target.ShouldBe("domain");
+        _bed.ActAsEntityAdmin();
+        (await set.ExecuteAsync(AdminTestBed.Acme, "acme.example", "v=spf1 -all", null, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+
+        await _bed.Entities.DidNotReceiveWithAnyArgs().SetMailPolicyAsync(default!, default!, default!, Ct);
+        _bed.Audit.Events.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_refused_policy_write_is_audited_as_failed()
+    {
+        _bed.Entities.SetMailPolicyAsync(default!, default!, default!, Ct).ReturnsForAnyArgs(Error.NotFound("The entity has no domain acme.org.", "domain"));
+
+        Result<DomainMailPolicy> result = await new SetDomainMailPolicy(_bed.Actor, _bed.Entities, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", "v=spf1 -all", null, Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        _bed.Audit.Single("entity.domain.mail-policy").Succeeded.ShouldBeFalse();
     }
 
     [Fact]

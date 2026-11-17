@@ -6,7 +6,7 @@ namespace Nightware.Adapters.Directory.Core.Admin;
 /// The fields of Keycloak's <c>OrganizationRepresentation</c> the console reads
 /// (https://www.keycloak.org/docs-api/latest/rest-api/index.html#OrganizationRepresentation). Updates
 /// round-trip the raw JSON (<see cref="IKeycloakAdminClient.UpdateOrganizationAsync"/>), so unmodelled
-/// fields such as <c>attributes</c> are preserved.
+/// fields and attributes the console does not own are preserved.
 /// </summary>
 public sealed record KeycloakOrganization
 {
@@ -31,6 +31,14 @@ public sealed record KeycloakOrganization
     /// <summary>Included in brief representations too; a domain belongs to at most one organization per realm.</summary>
     [JsonPropertyName("domains")]
     public IReadOnlyList<KeycloakOrganizationDomain>? Domains { get; init; }
+
+    /// <summary>Full representations only.</summary>
+    [JsonPropertyName("attributes")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyDictionary<string, IReadOnlyList<string>>? Attributes { get; init; }
+
+    public string? Attribute(string name) =>
+        Attributes is not null && Attributes.TryGetValue(name, out IReadOnlyList<string>? values) && values.Count > 0 ? values[0] : null;
 }
 
 /// <summary>Keycloak's <c>OrganizationDomainRepresentation</c>.</summary>

@@ -95,6 +95,7 @@ tr.disabled td { color: var(--muted); }
 .actions a + form.inline { margin-left: 8px; }
 .plan tr.conflict td { color: var(--bad); }
 .dns input, .dns textarea { width: 100%; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em; border: 1px solid var(--control-line); background: var(--bg); color: var(--text); resize: vertical; }
+textarea.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em; resize: vertical; }
 
 .chips { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; }
 .chip { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--chip-bg); font-size: 0.85em; white-space: nowrap; }

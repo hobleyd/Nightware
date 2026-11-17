@@ -37,14 +37,54 @@ public sealed class DashboardAndReadFailureTests : IDisposable
     }
 
     [Fact]
-    public async Task Missing_dns_records_send_an_entity_admin_to_the_operator_not_to_a_button_they_lack()
+    public async Task A_domain_served_with_keys_but_no_records_says_repair_would_not_help()
     {
         _host.MailDomains.GetDnsRecordsAsync(default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<DnsRecord>>.Success([]));
 
-        (await GetAsync(DnsUrl)).ShouldContain("Use Repair on the entity page.");
-        string html = await GetAsync(DnsUrl, ConsoleHost.EntityAdmin);
-        html.ShouldContain("Ask your Nightware operator to repair the domain.");
-        html.ShouldNotContain("Use Repair");
+        string html = await GetAsync(DnsUrl);
+        html.ShouldContain("returned no records for it. Repair would not change that.");
+        html.ShouldNotContain("handler=Repair");
+        html.ShouldNotContain("Publish these");
+        (await GetAsync(DnsUrl, ConsoleHost.EntityAdmin)).ShouldContain("Tell your Nightware operator.");
+    }
+
+    [Fact]
+    public async Task An_unserved_domain_offers_repair_on_its_dns_page_without_asking_for_records()
+    {
+        _host.MailDomains.FindAsync(ConsoleHost.Domain("acme.example"), Arg.Any<CancellationToken>()).Returns(Error.NotFound("Not on the mail server."));
+
+        string html = await GetAsync(DnsUrl);
+        html.ShouldContain("does not serve acme.example yet");
+        html.ShouldContain("handler=Repair");
+
+        string entityAdmin = await GetAsync(DnsUrl, ConsoleHost.EntityAdmin);
+        entityAdmin.ShouldContain("Ask your Nightware operator to repair the domain.");
+        entityAdmin.ShouldNotContain("handler=Repair");
+        await _host.MailDomains.DidNotReceiveWithAnyArgs().GetDnsRecordsAsync(default!, Ct);
+    }
+
+    [Fact]
+    public async Task A_domain_without_keys_shows_its_records_under_a_repair_warning()
+    {
+        _host.MailDomains.FindAsync(ConsoleHost.Domain("acme.example"), Arg.Any<CancellationToken>()).Returns(new MailDomainInfo("d", ConsoleHost.Domain("acme.example"), false));
+        _host.MailDomains.GetDnsRecordsAsync(default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<DnsRecord>>.Success([new DnsRecord("acme.example.", "MX", 3600, "10 mail.example.")]));
+
+        string html = await GetAsync(DnsUrl);
+
+        html.ShouldContain("has not loaded its signing (DKIM) keys");
+        html.ShouldContain("handler=Repair");
+        html.ShouldContain("10 mail.example.");
+    }
+
+    [Fact]
+    public async Task Repair_on_the_dns_page_returns_to_it_with_what_it_achieved()
+    {
+        _host.Entities.AddDomainAsync(default!, default!, Ct).ReturnsForAnyArgs(ConsoleHost.AcmeEntity);
+
+        using HttpResponseMessage response = await ConsoleHost.PostFormAsync(_host.ClientAs(ConsoleHost.GlobalAdmin), DnsUrl, DnsUrl + "?handler=Repair", new Dictionary<string, string>());
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        response.Headers.Location!.OriginalString.ShouldEndWith(DnsUrl);
     }
 
     [Fact]
