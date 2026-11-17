@@ -55,6 +55,11 @@ public static class LinkStateEvaluator
         }
 
         GroupwareAccount account = found.Value;
+        if (account.IsAdministrator)
+        {
+            return new BackendLink(BackendKind.Groupware, LinkState.Conflict, $"{uid} is a Nextcloud administrator; the console never links or manages it.", account.Uid);
+        }
+
         if (!account.ManagedByIdentityProvider)
         {
             return new BackendLink(BackendKind.Groupware, LinkState.Conflict, $"{uid} is a local Nextcloud account, which Keycloak sign-in would not use.", account.Uid);
@@ -91,13 +96,18 @@ public static class LinkStateEvaluator
                 return (Conflict(BackendKind.Identity, $"The address already belongs to Keycloak user {existing.Username}, not {requestedUsername}."), null);
             }
 
+            if (!existing.Enabled)
+            {
+                return (Conflict(BackendKind.Identity, $"Keycloak user {existing.Username} is offboarded; reinstate them from their page instead."), null);
+            }
+
             if (existingMemberships.Count > 0 && !existingMemberships.Contains(entityId, StringComparer.Ordinal))
             {
                 return (Conflict(BackendKind.Identity, $"Keycloak user {existing.Username} belongs to another entity."), null);
             }
 
             string membership = existingMemberships.Count == 0 ? "; will be added to the entity" : string.Empty;
-            return (new PlannedStep(BackendKind.Identity, PlannedAction.Link, $"Link to existing Keycloak user {existing.Username}{membership}."), existing);
+            return (new PlannedStep(BackendKind.Identity, PlannedAction.Link, $"Link to existing Keycloak user {existing.Username}{membership}; their password is not changed."), existing);
         }
 
         if (byUsername.IsSuccess)

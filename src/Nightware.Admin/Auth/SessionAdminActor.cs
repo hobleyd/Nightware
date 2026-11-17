@@ -50,7 +50,9 @@ public sealed class AdminActorMiddleware(RequestDelegate next)
                 return;
             }
 
-            actor.Set(new AdminActor(sub, scope.Value.IsGlobal, scope.Value.EntityIds, AuthenticatedAt(user), user.FindFirstValue(AdminAuthentication.AcrClaim)));
+            // An offboarded administrator loses the console within one scope-cache lifetime, cookie or not.
+            AdminScope held = scope.Value.AccountEnabled ? scope.Value : new AdminScope(false, new HashSet<string>());
+            actor.Set(new AdminActor(sub, held.IsGlobal, held.EntityIds, AuthenticatedAt(user), user.FindFirstValue(AdminAuthentication.AcrClaim)));
         }
 
         await next(context).ConfigureAwait(false);

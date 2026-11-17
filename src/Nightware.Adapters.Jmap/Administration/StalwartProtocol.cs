@@ -93,11 +93,12 @@ internal sealed record StalwartAccount
 
     /// <summary>
     /// Whether the account holds more than an ordinary user's rights: an <c>Admin</c> or <c>Custom</c> role (the
-    /// console's own principal has one) or permissions of its own. Absent fields are the documented defaults.
+    /// console's own principal has one) or permissions of its own. Fails closed: Stalwart 1.1 always returns both
+    /// fields (verified), so a missing or unreadable one counts as privileged rather than ordinary.
     /// </summary>
     public bool IsPrivileged =>
-        TypeOf(Roles) is { } role && !string.Equals(role, "User", StringComparison.Ordinal)
-        || TypeOf(Permissions) is { } permissions && !string.Equals(permissions, "Inherit", StringComparison.Ordinal);
+        !string.Equals(TypeOf(Roles), "User", StringComparison.Ordinal)
+        || !string.Equals(TypeOf(Permissions), "Inherit", StringComparison.Ordinal);
 
     private static string? TypeOf(JsonElement? element) =>
         element is { ValueKind: JsonValueKind.Object } e && e.TryGetProperty("@type", out JsonElement type) && type.ValueKind == JsonValueKind.String

@@ -19,7 +19,7 @@ namespace Nightware.Admin.Composition;
 /// The console's composition root: the only <c>Nightware.Admin</c> code that references adapters
 /// (ADR 0002 D2). It never references <c>Nightware.Api</c>.
 /// </summary>
-public static class AdminComposition
+public static partial class AdminComposition
 {
     public const string LivenessPath = "/healthz/live";
 
@@ -96,6 +96,11 @@ public static class AdminComposition
     public static WebApplication UseNightwareAdmin(this WebApplication app)
     {
         ArgumentNullException.ThrowIfNull(app);
+        if (app.Services.GetRequiredService<IOptions<AdminAuthOptions>>().Value.AcceptedAcrValues.Count == 0)
+        {
+            LogMfaOff(app.Logger);
+        }
+
         app.UseForwardedHeaders();
         app.UseMiddleware<SecurityHeadersMiddleware>();
         app.UseExceptionHandler("/error");
@@ -132,4 +137,7 @@ public static class AdminComposition
             .AddKeycloakAdministration()
             .AddStalwartAdministration(configuration)
             .AddNextcloudAdministration(configuration);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Admin console: multi-factor sign-in is OFF (Admin:AcceptedAcrValues / ADMIN_REQUIRED_ACR is empty). Only acceptable on a loopback development stack.")]
+    private static partial void LogMfaOff(ILogger logger);
 }

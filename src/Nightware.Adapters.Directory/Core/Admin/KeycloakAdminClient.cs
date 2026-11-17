@@ -289,6 +289,12 @@ internal sealed partial class KeycloakAdminClient(
     private static string Segment(string value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        // EscapeDataString leaves dots alone, and "." or ".." would walk up the admin API's path.
+        if (value.Trim('.').Length == 0)
+        {
+            throw new ArgumentException("Not an id.", nameof(value));
+        }
+
         return Uri.EscapeDataString(value);
     }
 

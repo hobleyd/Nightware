@@ -56,6 +56,19 @@ public sealed class UserAccess(
             return actor.Current.IsGlobal ? allowed.Error : Error.NotFound("The user was not found.");
         }
 
+        // Administrators of the mail or groupware server are as off-limits as Keycloak's own: resetting their
+        // password would hand the actor that server's administration.
+        Task<Result<MailAccount>> mailbox = mail.FindByAddressAsync(identity.Value.Email, cancellationToken);
+        Task<Result<GroupwareAccount>> cloud = groupware.FindAsync(identity.Value.Username, cancellationToken);
+        await Task.WhenAll(mailbox, cloud).ConfigureAwait(false);
+        if ((await mailbox.ConfigureAwait(false)) is { IsSuccess: true, Value.IsPrivileged: true }
+            || (await cloud.ConfigureAwait(false)) is { IsSuccess: true, Value.IsAdministrator: true })
+        {
+            return actor.Current.IsGlobal
+                ? Error.Forbidden("This account administers the mail or Nextcloud server; manage it there.")
+                : Error.NotFound("The user was not found.");
+        }
+
         return new ManagedUser(identity.Value, memberships.Value.Count > 0 ? memberships.Value[0] : null, scope.Value.IsGlobal, scope.Value.EntityIds.Count > 0);
     }
 

@@ -56,7 +56,10 @@ internal sealed class NextcloudGroupwareAccounts(NextcloudProvisioningClient cli
             Text(data, "email"),
             Text(data, "displayname") ?? Text(data, "display-name"),
             Bool(data, "enabled") ?? true,
-            managed);
+            managed)
+        {
+            IsAdministrator = HasAny(data["groups"], static g => g == "admin") || HasAny(data["subadmin"], static _ => true),
+        };
     }
 
     public async Task<Result> PreProvisionAsync(string uid, string email, string displayName, CancellationToken cancellationToken)
@@ -222,4 +225,8 @@ internal sealed class NextcloudGroupwareAccounts(NextcloudProvisioningClient cli
                 _ => null,
             }
             : null;
+
+    /// <summary>Whether a JSON array of strings has an element matching <paramref name="match"/>.</summary>
+    private static bool HasAny(JsonNode? node, Func<string, bool> match) =>
+        node is JsonArray array && array.Any(e => e is JsonValue v && v.TryGetValue(out string? s) && match(s));
 }

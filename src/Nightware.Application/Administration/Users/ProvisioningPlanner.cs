@@ -34,7 +34,8 @@ public sealed class ProvisioningPlanner(
     IIdentityAccounts identities,
     IAdminScopeSource scopes,
     IMailAccounts mail,
-    IGroupwareAccounts groupware)
+    IGroupwareAccounts groupware,
+    AdministrationOptions options)
 {
     public async Task<Result<ResolvedPlan>> PlanAsync(NewUserRequest request, CancellationToken cancellationToken)
     {
@@ -51,7 +52,7 @@ public sealed class ProvisioningPlanner(
             return entity.Error;
         }
 
-        Result<(MailAddress Address, string? Username, IReadOnlyList<MailAddress> Aliases)> parsed = Parse(request, entity.Value);
+        Result<(MailAddress Address, string? Username, IReadOnlyList<MailAddress> Aliases)> parsed = Parse(request, entity.Value, options);
         if (!parsed.IsSuccess)
         {
             return parsed.Error;
@@ -111,7 +112,7 @@ public sealed class ProvisioningPlanner(
         PlannedStep mailStep = LinkStateEvaluator.Step(mailLink, $"Create mailbox {address}.");
         if (mailStep.Action != PlannedAction.Conflict)
         {
-            mailStep = await CheckAliasesAsync(mailStep, mailLink.DownstreamId, aliases, cancellationToken).ConfigureAwait(false);
+            mailStep = await CheckAliasesAsync(mailStep, mailLink.DownstreamId, existing?.Id, aliases, cancellationToken).ConfigureAwait(false);
         }
 
         BackendLink cloudLink = LinkStateEvaluator.Groupware(username, address.Value, await groupware.FindAsync(username, cancellationToken).ConfigureAwait(false));
@@ -121,14 +122,19 @@ public sealed class ProvisioningPlanner(
         return new ResolvedPlan(plan, entity.Value, address, username, aliases, existing, mailLink, cloudLink);
     }
 
-    private static Result<(MailAddress, string?, IReadOnlyList<MailAddress>)> Parse(NewUserRequest request, Entity entity)
+    private static Result<(MailAddress, string?, IReadOnlyList<MailAddress>)> Parse(NewUserRequest request, Entity entity, AdministrationOptions options)
     {
         if (!MailAddress.TryParse(request.Address, out MailAddress? address))
         {
             return Error.Validation("Enter an address of letters, digits, '.', '_' or '-' on one of the entity's domains.", "address");
         }
 
-        Result inEntity = AdminAuthorization.RequireAddressInEntity(entity, address);
+        Result inEntity = AdminAuthorization.RequireNotReserved(address, options);
+        if (inEntity.IsSuccess)
+        {
+            inEntity = AdminAuthorization.RequireAddressInEntity(entity, address);
+        }
+
         if (!inEntity.IsSuccess)
         {
             return inEntity.Error;
@@ -148,7 +154,12 @@ public sealed class ProvisioningPlanner(
                 return Error.Validation($"{raw.Trim()} is not a valid address.", "aliases");
             }
 
-            Result aliasInEntity = AdminAuthorization.RequireAddressInEntity(entity, alias);
+            Result aliasInEntity = AdminAuthorization.RequireNotReserved(alias, options);
+            if (aliasInEntity.IsSuccess)
+            {
+                aliasInEntity = AdminAuthorization.RequireAddressInEntity(entity, alias);
+            }
+
             if (!aliasInEntity.IsSuccess)
             {
                 return aliasInEntity.Error;
@@ -174,10 +185,22 @@ public sealed class ProvisioningPlanner(
         && username.All(static c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c is '.' or '_' or '-' or '@');
 
     /// <summary>An alias already held by another mailbox would be stolen; that is a conflict, not a link.</summary>
-    private async Task<PlannedStep> CheckAliasesAsync(PlannedStep step, string? accountId, IReadOnlyList<MailAddress> aliases, CancellationToken cancellationToken)
+    private async Task<PlannedStep> CheckAliasesAsync(PlannedStep step, string? accountId, string? identityId, IReadOnlyList<MailAddress> aliases, CancellationToken cancellationToken)
     {
         foreach (MailAddress alias in aliases)
         {
+            // Someone else's sign-in address would route their mail, set-password links included, here.
+            Result<IdentityAccount> owner = await identities.FindByEmailAsync(alias.Value, cancellationToken).ConfigureAwait(false);
+            if (owner.IsSuccess && owner.Value.Id != identityId)
+            {
+                return new PlannedStep(BackendKind.Mail, PlannedAction.Conflict, $"The alias {alias} is the address of Keycloak user {owner.Value.Username}.");
+            }
+
+            if (!owner.IsSuccess && owner.Error.Kind != ErrorKind.NotFound)
+            {
+                return new PlannedStep(BackendKind.Mail, PlannedAction.Conflict, owner.Error.Message);
+            }
+
             Result<MailAccount> holder = await mail.FindByAddressAsync(alias.Value, cancellationToken).ConfigureAwait(false);
             if (holder.IsSuccess && holder.Value.Id != accountId)
             {

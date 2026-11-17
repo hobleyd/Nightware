@@ -112,10 +112,10 @@ occ config:app:set bruteForce whitelist_1000_comment --value="nightware-api (dep
 if [[ -n "${NEXTCLOUD_PROVISIONING_PASSWORD:-}" ]]; then
   PROV_USER="${NEXTCLOUD_PROVISIONING_USER:-nightware-admin}"
   if occ user:info "$PROV_USER" >/dev/null 2>&1; then
-    dc exec -T -u www-data -e OC_PASS="$NEXTCLOUD_PROVISIONING_PASSWORD" nextcloud php occ user:resetpassword --password-from-env "$PROV_USER" >/dev/null
+    OC_PASS="$NEXTCLOUD_PROVISIONING_PASSWORD" dc exec -T -u www-data -e OC_PASS nextcloud php occ user:resetpassword --password-from-env "$PROV_USER" >/dev/null
   else
     log "Nextcloud: creating the admin console account ${PROV_USER}"
-    dc exec -T -u www-data -e OC_PASS="$NEXTCLOUD_PROVISIONING_PASSWORD" nextcloud php occ user:add --password-from-env \
+    OC_PASS="$NEXTCLOUD_PROVISIONING_PASSWORD" dc exec -T -u www-data -e OC_PASS nextcloud php occ user:add --password-from-env \
       --display-name "Nightware admin console" --group admin "$PROV_USER" >/dev/null
   fi
   # The console's address, so brute-force protection never throttles provisioning.

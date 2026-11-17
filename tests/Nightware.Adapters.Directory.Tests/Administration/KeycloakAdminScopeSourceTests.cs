@@ -191,4 +191,18 @@ public sealed class KeycloakAdminScopeSourceTests : IDisposable
         (await host.Scoped<IAdminScopeSource>().ResolveAsync(UserId, Ct)).Value.AdministersDirectory.ShouldBeTrue();
         _keycloak.Admin("GET", "/users").Single().Query!["username"].ShouldBe(["service-account-nightware-admin"]);
     }
+
+    [Fact]
+    public async Task A_disabled_user_reports_their_account_disabled()
+    {
+        _keycloak.GivenAdmin(RolesPath, 200, """[{"id":"r2","name":"nightware-global-admin"}]""");
+        _keycloak.GivenAdmin(OrgsPath, 200, "[]");
+        _keycloak.GivenAdmin($"/users/{UserId}", 200, $$"""{"id":"{{UserId}}","username":"u","enabled":false}""", priority: 1);
+        await using AdapterHost host = Host();
+
+        AdminScope scope = (await host.Scoped<IAdminScopeSource>().ResolveAsync(UserId, Ct)).Value;
+
+        scope.IsGlobal.ShouldBeTrue(); // the roles are still held, so targets stay protected
+        scope.AccountEnabled.ShouldBeFalse();
+    }
 }

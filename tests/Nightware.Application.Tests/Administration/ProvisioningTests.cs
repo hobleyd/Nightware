@@ -245,16 +245,77 @@ public sealed class ProvisioningTests
         _bed.Audit.Single("user.provisioned").Succeeded.ShouldBeFalse();
     }
 
-    [Fact]
-    public async Task The_consoles_own_mail_principal_cannot_be_claimed_by_a_new_user()
+    [Theory]
+    [InlineData("nightware-admin@acme.example")]
+    [InlineData("postmaster@acme.example")]
+    [InlineData("NoReply@acme.example")]
+    public async Task Reserved_system_addresses_are_never_given_to_a_person(string address)
     {
-        _bed.Mail.FindByAddressAsync("nightware-admin@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-console", "nightware-admin@acme.example", true) { IsPrivileged = true });
+        Result<ProvisioningResult> result = await Apply.ExecuteAsync(Carol() with { Address = address }, CredentialDelivery.TemporaryPassword, Ct);
 
-        Result<ProvisioningResult> result = await Apply.ExecuteAsync(Carol() with { Address = "nightware-admin@acme.example" }, CredentialDelivery.TemporaryPassword, Ct);
+        result.Error!.Kind.ShouldBe(ErrorKind.Validation);
+        result.Error.Message.ShouldContain("reserved");
+        await _bed.Identities.DidNotReceiveWithAnyArgs().CreateAsync(default!, Ct);
+    }
+
+    [Fact]
+    public async Task A_privileged_mailbox_cannot_be_claimed_by_a_new_user()
+    {
+        _bed.Mail.FindByAddressAsync("ops@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-ops", "ops@acme.example", true) { IsPrivileged = true });
+
+        Result<ProvisioningResult> result = await Apply.ExecuteAsync(Carol() with { Address = "ops@acme.example" }, CredentialDelivery.TemporaryPassword, Ct);
 
         result.Error!.Kind.ShouldBe(ErrorKind.Conflict);
         result.Error.Message.ShouldContain("privileged");
         await _bed.Identities.DidNotReceiveWithAnyArgs().CreateAsync(default!, Ct);
+    }
+
+    [Fact]
+    public async Task A_nextcloud_administrator_cannot_be_linked()
+    {
+        _bed.Groupware.FindAsync("carol", Arg.Any<CancellationToken>()).Returns(new GroupwareAccount("carol", "carol@acme.example", "C", true, true) { IsAdministrator = true });
+
+        (await Plan.ExecuteAsync(Carol(), Ct)).Value.For(BackendKind.Groupware).Action.ShouldBe(PlannedAction.Conflict);
+    }
+
+    [Fact]
+    public async Task An_alias_that_is_someone_elses_sign_in_address_is_a_conflict()
+    {
+        _bed.AddUser("u-victim", "victim", "boss@acme.example");
+
+        ProvisioningPlan plan = (await Plan.ExecuteAsync(Carol(null, "boss@acme.example"), Ct)).Value;
+
+        plan.For(BackendKind.Mail).Action.ShouldBe(PlannedAction.Conflict);
+        plan.For(BackendKind.Mail).Reason.ShouldContain("Keycloak user victim");
+    }
+
+    [Fact]
+    public async Task An_offboarded_user_is_reinstated_not_relinked()
+    {
+        _bed.AddUser("u-carol", "carol", "carol@acme.example", enabled: false, entities: []);
+
+        ProvisioningPlan plan = (await Plan.ExecuteAsync(Carol(), Ct)).Value;
+
+        plan.For(BackendKind.Identity).Action.ShouldBe(PlannedAction.Conflict);
+        plan.For(BackendKind.Identity).Reason.ShouldContain("reinstate");
+    }
+
+    [Fact]
+    public async Task Linking_an_existing_person_never_resets_their_password()
+    {
+        _bed.AddUser("u-carol", "carol", "carol@acme.example", entities: []);
+
+        (await Apply.ExecuteAsync(Carol(), CredentialDelivery.TemporaryPassword, Ct)).Error!.Target.ShouldBe("delivery");
+        await _bed.Identities.DidNotReceiveWithAnyArgs().SetTemporaryPasswordAsync(default!, default!, Ct);
+        (await Apply.ExecuteAsync(Carol(), CredentialDelivery.None, Ct)).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Nobody_links_their_own_account()
+    {
+        _bed.AddUser("u-admin", "carol", "carol@acme.example", entities: []);
+
+        (await Apply.ExecuteAsync(Carol(), CredentialDelivery.None, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
     }
 
     [Fact]

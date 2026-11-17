@@ -137,7 +137,11 @@ public interface IMailDomains
 }
 
 /// <param name="ManagedByIdentityProvider">The account signs in through Keycloak (Nextcloud <c>user_oidc</c>), not a local password.</param>
-public sealed record GroupwareAccount(string Uid, string? Email, string? DisplayName, bool Enabled, bool ManagedByIdentityProvider);
+public sealed record GroupwareAccount(string Uid, string? Email, string? DisplayName, bool Enabled, bool ManagedByIdentityProvider)
+{
+    /// <summary>A Nextcloud administrator or group sub-administrator. Never linked or managed by the console.</summary>
+    public bool IsAdministrator { get; init; }
+}
 
 /// <summary>Accounts on the groupware server (Nextcloud), managed with the console's own credential.</summary>
 public interface IGroupwareAccounts
@@ -199,4 +203,13 @@ public sealed class AdministrationOptions
 
     /// <summary>How long a set-password e-mail link stays valid.</summary>
     public TimeSpan ActionEmailLifespan { get; set; } = TimeSpan.FromDays(3);
+
+    /// <summary>
+    /// Local parts never given to a person, on any domain: the console's own mail principal, the realm's
+    /// sender, and the role addresses mail systems rely on.
+    /// </summary>
+    public ISet<string> ReservedLocalParts { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "nightware-admin", "noreply", "no-reply", "calendar", "postmaster", "abuse", "hostmaster", "webmaster", "mailer-daemon", "root",
+    };
 }

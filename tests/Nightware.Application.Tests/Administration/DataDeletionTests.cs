@@ -186,7 +186,8 @@ public sealed class DataDeletionTests
     {
         _bed.Mail.FindByAddressAsync(Address, Arg.Any<CancellationToken>()).Returns(new MailAccount("m-carol", Address, true) { IsPrivileged = true });
 
-        (await DeleteMail.ExecuteAsync("u-carol", Address, Ct)).Error!.Kind.ShouldBe(ErrorKind.Conflict);
+        // An administrator of the mail server is off-limits altogether, not just for deletion.
+        (await DeleteMail.ExecuteAsync("u-carol", Address, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         await _bed.Mail.DidNotReceiveWithAnyArgs().DestroyAsync(default!, Ct);
     }
 }

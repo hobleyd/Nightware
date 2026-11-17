@@ -133,4 +133,14 @@ public sealed class ConsoleSecurityTests : IDisposable
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
+
+    [Fact]
+    public async Task An_offboarded_admin_loses_the_console_whatever_their_cookie_says()
+    {
+        _host.Scopes.ResolveAsync("u-offboarded", Arg.Any<CancellationToken>()).Returns(new AdminScope(true, new HashSet<string>(), AccountEnabled: false));
+
+        using HttpResponseMessage response = await _host.ClientAs("u-offboarded").GetAsync(new Uri("/", UriKind.Relative), Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
 }

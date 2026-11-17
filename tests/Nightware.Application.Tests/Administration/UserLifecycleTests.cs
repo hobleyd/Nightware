@@ -234,7 +234,7 @@ public sealed class UserLifecycleTests
     public async Task Aliases_are_written_to_keycloak_and_the_mailbox()
     {
         Carol();
-        var setAliases = new SetUserAliases(_bed.Actor, _bed.UserAccess(), _bed.Entities, _bed.Identities, _bed.Mail, _bed.Audit);
+        var setAliases = new SetUserAliases(_bed.Actor, _bed.UserAccess(), _bed.Entities, _bed.Identities, _bed.Mail, _bed.Options, _bed.Audit);
 
         (await setAliases.ExecuteAsync("u-carol", ["c.jones@acme.example", "carol@acme.example", " "], Ct)).IsSuccess.ShouldBeTrue();
 
@@ -247,7 +247,7 @@ public sealed class UserLifecycleTests
     {
         Carol();
         _bed.AddMailbox("sales@acme.example", "m-sales");
-        var setAliases = new SetUserAliases(_bed.Actor, _bed.UserAccess(), _bed.Entities, _bed.Identities, _bed.Mail, _bed.Audit);
+        var setAliases = new SetUserAliases(_bed.Actor, _bed.UserAccess(), _bed.Entities, _bed.Identities, _bed.Mail, _bed.Options, _bed.Audit);
 
         (await setAliases.ExecuteAsync("u-carol", ["carol@other.example"], Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
         (await setAliases.ExecuteAsync("u-carol", ["sales@acme.example"], Ct)).Error!.Kind.ShouldBe(ErrorKind.Conflict);
@@ -262,5 +262,42 @@ public sealed class UserLifecycleTests
         (await new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Groupware, _bed.Audit).ExecuteAsync("u-carol", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         (await new ResetUserCredential(_bed.Actor, _bed.UserAccess(), _bed.Credentials(), _bed.Audit).ExecuteAsync("u-carol", CredentialDelivery.TemporaryPassword, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         await _bed.Identities.DidNotReceiveWithAnyArgs().SetTemporaryPasswordAsync(default!, default!, Ct);
+    }
+
+    [Fact]
+    public async Task Nobody_reinstates_themselves()
+    {
+        Carol(enabled: false);
+        _bed.ActAsGlobal("u-carol");
+
+        (await new ReinstateUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit).ExecuteAsync("u-carol", false, Ct))
+            .Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        await _bed.Identities.DidNotReceiveWithAnyArgs().SetEnabledAsync(default!, default, Ct);
+    }
+
+    [Fact]
+    public async Task A_nextcloud_or_mail_administrator_cannot_have_their_password_reset()
+    {
+        Carol();
+        _bed.AddCloudUser("carol", "carol@acme.example", enabled: true) ;
+        _bed.Groupware.FindAsync("carol", Arg.Any<CancellationToken>()).Returns(new GroupwareAccount("carol", "carol@acme.example", "C", true, true) { IsAdministrator = true });
+        var reset = new ResetUserCredential(_bed.Actor, _bed.UserAccess(), _bed.Credentials(), _bed.Audit);
+
+        (await reset.ExecuteAsync("u-carol", CredentialDelivery.TemporaryPassword, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        _bed.ActAsEntityAdmin();
+        (await reset.ExecuteAsync("u-carol", CredentialDelivery.TemporaryPassword, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        await _bed.Identities.DidNotReceiveWithAnyArgs().SetTemporaryPasswordAsync(default!, default!, Ct);
+    }
+
+    [Fact]
+    public async Task Aliases_cannot_capture_another_persons_address_or_a_reserved_one()
+    {
+        Carol();
+        _bed.AddUser("u-boss", "boss", "boss@acme.example");
+        var setAliases = new SetUserAliases(_bed.Actor, _bed.UserAccess(), _bed.Entities, _bed.Identities, _bed.Mail, _bed.Options, _bed.Audit);
+
+        (await setAliases.ExecuteAsync("u-carol", ["boss@acme.example"], Ct)).Error!.Kind.ShouldBe(ErrorKind.Conflict);
+        (await setAliases.ExecuteAsync("u-carol", ["postmaster@acme.example"], Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        await _bed.Identities.DidNotReceiveWithAnyArgs().SetAliasesAsync(default!, default!, Ct);
     }
 }

@@ -56,7 +56,7 @@ public sealed class RepairUser(IAdminActor actor, UserAccess users, IMailAccount
 }
 
 /// <summary>Replaces a user's secondary addresses in Keycloak and on their mailbox.</summary>
-public sealed class SetUserAliases(IAdminActor actor, UserAccess users, IEntityRegistry entities, IIdentityAccounts identities, IMailAccounts mail, IAuditLog audit)
+public sealed class SetUserAliases(IAdminActor actor, UserAccess users, IEntityRegistry entities, IIdentityAccounts identities, IMailAccounts mail, AdministrationOptions options, IAuditLog audit)
 {
     public async Task<Result<UserDetail>> ExecuteAsync(string userId, IReadOnlyList<string> aliases, CancellationToken cancellationToken)
     {
@@ -88,10 +88,21 @@ public sealed class SetUserAliases(IAdminActor actor, UserAccess users, IEntityR
                 return Error.Validation($"{raw.Trim()} is not a valid address.", "aliases");
             }
 
-            Result inEntity = AdminAuthorization.RequireAddressInEntity(entity.Value, alias);
+            Result inEntity = AdminAuthorization.RequireNotReserved(alias, options);
+            if (inEntity.IsSuccess)
+            {
+                inEntity = AdminAuthorization.RequireAddressInEntity(entity.Value, alias);
+            }
+
             if (!inEntity.IsSuccess)
             {
                 return inEntity.Error;
+            }
+
+            Result<IdentityAccount> owner = await identities.FindByEmailAsync(alias.Value, cancellationToken).ConfigureAwait(false);
+            if (owner.IsSuccess && owner.Value.Id != userId)
+            {
+                return Error.Conflict($"The alias {alias} is the address of Keycloak user {owner.Value.Username}.", "aliases");
             }
 
             Result<MailAccount> holder = await mail.FindByAddressAsync(alias.Value, cancellationToken).ConfigureAwait(false);

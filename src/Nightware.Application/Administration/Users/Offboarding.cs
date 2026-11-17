@@ -48,6 +48,12 @@ public sealed class ReinstateUser(IAdminActor actor, UserAccess users, IIdentity
 {
     public async Task<Result<UserDetail>> ExecuteAsync(string userId, bool recreateMailbox, CancellationToken cancellationToken)
     {
+        Result self = AdminAuthorization.RequireNotSelf(actor.Current, userId);
+        if (!self.IsSuccess)
+        {
+            return self.Error;
+        }
+
         Result<UserDetail> loaded = await users.LoadWithLinksAsync(userId, cancellationToken).ConfigureAwait(false);
         if (!loaded.IsSuccess)
         {

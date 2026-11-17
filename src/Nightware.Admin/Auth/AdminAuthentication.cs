@@ -30,6 +30,9 @@ public static class AdminAuthentication
     /// </summary>
     public const string SessionStartedItem = "nightware.session_started";
 
+    /// <summary>Allowance between Keycloak's clock and the console's for the re-authentication check.</summary>
+    internal const int ClockSkewSeconds = 60;
+
     /// <summary>Set on a challenge that must re-prompt for credentials (<c>max_age=0</c>).</summary>
     public const string ForceReauthenticationItem = "nightware.reauth";
 
@@ -119,6 +122,10 @@ public static class AdminAuthentication
             {
                 context.ProtocolMessage.MaxAge = "0";
                 context.ProtocolMessage.Prompt = "login";
+                // When the console asked, so the answer can be checked against it (the properties travel in the
+                // protected state parameter).
+                TimeProvider time = context.HttpContext.RequestServices.GetRequiredService<TimeProvider>();
+                context.Properties.Items[ForceReauthenticationItem] = time.GetUtcNow().ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
             }
 
             return Task.CompletedTask;
@@ -132,28 +139,34 @@ public static class AdminAuthentication
                 return Task.CompletedTask;
             }
 
-            TimeProvider time = context.HttpContext.RequestServices.GetRequiredService<TimeProvider>();
-            string now = time.GetUtcNow().ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
-            if (context.Principal?.Identity is ClaimsIdentity identity)
+            // auth_time is the evidence for every freshness check; a token without it is refused, not trusted.
+            if (!long.TryParse(context.Principal?.FindFirst(AuthTimeClaim)?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long authTime))
             {
-                // A sign-in the console forced (prompt=login, max_age=0; the flag travels in the protected state)
-                // proves the person authenticated just now, whatever auth_time Keycloak reports for the session.
-                // Without auth_time the sign-in itself is the best evidence too.
-                bool forced = context.Properties?.Items.ContainsKey(ForceReauthenticationItem) == true;
-                if (forced || identity.FindFirst(AuthTimeClaim) is null)
-                {
-                    foreach (Claim stale in identity.FindAll(AuthTimeClaim).ToList())
-                    {
-                        identity.RemoveClaim(stale);
-                    }
+                context.Fail("The sign-in carried no auth_time.");
+                return Task.CompletedTask;
+            }
 
-                    identity.AddClaim(new Claim(AuthTimeClaim, now, ClaimValueTypes.Integer64));
-                }
+            // A re-authentication the console forced must have happened after it was asked for, not merely
+            // been answered by an older session.
+            if (context.Properties?.Items.TryGetValue(ForceReauthenticationItem, out string? askedAt) == true
+                && long.TryParse(askedAt, NumberStyles.Integer, CultureInfo.InvariantCulture, out long asked)
+                && authTime < asked - ClockSkewSeconds)
+            {
+                context.Fail("Keycloak did not re-authenticate the user.");
+                return Task.CompletedTask;
             }
 
             // Each credential sign-in (re-authentication included) starts the session clock; refreshes never do.
+            TimeProvider time = context.HttpContext.RequestServices.GetRequiredService<TimeProvider>();
             context.Properties ??= new AuthenticationProperties();
-            context.Properties.Items.TryAdd(SessionStartedItem, now);
+            context.Properties.Items.TryAdd(SessionStartedItem, time.GetUtcNow().ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture));
+
+            // Only the ID token is kept (in the encrypted cookie), as the id_token_hint Keycloak needs to end the
+            // SSO session at sign-out. No access or refresh token is ever stored.
+            if (context.ProtocolMessage?.IdToken is { Length: > 0 } idToken)
+            {
+                context.Properties.StoreTokens([new AuthenticationToken { Name = "id_token", Value = idToken }]);
+            }
 
             return Task.CompletedTask;
         };

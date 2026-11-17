@@ -23,4 +23,5 @@ public sealed record AdminActor(
 /// Holds Keycloak administration rights (or is a service account). The console never manages such an
 /// account: resetting its password would hand over more than the console itself may do.
 /// </param>
-public sealed record AdminScope(bool IsGlobal, IReadOnlySet<string> EntityIds, bool AdministersDirectory = false);
+/// <param name="AccountEnabled">False for an offboarded user: they hold no console rights, whatever their roles.</param>
+public sealed record AdminScope(bool IsGlobal, IReadOnlySet<string> EntityIds, bool AdministersDirectory = false, bool AccountEnabled = true);

@@ -73,6 +73,16 @@ public static class AdminAuthorization
             : Error.Validation($"{address.Domain} is not a domain of {entity.Name}.", "address");
     }
 
+    /// <summary>The address is not one of the reserved system addresses.</summary>
+    public static Result RequireNotReserved(MailAddress address, AdministrationOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(address);
+        ArgumentNullException.ThrowIfNull(options);
+        return options.ReservedLocalParts.Contains(address.LocalPart)
+            ? Error.Validation($"{address} is a reserved system address.", "address")
+            : Result.Success();
+    }
+
     public static Result RequireNotSelf(AdminActor actor, string targetUserId)
     {
         ArgumentNullException.ThrowIfNull(actor);

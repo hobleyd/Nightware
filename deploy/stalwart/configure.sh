@@ -149,13 +149,14 @@ fi
 # The key is written to .env as STALWART_MANAGEMENT_API_KEY and re-minted when
 # it no longer authenticates. STALWART_MANAGEMENT_LOGIN (the recovery-admin
 # fallback) skips all of this.
-api_key_works() {
-  [[ -n "$1" ]] && ccurl -f -H "Authorization: Bearer $1" -H 'Content-Type: application/json' "${MAIL_URL}/jmap/" \
+api_key_works() { # the key goes through stdin, not the command line (ps)
+  [[ -n "$1" ]] && printf 'Authorization: Bearer %s\n' "$1" | ccurl -f -H @- -H 'Content-Type: application/json' "${MAIL_URL}/jmap/" \
     -d "{${USING},\"methodCalls\":[[\"x:Account/query\",{},\"q\"]]}" 2>/dev/null | jq -e '.methodResponses[0][0]=="x:Account/query"' >/dev/null
 }
-env_put() { # KEY VALUE: replace KEY= in deploy/.env, or append it
+env_put() { # KEY VALUE: replace KEY= in deploy/.env, or append it (value via the environment, not argv)
   local tmp; tmp=$(mktemp)
-  awk -v k="$1" -v line="$1=$2" 'BEGIN{done=0} $0 ~ "^"k"=" {if(!done) print line; done=1; next} {print} END{if(!done) print line}' "$DEPLOY_DIR/.env" > "$tmp"
+  ENV_PUT_KEY="$1" ENV_PUT_LINE="$1=$2" awk 'BEGIN{k=ENVIRON["ENV_PUT_KEY"]; line=ENVIRON["ENV_PUT_LINE"]; done=0}
+    $0 ~ "^"k"=" {if(!done) print line; done=1; next} {print} END{if(!done) print line}' "$DEPLOY_DIR/.env" > "$tmp"
   cat "$tmp" > "$DEPLOY_DIR/.env"; rm -f "$tmp"
 }
 if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" ]]; then
@@ -190,7 +191,9 @@ if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" ]]; then
       log "Stalwart: admin console API key in .env still works"
     else
       log "Stalwart: minting an API key for ${MGMT_USER}@${MAIL_DOMAIN} -> .env STALWART_MANAGEMENT_API_KEY"
-      KEY=$(call "$(jq -cn --arg a "$MGMT_ID" '[["x:ApiKey/set",{"accountId":$a,"create":{"k":{description:"Nightware admin console",permissions:{"@type":"Inherit"},allowedIps:{}}}},"c"]]')" \
+      # Usable only from the console's container (it reaches Stalwart directly on the stack network).
+      ADMIN_IP="${NIGHTWARE_ADMIN_ADDRESS:-172.31.250.249}/32"
+      KEY=$(call "$(jq -cn --arg a "$MGMT_ID" --arg ip "$ADMIN_IP" '[["x:ApiKey/set",{"accountId":$a,"create":{"k":{description:"Nightware admin console",permissions:{"@type":"Inherit"},allowedIps:{($ip):true}}}},"c"]]')" \
         | jq -r '.methodResponses[0][1].created.k.secret // empty')
       if [[ -n "$KEY" ]]; then
         env_put STALWART_MANAGEMENT_API_KEY "$KEY"

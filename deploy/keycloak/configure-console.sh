@@ -114,7 +114,7 @@ if [[ -z "$(flow_id "$FLOW")" ]]; then
      && add_execution "$FLOW" auth-cookie && set_requirement "$FLOW" Cookie ALTERNATIVE \
      && add_subflow "$FLOW" "${FLOW} forms" && set_requirement "$FLOW" "${FLOW} forms" ALTERNATIVE \
      && add_subflow "${FLOW} forms" "${FLOW} level 1" && set_requirement "${FLOW} forms" "${FLOW} level 1" CONDITIONAL \
-     && add_execution "${FLOW} level 1" conditional-level-of-authentication && loa_condition "${FLOW} level 1" 1 36000 \
+     && add_execution "${FLOW} level 1" conditional-level-of-authentication && loa_condition "${FLOW} level 1" 1 28800 \
      && add_execution "${FLOW} level 1" auth-username-password-form \
      && add_subflow "${FLOW} forms" "${FLOW} level 2" && set_requirement "${FLOW} forms" "${FLOW} level 2" CONDITIONAL \
      && add_execution "${FLOW} level 2" conditional-level-of-authentication && loa_condition "${FLOW} level 2" 2 300 \
@@ -132,11 +132,13 @@ fi
 FLOW_ID=$(flow_id "$FLOW")
 
 # --------------------------------------------------------------- 5. client
-client_rep=$(jq -cn --arg id "$CLIENT_ID" --arg secret "${NIGHTWARE_ADMIN_CLIENT_SECRET:?run scripts/init-env.sh}" \
+: "${NIGHTWARE_ADMIN_CLIENT_SECRET:?run scripts/init-env.sh}"
+export NIGHTWARE_ADMIN_CLIENT_SECRET  # read by jq from the environment, not passed on its command line
+client_rep=$(jq -cn --arg id "$CLIENT_ID" \
   --arg url "$CONSOLE_URL" --arg acr "$REQUIRED_ACR" --arg flow "$FLOW_ID" '{
     clientId: $id, name: "Nightware admin console",
     description: "Admin console (ADR 0002): sign-in for administrators, and its own service account for the Keycloak admin API.",
-    enabled: true, publicClient: false, secret: $secret, clientAuthenticatorType: "client-secret", protocol: "openid-connect",
+    enabled: true, publicClient: false, secret: $ENV.NIGHTWARE_ADMIN_CLIENT_SECRET, clientAuthenticatorType: "client-secret", protocol: "openid-connect",
     standardFlowEnabled: true, implicitFlowEnabled: false, directAccessGrantsEnabled: false, serviceAccountsEnabled: true,
     redirectUris: [($url + "/signin-oidc")], webOrigins: ["-"],
     attributes: ({"pkce.code.challenge.method": "S256", "post.logout.redirect.uris": ($url + "/signout-callback-oidc"),
@@ -167,7 +169,7 @@ SA=$(kc "${API}/clients/${CLIENT_UUID}/service-account-user" | jq -r .id)
 RM=$(kc "${API}/clients?clientId=realm-management" | jq -r '.[0].id')
 have=$(kc "${API}/users/${SA}/role-mappings/clients/${RM}" | jq -r '.[].name')
 available=$(kc "${API}/users/${SA}/role-mappings/clients/${RM}/available")
-for role in view-users query-users manage-users query-groups query-clients view-realm view-organizations query-organizations manage-organizations; do
+for role in view-users query-users manage-users query-groups query-clients view-organizations query-organizations manage-organizations; do
   grep -qx "$role" <<<"$have" && continue
   rep=$(jq -c --arg n "$role" '[.[] | select(.name==$n)]' <<<"$available")
   if [[ "$rep" == "[]" ]]; then
@@ -176,6 +178,14 @@ for role in view-users query-users manage-users query-groups query-clients view-
   fi
   log "Keycloak (console): service account gets realm-management ${role}"
   kcj -X POST "${API}/users/${SA}/role-mappings/clients/${RM}" -d "$rep" >/dev/null
+done
+
+# Roles an earlier version of this script granted and the console no longer needs.
+for role in view-realm; do
+  grep -qx "$role" <<<"$have" || continue
+  rep=$(kc "${API}/users/${SA}/role-mappings/clients/${RM}" | jq -c --arg n "$role" '[.[] | select(.name==$n)]')
+  log "Keycloak (console): service account no longer holds realm-management ${role}"
+  kcj -X DELETE "${API}/users/${SA}/role-mappings/clients/${RM}" -d "$rep" >/dev/null
 done
 
 # -------------------------------------------------------- 6. default entity

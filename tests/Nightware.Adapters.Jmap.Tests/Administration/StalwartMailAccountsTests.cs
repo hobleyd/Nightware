@@ -8,7 +8,7 @@ namespace Nightware.Adapters.Jmap.Tests.Administration;
 
 public sealed class StalwartMailAccountsTests : IAsyncDisposable
 {
-    private const string Carol = """{"id":"a3","@type":"User","name":"carol","domainId":"d7","emailAddress":"carol@acme.example","aliases":{"0":{"enable":true,"name":"c.smith","domainId":"d7"},"1":{"name":"carol","domainId":"d8"}}}""";
+    private const string Carol = """{"id":"a3","@type":"User","name":"carol","domainId":"d7","emailAddress":"carol@acme.example","roles":{"@type":"User"},"permissions":{"@type":"Inherit"},"aliases":{"0":{"enable":true,"name":"c.smith","domainId":"d7"},"1":{"name":"carol","domainId":"d8"}}}""";
     private StalwartManagementTestHost _host = new(s => s["StalwartManagement:AccountPageSize"] = "2");
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -56,7 +56,8 @@ public sealed class StalwartMailAccountsTests : IAsyncDisposable
     [InlineData(",\"roles\":{\"@type\":\"Custom\",\"roleIds\":{\"r1\":true}}", true)]
     [InlineData(",\"permissions\":{\"@type\":\"Merge\",\"enabledPermissions\":{\"impersonate\":true}}", true)]
     [InlineData(",\"roles\":{\"@type\":\"User\"},\"permissions\":{\"@type\":\"Inherit\"}", false)]
-    [InlineData("", false)]
+    [InlineData("", true)] // fails closed: Stalwart always sends both fields
+    [InlineData(",\"roles\":{\"@type\":\"User\"}", true)]
     public async Task Accounts_with_more_than_user_rights_are_privileged(string extra, bool privileged)
     {
         StubAcme();

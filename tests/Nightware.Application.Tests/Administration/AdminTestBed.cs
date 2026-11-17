@@ -137,7 +137,7 @@ internal sealed class AdminTestBed
 
     public UserAccess UserAccess() => new(Actor, Identities, Entities, Scopes, Mail, Groupware);
 
-    public ProvisioningPlanner Planner() => new(Actor, Entities, Identities, Scopes, Mail, Groupware);
+    public ProvisioningPlanner Planner() => new(Actor, Entities, Identities, Scopes, Mail, Groupware, Options);
 
     public CredentialIssuer Credentials() => new(Identities, Passwords, Options);
 

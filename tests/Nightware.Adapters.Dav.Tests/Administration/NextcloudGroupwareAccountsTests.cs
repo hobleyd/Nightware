@@ -380,4 +380,18 @@ public sealed class NextcloudGroupwareAccountsTests : IDisposable
 
         (await accounts.FindAsync("alice", Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
     }
+
+    [Theory]
+    [InlineData("""["users"]""", "[]", false)]
+    [InlineData("""["users","admin"]""", "[]", true)]
+    [InlineData("""["users"]""", """["staff"]""", true)]
+    public async Task Find_flags_administrators_and_sub_administrators(string groups, string subadmin, bool administrator)
+    {
+        var data = JsonNode.Parse(Alice)!.AsObject();
+        data["groups"] = JsonNode.Parse(groups);
+        data["subadmin"] = JsonNode.Parse(subadmin);
+        _nextcloud.Answer("GET", UserPath, 200, 100, data.ToJsonString());
+
+        (await Accounts.FindAsync("alice", Ct)).Value.IsAdministrator.ShouldBe(administrator);
+    }
 }

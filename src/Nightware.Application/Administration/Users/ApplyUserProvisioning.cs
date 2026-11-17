@@ -36,6 +36,21 @@ public sealed class ApplyUserProvisioning(
         }
 
         ResolvedPlan p = planned.Value;
+        if (p.ExistingIdentity is { } linked)
+        {
+            if (string.Equals(linked.Id, actor.Current.UserId, StringComparison.Ordinal))
+            {
+                return Error.Forbidden("You cannot link your own account.");
+            }
+
+            if (delivery != CredentialDelivery.None)
+            {
+                // Linking never changes someone's password behind the plan's back; that is a separate,
+                // audited action on the user's page.
+                return Error.Validation("This person already has a Keycloak account. Choose 'None' for the password; reset it from their page if needed.", "delivery");
+            }
+        }
+
         if (p.Plan.HasConflict)
         {
             PlannedStep first = p.Plan.Steps.First(static s => s.Action == PlannedAction.Conflict);

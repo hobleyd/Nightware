@@ -101,10 +101,9 @@ public sealed class AdminAuthenticationTests
         await oidc.Events.OnTokenValidated(weak);
         weak.Result!.Failure.ShouldNotBeNull();
 
-        TokenValidatedContext strong = Validated(new Claim("acr", "mfa"));
+        TokenValidatedContext strong = Validated(new Claim("acr", "mfa"), new Claim("auth_time", "1700000000"));
         await oidc.Events.OnTokenValidated(strong);
         strong.Result.ShouldBeNull();
-        strong.Principal!.FindFirst(AdminAuthentication.AuthTimeClaim).ShouldNotBeNull();
         strong.Properties!.Items.ShouldContainKey(AdminAuthentication.SessionStartedItem);
     }
 
@@ -115,13 +114,15 @@ public sealed class AdminAuthenticationTests
         AdminAuthentication.ConfigureOidc(oidc, Options("mfa"));
         var properties = new AuthenticationProperties();
         properties.Items[AdminAuthentication.ForceReauthenticationItem] = "1";
-        var context = new RedirectContext(new DefaultHttpContext(), Scheme(), oidc, properties) { ProtocolMessage = new OpenIdConnectMessage() };
+        var time = new FakeTimeProvider(new DateTimeOffset(2026, 11, 17, 12, 0, 0, TimeSpan.Zero));
+        var context = new RedirectContext(new DefaultHttpContext { RequestServices = Services(time) }, Scheme(), oidc, properties) { ProtocolMessage = new OpenIdConnectMessage() };
 
         await oidc.Events.OnRedirectToIdentityProvider(context);
 
         context.ProtocolMessage.MaxAge.ShouldBe("0");
         context.ProtocolMessage.Prompt.ShouldBe("login");
         context.ProtocolMessage.AcrValues.ShouldBe("mfa");
+        properties.Items[AdminAuthentication.ForceReauthenticationItem].ShouldBe(time.GetUtcNow().ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Theory]
@@ -203,22 +204,37 @@ public sealed class AdminAuthenticationTests
         return environment;
     }
 
-    [Fact]
-    public async Task A_forced_reauthentication_counts_as_authenticating_now()
+    [Theory]
+    [InlineData(-3600, true)]
+    [InlineData(-30, false)]
+    [InlineData(5, false)]
+    public async Task A_forced_reauthentication_must_be_newer_than_the_request(int authTimeOffsetSeconds, bool refused)
     {
         var oidc = new OpenIdConnectOptions();
         AdminAuthentication.ConfigureOidc(oidc, Options("mfa"));
         var time = new FakeTimeProvider(new DateTimeOffset(2026, 11, 17, 12, 0, 0, TimeSpan.Zero));
         var http = new DefaultHttpContext { RequestServices = Services(time) };
         var properties = new AuthenticationProperties();
-        properties.Items[AdminAuthentication.ForceReauthenticationItem] = "1";
-        string hourAgo = time.GetUtcNow().AddHours(-1).ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
+        properties.Items[AdminAuthentication.ForceReauthenticationItem] = time.GetUtcNow().ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
+        string authTime = time.GetUtcNow().AddSeconds(authTimeOffsetSeconds).ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
         var context = new TokenValidatedContext(http, Scheme(), new OpenIdConnectOptions(),
-            new ClaimsPrincipal(new ClaimsIdentity([new Claim("acr", "mfa"), new Claim(AdminAuthentication.AuthTimeClaim, hourAgo)], "oidc")), properties);
+            new ClaimsPrincipal(new ClaimsIdentity([new Claim("acr", "mfa"), new Claim(AdminAuthentication.AuthTimeClaim, authTime)], "oidc")), properties);
 
         await oidc.Events.OnTokenValidated(context);
 
-        context.Principal!.FindAll(AdminAuthentication.AuthTimeClaim).Single().Value.ShouldBe(time.GetUtcNow().ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture));
+        (context.Result?.Failure is not null).ShouldBe(refused);
+    }
+
+    [Fact]
+    public async Task A_token_without_auth_time_is_refused()
+    {
+        var oidc = new OpenIdConnectOptions();
+        AdminAuthentication.ConfigureOidc(oidc, Options("mfa"));
+        TokenValidatedContext context = Validated(new Claim("acr", "mfa"));
+
+        await oidc.Events.OnTokenValidated(context);
+
+        context.Result!.Failure.ShouldNotBeNull();
     }
 
     [Fact]

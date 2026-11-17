@@ -60,6 +60,6 @@ internal sealed class KeycloakAdminScopeSource(IKeycloakAdminClient keycloak, Ke
         }
 
         bool administersDirectory = realmManagement.Value.Count > 0 || user.Value.ServiceAccountClientId is not null;
-        return new AdminScope(KeycloakIdentityAccounts.HasGlobalAdmin(roles.Value), entityIds, administersDirectory);
+        return new AdminScope(KeycloakIdentityAccounts.HasGlobalAdmin(roles.Value), entityIds, administersDirectory, user.Value.Enabled);
     }
 }
