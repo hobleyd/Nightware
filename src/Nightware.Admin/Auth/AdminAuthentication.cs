@@ -130,10 +130,21 @@ public static class AdminAuthentication
 
             TimeProvider time = context.HttpContext.RequestServices.GetRequiredService<TimeProvider>();
             string now = time.GetUtcNow().ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
-            if (context.Principal?.Identity is ClaimsIdentity identity && identity.FindFirst(AuthTimeClaim) is null)
+            if (context.Principal?.Identity is ClaimsIdentity identity)
             {
-                // Without auth_time the sign-in itself is the best evidence of when the person authenticated.
-                identity.AddClaim(new Claim(AuthTimeClaim, now, ClaimValueTypes.Integer64));
+                // A sign-in the console forced (prompt=login, max_age=0; the flag travels in the protected state)
+                // proves the person authenticated just now, whatever auth_time Keycloak reports for the session.
+                // Without auth_time the sign-in itself is the best evidence too.
+                bool forced = context.Properties?.Items.ContainsKey(ForceReauthenticationItem) == true;
+                if (forced || identity.FindFirst(AuthTimeClaim) is null)
+                {
+                    foreach (Claim stale in identity.FindAll(AuthTimeClaim).ToList())
+                    {
+                        identity.RemoveClaim(stale);
+                    }
+
+                    identity.AddClaim(new Claim(AuthTimeClaim, now, ClaimValueTypes.Integer64));
+                }
             }
 
             // Each credential sign-in (re-authentication included) starts the session clock; refreshes never do.

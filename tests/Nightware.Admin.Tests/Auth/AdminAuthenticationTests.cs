@@ -192,4 +192,34 @@ public sealed class AdminAuthenticationTests
         environment.EnvironmentName.Returns(name);
         return environment;
     }
+
+    [Fact]
+    public async Task A_forced_reauthentication_counts_as_authenticating_now()
+    {
+        var oidc = new OpenIdConnectOptions();
+        AdminAuthentication.ConfigureOidc(oidc, Options("mfa"));
+        var time = new FakeTimeProvider(new DateTimeOffset(2026, 11, 17, 12, 0, 0, TimeSpan.Zero));
+        var http = new DefaultHttpContext { RequestServices = Services(time) };
+        var properties = new AuthenticationProperties();
+        properties.Items[AdminAuthentication.ForceReauthenticationItem] = "1";
+        string hourAgo = time.GetUtcNow().AddHours(-1).ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var context = new TokenValidatedContext(http, Scheme(), new OpenIdConnectOptions(),
+            new ClaimsPrincipal(new ClaimsIdentity([new Claim("acr", "mfa"), new Claim(AdminAuthentication.AuthTimeClaim, hourAgo)], "oidc")), properties);
+
+        await oidc.Events.OnTokenValidated(context);
+
+        context.Principal!.FindAll(AdminAuthentication.AuthTimeClaim).Single().Value.ShouldBe(time.GetUtcNow().ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public async Task An_ordinary_sign_in_keeps_keycloaks_auth_time()
+    {
+        var oidc = new OpenIdConnectOptions();
+        AdminAuthentication.ConfigureOidc(oidc, Options("mfa"));
+        TokenValidatedContext context = Validated(new Claim("acr", "mfa"), new Claim(AdminAuthentication.AuthTimeClaim, "1700000000"));
+
+        await oidc.Events.OnTokenValidated(context);
+
+        context.Principal!.FindFirst(AdminAuthentication.AuthTimeClaim)!.Value.ShouldBe("1700000000");
+    }
 }
