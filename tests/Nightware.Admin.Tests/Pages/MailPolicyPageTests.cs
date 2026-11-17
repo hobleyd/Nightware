@@ -51,15 +51,34 @@ public sealed class MailPolicyPageTests : IDisposable
     }
 
     [Fact]
-    public async Task A_global_admin_sees_the_mail_servers_records_as_placeholders_of_an_empty_form()
+    public async Task A_global_admin_sees_the_mail_servers_records_stated_above_an_empty_form()
     {
         string html = await GetAsync(DnsUrl);
 
         html.ShouldContain("<h2>SPF and DMARC</h2>");
         html.ShouldContain("handler=MailPolicy");
-        html.ShouldContain("placeholder=\"v=spf1 mx ra=postmaster -all\"");
-        html.ShouldContain("placeholder=\"v=DMARC1; p=reject\"");
+        html.ShouldContain("Now: the mail server's record <code>v=spf1 mx ra=postmaster -all</code>");
+        html.ShouldContain("Now: the mail server's record <code>v=DMARC1; p=reject</code>");
+        html.ShouldContain("It is strict: mail that fails the checks is refused.");
+        html.ShouldNotContain("placeholder=\"v=");
         html.ShouldNotContain("handler=DefaultMailPolicy");
+    }
+
+    [Fact]
+    public async Task A_chosen_record_is_named_as_the_domains_own()
+    {
+        GivenChosen(new DomainMailPolicy(null, DmarcRecord.Parse("v=DMARC1; p=quarantine").Value));
+
+        string html = await GetAsync(DnsUrl);
+
+        html.ShouldContain("Now: this domain's own record, below.");
+        html.ShouldNotContain("It is strict");
+    }
+
+    [Fact]
+    public async Task The_records_to_publish_sit_in_their_own_panel()
+    {
+        (await GetAsync(DnsUrl)).ShouldContain("<h2>Publish these records</h2>");
     }
 
     [Fact]

@@ -32,6 +32,8 @@
 }
 else
 {
+    <section class="panel">
+    <h2>Publish these records</h2>
     <p class="hint">Publish these at your DNS provider so mail for @Model.Domain is delivered here and your outgoing mail passes SPF, DKIM and DMARC checks. Select a value to copy it.</p>
     <table class="dns">
         <thead><tr><th>Type</th><th>Name</th><th>TTL</th><th>Value</th></tr></thead>
@@ -42,11 +44,12 @@ else
                 <td data-label="Type">@r.Type</td>
                 <td data-label="Name"><input readonly value="@r.Name" aria-label="Name"></td>
                 <td data-label="TTL">@r.Ttl</td>
-                <td data-label="Value"><textarea readonly rows="@(r.Value.Length > 80 ? 3 : 1)" aria-label="Value">@r.Value</textarea></td>
+                <td data-label="Value"><textarea readonly rows="@(r.Value.Length > 60 ? 3 : 1)" aria-label="Value">@r.Value</textarea></td>
             </tr>
         }
         </tbody>
     </table>
+    </section>
 }
 
 @if (Model.Actor.IsGlobal && Model.Records.Count > 0)
@@ -79,8 +82,8 @@ else
                             <td data-label="Change">@Systems.DnsChangeLabel(c.Kind)@if (c.Note is not null) { <span class="hint detail">@c.Note</span> }</td>
                             <td data-label="Type">@record.Type</td>
                             <td data-label="Name">@record.Name</td>
-                            <td data-label="Value">@if (c.Desired is not null) { <textarea readonly rows="@(c.Desired.Value.Length > 80 ? 3 : 1)" aria-label="Value">@c.Desired.Value</textarea> } else { <text>—</text> }</td>
-                            <td data-label="In Cloudflare now">@if (c.Current is not null) { <textarea readonly rows="@(c.Current.Record.Value.Length > 80 ? 3 : 1)" aria-label="In Cloudflare now">@c.Current.Record.Value</textarea> } else { <text>—</text> }</td>
+                            <td data-label="Value">@if (c.Desired is not null) { <textarea readonly rows="@(c.Desired.Value.Length > 60 ? 3 : 1)" aria-label="Value">@c.Desired.Value</textarea> } else { <text>—</text> }</td>
+                            <td data-label="In Cloudflare now">@if (c.Current is not null) { <textarea readonly rows="@(c.Current.Record.Value.Length > 60 ? 3 : 1)" aria-label="In Cloudflare now">@c.Current.Record.Value</textarea> } else { <text>—</text> }</td>
                         </tr>
                     }
                     </tbody>
@@ -108,14 +111,16 @@ else
     @if (Model.Actor.IsGlobal)
     {
         <form method="post" asp-page-handler="MailPolicy">
+            <p class="now">Now: @if (Model.SpfDefaultInUse is { } spfNow) { <text>the mail server's record </text><code>@spfNow</code> } else { <text>this domain's own record, below.</text> }</p>
             <label>SPF record
-                <textarea asp-for="Spf" rows="2" class="mono" placeholder="@Model.SpfPlaceholder" aria-describedby="spf-hint"></textarea>
+                <textarea asp-for="Spf" rows="2" class="mono" aria-describedby="spf-hint"></textarea>
             </label>
-            <p id="spf-hint" class="hint">@(Model.Policy.Spf is null ? "Using the mail server's record. " : "")For example <code>v=spf1 mx -all</code>; add <code>include:</code> for any other service that sends as @Model.Domain. Leave blank for the mail server's record.</p>
+            <p id="spf-hint" class="hint">For example <code>v=spf1 mx -all</code>; add <code>include:</code> for any other service that sends as @Model.Domain. Leave blank to use the mail server's record.</p>
+            <p class="now">Now: @if (Model.DmarcDefaultInUse is { } dmarcNow) { <text>the mail server's record </text><code>@dmarcNow</code> } else { <text>this domain's own record, below.</text> }@if (Model.DmarcPolicyInUse == "reject") { <text>. It is strict: mail that fails the checks is refused.</text> }</p>
             <label>DMARC record
-                <textarea asp-for="Dmarc" rows="2" class="mono" placeholder="@Model.DmarcPlaceholder" aria-describedby="dmarc-hint"></textarea>
+                <textarea asp-for="Dmarc" rows="2" class="mono" aria-describedby="dmarc-hint"></textarea>
             </label>
-            <p id="dmarc-hint" class="hint">@(Model.Policy.Dmarc is null ? "Using the mail server's record. " : "")For example <code>v=DMARC1; p=quarantine; rua=mailto:postmaster@@@Model.Domain</code>. Start with <code>p=none</code> while other services still send as @Model.Domain. Reports sent to a <code>rua=</code> address need a mailbox there. Leave blank for the mail server's record.</p>
+            <p id="dmarc-hint" class="hint">For example <code>v=DMARC1; p=quarantine; rua=mailto:postmaster@@@Model.Domain</code>. While other services still send as @Model.Domain, a gentler <code>p=none</code> only reports failures instead of refusing them. Reports sent to a <code>rua=</code> address need a mailbox there. Leave blank to use the mail server's record.</p>
             <button type="submit">Save</button>
         </form>
         @if (!Model.Policy.IsDefault)

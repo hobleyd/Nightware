@@ -40,11 +40,14 @@ public sealed class DnsModel(
     /// <summary>The DMARC record to publish (the chosen one or the default), or null before the mail server serves the domain.</summary>
     public string? DmarcInUse => MailDomain.TryParse(Domain, out MailDomain? d) ? DomainMailPolicy.DmarcIn(d, Records) : null;
 
-    /// <summary>The record a blank SPF field stands for, while the domain has no SPF choice.</summary>
-    public string SpfPlaceholder => Policy.Spf is null ? SpfInUse ?? SpfRecord.Default.Value : string.Empty;
+    /// <summary>The mail server's SPF record the domain uses while it has no SPF choice of its own; null once it has one.</summary>
+    public string? SpfDefaultInUse => Policy.Spf is null ? SpfInUse ?? SpfRecord.Default.Value : null;
 
-    /// <summary>The record a blank DMARC field stands for, while the domain has no DMARC choice.</summary>
-    public string DmarcPlaceholder => Policy.Dmarc is null && MailDomain.TryParse(Domain, out MailDomain? d) ? DmarcInUse ?? DmarcRecord.Default(d).Value : string.Empty;
+    /// <summary>The mail server's DMARC record the domain uses while it has no DMARC choice of its own; null once it has one.</summary>
+    public string? DmarcDefaultInUse => Policy.Dmarc is null && MailDomain.TryParse(Domain, out MailDomain? d) ? DmarcInUse ?? DmarcRecord.Default(d).Value : null;
+
+    /// <summary>The <c>p=</c> of the DMARC record in use (none, quarantine or reject), or null when it cannot be read.</summary>
+    public string? DmarcPolicyInUse => (Policy.Dmarc?.Value ?? DmarcDefaultInUse) is { } record && DmarcRecord.Parse(record) is { IsSuccess: true } parsed ? parsed.Value.Policy : null;
 
     /// <summary>The form's SPF field: blank means the mail server's default.</summary>
     [BindProperty]
@@ -178,6 +181,8 @@ public sealed class DnsModel(
             Result<DnsPublicationPreview> preview = await planPublication.ExecuteAsync(Id, Domain, cancellationToken);
             Publication = preview.IsSuccess ? preview.Value : null;
             PublicationUnread = preview.IsSuccess ? null : preview.Error;
+            // The plan just read, not the one posted: the hidden field would otherwise echo the posted value.
+            ModelState.Remove(nameof(PlanFingerprint));
             PlanFingerprint = Publication?.Plan.Fingerprint;
         }
 
