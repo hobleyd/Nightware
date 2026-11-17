@@ -64,6 +64,15 @@ public sealed class NewModel(IAdminActor actor, GetEntity getEntity, PlanUserPro
             return Page();
         }
 
+        // The admin confirms the plan they saw; if the details changed since, show the new plan instead of applying it.
+        if (!string.Equals(Form.CheckedDetails, CurrentDetails, StringComparison.Ordinal))
+        {
+            ModelState.AddModelError(string.Empty, "The details changed after you checked them. Here is what will happen now; check it, then create.");
+            var fresh = await plan.ExecuteAsync(ToRequest(), cancellationToken);
+            Plan = fresh.IsSuccess ? fresh.Value : null;
+            return fresh.IsSuccess ? Page() : Fail(fresh.Error) ?? Page();
+        }
+
         var applied = await apply.ExecuteAsync(ToRequest(), Form.Delivery, cancellationToken);
         if (applied.IsSuccess)
         {
@@ -81,6 +90,9 @@ public sealed class NewModel(IAdminActor actor, GetEntity getEntity, PlanUserPro
         Plan = replanned.IsSuccess ? replanned.Value : null;
         return Page();
     }
+
+    /// <summary>Every input that changes the plan, as checked: the plan step echoes it, Apply compares it.</summary>
+    public string CurrentDetails => string.Join('\n', Form.FirstName, Form.LastName, Form.LocalPart?.Trim(), Form.Domain, Form.Username?.Trim(), Form.Aliases?.Trim(), Form.Delivery);
 
     private NewUserRequest ToRequest() =>
         new(Entity, $"{Form.LocalPart.Trim()}@{Form.Domain}", Form.Username, Form.FirstName, Form.LastName,
@@ -123,5 +135,8 @@ public sealed class NewModel(IAdminActor actor, GetEntity getEntity, PlanUserPro
         public string? Aliases { get; set; }
 
         public CredentialDelivery Delivery { get; set; } = CredentialDelivery.TemporaryPassword;
+
+        /// <summary>The details the shown plan was made for (see <see cref="CurrentDetails"/>).</summary>
+        public string? CheckedDetails { get; set; }
     }
 }

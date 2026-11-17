@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-17T09:58:43+00:00",
+  "generatedAt": "2026-11-17T10:36:44+00:00",
   "title": "Design System: Nightware console",
   "extensions": {
     "colorMeta": {
@@ -643,6 +643,13 @@
       "description": "One-time credential, shown once.",
       "html": "<div class=\"ds-secret\"><p><strong>Temporary password — shown once.</strong> Give it to them by a channel other than this mailbox.</p><p><code>q7Fh-2mLx-9Rtz</code></p></div>",
       "css": ".ds-secret { border:2px dashed var(--warn, #9a5b00); padding:12px 16px; border-radius:8px; background:var(--panel, #ffffff); color:var(--text, #191a2c); font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; } .ds-secret code { font-family:ui-monospace, Menlo, Consolas, monospace; font-size:1.3em; user-select:all; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "description": "One status per user, the same words everywhere.",
+      "html": "<span class=\"ds-status ds-bad\">Offboarding incomplete</span> <span class=\"ds-status ds-warn\">Needs repair</span> <span class=\"ds-status ds-ok\">Active</span>",
+      "css": ".ds-status { display:inline-block; padding:1px 8px; border-radius:999px; background:var(--chip-bg, #eeeff5); font: 12.75px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; } .ds-bad { color:var(--bad, #b3261e); font-weight:700; } .ds-warn { color:var(--warn, #9a5b00); } .ds-ok { color:var(--ok, #1f7a3f); }"
     }
   ],
   "narrative": {
@@ -705,7 +712,9 @@
       "**Do** name systems through `Systems.Name` / `Systems.ShortName`.",
       "**Do** put destructive actions last on the page, behind a confirming checkbox, a retyped value or a fresh sign-in.",
       "**Do** give every table cell a `data-label` so stacked rows stay readable on a phone.",
-      "**Do** set copyable values in mono and make them easy to select."
+      "**Do** set copyable values in mono and make them easy to select.",
+      "**Do** show a user's state with the status chip, in the same words on every page.",
+      "**Do** put a confirming checkbox that names the consequence beside any change to who can get in."
     ],
     "donts": [
       "**Don't** add shadows, gradients, overlays or modals. The board is flat and there is no script.",
@@ -713,7 +722,8 @@
       "**Don't** add a second accent colour, or spread the night palette beyond the band.",
       "**Don't** use a thick side stripe on callouts or panels.",
       "**Don't** put information only in a `title` tooltip or a placeholder.",
-      "**Don't** use a weight other than 400 or 700."
+      "**Don't** use a weight other than 400 or 700.",
+      "**Don't** let an empty list read as \"all clear\" when something could not be checked; name what was not checked."
     ]
   }
 }

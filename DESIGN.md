@@ -210,7 +210,7 @@ A cool, faintly indigo neutral field under a night band, with a single envelope-
 
 A single centred column, at most 1080px wide with 16px padding, under a full-width night band. The band holds the mark and product name, the role-gated navigation (Entities, plus Global admins for global admins; the current section is marked with `aria-current`), the find-a-user search, and, pushed to the far edge, the signed-in identity, Change password and Sign out. On narrow screens the band wraps onto several lines rather than collapsing into a menu. A skip link leads past it to the content.
 
-Entity and user pages open with a breadcrumb (Entity › Users › Person) above the h1.
+Entity, user, DNS and delete pages open with a breadcrumb (Entity › Users › Person) above the h1. The dashboard reads top-down as a worklist: Needs attention, then Systems, then Entities.
 
 The spacing steps are 6, 8, 12 and 16px. Panels sit 16px apart with 16px inner padding, and a panel's first heading sits flush to its top. Form rows use a 12px gap; chips use a 6px gap; table cells have 8px padding.
 
@@ -247,6 +247,9 @@ Native `<button>` elements, compact and unadorned.
 - **Style:** pill, Chip Grey fill, 12.75px, no border, never wrapping.
 - **State:** the text colour carries the state and the word says it: linked green, missing and pending amber, conflict and error red and bold, disabled Slate. Detail for a conflict or error appears inline beneath the chips as a hint, never only in a tooltip.
 
+### Status chip
+- One status per user, derived once (`UserStatuses.Of`): Active (green), Needs repair (amber), Conflict and Offboarding incomplete (red, bold), Offboarded (Slate). The same chip and words sit beside the user's name, in an entity's user list, in Find and on the dashboard. Labels live in `Systems.StatusLabel`.
+
 ### Panels
 - **Corner Style:** 8px. **Background:** Panel White. **Border:** 1px Hairline, Fault Red for the danger zone. **Padding:** 16px.
 - **Use:** one panel per topic, on every page including the dashboard.
@@ -264,6 +267,13 @@ Native `<button>` elements, compact and unadorned.
 - Night fill; the 28px mark with a 6px radius; the product name in bold Starlight; nav links in Moonlit Link, the current one in Starlight with a 2px underline.
 - **Find a user:** a compact transparent search field with a Dusk outline and a visually hidden label. One match opens the user; several are listed with their entity.
 
+### Confirmed changes
+- Every change to who can get in names its consequence in a checkbox beside the button: offboard, reinstate, grant or remove global rights, grant or remove an entity administrator, remove a domain. Reopening access (reinstate, granting global rights) also asks for a fresh sign-in.
+- Reversals and removals live in their own block under a hairline with a small heading ("Undo offboarding", "Remove a domain", "Remove an administrator"), never in a table row beside a routine link, and use the secondary button.
+
+### Needs attention (signature)
+The dashboard's first panel: users whose offboarding is incomplete, who conflict or who need repair (most urgent first, each with the systems at fault), domains the mail server does not serve or that lack signing keys, and any entity that could not be checked. Empty, it says "Nothing needs you." It is read on each visit and never stored.
+
 ### Secret Box (signature)
 The one moment of emphasis. A one-time credential appears in a box with a 2px dashed amber border at 8px radius, under the bolded instruction "Temporary password — shown once." and the advice to deliver it by another channel. The value is mono at 1.3em with `user-select: all`. It is never shown twice.
 
@@ -279,6 +289,8 @@ The "What will happen" step: before any write, a table lists each system's actio
 - **Do** put destructive actions last on the page, behind a confirming checkbox, a retyped value or a fresh sign-in.
 - **Do** give every table cell a `data-label` so stacked rows stay readable on a phone.
 - **Do** set copyable values in mono and make them easy to select.
+- **Do** show a user's state with the status chip, in the same words on every page.
+- **Do** put a confirming checkbox that names the consequence beside any change to who can get in.
 
 ### Don't:
 - **Don't** add shadows, gradients, overlays or modals. The board is flat and there is no script.
@@ -287,3 +299,4 @@ The "What will happen" step: before any write, a table lists each system's actio
 - **Don't** use a thick side stripe on callouts or panels.
 - **Don't** put information only in a `title` tooltip or a placeholder.
 - **Don't** use a weight other than 400 or 700.
+- **Don't** let an empty list read as "all clear" when something could not be checked; name what was not checked.

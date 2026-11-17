@@ -5,8 +5,8 @@
     var what = p.Target == DeletionTarget.Mail ? "mail" : "files & calendar data";
     ViewData["Title"] = "Delete " + what;
 }
+<nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Users/Detail" asp-route-id="@Model.Id">@p.User.Identity.DisplayName</a> › <span aria-current="page">Delete @what</span></nav>
 <h1>Delete @what of @p.User.Identity.DisplayName</h1>
-<p><a asp-page="/Users/Detail" asp-route-id="@Model.Id">Back to the user</a></p>
 
 @if (p.AlreadyAbsent)
 {

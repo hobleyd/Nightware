@@ -1,9 +1,9 @@
 @page "/entities/{id}/dns/{domain}"
 @model Nightware.Admin.Pages.Entities.DnsModel
 @{ ViewData["Title"] = "DNS for " + Model.Domain; }
+<nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Entities/Index">Entities</a> › <a asp-page="/Entities/Detail" asp-route-id="@Model.Id">@(Model.EntityName ?? "Entity")</a> › <span aria-current="page">DNS for @Model.Domain</span></nav>
 <h1>DNS records for @Model.Domain</h1>
 <p class="hint">Publish these at your DNS provider so mail for @Model.Domain is delivered here and your outgoing mail passes SPF, DKIM and DMARC checks. Select a value to copy it.</p>
-<p><a asp-page="/Entities/Detail" asp-route-id="@Model.Id">Back to the entity</a></p>
 
 @if (Model.Records.Count == 0)
 {

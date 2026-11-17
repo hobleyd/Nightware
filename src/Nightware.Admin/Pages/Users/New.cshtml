@@ -52,7 +52,7 @@ else
             </label>
         </div>
         <label>Username <input asp-for="Form.Username" autocomplete="off"><span class="hint">Leave empty to use the part of the address before the @@. To link someone who can already sign in, enter their existing username.</span></label>
-        <label>Other addresses (aliases) <input asp-for="Form.Aliases" placeholder="c.jones@@@Model.Form.Domain, sales@@@Model.Form.Domain" autocomplete="off"><span class="hint">Optional. Separate with commas; each must be on one of this entity's domains.</span></label>
+        <label>Other addresses (aliases) <input asp-for="Form.Aliases" placeholder="@("c.jones@" + Model.Form.Domain + ", sales@" + Model.Form.Domain)" autocomplete="off"><span class="hint">Optional. Separate with commas; each must be on one of this entity's domains.</span></label>
         <fieldset>
             <legend>First password</legend>
             <label class="choice"><input type="radio" asp-for="Form.Delivery" value="@CredentialDelivery.TemporaryPassword"> Generate a one-time password to give them (changed at first sign-in)</label>
@@ -64,6 +64,7 @@ else
         @if (Model.Plan is { } plan)
         {
             <h2>2. What will happen</h2>
+            <input type="hidden" name="Form.CheckedDetails" value="@Model.CurrentDetails">
             <partial name="_Plan" model="plan" />
             @if (plan.HasConflict)
             {

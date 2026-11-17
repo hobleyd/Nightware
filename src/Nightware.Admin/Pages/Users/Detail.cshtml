@@ -24,6 +24,7 @@
 <section class="panel">
     <h2>Systems</h2>
     <table>
+        <thead class="visually-hidden"><tr><th>System</th><th>State</th><th>Detail</th></tr></thead>
         <tbody>
         @foreach (var link in Model.Subject.Links)
         {
@@ -67,7 +68,7 @@
             var open = Nightware.Application.Administration.Users.OffboardUser.StillOpen(Model.Subject).ToList();
             if (open.Count > 0)
             {
-                <div class="warning" role="alert">
+                <div class="warning">
                     <p><strong>Offboarding incomplete.</strong> Sign-in is disabled, but these may still let them in:</p>
                     <ul>
                         @foreach (var link in open)

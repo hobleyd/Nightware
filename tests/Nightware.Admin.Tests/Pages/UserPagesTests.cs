@@ -24,6 +24,14 @@ public sealed class UserPagesTests : IDisposable
         ["Form.Delivery"] = delivery,
     };
 
+    /// <summary>The form as the plan step saw it: Apply only acts on details that were checked.</summary>
+    private static Dictionary<string, string> Checked(Dictionary<string, string> form)
+    {
+        string Get(string key) => form.TryGetValue(key, out string? value) ? value : string.Empty;
+        form["Form.CheckedDetails"] = string.Join('\n', Get("Form.FirstName"), Get("Form.LastName"), Get("Form.LocalPart"), Get("Form.Domain"), Get("Form.Username"), Get("Form.Aliases"), Get("Form.Delivery"));
+        return form;
+    }
+
     public void Dispose() => _host.Dispose();
 
     [Fact]
@@ -55,7 +63,7 @@ public sealed class UserPagesTests : IDisposable
     [Fact]
     public async Task Apply_shows_the_temporary_password_once_and_never_logs_it()
     {
-        using HttpResponseMessage response = await ConsoleHost.PostFormAsync(_host.ClientAs(ConsoleHost.EntityAdmin), NewUserUrl, NewUserUrl + "?handler=Apply", Carol());
+        using HttpResponseMessage response = await ConsoleHost.PostFormAsync(_host.ClientAs(ConsoleHost.EntityAdmin), NewUserUrl, NewUserUrl + "?handler=Apply", Checked(Carol()));
         string html = await response.Content.ReadAsStringAsync(Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -70,12 +78,33 @@ public sealed class UserPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task Details_changed_after_the_plan_are_shown_as_a_new_plan_not_applied()
+    {
+        Dictionary<string, string> form = Checked(Carol());
+        form["Form.LocalPart"] = "caroline";
+
+        string html = await (await ConsoleHost.PostFormAsync(_host.ClientAs(ConsoleHost.EntityAdmin), NewUserUrl, NewUserUrl + "?handler=Apply", form)).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain("The details changed after you checked them.");
+        html.ShouldContain("Will be created");
+        await _host.Identities.DidNotReceiveWithAnyArgs().CreateAsync(default!, Ct);
+    }
+
+    [Fact]
+    public async Task The_aliases_example_is_a_real_address()
+    {
+        string html = await (await _host.ClientAs(ConsoleHost.EntityAdmin).GetAsync(new Uri(NewUserUrl, UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain("placeholder=\"c.jones@acme.example, sales@acme.example\"");
+    }
+
+    [Fact]
     public async Task An_address_on_another_entitys_domain_is_refused()
     {
         Dictionary<string, string> form = Carol();
         form["Form.Domain"] = "other.example";
 
-        string html = await (await ConsoleHost.PostFormAsync(_host.ClientAs(ConsoleHost.EntityAdmin), NewUserUrl, NewUserUrl + "?handler=Apply", form)).Content.ReadAsStringAsync(Ct);
+        string html = await (await ConsoleHost.PostFormAsync(_host.ClientAs(ConsoleHost.EntityAdmin), NewUserUrl, NewUserUrl + "?handler=Apply", Checked(form))).Content.ReadAsStringAsync(Ct);
 
         html.ShouldContain("other.example is not a domain of Acme Pty");
         await _host.Identities.DidNotReceiveWithAnyArgs().CreateAsync(default!, Ct);
@@ -189,6 +218,15 @@ public sealed class UserPagesTests : IDisposable
         string html = await (await client.GetAsync(new Uri("/", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
         html.ShouldContain("Needs repair");
         html.ShouldContain("Mail: Missing");
+
+        // An offboarded user is listed for what may still let them in, not for accounts they no longer need.
+        _host.AddUser("u-eve", "eve", "eve@acme.example", enabled: false);
+        _host.Mail.FindByAddressAsync("eve@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-eve", "eve@acme.example", true));
+        _host.Entities.ListMembersAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([new IdentityAccount("u-eve", "eve", "eve@acme.example", false)]));
+        string incomplete = await (await client.GetAsync(new Uri("/", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+        incomplete.ShouldContain("Offboarding incomplete");
+        incomplete.ShouldContain("Mail: Linked");
+        incomplete.ShouldNotContain("Files &amp; calendar: Missing");
     }
 
     [Fact]

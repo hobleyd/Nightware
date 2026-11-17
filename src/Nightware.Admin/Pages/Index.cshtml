@@ -24,7 +24,13 @@
                         <td data-label="Entity">@a.Entity.Name</td>
                         <td data-label="Status"><partial name="_Status" model="a.User" /></td>
                         <td data-label="What is wrong">
-                            @foreach (var link in a.User.Links.Where(l => l.Backend != BackendKind.Identity && l.State is not (LinkState.Linked or LinkState.Disabled or LinkState.Pending)))
+                            @* An offboarded user's problem is what may still let them in; an active user's is what is missing or disagrees. *@
+                            @{
+                                var wrong = a.Status == Nightware.Application.Administration.Users.UserStatus.OffboardingIncomplete
+                                    ? Nightware.Application.Administration.Users.OffboardUser.StillOpen(a.User)
+                                    : a.User.Links.Where(l => l.Backend != BackendKind.Identity && l.State is LinkState.Missing or LinkState.Error or LinkState.Conflict);
+                            }
+                            @foreach (var link in wrong)
                             {
                                 <span class="detail">@Systems.ShortName(link.Backend): @Systems.StateLabel(link.State)</span>
                             }
