@@ -1,7 +1,10 @@
 using System.Net;
 
+using Microsoft.Extensions.DependencyInjection;
+
 using Nightware.Admin.Tests.Support;
 using Nightware.Application.Administration;
+using Nightware.Application.Administration.Entities;
 using Nightware.Domain.Administration;
 using Nightware.Domain.Kernel;
 
@@ -52,13 +55,54 @@ public sealed class MailSuggestionPageTests : IDisposable
     }
 
     [Fact]
+    public async Task With_cloudflare_the_suggestion_says_its_address_came_from_the_zone()
+    {
+        _host.Entities.GetAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(ConsoleHost.AcmeEntity with { HasDnsToken = true });
+        string sealedToken = await SealedTokenAsync();
+        _host.Entities.GetSealedDnsTokenAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Result<string?>.Success(sealedToken));
+        _host.DnsHosting.FindZoneAsync(default!, default!, Ct).ReturnsForAnyArgs(new DnsZone("z-op", "operator.example"));
+        _host.DnsHosting.ListRecordsAsync(default!, default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<ZoneRecord>>.Success(
+            [new ZoneRecord("r1", new DnsRecord(PublicHost, "A", 300, "81.2.69.161"))]));
+
+        string html = await GetAsync(DnsUrl);
+
+        html.ShouldContain(FormField("Spf", "v=spf1 ip4:81.2.69.161 -all"));
+        html.ShouldContain("The address comes from the A/AAAA records for mail.operator.example in the entity's Cloudflare zone.");
+    }
+
+    [Fact]
     public async Task A_cloudflare_token_that_cannot_be_opened_falls_back_to_public_dns()
     {
         _host.Entities.GetAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(ConsoleHost.AcmeEntity with { HasDnsToken = true });
         _host.Entities.GetSealedDnsTokenAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Result<string?>.Success(null));
 
-        // The token cannot be opened here, so the zone is skipped and public DNS answers instead.
         (await GetAsync(DnsUrl)).ShouldContain("from public DNS for mail.operator.example");
+    }
+
+    [Fact]
+    public async Task A_proxied_public_host_is_named_as_such_and_its_edge_addresses_are_not_suggested()
+    {
+        _host.PublicDns.ResolveAsync(PublicHost, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IPAddress>>.Success([IPAddress.Parse("104.21.32.1")]));
+
+        string html = await GetAsync(DnsUrl);
+
+        html.ShouldContain(FormField("Spf", "v=spf1 mx -all"));
+        html.ShouldContain("Cloudflare proxies mail.operator.example, so its addresses are Cloudflare's, not this server's.");
+        html.ShouldNotContain("104.21.32.1");
+    }
+
+    /// <summary>A token sealed the way the console seals one for Acme, so the real vault opens it.</summary>
+    private async Task<string> SealedTokenAsync()
+    {
+        string? sealedValue = null;
+        _host.Entities.SetSealedDnsTokenAsync(default!, default, Ct).ReturnsForAnyArgs(c =>
+        {
+            sealedValue = c.ArgAt<string?>(1);
+            return Result.Success();
+        });
+        using IServiceScope scope = _host.Services.CreateScope();
+        (await scope.ServiceProvider.GetRequiredService<DnsTokenVault>().StoreAsync(ConsoleHost.Acme, DnsProviderToken.Parse("cf-token-0123456789abcdefghijklmnopqrstuv").Value, Ct)).IsSuccess.ShouldBeTrue();
+        return sealedValue!;
     }
 
     [Fact]

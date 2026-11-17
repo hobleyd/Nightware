@@ -78,6 +78,18 @@ public sealed class SuggestMailAuthenticationTests
     }
 
     [Fact]
+    public async Task A_host_public_dns_answers_from_cloudflares_edge_is_proxied_not_the_server()
+    {
+        _dns.ResolveAsync(default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<IPAddress>>.Success([IPAddress.Parse("104.21.32.1"), IPAddress.Parse("172.67.140.10")]));
+
+        MailAuthenticationSuggestion suggestion = (await Suggest().ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Value;
+
+        suggestion.Spf.Value.ShouldBe("v=spf1 mx -all");
+        suggestion.Source.ShouldBe(PublicAddressSource.Proxied);
+        suggestion.Addresses.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task A_host_outside_every_zone_the_token_reaches_falls_through_to_public_dns()
     {
         WithCloudflare();

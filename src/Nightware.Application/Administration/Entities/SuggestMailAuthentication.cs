@@ -28,6 +28,7 @@ public sealed record MailAuthenticationSuggestion(SpfRecord Spf, DmarcRecord Dma
 /// Builds the strictest SPF and DMARC the known facts allow (<see cref="SecureMailDefaults"/>) for one of an
 /// entity's domains. The server's public addresses are those of the configured public host: from the entity's
 /// Cloudflare zone when the entity has a token and the host is in a zone it reaches, otherwise from public DNS.
+/// A host Cloudflare proxies (seen in the zone, or answering from <see cref="CloudflareEdge"/>) gives none.
 /// Writes nothing, and never fails for want of an address: it then suggests the MX hosts. Global administrators
 /// only, as they alone set a domain's records.
 /// </summary>
@@ -79,6 +80,12 @@ public sealed class SuggestMailAuthentication(IAdminActor actor, IEntityRegistry
 
         Result<IReadOnlyList<IPAddress>> resolved = await dns.ResolveAsync(host, cancellationToken).ConfigureAwait(false);
         IReadOnlyList<IPAddress> found = resolved.IsSuccess ? [.. resolved.Value.Where(SecureMailDefaults.IsPublic)] : [];
+        if (found.Any(CloudflareEdge.Contains))
+        {
+            // Proxied from a zone the entity's token cannot see: these are Cloudflare's addresses, not the server's.
+            return ([], PublicAddressSource.Proxied);
+        }
+
         return (found, found.Count > 0 ? PublicAddressSource.PublicDns : PublicAddressSource.None);
     }
 
