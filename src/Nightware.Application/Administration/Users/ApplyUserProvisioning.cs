@@ -128,7 +128,7 @@ public sealed class ApplyUserProvisioning(
         {
             ["address"] = p.Address.Value,
             ["username"] = p.Username,
-            ["identity"] = p.Plan.For(BackendKind.Identity).Action.ToString(),
+            ["identityAction"] = p.Plan.For(BackendKind.Identity).Action.ToString(),
             ["credential"] = delivery.ToString(),
         };
         foreach (BackendLink link in links)
