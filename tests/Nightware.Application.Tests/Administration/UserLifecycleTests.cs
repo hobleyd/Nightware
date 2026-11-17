@@ -253,4 +253,14 @@ public sealed class UserLifecycleTests
         (await setAliases.ExecuteAsync("u-carol", ["sales@acme.example"], Ct)).Error!.Kind.ShouldBe(ErrorKind.Conflict);
         await _bed.Identities.DidNotReceiveWithAnyArgs().SetAliasesAsync(default!, default!, Ct);
     }
+
+    [Fact]
+    public async Task A_keycloak_administrator_cannot_be_offboarded_or_reset_through_the_console()
+    {
+        Carol(scope: new AdminScope(false, new HashSet<string>(), AdministersDirectory: true));
+
+        (await new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Groupware, _bed.Audit).ExecuteAsync("u-carol", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        (await new ResetUserCredential(_bed.Actor, _bed.UserAccess(), _bed.Credentials(), _bed.Audit).ExecuteAsync("u-carol", CredentialDelivery.TemporaryPassword, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        await _bed.Identities.DidNotReceiveWithAnyArgs().SetTemporaryPasswordAsync(default!, default!, Ct);
+    }
 }

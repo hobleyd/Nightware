@@ -180,4 +180,13 @@ public sealed class DataDeletionTests
 
         (await new GetDeletionPreview(_bed.DeletionGuard(), _bed.Mail).ExecuteAsync("u-carol", DeletionTarget.Mail, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
     }
+
+    [Fact]
+    public async Task A_privileged_mailbox_is_never_deleted()
+    {
+        _bed.Mail.FindByAddressAsync(Address, Arg.Any<CancellationToken>()).Returns(new MailAccount("m-carol", Address, true) { IsPrivileged = true });
+
+        (await DeleteMail.ExecuteAsync("u-carol", Address, Ct)).Error!.Kind.ShouldBe(ErrorKind.Conflict);
+        await _bed.Mail.DidNotReceiveWithAnyArgs().DestroyAsync(default!, Ct);
+    }
 }

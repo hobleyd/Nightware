@@ -96,6 +96,12 @@ public interface IIdentityAccounts
 public sealed record MailAccount(string Id, string Address, bool IsIndividual)
 {
     public IReadOnlyList<string> Aliases { get; init; } = [];
+
+    /// <summary>
+    /// Holds more than an ordinary mailbox's rights (an administrator, or the console's own principal). Never
+    /// linked to a person or deleted by the console: whoever signed in as that address would gain them.
+    /// </summary>
+    public bool IsPrivileged { get; init; }
 }
 
 /// <summary>Mail accounts on the mail server (Stalwart), managed with the console's own principal.</summary>

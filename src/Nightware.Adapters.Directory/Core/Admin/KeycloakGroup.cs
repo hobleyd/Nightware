@@ -34,3 +34,13 @@ public sealed record KeycloakRole
     [JsonPropertyName("name")]
     public required string Name { get; init; }
 }
+
+/// <summary>A client of the realm, by its internal id and its <c>clientId</c>.</summary>
+public sealed record KeycloakClientRef
+{
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+
+    [JsonPropertyName("clientId")]
+    public string? ClientId { get; init; }
+}

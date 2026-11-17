@@ -23,7 +23,7 @@ internal sealed partial class StalwartMailAccounts(
     /// <c>@type</c> is requested explicitly: only <c>User</c> is an individual mailbox, and an account
     /// whose type is not reported is treated as not individual, so it is never linked or destroyed.
     /// </summary>
-    private static readonly string[] AccountProperties = ["@type", "name", "domainId", "emailAddress", "aliases"];
+    private static readonly string[] AccountProperties = ["@type", "name", "domainId", "emailAddress", "aliases", "roles", "permissions"];
 
     public async Task<Result<MailAccount>> FindByAddressAsync(string address, CancellationToken cancellationToken)
     {
@@ -256,6 +256,7 @@ internal sealed partial class StalwartMailAccounts(
             ?? (account.Name is not null && account.DomainId is not null && names.TryGetValue(account.DomainId, out string? own) ? $"{account.Name}@{own}" : string.Empty);
         return new MailAccount(account.Id, primary, IsIndividual: string.Equals(account.Type, "User", StringComparison.Ordinal))
         {
+            IsPrivileged = account.IsPrivileged,
             Aliases = [.. aliases.Where(a => names.ContainsKey(a.DomainId)).Select(a => $"{a.Name}@{names[a.DomainId]}")],
         };
     }

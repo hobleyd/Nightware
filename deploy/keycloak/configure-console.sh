@@ -153,7 +153,7 @@ SA=$(kc "${API}/clients/${CLIENT_UUID}/service-account-user" | jq -r .id)
 RM=$(kc "${API}/clients?clientId=realm-management" | jq -r '.[0].id')
 have=$(kc "${API}/users/${SA}/role-mappings/clients/${RM}" | jq -r '.[].name')
 available=$(kc "${API}/users/${SA}/role-mappings/clients/${RM}/available")
-for role in view-users query-users manage-users query-groups view-realm view-organizations query-organizations manage-organizations; do
+for role in view-users query-users manage-users query-groups query-clients view-realm view-organizations query-organizations manage-organizations; do
   grep -qx "$role" <<<"$have" && continue
   rep=$(jq -c --arg n "$role" '[.[] | select(.name==$n)]' <<<"$available")
   if [[ "$rep" == "[]" ]]; then

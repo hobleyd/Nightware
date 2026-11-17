@@ -19,4 +19,8 @@ public sealed record AdminActor(
 }
 
 /// <summary>An administrator's scope as the system of record holds it.</summary>
-public sealed record AdminScope(bool IsGlobal, IReadOnlySet<string> EntityIds);
+/// <param name="AdministersDirectory">
+/// Holds Keycloak administration rights (or is a service account). The console never manages such an
+/// account: resetting its password would hand over more than the console itself may do.
+/// </param>
+public sealed record AdminScope(bool IsGlobal, IReadOnlySet<string> EntityIds, bool AdministersDirectory = false);

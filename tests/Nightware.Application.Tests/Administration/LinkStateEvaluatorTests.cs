@@ -84,4 +84,8 @@ public sealed class LinkStateEvaluatorTests
     [InlineData(LinkState.Error, PlannedAction.Conflict)]
     public void Backend_states_become_plan_steps(LinkState state, PlannedAction action) =>
         LinkStateEvaluator.Step(new BackendLink(BackendKind.Mail, state, "d"), "create").Action.ShouldBe(action);
+
+    [Fact]
+    public void A_privileged_mailbox_is_never_linked() =>
+        LinkStateEvaluator.Mail(Address, new MailAccount("m", Address, true) { IsPrivileged = true }).State.ShouldBe(LinkState.Conflict);
 }

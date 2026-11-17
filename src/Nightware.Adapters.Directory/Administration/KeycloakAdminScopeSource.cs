@@ -8,10 +8,14 @@ namespace Nightware.Adapters.Directory.Administration;
 /// <summary>
 /// Re-resolves an administrator's scope from Keycloak on every call (ADR 0002 D1; the host caches it):
 /// global = effective realm role <c>nightware-global-admin</c>; entity admin of each organization the user
-/// is a member of whose <c>admins</c> group they belong to (<see cref="KeycloakEntityAdmins"/>).
+/// is a member of whose <c>admins</c> group they belong to (<see cref="KeycloakEntityAdmins"/>); administers
+/// the directory = any effective <c>realm-management</c> role, or a service account.
 /// </summary>
 internal sealed class KeycloakAdminScopeSource(IKeycloakAdminClient keycloak, KeycloakEntityAdmins admins) : IAdminScopeSource
 {
+    /// <summary>The client whose roles are Keycloak's own administration rights.</summary>
+    internal const string RealmManagementClient = "realm-management";
+
     public async Task<Result<AdminScope>> ResolveAsync(string userId, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
@@ -43,6 +47,19 @@ internal sealed class KeycloakAdminScopeSource(IKeycloakAdminClient keycloak, Ke
             }
         }
 
-        return new AdminScope(KeycloakIdentityAccounts.HasGlobalAdmin(roles.Value), entityIds);
+        Result<IReadOnlyList<KeycloakRole>> realmManagement = await keycloak.GetEffectiveUserClientRolesAsync(userId, RealmManagementClient, cancellationToken).ConfigureAwait(false);
+        if (!realmManagement.IsSuccess)
+        {
+            return realmManagement.Error;
+        }
+
+        Result<KeycloakUser> user = await keycloak.GetUserAsync(userId, cancellationToken).ConfigureAwait(false);
+        if (!user.IsSuccess)
+        {
+            return user.Error;
+        }
+
+        bool administersDirectory = realmManagement.Value.Count > 0 || user.Value.ServiceAccountClientId is not null;
+        return new AdminScope(KeycloakIdentityAccounts.HasGlobalAdmin(roles.Value), entityIds, administersDirectory);
     }
 }

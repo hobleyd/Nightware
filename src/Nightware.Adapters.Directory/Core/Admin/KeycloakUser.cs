@@ -28,6 +28,10 @@ public sealed record KeycloakUser
     [JsonPropertyName("enabled")]
     public bool Enabled { get; init; }
 
+    /// <summary>Set on a client's service-account user.</summary>
+    [JsonPropertyName("serviceAccountClientId")]
+    public string? ServiceAccountClientId { get; init; }
+
     [JsonPropertyName("emailVerified")]
     public bool EmailVerified { get; init; }
 

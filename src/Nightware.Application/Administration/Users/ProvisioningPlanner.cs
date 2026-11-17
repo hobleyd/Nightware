@@ -86,10 +86,11 @@ public sealed class ProvisioningPlanner(
 
         (PlannedStep identityStep, IdentityAccount? existing) =
             LinkStateEvaluator.IdentityStep(request.EntityId, requestedUsername, username, byEmail, byUsername, memberships);
-        if (existing is not null && !actor.Current.IsGlobal)
+        if (existing is not null)
         {
-            // Linking can issue a password, so an entity admin may link only someone they could manage
-            // once linked: not an administrator elsewhere, not a member of an entity outside their scope.
+            // Linking can issue a password, so the actor may link only someone they could manage once
+            // linked: never a Keycloak administrator; for an entity admin, also not an administrator
+            // elsewhere and not a member of an entity outside their scope.
             Result<AdminScope> scope = await scopes.ResolveAsync(existing.Id, cancellationToken).ConfigureAwait(false);
             if (!scope.IsSuccess)
             {
@@ -99,7 +100,9 @@ public sealed class ProvisioningPlanner(
             IReadOnlyList<string> joined = memberships.Count == 0 ? [request.EntityId] : memberships;
             if (!AdminAuthorization.RequireMayManageUser(actor.Current, joined, scope.Value).IsSuccess)
             {
-                identityStep = new PlannedStep(BackendKind.Identity, PlannedAction.Conflict, $"Keycloak user {existing.Username} is outside your scope; ask a global administrator.");
+                identityStep = new PlannedStep(BackendKind.Identity, PlannedAction.Conflict, scope.Value.AdministersDirectory
+                    ? $"Keycloak user {existing.Username} administers Keycloak; the console does not manage such accounts."
+                    : $"Keycloak user {existing.Username} is outside your scope; ask a global administrator.");
                 existing = null;
             }
         }

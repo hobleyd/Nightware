@@ -29,6 +29,11 @@ public static class LinkStateEvaluator
         }
 
         MailAccount account = found.Value;
+        if (account.IsPrivileged)
+        {
+            return new BackendLink(BackendKind.Mail, LinkState.Conflict, $"{address} is a privileged mail-server account; the console never links or deletes it.", account.Id);
+        }
+
         if (!account.IsIndividual)
         {
             return new BackendLink(BackendKind.Mail, LinkState.Conflict, $"{address} belongs to a group or mailing list.", account.Id);

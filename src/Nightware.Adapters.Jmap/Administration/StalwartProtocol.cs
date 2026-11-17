@@ -84,6 +84,25 @@ internal sealed record StalwartAccount
 
     /// <summary>Server-set bytes used (docs: <c>usedDiskQuota</c>, Size).</summary>
     public long? UsedDiskQuota { get; init; }
+
+    /// <summary><c>UserRoles</c>: <c>{"@type":"User"}</c> (the default), <c>Admin</c> or <c>Custom</c> (docs).</summary>
+    public JsonElement? Roles { get; init; }
+
+    /// <summary><c>{"@type":"Inherit"}</c> (the default), <c>Merge</c> or <c>Replace</c> (docs).</summary>
+    public JsonElement? Permissions { get; init; }
+
+    /// <summary>
+    /// Whether the account holds more than an ordinary user's rights: an <c>Admin</c> or <c>Custom</c> role (the
+    /// console's own principal has one) or permissions of its own. Absent fields are the documented defaults.
+    /// </summary>
+    public bool IsPrivileged =>
+        TypeOf(Roles) is { } role && !string.Equals(role, "User", StringComparison.Ordinal)
+        || TypeOf(Permissions) is { } permissions && !string.Equals(permissions, "Inherit", StringComparison.Ordinal);
+
+    private static string? TypeOf(JsonElement? element) =>
+        element is { ValueKind: JsonValueKind.Object } e && e.TryGetProperty("@type", out JsonElement type) && type.ValueKind == JsonValueKind.String
+            ? type.GetString()
+            : element is { ValueKind: JsonValueKind.Object } ? string.Empty : null;
 }
 
 /// <summary>An <c>x:Domain</c> as read.</summary>

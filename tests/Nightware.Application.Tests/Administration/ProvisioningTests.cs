@@ -244,4 +244,27 @@ public sealed class ProvisioningTests
         await _bed.Mail.DidNotReceiveWithAnyArgs().CreateAsync(default!, default!, Ct);
         _bed.Audit.Single("user.provisioned").Succeeded.ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task The_consoles_own_mail_principal_cannot_be_claimed_by_a_new_user()
+    {
+        _bed.Mail.FindByAddressAsync("nightware-admin@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-console", "nightware-admin@acme.example", true) { IsPrivileged = true });
+
+        Result<ProvisioningResult> result = await Apply.ExecuteAsync(Carol() with { Address = "nightware-admin@acme.example" }, CredentialDelivery.TemporaryPassword, Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.Conflict);
+        result.Error.Message.ShouldContain("privileged");
+        await _bed.Identities.DidNotReceiveWithAnyArgs().CreateAsync(default!, Ct);
+    }
+
+    [Fact]
+    public async Task Even_a_global_admin_cannot_link_a_keycloak_administrator()
+    {
+        _bed.AddUser("u-kcadmin", "carol", "carol@acme.example", entities: [], scope: new AdminScope(false, new HashSet<string>(), AdministersDirectory: true));
+
+        ProvisioningPlan plan = (await Plan.ExecuteAsync(Carol(), Ct)).Value;
+
+        plan.For(BackendKind.Identity).Action.ShouldBe(PlannedAction.Conflict);
+        plan.For(BackendKind.Identity).Reason.ShouldContain("administers Keycloak");
+    }
 }

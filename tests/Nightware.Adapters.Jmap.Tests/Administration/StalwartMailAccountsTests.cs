@@ -40,14 +40,31 @@ public sealed class StalwartMailAccountsTests : IAsyncDisposable
         account.Id.ShouldBe("a3");
         account.Address.ShouldBe("carol@acme.example");
         account.IsIndividual.ShouldBeTrue();
+        account.IsPrivileged.ShouldBeFalse();
         account.Aliases.ShouldBe(["c.smith@acme.example", "carol@acme.org"]);
         var query = _host.Calls("x:Account/query").Single();
         query[1]!["filter"]!["name"]!.GetValue<string>().ShouldBe("carol");
         query[1]!["filter"]!["domainId"]!.GetValue<string>().ShouldBe("d7");
         var get = _host.Calls("x:Account/get").Single();
-        get[1]!["properties"]!.AsArray().Select(p => p!.GetValue<string>()).ShouldBe(["@type", "name", "domainId", "emailAddress", "aliases"]);
+        get[1]!["properties"]!.AsArray().Select(p => p!.GetValue<string>()).ShouldBe(["@type", "name", "domainId", "emailAddress", "aliases", "roles", "permissions"]);
         get[1]!["#ids"]!["resultOf"]!.GetValue<string>().ShouldBe("c0");
         _host.Calls("x:Domain/get")[^1][1]!["ids"]!.AsArray().Select(i => i!.GetValue<string>()).ShouldBe(["d8"]);
+    }
+
+    [Theory]
+    [InlineData(",\"roles\":{\"@type\":\"Admin\"}", true)]
+    [InlineData(",\"roles\":{\"@type\":\"Custom\",\"roleIds\":{\"r1\":true}}", true)]
+    [InlineData(",\"permissions\":{\"@type\":\"Merge\",\"enabledPermissions\":{\"impersonate\":true}}", true)]
+    [InlineData(",\"roles\":{\"@type\":\"User\"},\"permissions\":{\"@type\":\"Inherit\"}", false)]
+    [InlineData("", false)]
+    public async Task Accounts_with_more_than_user_rights_are_privileged(string extra, bool privileged)
+    {
+        StubAcme();
+        string account = "{\"id\":\"a9\",\"@type\":\"User\",\"name\":\"nightware-admin\",\"domainId\":\"d7\",\"emailAddress\":\"nightware-admin@acme.example\"" + extra + "}";
+        _host.Stub("x:Account/query", StalwartManagementTestHost.AccountPage(account));
+        StubOtherDomains();
+
+        (await Accounts().FindByAddressAsync("nightware-admin@acme.example", Ct)).Value.IsPrivileged.ShouldBe(privileged);
     }
 
     [Fact]

@@ -14,7 +14,15 @@ public sealed class KeycloakAdminScopeSourceTests : IDisposable
     private const string OrgsPath = $"/organizations/members/{UserId}/organizations";
     private readonly KeycloakStub _keycloak = new();
 
-    public KeycloakAdminScopeSourceTests() => _keycloak.GivenServiceAccountToken();
+    private const string ClientRolesPath = $"/users/{UserId}/role-mappings/clients/rm-uuid/composite";
+
+    public KeycloakAdminScopeSourceTests()
+    {
+        _keycloak.GivenServiceAccountToken();
+        _keycloak.GivenAdmin("/clients", 200, """[{"id":"rm-uuid","clientId":"realm-management"}]""");
+        _keycloak.GivenAdmin(ClientRolesPath, 200, "[]");
+        _keycloak.GivenAdmin($"/users/{UserId}", 200, $$"""{"id":"{{UserId}}","username":"u","enabled":true}""");
+    }
 
     public void Dispose() => _keycloak.Dispose();
 
@@ -130,5 +138,41 @@ public sealed class KeycloakAdminScopeSourceTests : IDisposable
         await using AdapterHost host = Host();
 
         await Should.ThrowAsync<ArgumentException>(() => host.Scoped<IAdminScopeSource>().ResolveAsync(" ", Ct));
+    }
+
+    [Fact]
+    public async Task A_holder_of_any_keycloak_administration_role_administers_the_directory()
+    {
+        _keycloak.GivenAdmin(RolesPath, 200, "[]");
+        _keycloak.GivenAdmin(OrgsPath, 200, "[]");
+        _keycloak.GivenAdmin(ClientRolesPath, 200, """[{"id":"c1","name":"view-users"}]""", priority: 1);
+        await using AdapterHost host = Host();
+
+        AdminScope scope = (await host.Scoped<IAdminScopeSource>().ResolveAsync(UserId, Ct)).Value;
+
+        scope.AdministersDirectory.ShouldBeTrue();
+        _keycloak.Admin("GET", "/clients").Single().Query!["clientId"].ShouldBe(["realm-management"]);
+    }
+
+    [Fact]
+    public async Task A_service_account_administers_the_directory()
+    {
+        _keycloak.GivenAdmin(RolesPath, 200, "[]");
+        _keycloak.GivenAdmin(OrgsPath, 200, "[]");
+        _keycloak.GivenAdmin($"/users/{UserId}", 200, $$"""{"id":"{{UserId}}","username":"service-account-x","enabled":true,"serviceAccountClientId":"x"}""", priority: 1);
+        await using AdapterHost host = Host();
+
+        (await host.Scoped<IAdminScopeSource>().ResolveAsync(UserId, Ct)).Value.AdministersDirectory.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Without_query_clients_the_scope_is_an_error_not_an_ordinary_user()
+    {
+        _keycloak.GivenAdmin(RolesPath, 200, "[]");
+        _keycloak.GivenAdmin(OrgsPath, 200, "[]");
+        _keycloak.GivenAdmin("/clients", 403, priority: 1);
+        await using AdapterHost host = Host();
+
+        (await host.Scoped<IAdminScopeSource>().ResolveAsync(UserId, Ct)).IsSuccess.ShouldBeFalse();
     }
 }

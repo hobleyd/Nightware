@@ -89,6 +89,13 @@ public interface IKeycloakAdminClient
     /// <summary><c>GET /users/{id}/role-mappings/realm/composite</c> — effective realm roles (composites and groups expanded).</summary>
     Task<Result<IReadOnlyList<KeycloakRole>>> GetEffectiveUserRealmRolesAsync(string userId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// The user's effective roles of the client <paramref name="clientId"/> (composites and groups expanded):
+    /// <c>GET /clients?clientId=…</c>, then <c>GET /users/{id}/role-mappings/clients/{client}/composite</c>.
+    /// Needs <c>query-clients</c>. NotFound when the realm has no such client.
+    /// </summary>
+    Task<Result<IReadOnlyList<KeycloakRole>>> GetEffectiveUserClientRolesAsync(string userId, string clientId, CancellationToken cancellationToken);
+
     /// <summary><c>POST /users/{id}/role-mappings/realm</c>.</summary>
     Task<Result> AddUserRealmRolesAsync(string userId, IReadOnlyList<KeycloakRole> roles, CancellationToken cancellationToken);
 

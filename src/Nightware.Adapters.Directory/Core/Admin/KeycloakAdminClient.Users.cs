@@ -82,6 +82,21 @@ internal sealed partial class KeycloakAdminClient
     public Task<Result<IReadOnlyList<KeycloakRole>>> GetEffectiveUserRealmRolesAsync(string userId, CancellationToken cancellationToken) =>
         GetListAsync<KeycloakRole>($"users/{Segment(userId)}/role-mappings/realm/composite", cancellationToken);
 
+    public async Task<Result<IReadOnlyList<KeycloakRole>>> GetEffectiveUserClientRolesAsync(string userId, string clientId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(clientId);
+        Result<IReadOnlyList<KeycloakClientRef>> clients = await GetListAsync<KeycloakClientRef>($"clients?clientId={Uri.EscapeDataString(clientId)}", cancellationToken).ConfigureAwait(false);
+        if (!clients.IsSuccess)
+        {
+            return clients.Error;
+        }
+
+        KeycloakClientRef? client = clients.Value.FirstOrDefault(c => string.Equals(c.ClientId, clientId, StringComparison.Ordinal));
+        return client is null
+            ? Error.NotFound($"The realm has no client {clientId}.")
+            : await GetListAsync<KeycloakRole>($"users/{Segment(userId)}/role-mappings/clients/{Segment(client.Id)}/composite", cancellationToken).ConfigureAwait(false);
+    }
+
     public Task<Result> AddUserRealmRolesAsync(string userId, IReadOnlyList<KeycloakRole> roles, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(roles);

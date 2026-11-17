@@ -125,4 +125,8 @@ public sealed class AdminAuthorizationTests
     [InlineData(null, false)]
     public void Typed_confirmation_must_match_the_address(string? typed, bool ok) =>
         AdminAuthorization.RequireTypedConfirmation(typed, "carol@acme.example").IsSuccess.ShouldBe(ok);
+
+    [Fact]
+    public void Nobody_manages_a_keycloak_administrator_through_the_console() =>
+        AdminAuthorization.RequireMayManageUser(Global, ["e1"], new AdminScope(false, new HashSet<string>(), AdministersDirectory: true)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
 }
