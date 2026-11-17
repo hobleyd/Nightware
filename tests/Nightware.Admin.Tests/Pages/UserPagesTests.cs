@@ -28,8 +28,26 @@ public sealed class UserPagesTests : IDisposable
     private static Dictionary<string, string> Checked(Dictionary<string, string> form)
     {
         string Get(string key) => form.TryGetValue(key, out string? value) ? value : string.Empty;
-        form["Form.CheckedDetails"] = string.Join('\n', Get("Form.FirstName"), Get("Form.LastName"), Get("Form.LocalPart"), Get("Form.Domain"), Get("Form.Username"), Get("Form.Aliases"), Get("Form.Delivery"));
+        form["Form.CheckedDetails"] = Nightware.Admin.Pages.Users.NewModel.Fingerprint(Get("Form.FirstName"), Get("Form.LastName"), Get("Form.LocalPart"), Get("Form.Domain"), Get("Form.Username"), Get("Form.Aliases"), Get("Form.Delivery"));
         return form;
+    }
+
+    [Fact]
+    public async Task The_details_the_plan_page_renders_are_accepted_by_apply()
+    {
+        HttpClient client = _host.ClientAs(ConsoleHost.EntityAdmin);
+        string plan = await (await ConsoleHost.PostFormAsync(client, NewUserUrl, NewUserUrl + "?handler=Plan", Carol())).Content.ReadAsStringAsync(Ct);
+        string checkedDetails = WebUtility.HtmlDecode(System.Text.RegularExpressions.Regex.Match(plan, "name=\"Form.CheckedDetails\" value=\"([^\"]*)\"").Groups[1].Value);
+
+        // A browser rewrites line breaks in submitted values, so the rendered value must have none.
+        checkedDetails.ShouldNotBeNullOrEmpty();
+        checkedDetails.ShouldNotContain('\n');
+        Dictionary<string, string> form = Carol();
+        form["Form.CheckedDetails"] = checkedDetails;
+        string html = await (await ConsoleHost.PostFormAsync(client, NewUserUrl, NewUserUrl + "?handler=Apply", form)).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldNotContain("The details changed after you checked them.");
+        await _host.Identities.ReceivedWithAnyArgs(1).CreateAsync(default!, Ct);
     }
 
     public void Dispose() => _host.Dispose();

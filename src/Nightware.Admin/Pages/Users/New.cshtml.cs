@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
+using System.Text;
 
 using Microsoft.AspNetCore.Mvc;
 
@@ -92,7 +94,14 @@ public sealed class NewModel(IAdminActor actor, GetEntity getEntity, PlanUserPro
     }
 
     /// <summary>Every input that changes the plan, as checked: the plan step echoes it, Apply compares it.</summary>
-    public string CurrentDetails => string.Join('\n', Form.FirstName, Form.LastName, Form.LocalPart?.Trim(), Form.Domain, Form.Username?.Trim(), Form.Aliases?.Trim(), Form.Delivery);
+    public string CurrentDetails => Fingerprint(Form.FirstName, Form.LastName, Form.LocalPart?.Trim(), Form.Domain, Form.Username?.Trim(), Form.Aliases?.Trim(), Form.Delivery.ToString());
+
+    /// <summary>
+    /// The details as one hex digest. Never the raw text: a browser turns every line break in a submitted value
+    /// into CRLF, so a joined value would never compare equal again.
+    /// </summary>
+    public static string Fingerprint(params string?[] details) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', details))));
 
     private NewUserRequest ToRequest() =>
         new(Entity, $"{Form.LocalPart.Trim()}@{Form.Domain}", Form.Username, Form.FirstName, Form.LastName,
