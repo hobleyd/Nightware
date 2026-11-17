@@ -8,7 +8,7 @@ using Nightware.Domain.Kernel;
 
 namespace Nightware.Admin.Pages.Entities;
 
-/// <summary>One entity: its domains (with repair), its administrators, and a way to its users.</summary>
+/// <summary>One entity: its domains (with repair), its Cloudflare token, its administrators, and a way to its users.</summary>
 public sealed class DetailModel(
     IAdminActor actor,
     GetEntity getEntity,
@@ -17,7 +17,8 @@ public sealed class DetailModel(
     AddEntityDomain addDomain,
     RemoveEntityDomain removeDomain,
     GrantEntityAdmin grantAdmin,
-    RevokeEntityAdmin revokeAdmin) : ConsolePageModel(actor)
+    RevokeEntityAdmin revokeAdmin,
+    SetEntityDnsToken setDnsToken) : ConsolePageModel(actor)
 {
     [BindProperty(SupportsGet = true)]
     public string Id { get; set; } = string.Empty;
@@ -56,6 +57,24 @@ public sealed class DetailModel(
         !confirm
             ? await UnconfirmedAsync("Tick the box to confirm removing the administrator.", cancellationToken)
             : await AfterAsync(await revokeAdmin.ExecuteAsync(Id, userId, cancellationToken), "Administrator removed.", cancellationToken);
+
+    /// <summary>The token is a handler argument, never a bound property, so a failed save cannot render it back.</summary>
+    public async Task<IActionResult> OnPostDnsTokenAsync(string? dnsToken, CancellationToken cancellationToken) =>
+        string.IsNullOrWhiteSpace(dnsToken)
+            ? await UnconfirmedAsync("Paste the Cloudflare API token.", cancellationToken)
+            : await AfterAsync(await setDnsToken.ExecuteAsync(Id, dnsToken, cancellationToken), DnsTokenNotice, cancellationToken);
+
+    public async Task<IActionResult> OnPostRemoveDnsTokenAsync(bool confirm, CancellationToken cancellationToken) =>
+        !confirm
+            ? await UnconfirmedAsync("Tick the box to confirm disconnecting Cloudflare.", cancellationToken)
+            : await AfterAsync(await setDnsToken.ExecuteAsync(Id, null, cancellationToken), _ => "Cloudflare disconnected. The records already published stay in Cloudflare.", cancellationToken);
+
+    internal static string DnsTokenNotice(DnsTokenReach reach)
+    {
+        string reached = string.Join(", ", reach.Reached.Select(static r => r.Domain.Name == r.Zone.Name ? r.Domain.Name : $"{r.Domain} (zone {r.Zone.Name})"));
+        string notice = $"Cloudflare token saved. It reaches {reached}; publish each domain's records from its DNS page.";
+        return reach.Unreached.Count == 0 ? notice : $"{notice} It does not reach {string.Join(", ", reach.Unreached)}: publish those by hand or widen the token.";
+    }
 
     private async Task<IActionResult> UnconfirmedAsync(string message, CancellationToken cancellationToken)
     {

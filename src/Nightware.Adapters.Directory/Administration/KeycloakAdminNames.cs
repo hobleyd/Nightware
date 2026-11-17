@@ -30,6 +30,12 @@ internal static class KeycloakAdminNames
     /// <summary>Organization attribute <c>nightware_dmarc:&lt;domain&gt;</c>: the domain's chosen DMARC record.</summary>
     public static string DmarcAttribute(MailDomain domain) => "nightware_dmarc:" + domain.Name;
 
+    /// <summary>
+    /// Organization attribute: the entity's Cloudflare API token, sealed by the console (ASP.NET Data Protection).
+    /// Never the token itself: Keycloak keeps organization representations in its admin events.
+    /// </summary>
+    public const string DnsTokenAttribute = "nightware_dns_token:cloudflare";
+
     public static string Alias(RequiredAction action) => action switch
     {
         RequiredAction.UpdatePassword => "UPDATE_PASSWORD",

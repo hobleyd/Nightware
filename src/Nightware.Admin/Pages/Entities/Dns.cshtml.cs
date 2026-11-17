@@ -11,14 +11,17 @@ namespace Nightware.Admin.Pages.Entities;
 /// The DNS records a domain needs, as the mail server generated them, with the domain's own state: a domain the
 /// mail server does not serve, or serves without its signing keys, has no or incomplete records, and Repair is
 /// offered here because it fixes exactly those two cases. The domain's SPF and DMARC records are the mail
-/// server's unless the entity chose its own, which a global administrator edits here.
+/// server's unless the entity chose its own, which a global administrator edits here. When the entity is connected
+/// to Cloudflare, a global administrator sees what publishing would change in the zone and publishes it here.
 /// </summary>
 public sealed class DnsModel(
     IAdminActor actor,
     GetEntity getEntity,
     GetEntityDnsRecords dns,
     AddEntityDomain repairDomain,
-    SetDomainMailPolicy setMailPolicy) : ConsolePageModel(actor)
+    SetDomainMailPolicy setMailPolicy,
+    PlanDnsPublication planPublication,
+    PublishDnsRecords publish) : ConsolePageModel(actor)
 {
     [BindProperty(SupportsGet = true)]
     public string Id { get; set; } = string.Empty;
@@ -53,6 +56,16 @@ public sealed class DnsModel(
 
     public EntityDetail Entity { get; private set; } = null!;
 
+    /// <summary>What publishing to Cloudflare would change; null when not offered or not readable (<see cref="PublicationUnread"/>).</summary>
+    public DnsPublicationPreview? Publication { get; private set; }
+
+    /// <summary>Why the Cloudflare zone could not be compared, shown in place of the preview.</summary>
+    public Error? PublicationUnread { get; private set; }
+
+    /// <summary>The plan the administrator saw; publishing applies only that plan.</summary>
+    [BindProperty]
+    public string? PlanFingerprint { get; set; }
+
     /// <summary>The domain as the mail server sees it.</summary>
     public DomainStatus Status { get; private set; } = null!;
 
@@ -71,6 +84,38 @@ public sealed class DnsModel(
         }
 
         return Fail(repaired.Error) ?? await RenderAsync(cancellationToken);
+    }
+
+    public async Task<IActionResult> OnPostPublishAsync(CancellationToken cancellationToken)
+    {
+        Result<DnsPublication> published = await publish.ExecuteAsync(Id, Domain, PlanFingerprint, cancellationToken);
+        if (!published.IsSuccess)
+        {
+            return Fail(published.Error) ?? await RenderAsync(cancellationToken);
+        }
+
+        DnsPublication outcome = published.Value;
+        if (outcome.Stale)
+        {
+            ModelState.AddModelError(string.Empty, "The records or the Cloudflare zone changed since the page was loaded, so nothing was published. Check the changes below and publish again.");
+            return await RenderAsync(cancellationToken);
+        }
+
+        string written = $"{outcome.Written} {(outcome.Written == 1 ? "change" : "changes")} published to Cloudflare for {Domain}.";
+        if (outcome.Failed.Count == 0)
+        {
+            Notice = written;
+            return RedirectToPage(new { id = Id, domain = Domain });
+        }
+
+        ModelState.AddModelError(string.Empty, $"{written} Cloudflare refused {outcome.Failed.Count}:");
+        foreach (DnsChangeOutcome failed in outcome.Failed)
+        {
+            DnsRecord? record = failed.Change.Desired ?? failed.Change.Current?.Record;
+            ModelState.AddModelError(string.Empty, $"{record?.Type} {record?.Name}: {failed.Error!.Message}");
+        }
+
+        return await RenderAsync(cancellationToken);
     }
 
     public Task<IActionResult> OnPostMailPolicyAsync(CancellationToken cancellationToken) =>
@@ -127,6 +172,15 @@ public sealed class DnsModel(
         }
 
         Records = domainDns.Records;
+        if (Actor.IsGlobal && entity.Entity.HasDnsToken && Records.Count > 0)
+        {
+            // Never fails the page: the records are still worth showing when Cloudflare cannot be read.
+            Result<DnsPublicationPreview> preview = await planPublication.ExecuteAsync(Id, Domain, cancellationToken);
+            Publication = preview.IsSuccess ? preview.Value : null;
+            PublicationUnread = preview.IsSuccess ? null : preview.Error;
+            PlanFingerprint = Publication?.Plan.Fingerprint;
+        }
+
         return Page();
     }
 }

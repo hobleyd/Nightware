@@ -34,6 +34,12 @@ public interface IEntityRegistry
     /// <summary>Stores the domain's SPF and DMARC choice (a null record returns it to the mail server's default). NotFound when the entity lacks the domain.</summary>
     Task<Result<Entity>> SetMailPolicyAsync(string entityId, MailDomain domain, DomainMailPolicy policy, CancellationToken cancellationToken);
 
+    /// <summary>The entity's sealed DNS host token (<see cref="ISecretSealer"/>), or null when it has none.</summary>
+    Task<Result<string?>> GetSealedDnsTokenAsync(string entityId, CancellationToken cancellationToken);
+
+    /// <summary>Stores the entity's sealed DNS host token, or with null removes it.</summary>
+    Task<Result> SetSealedDnsTokenAsync(string entityId, string? sealedToken, CancellationToken cancellationToken);
+
     Task<Result<IReadOnlyList<IdentityAccount>>> ListMembersAsync(string entityId, CancellationToken cancellationToken);
 
     /// <summary>Ids of the entities <paramref name="userId"/> is a member of.</summary>
@@ -195,6 +201,33 @@ public sealed record AuditEvent(string Action, string ActorId, bool Succeeded)
 public interface IAuditLog
 {
     void Record(AuditEvent auditEvent);
+}
+
+/// <summary>
+/// Encrypts the secrets the console keeps in the system of record (host-provided). A secret sealed for one
+/// <c>purpose</c> (an entity's id is part of it) cannot be unsealed for another.
+/// </summary>
+public interface ISecretSealer
+{
+    string Seal(string purpose, string secret);
+
+    /// <summary>False when the sealed text is not readable (tampered, or the key it was sealed with is gone).</summary>
+    bool TryUnseal(string purpose, string sealedSecret, out string secret);
+}
+
+/// <summary>
+/// An entity's DNS host (Cloudflare), reached with the entity's own token. A token the host refuses is a
+/// <see cref="ErrorKind.Validation"/> error with target <c>dnsToken</c>.
+/// </summary>
+public interface IDnsHosting
+{
+    /// <summary>The zone holding <paramref name="domain"/>: the domain's own or its closest parent the token can see; NotFound when none.</summary>
+    Task<Result<DnsZone>> FindZoneAsync(DnsProviderToken token, MailDomain domain, CancellationToken cancellationToken);
+
+    Task<Result<IReadOnlyList<ZoneRecord>>> ListRecordsAsync(DnsProviderToken token, DnsZone zone, CancellationToken cancellationToken);
+
+    /// <summary>Makes one <see cref="DnsChange.IsWrite"/> change; records are written as plain DNS (never proxied).</summary>
+    Task<Result> ApplyAsync(DnsProviderToken token, DnsZone zone, DnsChange change, CancellationToken cancellationToken);
 }
 
 public interface IPasswordGenerator

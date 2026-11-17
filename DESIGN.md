@@ -288,6 +288,11 @@ The one moment of emphasis. A one-time credential appears in a box with a 2px da
 ### Plan Table (signature)
 The "What will happen" step: before any write, a table lists each system's action. Conflicting rows turn Fault Red, the commit button only appears when nothing conflicts, and the warning says how to resolve a conflict.
 
+The DNS page's "Publish to Cloudflare" panel is the same idea for a zone. It lists only the records that would change (Add, Correct, Remove duplicate, Not published with its reason), with the value it will write beside the one Cloudflare holds now, and counts the records already right in one sentence. Records that stay but still matter (another provider's MX) are amber callouts below. The button names how many changes it makes, and publishes only the plan on screen. If the zone moved in the meantime, the new plan is shown instead.
+
+### Write-only secrets
+A credential the console keeps (an entity's Cloudflare token) is entered in a password field with `autocomplete="off"` and never rendered back, not even after a failed save. The panel states only whether one is set ("Connected to Cloudflare"), offers to replace it, and puts the removal in its own confirmed block.
+
 ## Do's and Don'ts
 
 ### Do:

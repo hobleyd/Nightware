@@ -36,6 +36,16 @@ public static class Systems
         _ => state.ToString(),
     };
 
+    /// <summary>A planned change to a Cloudflare zone, as the DNS page lists it.</summary>
+    public static string DnsChangeLabel(DnsChangeKind kind) => kind switch
+    {
+        DnsChangeKind.Create => "Add",
+        DnsChangeKind.Update => "Correct",
+        DnsChangeKind.Remove => "Remove duplicate",
+        DnsChangeKind.Skip => "Not published",
+        _ => "Published",
+    };
+
     /// <summary>What a domain Repair achieved, the same on every page.</summary>
     public static string DomainRepairNotice(DomainStatus status) => status switch
     {

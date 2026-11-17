@@ -49,6 +49,59 @@ else
     </table>
 }
 
+@if (Model.Actor.IsGlobal && Model.Records.Count > 0)
+{
+    <section class="panel">
+        <h2>Publish to Cloudflare</h2>
+        @if (!Model.Entity.Entity.HasDnsToken)
+        {
+            <p class="hint">Connect @Model.Entity.Entity.Name's Cloudflare account on <a asp-page="/Entities/Detail" asp-route-id="@Model.Id">the entity's page</a> to publish these records from here.</p>
+        }
+        else if (Model.PublicationUnread is not null)
+        {
+            <div class="warning"><p>The Cloudflare zone could not be compared: @Model.PublicationUnread.Message</p></div>
+        }
+        else if (Model.Publication is { } publication)
+        {
+            var plan = publication.Plan;
+            var shown = plan.Changes.Where(c => c.Kind != DnsChangeKind.Unchanged).ToList();
+            var published = plan.Count(DnsChangeKind.Unchanged);
+            <p>Zone @plan.Zone.Name. @(published == 1 ? "1 record is" : $"{published} records are") already published as needed.@(plan.HasWork ? "" : " Cloudflare has every record " + Model.Domain + " needs.")</p>
+            @if (shown.Count > 0)
+            {
+                <table class="dns">
+                    <thead><tr><th>Change</th><th>Type</th><th>Name</th><th>Value</th><th>In Cloudflare now</th></tr></thead>
+                    <tbody>
+                    @foreach (var c in shown)
+                    {
+                        var record = c.Desired ?? c.Current!.Record;
+                        <tr>
+                            <td data-label="Change">@Systems.DnsChangeLabel(c.Kind)@if (c.Note is not null) { <span class="hint detail">@c.Note</span> }</td>
+                            <td data-label="Type">@record.Type</td>
+                            <td data-label="Name">@record.Name</td>
+                            <td data-label="Value">@if (c.Desired is not null) { <textarea readonly rows="@(c.Desired.Value.Length > 80 ? 3 : 1)" aria-label="Value">@c.Desired.Value</textarea> } else { <text>—</text> }</td>
+                            <td data-label="In Cloudflare now">@if (c.Current is not null) { <textarea readonly rows="@(c.Current.Record.Value.Length > 80 ? 3 : 1)" aria-label="In Cloudflare now">@c.Current.Record.Value</textarea> } else { <text>—</text> }</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+            @foreach (var warning in plan.Warnings)
+            {
+                <div class="warning"><p>@warning</p></div>
+            }
+            @if (plan.HasWork)
+            {
+                var writes = plan.Changes.Count(c => c.IsWrite);
+                <form method="post" asp-page-handler="Publish">
+                    <input type="hidden" asp-for="PlanFingerprint">
+                    <button type="submit">Publish @writes @(writes == 1 ? "change" : "changes")</button><span class="hint">Adds and corrects these records. Nothing else in the zone is removed.</span>
+                </form>
+            }
+        }
+    </section>
+}
+
 <section class="panel">
     <h2>SPF and DMARC</h2>
     <p class="hint">SPF lists the servers allowed to send mail for @Model.Domain. DMARC tells receiving servers what to do with mail that fails SPF and DKIM, and where to send reports. Unless you set your own, the domain uses the mail server's records.</p>

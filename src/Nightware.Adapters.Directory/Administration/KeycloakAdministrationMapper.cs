@@ -48,7 +48,10 @@ internal static class KeycloakAdministrationMapper
             }
         }
 
-        Entity entity = new(organization.Id ?? string.Empty, organization.Alias ?? string.Empty, organization.Name, domains);
+        Entity entity = new(organization.Id ?? string.Empty, organization.Alias ?? string.Empty, organization.Name, domains)
+        {
+            HasDnsToken = !string.IsNullOrEmpty(organization.Attribute(KeycloakAdminNames.DnsTokenAttribute)),
+        };
         return policies.Count == 0 ? entity : entity with { MailPolicies = policies };
     }
 

@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Nightware.Adapters.Cloudflare/Nightware.Adapters.Cloudflare.csproj" />
     <Project Path="src/Nightware.Adapters.Dav/Nightware.Adapters.Dav.csproj" />
     <Project Path="src/Nightware.Adapters.Directory/Nightware.Adapters.Directory.csproj" />
     <Project Path="src/Nightware.Adapters.Jmap/Nightware.Adapters.Jmap.csproj" />
@@ -10,6 +11,7 @@
     <Project Path="src/Nightware.Hosting/Nightware.Hosting.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Nightware.Adapters.Cloudflare.Tests/Nightware.Adapters.Cloudflare.Tests.csproj" />
     <Project Path="tests/Nightware.Adapters.Dav.Tests/Nightware.Adapters.Dav.Tests.csproj" />
     <Project Path="tests/Nightware.Adapters.Directory.Tests/Nightware.Adapters.Directory.Tests.csproj" />
     <Project Path="tests/Nightware.Adapters.Jmap.Tests/Nightware.Adapters.Jmap.Tests.csproj" />

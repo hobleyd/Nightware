@@ -218,6 +218,25 @@ management API. Use the documented fallback in `.env`
 and `docker compose --profile api up -d nightware-admin`. The fallback is a
 full-access credential; see deploy/README.md "Admin console".
 
+## Admin console: publishing to Cloudflare fails
+
+- *"Cloudflare refused the token"*: it was revoked, expired, or lacks
+  Zone / DNS / Edit on the zone. Create a new one and replace it on the entity's
+  page.
+- *"can no longer be read"*: the `admin-keys` volume was lost or replaced, so
+  the sealed token can't be opened. Enter the token again on the entity's page.
+- *"does not trust Cloudflare's certificate"*: set
+  `NIGHTWARE_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` and recreate
+  `nightware-admin`.
+- *"reaches no zone"*: the domain's zone is in another Cloudflare account, or the
+  token is limited to other zones.
+- A row Cloudflare refused (shown under the heading after Publish) is usually a
+  CNAME that clashes with an existing A record. Remove the clashing record in
+  Cloudflare and publish again; everything else was already written.
+
+To rotate an entity's token, replace it on the entity's page. *Disconnect
+Cloudflare* forgets it. Revoke the old token in Cloudflare either way.
+
 ## Rotating the admin console's credentials
 
 Clear the value in `deploy/.env`, run `scripts/init-env.sh`, then the

@@ -285,6 +285,48 @@ public sealed class KeycloakEntityRegistryTests : IDisposable
     }
 
     [Fact]
+    public async Task Stores_reads_and_removes_the_sealed_dns_token_as_an_organization_attribute()
+    {
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, Fixture.Load("organization-nightware.json"));
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 204, method: "PUT");
+        await using AdapterHost host = Host();
+        IEntityRegistry registry = host.Scoped<IEntityRegistry>();
+
+        (await registry.GetSealedDnsTokenAsync(OrgId, Ct)).Value.ShouldBeNull();
+        (await registry.GetAsync(OrgId, Ct)).Value.HasDnsToken.ShouldBeFalse();
+        (await registry.SetSealedDnsTokenAsync(OrgId, "CfDJ8-sealed", Ct)).IsSuccess.ShouldBeTrue();
+
+        JsonObject body = JsonNode.Parse(_keycloak.Admin("PUT", $"/organizations/{OrgId}").Single().Body!)!.AsObject();
+        body["attributes"]!["nightware_dns_token:cloudflare"]!.AsArray().Single()!.GetValue<string>().ShouldBe("CfDJ8-sealed");
+        body["attributes"]!["billing"].ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task An_entity_with_a_sealed_token_says_so_and_returns_it()
+    {
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, """{"id":"0b7f3a52-9c41-4d6e-8a2f-5e1c9d3b7a10","name":"Nightware","alias":"nightware","domains":[{"name":"nightware.localhost"}],"attributes":{"nightware_dns_token:cloudflare":["CfDJ8-sealed"]}}""");
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 204, method: "PUT");
+        await using AdapterHost host = Host();
+        IEntityRegistry registry = host.Scoped<IEntityRegistry>();
+
+        (await registry.GetAsync(OrgId, Ct)).Value.HasDnsToken.ShouldBeTrue();
+        (await registry.GetSealedDnsTokenAsync(OrgId, Ct)).Value.ShouldBe("CfDJ8-sealed");
+        (await registry.SetSealedDnsTokenAsync(OrgId, null, Ct)).IsSuccess.ShouldBeTrue();
+        JsonNode.Parse(_keycloak.Admin("PUT", $"/organizations/{OrgId}").Single().Body!)!["attributes"]!.AsObject().Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task A_sealed_token_longer_than_an_attribute_value_is_refused_without_a_write()
+    {
+        await using AdapterHost host = Host();
+
+        Result result = await host.Scoped<IEntityRegistry>().SetSealedDnsTokenAsync(OrgId, new string('x', 256), Ct);
+
+        result.Error!.Target.ShouldBe("dnsToken");
+        _keycloak.Admin("PUT", $"/organizations/{OrgId}").ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Removing_a_domain_the_entity_lacks_is_a_no_op()
     {
         _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, Fixture.Load("organization-nightware.json"));

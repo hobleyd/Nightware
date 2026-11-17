@@ -66,6 +66,36 @@
 </section>
 
 <section class="panel">
+    <h2>DNS hosting</h2>
+    @if (Model.Actor.IsGlobal)
+    {
+        <p>@(entity.HasDnsToken
+            ? "Connected to Cloudflare. Publish each domain's records from its DNS page."
+            : "Not connected. Connect the entity's Cloudflare account to publish its domains' records from their DNS pages.")</p>
+        <form method="post" asp-page-handler="DnsToken">
+            <label>@(entity.HasDnsToken ? "Replace the Cloudflare API token" : "Cloudflare API token")
+                <input type="password" name="dnsToken" autocomplete="off" spellcheck="false" required aria-describedby="dns-token-hint">
+            </label>
+            <p id="dns-token-hint" class="hint">In Cloudflare, create an API token from the "Edit zone DNS" template, limited to this entity's zones. The console checks it with Cloudflare, stores it encrypted, and never shows it again.</p>
+            <button type="submit">@(entity.HasDnsToken ? "Replace token" : "Connect")</button>
+        </form>
+        @if (entity.HasDnsToken)
+        {
+            <form method="post" asp-page-handler="RemoveDnsToken" class="remove">
+                <label class="choice"><input type="checkbox" name="confirm" value="true" required> Forget the token; records already published stay in Cloudflare</label>
+                <button type="submit" class="secondary">Disconnect Cloudflare</button>
+            </form>
+        }
+    }
+    else
+    {
+        <p>@(entity.HasDnsToken
+            ? "Connected to Cloudflare: your Nightware operator publishes your domains' records there."
+            : "Not connected: publish each domain's records at your DNS provider, as listed on its DNS page.")</p>
+    }
+</section>
+
+<section class="panel">
     <h2>Entity administrators</h2>
     <p class="hint">They manage this entity's users. They cannot create entities, change domains or grant global rights.</p>
     @if (Model.Admins.Count == 0)

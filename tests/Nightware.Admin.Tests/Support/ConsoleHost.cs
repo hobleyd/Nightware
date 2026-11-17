@@ -97,6 +97,8 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
 
     public IGroupwareAccounts Groupware { get; } = Substitute.For<IGroupwareAccounts>();
 
+    public IDnsHosting DnsHosting { get; } = Substitute.For<IDnsHosting>();
+
     public List<IBackendStatus> Statuses { get; } = [];
 
     public FakeTimeProvider Time { get; } = new(Now);
@@ -176,7 +178,7 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
             });
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Time);
-            services.AddSingleton(Entities).AddSingleton(Identities).AddSingleton(Scopes).AddSingleton(Mail).AddSingleton(MailDomains).AddSingleton(Groupware);
+            services.AddSingleton(Entities).AddSingleton(Identities).AddSingleton(Scopes).AddSingleton(Mail).AddSingleton(MailDomains).AddSingleton(Groupware).AddSingleton(DnsHosting);
             services.RemoveAll<IBackendStatus>();
             foreach (IBackendStatus status in Statuses)
             {

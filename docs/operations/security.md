@@ -162,6 +162,22 @@ credentials with it.
   it to a management network or VPN where you have one. The console shares an
   origin with Nextcloud, Stalwart's UI and Keycloak; an XSS in one of them could
   act in the console (`docs/known-issues.md`, fix: a host of its own).
+- **Cloudflare tokens** (per entity, for publishing DNS records). Global
+  admins only enter them, in a password field that is never rendered back. The
+  console first checks the token with Cloudflare and refuses one it does not
+  accept or that reaches none of the entity's domains. It then seals the token
+  with ASP.NET Data Protection (authenticated encryption with the `admin-keys`
+  key ring, purpose bound to the entity, so a sealed token copied to another
+  entity does not open). Only the sealed form is stored, as the organization
+  attribute `nightware_dns_token:cloudflare`, so Keycloak's database, admin
+  events and exports hold ciphertext. Reading it back needs both Keycloak and
+  the key volume, and the key ring is not encrypted at rest, so protect the
+  volume like a secret. The token never reaches logs, audit events or error
+  messages. Ask entity owners for a token from Cloudflare's "Edit zone DNS"
+  template, limited to their zones. Publishing only adds and corrects records.
+  It never removes one the domain does not need, except a second SPF, DMARC or
+  DKIM record at a name where there must be one. It writes records as plain
+  DNS (never proxied), and does not add a first CAA record.
 - **Audit.** Every action logs one `admin.audit` event naming the human actor;
   Keycloak's admin events record the console's service account for Keycloak
   writes.

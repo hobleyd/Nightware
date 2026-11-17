@@ -14,6 +14,9 @@ namespace Nightware.Adapters.Directory.Administration;
 /// </summary>
 internal sealed class KeycloakEntityRegistry(IKeycloakAdminClient keycloak, KeycloakEntityAdmins admins) : IEntityRegistry
 {
+    /// <summary>Keycloak's column for an attribute value (<c>GROUP_ATTRIBUTE.VALUE</c>, organizations being groups underneath).</summary>
+    internal const int MaxAttributeLength = 255;
+
     public async Task<Result<IReadOnlyList<Entity>>> ListAsync(CancellationToken cancellationToken)
     {
         Result<IReadOnlyList<KeycloakOrganization>> organizations = await keycloak.ListOrganizationsAsync(cancellationToken).ConfigureAwait(false);
@@ -135,6 +138,30 @@ internal sealed class KeycloakEntityRegistry(IKeycloakAdminClient keycloak, Keyc
         }
 
         return owned ? KeycloakAdministrationMapper.ToEntity(updated.Value) : Error.NotFound($"The entity has no domain {domain}.", "domain");
+    }
+
+    public async Task<Result<string?>> GetSealedDnsTokenAsync(string entityId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(entityId);
+        Result<KeycloakOrganization> organization = await keycloak.GetOrganizationAsync(entityId, cancellationToken).ConfigureAwait(false);
+        return organization.Map(static o => o.Attribute(KeycloakAdminNames.DnsTokenAttribute) is { Length: > 0 } sealedToken ? sealedToken : null);
+    }
+
+    public async Task<Result> SetSealedDnsTokenAsync(string entityId, string? sealedToken, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(entityId);
+        if (sealedToken is { Length: > MaxAttributeLength })
+        {
+            // Keycloak stores an attribute value in 255 characters and answers a longer one with a 500.
+            return Error.Validation("That token is too long to store.", "dnsToken");
+        }
+
+        Result<KeycloakOrganization> updated = await keycloak.UpdateOrganizationAsync(
+                entityId,
+                representation => SetAttribute(representation, KeycloakAdminNames.DnsTokenAttribute, sealedToken),
+                cancellationToken)
+            .ConfigureAwait(false);
+        return updated.IsSuccess ? Result.Success() : updated.Error;
     }
 
     public async Task<Result<IReadOnlyList<IdentityAccount>>> ListMembersAsync(string entityId, CancellationToken cancellationToken)

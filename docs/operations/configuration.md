@@ -144,4 +144,15 @@ from `deploy/.env`.
 | `NextcloudProvisioning:Username` / `Password` 🔒 | `nightware-admin` / — | The console's Nextcloud administrator. |
 | `NextcloudProvisioning:OidcProviderId` | `keycloak` | user_oidc provider (identifier or numeric id) for pre-provisioning. |
 | `NextcloudProvisioning:IdentityProviderBackends:0` | `user_oidc` | User backends that sign in through Keycloak. |
+| `Cloudflare:ApiBaseUrl` | `https://api.cloudflare.com/client/v4/` | Cloudflare's API, for publishing an entity's DNS records. No credential here: each entity's own token is entered on its page and kept sealed in Keycloak. |
+| `Cloudflare:RequestTimeout` / `AttemptTimeout` / `MaxRetryAttempts` | `00:00:30` / `00:00:10` / `2` | Per call; reads are retried, writes never. |
+| `Cloudflare:RecordPageSize` / `MaxRecords` | `500` / `10000` | Zone read in pages; a larger zone is refused rather than planned against in part. |
+
+Publishing to Cloudflare needs the console to trust public certificate authorities: set
+`NIGHTWARE_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt`. With the default (Caddy's local root only) the
+DNS page says the console does not trust Cloudflare's certificate.
+
+The console's Data Protection key ring (`admin-keys` volume) encrypts its cookies and the entities' Cloudflare
+tokens. Its application name is fixed (`Nightware.Admin`). Back the volume up with Keycloak's database: losing
+it signs everyone out and makes stored tokens unreadable (re-enter them on each entity's page).
 

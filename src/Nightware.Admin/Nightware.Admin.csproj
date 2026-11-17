@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <ProjectReference Include="..\Nightware.Adapters.Cloudflare\Nightware.Adapters.Cloudflare.csproj" />
     <ProjectReference Include="..\Nightware.Adapters.Jmap\Nightware.Adapters.Jmap.csproj" />
     <ProjectReference Include="..\Nightware.Adapters.Dav\Nightware.Adapters.Dav.csproj" />
     <ProjectReference Include="..\Nightware.Adapters.Directory\Nightware.Adapters.Directory.csproj" />

@@ -15,6 +15,12 @@ public sealed record Entity(string Id, string Alias, string Name, IReadOnlyList<
     /// </summary>
     public IReadOnlyDictionary<MailDomain, DomainMailPolicy> MailPolicies { get; init; } = NoPolicies;
 
+    /// <summary>
+    /// Whether the entity has a DNS host token (Cloudflare) the console can publish its domains' records with.
+    /// Filled when one entity is read, like <see cref="MailPolicies"/>.
+    /// </summary>
+    public bool HasDnsToken { get; init; }
+
     public DomainMailPolicy MailPolicyFor(MailDomain domain) =>
         MailPolicies.TryGetValue(domain, out DomainMailPolicy? policy) ? policy : DomainMailPolicy.MailServerDefault;
 

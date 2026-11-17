@@ -428,6 +428,7 @@ admin choose a password:
 | Caddy `remote_ip {$ADMIN_ALLOWED_CIDRS}` placeholder expansion | **unverified** (step 9) |
 | Organization `PUT` without an attribute key deletes that attribute (SPF/DMARC reset, domain removal) | **unverified** (adapter tested against a stub only) |
 | Organization attribute values hold 255 characters (SPF/DMARC records are capped there) | **unverified**; the cap is also one TXT string's limit |
+| Cloudflare: a token from the "Edit zone DNS" template finds its zone with `GET zones?name=` and accepts the record bodies the console sends | **unverified** (WireMock only) |
 
 ## Decisions taken (2026-11-17)
 
@@ -527,6 +528,26 @@ Where the build refined the decisions above:
   (`DomainMailPolicy`). Global administrators edit them on the DNS page
   (`SetDomainMailPolicy`, audited `entity.domain.mail-policy`); removing a
   domain drops its attributes. Nothing is checked against live DNS.
+- **Publishing DNS records to Cloudflare (per entity).** An entity may have a
+  Cloudflare API token, set by a global administrator on the entity page
+  (`SetEntityDnsToken`, audited `entity.dns-token.set`/`.removed`). The token
+  is checked first (the zone lookup for each of the entity's domains) and is
+  kept only sealed: ASP.NET Data Protection (`ISecretSealer`, purpose
+  `dns-token:cloudflare:<entity id>`) as the organization attribute
+  `nightware_dns_token:cloudflare`. That keeps D3 ("no store") intact and keeps
+  plaintext out of Keycloak's admin events. Tokens are capped at 79 characters
+  so the sealed form fits the 255-character attribute value. The DNS page
+  plans the changes against the live zone (`PlanDnsPublication`,
+  `DnsPublicationPlanner`) and publishes only the plan the admin saw
+  (`PublishDnsRecords`, fingerprint, audited `entity.domain.dns-published`
+  with counts). The planner never deletes a record the domain doesn't need,
+  except duplicates of a one-per-name TXT kind (SPF, DMARC, DKIM, MTA-STS,
+  TLS-RPT). It reports another provider's MX as a warning, writes records
+  unproxied, skips records outside the zone, and doesn't add a first CAA
+  record (which would restrict every other CA). The Cloudflare adapter is its
+  own project (`Nightware.Adapters.Cloudflare`): reads retried, writes never.
+  Its data format (SRV/CAA/TLSA `data`, TXT as quoted ≤255-character strings)
+  is **unverified** against the live API (WireMock only).
 - **Verified end to end** on an isolated stack (Keycloak 26.8.2, Stalwart 1.1.0,
   Nextcloud 35): MFA sign-in, entity and domain creation (DNS records shown),
   linking existing users, creating a user who then signs in to NightMail and

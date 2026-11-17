@@ -1,0 +1,306 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+
+using Nightware.Domain.Kernel;
+
+namespace Nightware.Domain.Administration;
+
+/// <summary>
+/// An API token for an entity's DNS host (Cloudflare). Held only for the length of a request: the console stores
+/// it sealed and never shows it back. <see cref="ToString"/> redacts.
+/// </summary>
+public sealed record DnsProviderToken
+{
+    /// <summary>
+    /// Longest token accepted. Cloudflare's are 40 characters. The bound keeps the sealed form within the 255
+    /// characters of one Keycloak attribute value: Data Protection adds 84 bytes to the text padded to whole
+    /// 16-byte blocks, so 79 characters seal to 180 bytes, 240 in base64url.
+    /// </summary>
+    public const int MaxLength = 79;
+
+    private DnsProviderToken(string value) => Value = value;
+
+    public string Value { get; }
+
+    public static Result<DnsProviderToken> Parse(string? value)
+    {
+        string text = value?.Trim() ?? string.Empty;
+        if (text.Length == 0)
+        {
+            return Error.Validation("Paste the Cloudflare API token.", "dnsToken");
+        }
+
+        if (text.Length > MaxLength || !text.All(static c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.'))
+        {
+            return Error.Validation("That is not a Cloudflare API token: one is a single word of letters, digits, '-' and '_'.", "dnsToken");
+        }
+
+        return new DnsProviderToken(text);
+    }
+
+    public override string ToString() => "DnsProviderToken { *** }";
+}
+
+/// <summary>A DNS zone at the entity's DNS host.</summary>
+public sealed record DnsZone(string Id, string Name);
+
+/// <summary>A record as the DNS host holds it, in <see cref="DnsRecord"/>'s value format (MX <c>"10 host"</c>, SRV <c>"0 1 443 host"</c>, TXT unquoted).</summary>
+/// <param name="Proxied">Served through the host's proxy (Cloudflare's orange cloud) rather than as plain DNS.</param>
+public sealed record ZoneRecord(string Id, DnsRecord Record, bool Proxied = false);
+
+public enum DnsChangeKind
+{
+    /// <summary>Already published as needed.</summary>
+    Unchanged,
+    Create,
+    Update,
+
+    /// <summary>A second record of a kind there must be one of (SPF, DMARC, DKIM at one selector), removed beside the one updated.</summary>
+    Remove,
+
+    /// <summary>Not published, with the reason in <see cref="DnsChange.Note"/>.</summary>
+    Skip,
+}
+
+/// <param name="Desired">The record the domain needs; null for <see cref="DnsChangeKind.Remove"/>.</param>
+/// <param name="Current">The zone's record that is updated, removed or already right; null for a create or a skip.</param>
+public sealed record DnsChange(DnsChangeKind Kind, DnsRecord? Desired, ZoneRecord? Current, string? Note = null)
+{
+    /// <summary>Whether publishing writes anything for this change.</summary>
+    public bool IsWrite => Kind is DnsChangeKind.Create or DnsChangeKind.Update or DnsChangeKind.Remove;
+}
+
+/// <summary>
+/// What publishing a domain's records to its zone would do. <see cref="Warnings"/> name records left in the zone
+/// that still matter (another provider's MX). <see cref="Fingerprint"/> identifies the plan, so a publish applies
+/// only the plan the administrator saw.
+/// </summary>
+public sealed record DnsPublicationPlan(DnsZone Zone, IReadOnlyList<DnsChange> Changes, IReadOnlyList<string> Warnings)
+{
+    public bool HasWork => Changes.Any(static c => c.IsWrite);
+
+    public int Count(DnsChangeKind kind) => Changes.Count(c => c.Kind == kind);
+
+    public string Fingerprint
+    {
+        get
+        {
+            var text = new StringBuilder(Zone.Id).Append('\n');
+            foreach (DnsChange change in Changes)
+            {
+                text.Append(change.Kind).Append('|')
+                    .Append(change.Desired is { } d ? $"{d.Name}|{d.Type}|{d.Value}" : "-").Append('|')
+                    .Append(change.Current is { } c ? $"{c.Id}|{c.Record.Value}|{c.Proxied}" : "-").Append('\n');
+            }
+
+            return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())))[..32];
+        }
+    }
+}
+
+/// <summary>
+/// Plans publishing a domain's records into its zone, adding and correcting, never deleting what the domain does
+/// not need. One-of-a-kind records (a CNAME; a TXT whose <c>v=</c> tag makes it SPF, DMARC, DKIM, MTA-STS or
+/// TLS-RPT) replace the zone's record of that kind at the name, and a duplicate of the kind is removed (two SPF
+/// records fail evaluation). Other types are sets: a missing value is added, others are left (MX and SRV by host
+/// keep their entry and correct its priority). CAA is added only where the name already has CAA records: a first
+/// CAA record restricts every certificate authority for the whole domain.
+/// </summary>
+public static class DnsPublicationPlanner
+{
+    public static DnsPublicationPlan Plan(DnsZone zone, IReadOnlyList<DnsRecord> desired, IReadOnlyList<ZoneRecord> existing)
+    {
+        ArgumentNullException.ThrowIfNull(zone);
+        ArgumentNullException.ThrowIfNull(desired);
+        ArgumentNullException.ThrowIfNull(existing);
+
+        string zoneName = Name(zone.Name);
+        var claimed = new HashSet<string>(StringComparer.Ordinal);
+        var changes = new List<DnsChange>();
+        foreach (DnsRecord record in desired)
+        {
+            changes.AddRange(PlanOne(zoneName, Canonical(record), existing, claimed));
+        }
+
+        return new DnsPublicationPlan(zone, changes, Warnings(desired, existing));
+    }
+
+    /// <summary>
+    /// <paramref name="record"/> in the form records are compared in: names lower-case without the trailing dot,
+    /// type upper-case, TXT unquoted, host names in values lower-case, TLSA data without spaces.
+    /// </summary>
+    public static DnsRecord Canonical(DnsRecord record)
+    {
+        ArgumentNullException.ThrowIfNull(record);
+        string type = record.Type.Trim().ToUpperInvariant();
+        string[] parts = record.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        string value = type switch
+        {
+            "TXT" => Unquote(record.Value.Trim()),
+            "CNAME" or "NS" or "PTR" => Name(record.Value),
+            "MX" when parts.Length == 2 => $"{Number(parts[0])} {Name(parts[1])}",
+            "SRV" when parts.Length == 4 => $"{Number(parts[0])} {Number(parts[1])} {Number(parts[2])} {(parts[3] == "." ? "." : Name(parts[3]))}",
+            "TLSA" when parts.Length >= 4 => $"{Number(parts[0])} {Number(parts[1])} {Number(parts[2])} {string.Concat(parts.Skip(3)).ToUpperInvariant()}",
+            "CAA" when parts.Length >= 3 => $"{Number(parts[0])} {parts[1].ToLowerInvariant()} \"{Unquote(string.Join(' ', parts.Skip(2)))}\"",
+            _ => string.Join(' ', parts),
+        };
+        return record with { Name = Name(record.Name), Type = type, Value = value };
+    }
+
+    private static IEnumerable<DnsChange> PlanOne(string zoneName, DnsRecord wanted, IReadOnlyList<ZoneRecord> existing, HashSet<string> claimed)
+    {
+        if (wanted.Name != zoneName && !wanted.Name.EndsWith("." + zoneName, StringComparison.Ordinal))
+        {
+            yield return new DnsChange(DnsChangeKind.Skip, wanted, null, $"Outside the {zoneName} zone: publish it where {wanted.Name} is hosted.");
+            yield break;
+        }
+
+        List<ZoneRecord> atName = [.. existing.Where(r => !claimed.Contains(r.Id) && Name(r.Record.Name) == wanted.Name)];
+        ZoneRecord? cname = atName.FirstOrDefault(static r => Type(r) == "CNAME");
+        if (wanted.Type == "CNAME")
+        {
+            if (atName.FirstOrDefault(static r => Type(r) != "CNAME") is { } blocker)
+            {
+                yield return new DnsChange(DnsChangeKind.Skip, wanted, blocker, $"{wanted.Name} already has a {Type(blocker)} record, and a CNAME cannot sit beside other records. Remove it at Cloudflare to publish this one.");
+                yield break;
+            }
+
+            yield return Match(wanted, cname, claimed);
+            yield break;
+        }
+
+        if (cname is not null)
+        {
+            yield return new DnsChange(DnsChangeKind.Skip, wanted, cname, $"{wanted.Name} is a CNAME to {Canonical(cname.Record).Value}, so it cannot have other records.");
+            yield break;
+        }
+
+        List<ZoneRecord> sameType = [.. atName.Where(r => Type(r) == wanted.Type)];
+        switch (wanted.Type)
+        {
+            case "TXT" when Tag(wanted.Value) is { } tag:
+                List<ZoneRecord> sameKind = [.. sameType.Where(r => Tag(Canonical(r.Record).Value) == tag)];
+                yield return Match(wanted, sameKind.FirstOrDefault(), claimed);
+                foreach (ZoneRecord duplicate in sameKind.Skip(1))
+                {
+                    claimed.Add(duplicate.Id);
+                    yield return new DnsChange(DnsChangeKind.Remove, null, duplicate, $"A second {tag} record at {wanted.Name}; there must be only one.");
+                }
+
+                yield break;
+            case "MX" or "SRV":
+                // Same host (and port): the entry is ours, perhaps with another priority or weight.
+                string key = HostKey(wanted);
+                yield return Match(wanted, sameType.FirstOrDefault(r => HostKey(Canonical(r.Record)) == key), claimed);
+                yield break;
+            case "CAA" when sameType.Count == 0:
+                yield return new DnsChange(DnsChangeKind.Skip, wanted, null, "A first CAA record would stop every other certificate authority issuing for the domain, which can break its websites. Publish it yourself if that is intended.");
+                yield break;
+            default:
+                ZoneRecord? same = sameType.FirstOrDefault(r => Canonical(r.Record).Value.Equals(wanted.Value, StringComparison.OrdinalIgnoreCase));
+                if (same is not null)
+                {
+                    claimed.Add(same.Id);
+                    yield return new DnsChange(DnsChangeKind.Unchanged, wanted, same);
+                }
+                else
+                {
+                    yield return new DnsChange(DnsChangeKind.Create, wanted, null);
+                }
+
+                yield break;
+        }
+    }
+
+    /// <summary>Unchanged when <paramref name="current"/> already holds the value (as plain DNS), an update when it differs, a create when there is none.</summary>
+    private static DnsChange Match(DnsRecord wanted, ZoneRecord? current, HashSet<string> claimed)
+    {
+        if (current is null)
+        {
+            return new DnsChange(DnsChangeKind.Create, wanted, null);
+        }
+
+        claimed.Add(current.Id);
+        bool sameValue = string.Equals(Canonical(current.Record).Value, wanted.Value, wanted.Type == "TXT" ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
+        if (sameValue && !current.Proxied)
+        {
+            return new DnsChange(DnsChangeKind.Unchanged, wanted, current);
+        }
+
+        return new DnsChange(DnsChangeKind.Update, wanted, current, sameValue ? "Served through Cloudflare's proxy; mail needs plain DNS." : null);
+    }
+
+    /// <summary>MX records at a name the domain publishes MX for, pointing at hosts it does not: they keep receiving mail.</summary>
+    private static List<string> Warnings(IReadOnlyList<DnsRecord> desired, IReadOnlyList<ZoneRecord> existing)
+    {
+        List<DnsRecord> wantedMx = [.. desired.Select(Canonical).Where(static r => r.Type == "MX")];
+        var warnings = new List<string>();
+        foreach (ZoneRecord record in existing.Where(static r => Type(r) == "MX"))
+        {
+            DnsRecord mx = Canonical(record.Record);
+            if (wantedMx.Any(w => w.Name == mx.Name) && !wantedMx.Any(w => w.Name == mx.Name && HostKey(w) == HostKey(mx)))
+            {
+                warnings.Add($"The zone also has MX {mx.Value} for {mx.Name}. It stays, and that server will still receive some of the domain's mail; remove it at Cloudflare once mail should only come here.");
+            }
+        }
+
+        return warnings;
+    }
+
+    private static string Type(ZoneRecord record) => record.Record.Type.Trim().ToUpperInvariant();
+
+    /// <summary>The <c>v=</c> tag of a TXT value that has one (<c>v=spf1</c>, <c>v=dmarc1</c>, …), lower-case.</summary>
+    private static string? Tag(string value)
+    {
+        if (!value.StartsWith("v=", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        int end = value.IndexOfAny([';', ' ']);
+        return (end < 0 ? value : value[..end]).ToLowerInvariant();
+    }
+
+    /// <summary>MX: the exchange; SRV: port and target.</summary>
+    private static string HostKey(DnsRecord canonical)
+    {
+        string[] parts = canonical.Value.Split(' ');
+        return canonical.Type == "SRV" && parts.Length == 4 ? $"{parts[2]} {parts[3]}" : parts[^1];
+    }
+
+    private static string Name(string name) => name.Trim().TrimEnd('.').ToLowerInvariant();
+
+    private static string Number(string text) =>
+        int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int n) ? n.ToString(CultureInfo.InvariantCulture) : text;
+
+    /// <summary>A TXT value from <c>"a" "b"</c> form (as DNS hosts show it) to <c>ab</c>; unquoted text is returned as is.</summary>
+    internal static string Unquote(string value)
+    {
+        if (!value.StartsWith('"'))
+        {
+            return value;
+        }
+
+        var text = new StringBuilder();
+        bool inQuote = false;
+        for (int i = 0; i < value.Length; i++)
+        {
+            char c = value[i];
+            if (c == '"')
+            {
+                inQuote = !inQuote;
+            }
+            else if (inQuote && c == '\\' && i + 1 < value.Length)
+            {
+                text.Append(value[++i]);
+            }
+            else if (inQuote)
+            {
+                text.Append(c);
+            }
+        }
+
+        return text.ToString();
+    }
+}

@@ -25,6 +25,7 @@ public static class AdministrationServiceCollectionExtensions
         services.TryAddScoped<ProvisioningPlanner>();
         services.TryAddScoped<CredentialIssuer>();
         services.TryAddScoped<DeletionGuard>();
+        services.TryAddScoped<DnsTokenVault>();
 
         services.TryAddScoped<ListEntities>();
         services.TryAddScoped<GetEntity>();
@@ -33,6 +34,9 @@ public static class AdministrationServiceCollectionExtensions
         services.TryAddScoped<RemoveEntityDomain>();
         services.TryAddScoped<GetEntityDnsRecords>();
         services.TryAddScoped<SetDomainMailPolicy>();
+        services.TryAddScoped<SetEntityDnsToken>();
+        services.TryAddScoped<PlanDnsPublication>();
+        services.TryAddScoped<PublishDnsRecords>();
         services.TryAddScoped<ListEntityAdmins>();
         services.TryAddScoped<GrantEntityAdmin>();
         services.TryAddScoped<RevokeEntityAdmin>();
