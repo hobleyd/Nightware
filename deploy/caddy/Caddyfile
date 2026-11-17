@@ -89,6 +89,20 @@
 		}
 	}
 
+	# The admin console (ADR 0002), `api` profile. /admin is Stalwart's. Reachable
+	# from ADMIN_ALLOWED_CIDRS only (default: anywhere; it still requires Keycloak
+	# sign-in with MFA); everyone else gets 403.
+	redir /console /console/ 301
+	handle_path /console/* {
+		@console-allowed remote_ip {$ADMIN_ALLOWED_CIDRS:0.0.0.0/0 ::/0}
+		handle @console-allowed {
+			reverse_proxy nightware-admin:8080 {
+				header_up X-Forwarded-Prefix /console
+			}
+		}
+		respond 403
+	}
+
 	handle {
 		redir * /cloud/ 302
 	}

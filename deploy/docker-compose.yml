@@ -49,6 +49,8 @@ services:
       HTTPS_PORT: ${HTTPS_PORT:-443}
       # internal | <ACME email> | "/certs/fullchain.crt /certs/privkey.key" (see Caddyfile)
       CADDY_TLS: ${CADDY_TLS:-internal}
+      # Who may reach /console (caddy/Caddyfile); the console itself still requires MFA.
+      ADMIN_ALLOWED_CIDRS: ${ADMIN_ALLOWED_CIDRS:-0.0.0.0/0 ::/0}
     ports:
       # Caddy listens on the same port inside the container as on the host, so
       # https://${PUBLIC_HOST}:${HTTPS_PORT} is the same URL everywhere.
@@ -272,6 +274,59 @@ services:
   # ---------------------------------------------------- Nightware Graph façade
   # Only the façade is (re)built:  docker compose --profile api up -d --build --no-deps nightware-api
   # Every key is documented in docs/operations/configuration.md.
+  # The admin console (ADR 0002): entities, users and their accounts in Keycloak,
+  # Stalwart and Nextcloud, at https://${PUBLIC_HOST}/console. Its own Keycloak
+  # client and its own credential in each backend; never the façade's.
+  nightware-admin:
+    profiles: [api]
+    <<: *restart
+    build:
+      context: ..
+      dockerfile: src/Nightware.Admin/Dockerfile
+    image: nightware/admin:dev
+    environment:
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ASPNETCORE_ENVIRONMENT: ${NIGHTWARE_ENVIRONMENT:-Development}
+      # Sign-in: the public issuer, discovery over the internal network.
+      Admin__Authority: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/auth/realms/nightware
+      Admin__MetadataAddress: http://keycloak:8080/auth/realms/nightware/.well-known/openid-configuration
+      Admin__RequireHttpsMetadata: "false"
+      Admin__ClientId: nightware-admin
+      Admin__ClientSecret: ${NIGHTWARE_ADMIN_CLIENT_SECRET:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
+      Admin__AcceptedAcrValues__0: ${ADMIN_REQUIRED_ACR-mfa}
+      Admin__EntityAdminsMayDeleteData: ${ADMIN_ENTITY_ADMINS_MAY_DELETE_DATA:-false}
+      # Keycloak admin API as the console's own service account.
+      Directory__KeycloakBaseUrl: http://keycloak:8080/auth
+      Directory__Realm: nightware
+      Directory__ClientId: nightware-admin
+      Directory__ClientSecret: ${NIGHTWARE_ADMIN_CLIENT_SECRET}
+      Directory__ServiceAccountScope: kc-admin-api
+      StalwartManagement__ApiUrl: http://stalwart:8080/jmap/
+      # The account stalwart/configure.sh creates; STALWART_MANAGEMENT_LOGIN overrides it (e.g. the recovery admin).
+      StalwartManagement__Username: ${STALWART_MANAGEMENT_LOGIN:-nightware-admin@${MAIL_DOMAIN:-nightware.localhost}}
+      StalwartManagement__Password: ${STALWART_MANAGEMENT_PASSWORD:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
+      NextcloudProvisioning__BaseUrl: http://nextcloud/
+      NextcloudProvisioning__Username: ${NEXTCLOUD_PROVISIONING_USER:-nightware-admin}
+      NextcloudProvisioning__Password: ${NEXTCLOUD_PROVISIONING_PASSWORD:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
+      NextcloudProvisioning__OidcProviderId: keycloak
+      ForwardedHeaders__KnownNetworks__0: ${DOCKER_SUBNET:-172.31.250.0/24}
+      SSL_CERT_FILE: ${NIGHTWARE_SSL_CERT_FILE:-/certs/caddy-root.crt}
+    volumes:
+      - ./.certs:/certs:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks:
+      nightware:
+        # Pinned so Nextcloud can exempt it from brute-force throttling (nextcloud/configure.sh).
+        ipv4_address: ${NIGHTWARE_ADMIN_ADDRESS:-172.31.250.249}
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /healthz/live HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && grep -q ' 200 ' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
   nightware-api:
     profiles: [api]
     <<: *restart

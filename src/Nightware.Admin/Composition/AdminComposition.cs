@@ -32,7 +32,17 @@ public static class AdminComposition
         services.AddMemoryCache();
         services.AddHealthChecks();
 
-        services.AddOptions<AdminAuthOptions>().Bind(configuration.GetSection(AdminAuthOptions.SectionName)).ValidateOnStart();
+        services.AddOptions<AdminAuthOptions>()
+            .Bind(configuration.GetSection(AdminAuthOptions.SectionName))
+            // Compose sets Admin__AcceptedAcrValues__0 from ADMIN_REQUIRED_ACR, which is empty to turn MFA off.
+            .PostConfigure(static o =>
+            {
+                foreach (string blank in o.AcceptedAcrValues.Where(string.IsNullOrWhiteSpace).ToList())
+                {
+                    o.AcceptedAcrValues.Remove(blank);
+                }
+            })
+            .ValidateOnStart();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<AdminAuthOptions>, AdminAuthOptionsValidator>());
         services.AddSecurityHeaders(configuration, security => security.ContentSecurityPolicy = ContentSecurityPolicy(configuration));
 

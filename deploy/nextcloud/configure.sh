@@ -104,6 +104,26 @@ log "Nextcloud: brute-force allow-list ${API_ADDRESS}/32 (nightware-api)"
 occ config:app:set bruteForce whitelist_1000 --value="${API_ADDRESS}/32" >/dev/null
 occ config:app:set bruteForce whitelist_1000_comment --value="nightware-api (deploy/nextcloud/configure.sh)" >/dev/null
 
+# ------------------------------------------------- admin console credential
+# The admin console (ADR 0002 D8) provisions users through the OCS API and
+# user_oidc's pre-provisioning endpoint as its own local administrator, never
+# as NEXTCLOUD_ADMIN_USER. Nextcloud has no narrower role that may create users.
+# The password is set on every run so .env stays the source of truth.
+if [[ -n "${NEXTCLOUD_PROVISIONING_PASSWORD:-}" ]]; then
+  PROV_USER="${NEXTCLOUD_PROVISIONING_USER:-nightware-admin}"
+  if occ user:info "$PROV_USER" >/dev/null 2>&1; then
+    dc exec -T -u www-data -e OC_PASS="$NEXTCLOUD_PROVISIONING_PASSWORD" nextcloud php occ user:resetpassword --password-from-env "$PROV_USER" >/dev/null
+  else
+    log "Nextcloud: creating the admin console account ${PROV_USER}"
+    dc exec -T -u www-data -e OC_PASS="$NEXTCLOUD_PROVISIONING_PASSWORD" nextcloud php occ user:add --password-from-env \
+      --display-name "Nightware admin console" --group admin "$PROV_USER" >/dev/null
+  fi
+  # The console's address, so brute-force protection never throttles provisioning.
+  ADMIN_ADDRESS="${NIGHTWARE_ADMIN_ADDRESS:-172.31.250.249}"
+  occ config:app:set bruteForce whitelist_1001 --value="${ADMIN_ADDRESS}/32" >/dev/null
+  occ config:app:set bruteForce whitelist_1001_comment --value="nightware-admin (deploy/nextcloud/configure.sh)" >/dev/null
+fi
+
 # ------------------------------------------------------------- outgoing mail
 # iMIP invitations go to Stalwart's SMTP listener (port 25) inside the Docker
 # network. Stalwart accepts unauthenticated mail for its own local recipients
