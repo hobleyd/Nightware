@@ -38,11 +38,15 @@
             <tr>
                 <td>@name</td>
                 <td data-label="State"><span class="chip @Systems.LinkClass(link, !id.Enabled)">@Systems.LinkLabel(link, !id.Enabled)</span></td>
-                <td data-label="Detail">@link.Detail</td>
+                <td data-label="Detail">@if (link.State == LinkState.Error) { @Systems.FailedSentence(link.Backend) <span class="hint detail">@link.Detail</span> } else { @link.Detail }</td>
             </tr>
         }
         </tbody>
     </table>
+    @if (!Model.Actor.IsGlobal && Model.Subject.Links.Any(l => l.State == LinkState.Error))
+    {
+        <p class="hint">@Systems.TellOperator</p>
+    }
     @if (id.Enabled)
     {
         <form method="post" asp-page-handler="Repair"><button type="submit" class="@(status == Nightware.Application.Administration.Users.UserStatus.NeedsRepair ? null : "secondary")">Repair</button> <span class="hint">Creates what is missing; never changes a conflicting account.</span></form>
@@ -79,7 +83,7 @@
                 <ul>
                     @foreach (var link in open)
                     {
-                        <li>@Systems.Name(link.Backend): @link.Detail</li>
+                        <li>@Systems.Name(link.Backend): @if (link.State == LinkState.Error) { <text>it gave no answer, so it could not be shut.</text> <span class="hint detail">@link.Detail</span> } else { @link.Detail }</li>
                     }
                 </ul>
                 <form method="post" asp-page-handler="Offboard">

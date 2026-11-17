@@ -36,7 +36,7 @@ public sealed class DeletionGuard(IAdminActor actor, UserAccess users, Administr
         // offboarding half done and the evidence gone.
         if (allowed.IsSuccess && OffboardUser.IsIncomplete(loaded.Value))
         {
-            allowed = Error.Validation("Finish offboarding first: a mailbox or Nextcloud account may still let them sign in.");
+            allowed = Error.Validation("Finish offboarding first: a mailbox or Files & calendar account may still let them sign in.");
         }
 
         return allowed.IsSuccess ? loaded : allowed.Error;
@@ -84,7 +84,7 @@ public sealed class GetDeletionPreview(DeletionGuard guard, IMailAccounts mail)
                 mailbox.State == LinkState.Missing,
                 bytes,
                 [$"The mailbox {identity.Email} and every message in it", "Its aliases, identities, filters and vacation reply", $"Mail sent to {identity.Email} afterwards bounces"],
-                [$"The Keycloak user {identity.Username} (disabled)", "Nextcloud files, calendars, contacts and tasks"]);
+                [$"Their sign-in account {identity.Username} (disabled)", "Their files, calendars, contacts and tasks"]);
         }
 
         BackendLink cloud = user.For(BackendKind.Groupware);
@@ -93,8 +93,8 @@ public sealed class GetDeletionPreview(DeletionGuard guard, IMailAccounts mail)
             target,
             cloud.State == LinkState.Missing,
             null,
-            [$"The Nextcloud user {identity.Username}", "Their files, calendars, contacts, tasks and shares"],
-            [$"The Keycloak user {identity.Username} (disabled)", $"The mailbox {identity.Email} and its mail"]);
+            [$"Their Files & calendar account {identity.Username}", "Their files, calendars, contacts, tasks and shares"],
+            [$"Their sign-in account {identity.Username} (disabled)", $"The mailbox {identity.Email} and its mail"]);
     }
 }
 

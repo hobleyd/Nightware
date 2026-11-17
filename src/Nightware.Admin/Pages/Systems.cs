@@ -47,6 +47,15 @@ public static class Systems
     };
 
     /// <summary>
+    /// A failed link in a plain sentence. The reason the system gave (often a host and port) follows it as a hint,
+    /// for whoever runs the servers; the sentence alone has to make sense to an entity admin.
+    /// </summary>
+    public static string FailedSentence(BackendKind backend) => $"{ShortName(backend)} gave no answer for this account.";
+
+    /// <summary>What an entity admin does about a failure only the operator can fix.</summary>
+    public const string TellOperator = "If this persists, tell your Nightware operator.";
+
+    /// <summary>
     /// A user's link in words. For an offboarded user a missing account is no problem (nothing there can let them
     /// in), so it reads "None", muted, instead of the amber "Missing" that asks for a repair.
     /// </summary>

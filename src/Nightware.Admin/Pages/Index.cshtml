@@ -34,7 +34,7 @@
                             }
                             @foreach (var link in wrong)
                             {
-                                <span class="detail">@Systems.ShortName(link.Backend): @Systems.StateLabel(link.State)@if (link.State is LinkState.Error or LinkState.Conflict && !string.IsNullOrEmpty(link.Detail)) { <span class="hint">(@link.Detail.TrimEnd('.'))</span> }</span>
+                                <span class="detail">@Systems.ShortName(link.Backend): @Systems.StateLabel(link.State)@if (link.State is LinkState.Error or LinkState.Conflict && !string.IsNullOrEmpty(link.Detail)) { <span class="hint"> · @link.Detail</span> }</span>
                             }
                         </td>
                         <td class="actions">
@@ -101,11 +101,13 @@
     {
         if (!h.Healthy && !string.IsNullOrEmpty(h.Detail))
         {
-            <p class="hint detail">@Systems.Name(h.Backend): @h.Detail</p>
+            <p class="hint detail">@Systems.Name(h.Backend): @h.Detail@(Model.Actor.IsGlobal ? "" : " " + Systems.TellOperator)</p>
         }
         else if (h.Healthy && Model.FailedFor(h.Backend) is { Count: > 0 } failed)
         {
-            <p class="hint detail">@Systems.Name(h.Backend) answers its health check but failed to answer for @string.Join(", ", failed). It may be partly down; see Needs attention.</p>
+            <p class="hint detail">@(Model.Actor.IsGlobal
+                ? $"{Systems.Name(h.Backend)} answers its health check but failed to answer for {string.Join(", ", failed)}. It may be partly down; see Needs attention."
+                : $"{Systems.ShortName(h.Backend)} is not answering for {string.Join(", ", failed)}. {Systems.TellOperator}")</p>
         }
     }
 </section>

@@ -14,7 +14,7 @@ public static class LinkStateEvaluator
     {
         ArgumentNullException.ThrowIfNull(user);
         return user.Enabled
-            ? new BackendLink(BackendKind.Identity, LinkState.Linked, $"Keycloak user {user.Username}", user.Id)
+            ? new BackendLink(BackendKind.Identity, LinkState.Linked, $"Signs in as {user.Username}.", user.Id)
             : new BackendLink(BackendKind.Identity, LinkState.Disabled, "Offboarded: sign-in is disabled.", user.Id);
     }
 
@@ -55,7 +55,7 @@ public static class LinkStateEvaluator
         if (!found.IsSuccess)
         {
             return found.Error.Kind == ErrorKind.NotFound
-                ? new BackendLink(BackendKind.Groupware, LinkState.Missing, $"No Nextcloud user {uid}.")
+                ? new BackendLink(BackendKind.Groupware, LinkState.Missing, $"No account for {uid}.")
                 : new BackendLink(BackendKind.Groupware, LinkState.Error, found.Error.Message);
         }
 
@@ -76,8 +76,8 @@ public static class LinkStateEvaluator
         }
 
         return account.Enabled
-            ? new BackendLink(BackendKind.Groupware, LinkState.Linked, $"Nextcloud user {uid}", account.Uid)
-            : new BackendLink(BackendKind.Groupware, LinkState.Disabled, $"Nextcloud user {uid} is disabled.", account.Uid);
+            ? new BackendLink(BackendKind.Groupware, LinkState.Linked, $"Account {uid}.", account.Uid)
+            : new BackendLink(BackendKind.Groupware, LinkState.Disabled, $"Account {uid} is disabled.", account.Uid);
     }
 
     /// <summary>The identity step of a provisioning plan; also yields the existing user to link, if any.</summary>

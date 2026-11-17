@@ -204,7 +204,7 @@ A cool, faintly indigo neutral field under a night band, with a single envelope-
 ### Named Rules
 **The Plain Words Rule.** Hierarchy comes from the heading scale and the copy, not from extra weights, uppercase labels or letter-spacing. The system has two weights, regular (400) and bold (700).
 
-**The One Name Rule.** Each system has one name everywhere, function first and product second: Sign-in (Keycloak), Mail (Stalwart), Files & calendar (Nextcloud). Chips use the short form (Sign-in, Mail, Files & calendar). The names live in `Pages/Systems.cs`.
+**The One Name Rule.** Each system has one name everywhere, function first and product second: Sign-in (Keycloak), Mail (Stalwart), Files & calendar (Nextcloud). Chips use the short form (Sign-in, Mail, Files & calendar). The names live in `Pages/Systems.cs`. Text beside a system's name does not repeat its product ("No account for eve.", not "No Nextcloud user eve."). A failure leads with a plain sentence ("Mail gave no answer for this account.") and puts the system's own reason, host and port included, after it as a muted hint; entity admins also read "If this persists, tell your Nightware operator." where only the operator can act.
 
 ## Layout
 

@@ -169,7 +169,9 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         string html = await GetAsync("/");
 
         html.ShouldContain("Reachable, failed for 1");
-        html.ShouldContain("Mail: Failed <span class=\"hint\">(Connection refused)</span>");
+        html.ShouldContain("Mail: Failed");
+        html.ShouldContain("<span class=\"hint\"> · Connection refused.</span>");
+        html.ShouldNotContain("If this persists");
         html.ShouldNotContain(">Unreachable<");
         html.ShouldContain("answers its health check but failed to answer for eve");
     }
@@ -328,5 +330,45 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
 
         Crumbs(html).ShouldBe("Acme Pty › Users › dan › Delete files &amp; calendar data");
         html.ShouldContain("<h1>Delete files &amp; calendar data of dan</h1>");
+    }
+
+    [Fact]
+    public async Task A_failure_reads_as_a_plain_sentence_with_its_reason_beside_it()
+    {
+        _host.AddUser("u-eve", "eve", "eve@acme.example", enabled: false);
+        _host.Mail.FindByAddressAsync("eve@acme.example", Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("Connection refused (mail.example:443)."));
+
+        string global = await GetAsync("/users/u-eve");
+        global.ShouldContain("Mail gave no answer for this account. <span class=\"hint detail\">Connection refused (mail.example:443).</span>");
+        global.ShouldContain("it gave no answer, so it could not be shut.");
+        global.ShouldNotContain("If this persists");
+
+        (await GetAsync("/users/u-eve", ConsoleHost.EntityAdmin)).ShouldContain("If this persists, tell your Nightware operator.");
+    }
+
+    [Fact]
+    public async Task An_entity_admins_dashboard_names_the_failure_plainly_and_who_to_tell()
+    {
+        _host.AddUser("u-eve", "eve", "eve@acme.example", enabled: false);
+        _host.Mail.FindByAddressAsync("eve@acme.example", Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("Connection refused."));
+        Members(new IdentityAccount("u-eve", "eve", "eve@acme.example", false));
+
+        string html = await GetAsync("/", ConsoleHost.EntityAdmin);
+
+        html.ShouldContain("Mail is not answering for eve. If this persists, tell your Nightware operator.");
+        html.ShouldNotContain("answers its health check");
+    }
+
+    [Fact]
+    public async Task Routine_details_do_not_repeat_the_backends_product_name()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+
+        string html = await GetAsync("/users/u-dan");
+
+        html.ShouldContain("Signs in as dan.");
+        html.ShouldContain("No account for dan.");
+        html.ShouldNotContain("Nextcloud user");
+        html.ShouldNotContain("Keycloak user");
     }
 }

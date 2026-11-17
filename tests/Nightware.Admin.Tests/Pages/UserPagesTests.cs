@@ -376,7 +376,7 @@ public sealed class UserPagesTests : IDisposable
 
         string preview = await (await client.GetAsync(new Uri(url, UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
         preview.ShouldContain("5 MB of stored mail");
-        preview.ShouldContain("Nextcloud files, calendars, contacts and tasks");
+        preview.ShouldContain("Their files, calendars, contacts and tasks");
 
         string wrong = await (await ConsoleHost.PostFormAsync(client, url, url, new Dictionary<string, string> { ["confirmation"] = "dan@acme.exampl" })).Content.ReadAsStringAsync(Ct);
         wrong.ShouldContain("does not match");

@@ -177,7 +177,7 @@ public sealed class DataDeletionTests
         mail.MailboxBytes.ShouldBe(1234);
         mail.AlreadyAbsent.ShouldBeFalse();
         mail.Removes[0].ShouldContain(Address);
-        mail.Keeps.ShouldContain(k => k.Contains("Nextcloud", StringComparison.Ordinal));
+        mail.Keeps.ShouldContain("Their files, calendars, contacts and tasks");
 
         DeletionPreview cloud = (await preview.ExecuteAsync("u-carol", DeletionTarget.GroupwareData, Ct)).Value;
         cloud.Keeps.ShouldContain(k => k.Contains(Address, StringComparison.Ordinal));
