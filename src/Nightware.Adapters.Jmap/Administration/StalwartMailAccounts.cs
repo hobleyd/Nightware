@@ -97,6 +97,25 @@ internal sealed partial class StalwartMailAccounts(
         return new MailAccount(created.Value.Id, address.Value, IsIndividual: true);
     }
 
+    /// <summary>
+    /// Blocks or restores the account's sign-in (every credential: OIDC, app passwords, API keys) by merging away
+    /// the <c>authenticate</c> permission; mail delivery is a separate permission and continues (verified on 1.1).
+    /// </summary>
+    public async Task<Result> SetEnabledAsync(string accountId, bool enabled, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(accountId);
+        JsonObject permissions = enabled
+            ? new JsonObject { ["@type"] = "Inherit" }
+            : new JsonObject { ["@type"] = "Merge", ["enabledPermissions"] = new JsonObject(), ["disabledPermissions"] = new JsonObject { ["authenticate"] = true } };
+        var request = new JmapRequestBuilder();
+        var set = request.Add(StalwartMethods.AccountSet, new StalwartSetRequest
+        {
+            Update = new Dictionary<string, JsonObject> { [accountId] = new JsonObject { ["permissions"] = permissions } },
+        });
+        Result<JmapResponse> response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        return response.Bind(r => r.Get(set)).Match(r => r.Updated(accountId), static e => Result.Failure(e));
+    }
+
     public async Task<Result> SetAliasesAsync(string accountId, IReadOnlyList<MailAddress> aliases, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(accountId);
@@ -257,6 +276,7 @@ internal sealed partial class StalwartMailAccounts(
         return new MailAccount(account.Id, primary, IsIndividual: string.Equals(account.Type, "User", StringComparison.Ordinal))
         {
             IsPrivileged = account.IsPrivileged,
+            Enabled = account.IsEnabled,
             Aliases = [.. aliases.Where(a => names.ContainsKey(a.DomainId)).Select(a => $"{a.Name}@{names[a.DomainId]}")],
         };
     }

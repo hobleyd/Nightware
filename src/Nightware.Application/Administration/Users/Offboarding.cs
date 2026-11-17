@@ -4,10 +4,11 @@ using Nightware.Domain.Kernel;
 namespace Nightware.Application.Administration.Users;
 
 /// <summary>
-/// Offboards a user (ADR 0002 D10): disables sign-in, ends their sessions and disables their Nextcloud
-/// account. Deletes nothing: mail keeps arriving and is kept, as are their files, calendars and contacts.
+/// Offboards a user (ADR 0002 D10): disables sign-in, ends their sessions, blocks every sign-in to their mailbox
+/// (app passwords included) and disables their Nextcloud account. Deletes nothing: mail keeps arriving and is
+/// kept, as are their files, calendars and contacts.
 /// </summary>
-public sealed class OffboardUser(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IGroupwareAccounts groupware, IAuditLog audit)
+public sealed class OffboardUser(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IMailAccounts mail, IGroupwareAccounts groupware, IAuditLog audit)
 {
     public async Task<Result<UserDetail>> ExecuteAsync(string userId, CancellationToken cancellationToken)
     {
@@ -27,6 +28,13 @@ public sealed class OffboardUser(IAdminActor actor, UserAccess users, IIdentityA
         if (result.IsSuccess)
         {
             result = await identities.EndSessionsAsync(userId, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Mail sign-in too: app passwords and API keys the user made in Stalwart outlive their Keycloak account.
+        BackendLink mailbox = loaded.Value.For(BackendKind.Mail);
+        if (result.IsSuccess && mailbox.State == LinkState.Linked)
+        {
+            result = await mail.SetEnabledAsync(mailbox.DownstreamId!, false, cancellationToken).ConfigureAwait(false);
         }
 
         if (result.IsSuccess && loaded.Value.For(BackendKind.Groupware).State == LinkState.Linked)
@@ -76,6 +84,12 @@ public sealed class ReinstateUser(IAdminActor actor, UserAccess users, IIdentity
             {
                 result = await identities.SetDeletionMarkerAsync(userId, DeletionTarget.GroupwareData, null, cancellationToken).ConfigureAwait(false);
             }
+        }
+
+        BackendLink mailLink = loaded.Value.For(BackendKind.Mail);
+        if (result.IsSuccess && mailLink.State == LinkState.Disabled)
+        {
+            result = await mail.SetEnabledAsync(mailLink.DownstreamId!, true, cancellationToken).ConfigureAwait(false);
         }
 
         bool recreated = false;

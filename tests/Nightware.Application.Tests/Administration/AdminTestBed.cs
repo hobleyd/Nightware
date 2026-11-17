@@ -51,6 +51,7 @@ internal sealed class AdminTestBed
         Mail.FindByAddressAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Error.NotFound("no mailbox"));
         Mail.CreateAsync(default!, default!, default).ReturnsForAnyArgs(c => c.Arg<MailAddress?>() is { } a ? Result<MailAccount>.Success(new MailAccount("m-new", a.Value, true)) : default);
         Mail.SetAliasesAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        Mail.SetEnabledAsync(default!, default, default).ReturnsForAnyArgs(Result.Success());
         Mail.GetUsageAsync(default!, default).ReturnsForAnyArgs(Result<long>.Success(1234));
         Mail.DestroyAsync(default!, default).ReturnsForAnyArgs(Result.Success());
 

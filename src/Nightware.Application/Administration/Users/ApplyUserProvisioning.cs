@@ -101,6 +101,14 @@ public sealed class ApplyUserProvisioning(
                 : new BackendLink(BackendKind.Mail, LinkState.Error, created.Error.Message);
         }
 
+        if (link.State == LinkState.Disabled)
+        {
+            Result enabled = await mail.SetEnabledAsync(link.DownstreamId!, true, cancellationToken).ConfigureAwait(false);
+            link = enabled.IsSuccess
+                ? link with { State = LinkState.Linked, Detail = $"Mailbox {p.Address}" }
+                : link with { State = LinkState.Error, Detail = enabled.Error.Message };
+        }
+
         if (link.State == LinkState.Linked && p.Aliases.Count > 0)
         {
             Result aliased = await mail.SetAliasesAsync(link.DownstreamId!, p.Aliases, cancellationToken).ConfigureAwait(false);

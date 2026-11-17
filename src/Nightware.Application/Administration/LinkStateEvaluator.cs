@@ -39,9 +39,14 @@ public static class LinkStateEvaluator
             return new BackendLink(BackendKind.Mail, LinkState.Conflict, $"{address} belongs to a group or mailing list.", account.Id);
         }
 
-        return string.Equals(account.Address, address, StringComparison.OrdinalIgnoreCase)
+        if (!string.Equals(account.Address, address, StringComparison.OrdinalIgnoreCase))
+        {
+            return new BackendLink(BackendKind.Mail, LinkState.Conflict, $"{address} is an alias of the mailbox {account.Address}.", account.Id);
+        }
+
+        return account.Enabled
             ? new BackendLink(BackendKind.Mail, LinkState.Linked, $"Mailbox {account.Address}", account.Id)
-            : new BackendLink(BackendKind.Mail, LinkState.Conflict, $"{address} is an alias of the mailbox {account.Address}.", account.Id);
+            : new BackendLink(BackendKind.Mail, LinkState.Disabled, $"Mailbox {account.Address}: sign-in blocked, mail still delivered.", account.Id);
     }
 
     /// <param name="uid">The Nextcloud uid sign-in would use (the Keycloak username).</param>

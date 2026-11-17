@@ -87,13 +87,15 @@ public sealed class UserLifecycleTests
     public async Task Offboarding_disables_ends_sessions_and_deletes_nothing()
     {
         Carol();
-        var offboard = new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Groupware, _bed.Audit);
+        var offboard = new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit);
 
         (await offboard.ExecuteAsync("u-carol", Ct)).IsSuccess.ShouldBeTrue();
 
         await _bed.Identities.Received(1).SetEnabledAsync("u-carol", false, Arg.Any<CancellationToken>());
         await _bed.Identities.Received(1).EndSessionsAsync("u-carol", Arg.Any<CancellationToken>());
         await _bed.Groupware.Received(1).SetEnabledAsync("carol", false, Arg.Any<CancellationToken>());
+        // App passwords and API keys made in Stalwart would outlive the Keycloak account otherwise.
+        await _bed.Mail.Received(1).SetEnabledAsync("m-carol", false, Arg.Any<CancellationToken>());
         await _bed.Mail.DidNotReceiveWithAnyArgs().DestroyAsync(default!, Ct);
         await _bed.Groupware.DidNotReceiveWithAnyArgs().DeleteAsync(default!, Ct);
         _bed.Audit.Single("user.offboarded").Succeeded.ShouldBeTrue();
@@ -105,7 +107,7 @@ public sealed class UserLifecycleTests
         Carol();
         _bed.ActAsGlobal("u-carol");
 
-        (await new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Groupware, _bed.Audit).ExecuteAsync("u-carol", Ct))
+        (await new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit).ExecuteAsync("u-carol", Ct))
             .Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         await _bed.Identities.DidNotReceiveWithAnyArgs().SetEnabledAsync(default!, default, Ct);
     }
@@ -116,7 +118,7 @@ public sealed class UserLifecycleTests
         Carol(scope: new AdminScope(true, new HashSet<string>()));
         _bed.ActAsEntityAdmin();
 
-        (await new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Groupware, _bed.Audit).ExecuteAsync("u-carol", Ct))
+        (await new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit).ExecuteAsync("u-carol", Ct))
             .Error!.Kind.ShouldBe(ErrorKind.NotFound);
         await _bed.Identities.DidNotReceiveWithAnyArgs().SetEnabledAsync(default!, default, Ct);
     }
@@ -259,7 +261,7 @@ public sealed class UserLifecycleTests
     {
         Carol(scope: new AdminScope(false, new HashSet<string>(), AdministersDirectory: true));
 
-        (await new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Groupware, _bed.Audit).ExecuteAsync("u-carol", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        (await new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit).ExecuteAsync("u-carol", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         (await new ResetUserCredential(_bed.Actor, _bed.UserAccess(), _bed.Credentials(), _bed.Audit).ExecuteAsync("u-carol", CredentialDelivery.TemporaryPassword, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         await _bed.Identities.DidNotReceiveWithAnyArgs().SetTemporaryPasswordAsync(default!, default!, Ct);
     }
@@ -299,5 +301,16 @@ public sealed class UserLifecycleTests
         (await setAliases.ExecuteAsync("u-carol", ["boss@acme.example"], Ct)).Error!.Kind.ShouldBe(ErrorKind.Conflict);
         (await setAliases.ExecuteAsync("u-carol", ["postmaster@acme.example"], Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
         await _bed.Identities.DidNotReceiveWithAnyArgs().SetAliasesAsync(default!, default!, Ct);
+    }
+
+    [Fact]
+    public async Task Reinstating_restores_mail_sign_in()
+    {
+        Carol(enabled: false);
+        _bed.Mail.FindByAddressAsync("carol@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-carol", "carol@acme.example", true) { Enabled = false });
+
+        (await new ReinstateUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit).ExecuteAsync("u-carol", false, Ct)).IsSuccess.ShouldBeTrue();
+
+        await _bed.Mail.Received(1).SetEnabledAsync("m-carol", true, Arg.Any<CancellationToken>());
     }
 }

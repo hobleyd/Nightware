@@ -98,7 +98,17 @@ internal sealed record StalwartAccount
     /// </summary>
     public bool IsPrivileged =>
         !string.Equals(TypeOf(Roles), "User", StringComparison.Ordinal)
-        || !string.Equals(TypeOf(Permissions), "Inherit", StringComparison.Ordinal);
+        || !(string.Equals(TypeOf(Permissions), "Inherit", StringComparison.Ordinal) || IsSignInBlock(Permissions));
+
+    /// <summary>False when the console has blocked sign-in (offboarding): permissions merge away <c>authenticate</c>.</summary>
+    public bool IsEnabled => !IsSignInBlock(Permissions);
+
+    /// <summary>The console's offboarding shape: <c>Merge</c>, nothing enabled, only <c>authenticate</c> disabled.</summary>
+    private static bool IsSignInBlock(JsonElement? permissions) =>
+        string.Equals(TypeOf(permissions), "Merge", StringComparison.Ordinal)
+        && permissions!.Value.TryGetProperty("enabledPermissions", out JsonElement enabled) && enabled.ValueKind == JsonValueKind.Object && !enabled.EnumerateObject().Any()
+        && permissions.Value.TryGetProperty("disabledPermissions", out JsonElement disabled) && disabled.ValueKind == JsonValueKind.Object
+        && disabled.EnumerateObject().Select(static p => p.Name).SequenceEqual(["authenticate"]);
 
     private static string? TypeOf(JsonElement? element) =>
         element is { ValueKind: JsonValueKind.Object } e && e.TryGetProperty("@type", out JsonElement type) && type.ValueKind == JsonValueKind.String

@@ -33,6 +33,13 @@ public sealed class RepairUser(IAdminActor actor, UserAccess users, IMailAccount
             changed.Add(created.IsSuccess ? "mail:created" : "mail:failed");
         }
 
+        BackendLink mailbox = loaded.Value.For(BackendKind.Mail);
+        if (mailbox.State == LinkState.Disabled)
+        {
+            Result enabled = await mail.SetEnabledAsync(mailbox.DownstreamId!, true, cancellationToken).ConfigureAwait(false);
+            changed.Add(enabled.IsSuccess ? "mail:enabled" : "mail:failed");
+        }
+
         BackendLink cloud = loaded.Value.For(BackendKind.Groupware);
         if (cloud.State == LinkState.Missing && identity.GroupwareDeletedAt is null)
         {

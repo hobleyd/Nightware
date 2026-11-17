@@ -56,6 +56,8 @@ public sealed class StalwartMailAccountsTests : IAsyncDisposable
     [InlineData(",\"roles\":{\"@type\":\"Custom\",\"roleIds\":{\"r1\":true}}", true)]
     [InlineData(",\"permissions\":{\"@type\":\"Merge\",\"enabledPermissions\":{\"impersonate\":true}}", true)]
     [InlineData(",\"roles\":{\"@type\":\"User\"},\"permissions\":{\"@type\":\"Inherit\"}", false)]
+    [InlineData(",\"roles\":{\"@type\":\"User\"},\"permissions\":{\"@type\":\"Merge\",\"enabledPermissions\":{},\"disabledPermissions\":{\"authenticate\":true}}", false)] // offboarded
+    [InlineData(",\"roles\":{\"@type\":\"User\"},\"permissions\":{\"@type\":\"Merge\",\"enabledPermissions\":{},\"disabledPermissions\":{\"authenticate\":true,\"emailSend\":true}}", true)]
     [InlineData("", true)] // fails closed: Stalwart always sends both fields
     [InlineData(",\"roles\":{\"@type\":\"User\"}", true)]
     public async Task Accounts_with_more_than_user_rights_are_privileged(string extra, bool privileged)
@@ -335,4 +337,30 @@ public sealed class StalwartMailAccountsTests : IAsyncDisposable
     }
 
     public ValueTask DisposeAsync() => _host.DisposeAsync();
+
+    [Fact]
+    public async Task Disabling_blocks_sign_in_and_enabling_restores_inherited_permissions()
+    {
+        _host.Stub("x:Account/set", """[["x:Account/set",{"updated":{"a3":null}},"c0"]]""");
+
+        (await Accounts().SetEnabledAsync("a3", false, Ct)).IsSuccess.ShouldBeTrue();
+        (await Accounts().SetEnabledAsync("a3", true, Ct)).IsSuccess.ShouldBeTrue();
+
+        var calls = _host.Calls("x:Account/set");
+        calls[0][1]!["update"]!["a3"]!["permissions"]!.ToJsonString().ShouldBe("""{"@type":"Merge","enabledPermissions":{},"disabledPermissions":{"authenticate":true}}""");
+        calls[1][1]!["update"]!["a3"]!["permissions"]!.ToJsonString().ShouldBe("""{"@type":"Inherit"}""");
+    }
+
+    [Fact]
+    public async Task An_offboarded_account_reads_as_disabled()
+    {
+        StubAcme();
+        _host.Stub("x:Account/query", StalwartManagementTestHost.AccountPage("""{"id":"a3","@type":"User","name":"carol","domainId":"d7","emailAddress":"carol@acme.example","roles":{"@type":"User"},"permissions":{"@type":"Merge","enabledPermissions":{},"disabledPermissions":{"authenticate":true}}}"""));
+        StubOtherDomains();
+
+        var account = (await Accounts().FindByAddressAsync("carol@acme.example", Ct)).Value;
+
+        account.Enabled.ShouldBeFalse();
+        account.IsPrivileged.ShouldBeFalse();
+    }
 }

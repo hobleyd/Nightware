@@ -102,6 +102,9 @@ public sealed record MailAccount(string Id, string Address, bool IsIndividual)
     /// linked to a person or deleted by the console: whoever signed in as that address would gain them.
     /// </summary>
     public bool IsPrivileged { get; init; }
+
+    /// <summary>False when sign-in to the mail server is blocked (an offboarded user); mail is still delivered.</summary>
+    public bool Enabled { get; init; } = true;
 }
 
 /// <summary>Mail accounts on the mail server (Stalwart), managed with the console's own principal.</summary>
@@ -113,6 +116,9 @@ public interface IMailAccounts
     Task<Result<MailAccount>> CreateAsync(MailAddress address, string description, CancellationToken cancellationToken);
 
     Task<Result> SetAliasesAsync(string accountId, IReadOnlyList<MailAddress> aliases, CancellationToken cancellationToken);
+
+    /// <summary>Blocks or restores every way of signing in to the mailbox (app passwords included). Delivery continues.</summary>
+    Task<Result> SetEnabledAsync(string accountId, bool enabled, CancellationToken cancellationToken);
 
     /// <summary>Bytes stored.</summary>
     Task<Result<long>> GetUsageAsync(string accountId, CancellationToken cancellationToken);

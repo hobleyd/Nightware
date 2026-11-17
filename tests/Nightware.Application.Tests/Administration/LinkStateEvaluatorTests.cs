@@ -88,4 +88,8 @@ public sealed class LinkStateEvaluatorTests
     [Fact]
     public void A_privileged_mailbox_is_never_linked() =>
         LinkStateEvaluator.Mail(Address, new MailAccount("m", Address, true) { IsPrivileged = true }).State.ShouldBe(LinkState.Conflict);
+
+    [Fact]
+    public void A_mailbox_with_sign_in_blocked_is_disabled_not_missing() =>
+        LinkStateEvaluator.Mail(Address, new MailAccount("m", Address, true) { Enabled = false }).State.ShouldBe(LinkState.Disabled);
 }

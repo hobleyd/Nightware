@@ -65,7 +65,7 @@ public sealed class GetDeletionPreview(DeletionGuard guard, IMailAccounts mail)
         {
             BackendLink mailbox = user.For(BackendKind.Mail);
             long? bytes = null;
-            if (mailbox.State == LinkState.Linked)
+            if (mailbox.State is LinkState.Linked or LinkState.Disabled)
             {
                 Result<long> usage = await mail.GetUsageAsync(mailbox.DownstreamId!, cancellationToken).ConfigureAwait(false);
                 bytes = usage.IsSuccess ? usage.Value : null;
