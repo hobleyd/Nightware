@@ -300,6 +300,14 @@ output: anything they cannot do is printed as a WARNING.
 - **First password.** A generated one-time password shown once (changed at
   first sign-in), or Keycloak's set-password e-mail to the new address (the realm
   sends through Stalwart when it has no SMTP of its own).
+- **Resetting a password.** On a user's page, **Password** generates a new
+  one-time password (shown once, changed at next sign-in) or e-mails a
+  set-password link. Not for offboarded users, administrators outside your
+  scope, Keycloak administrators, or yourself.
+- **Your own password.** **Change password** in the console header sends you to
+  Keycloak's own change-password screen (`kc_action=UPDATE_PASSWORD`) and back;
+  the console never sees the password. Locked out entirely: another global
+  administrator resets it from your user page.
 - **Offboarding** disables Keycloak sign-in and ends sessions, blocks every
   sign-in to the mailbox (app passwords and API keys made in Stalwart included;
   mail is still delivered and kept) and disables the Nextcloud account. An

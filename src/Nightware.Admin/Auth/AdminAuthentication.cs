@@ -4,6 +4,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
@@ -35,6 +36,18 @@ public static class AdminAuthentication
 
     /// <summary>Set on a challenge that must re-prompt for credentials (<c>max_age=0</c>).</summary>
     public const string ForceReauthenticationItem = "nightware.reauth";
+
+    /// <summary>
+    /// Set on a challenge that asks Keycloak to run a required action for the signed-in person (an
+    /// application-initiated action, <c>kc_action</c>), such as changing their own password.
+    /// </summary>
+    public const string RequiredActionItem = "nightware.kc_action";
+
+    /// <summary>Keycloak's change-password action.</summary>
+    public const string UpdatePasswordAction = "UPDATE_PASSWORD";
+
+    /// <summary>The query parameter that carries Keycloak's answer to a required action back to the console page.</summary>
+    public const string ActionStatusParameter = "status";
 
     public static IServiceCollection AddAdminAuthentication(this IServiceCollection services)
     {
@@ -128,6 +141,11 @@ public static class AdminAuthentication
                 context.Properties.Items[ForceReauthenticationItem] = time.GetUtcNow().ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
             }
 
+            if (context.Properties.Items.TryGetValue(RequiredActionItem, out string? action) && action == UpdatePasswordAction)
+            {
+                context.ProtocolMessage.SetParameter("kc_action", action);
+            }
+
             return Task.CompletedTask;
         };
         oidc.Events.OnTokenValidated = context =>
@@ -167,6 +185,19 @@ public static class AdminAuthentication
             if ((context.TokenEndpointResponse?.IdToken ?? context.ProtocolMessage?.IdToken) is { Length: > 0 } idToken)
             {
                 context.Properties.StoreTokens([new AuthenticationToken { Name = "id_token", Value = idToken }]);
+            }
+
+            // Keycloak answers a required action on the authorization response (kc_action_status); only the three
+            // values it documents reach the page, and the marker is not kept in the session.
+            if (context.Properties.Items.Remove(RequiredActionItem))
+            {
+                string status = context.ProtocolMessage?.GetParameter("kc_action_status") switch
+                {
+                    "success" => "success",
+                    "cancelled" => "cancelled",
+                    _ => "error",
+                };
+                context.Properties.RedirectUri = QueryHelpers.AddQueryString(context.Properties.RedirectUri ?? "/", ActionStatusParameter, status);
             }
 
             return Task.CompletedTask;

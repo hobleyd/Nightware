@@ -46,6 +46,14 @@
     </div>
 }
 
+@if (self)
+{
+    <section class="panel">
+        <h2>Password</h2>
+        <p>This is you: change your own password on <a asp-page="/Account/Password">Change password</a>. Administrators never reset their own password here.</p>
+    </section>
+}
+
 @if (id.Enabled && !self)
 {
     <section class="panel">

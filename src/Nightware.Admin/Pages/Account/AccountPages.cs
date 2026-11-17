@@ -31,6 +31,25 @@ public sealed class ReauthenticateModel : PageModel
     }
 }
 
+/// <summary>
+/// The signed-in person changes their own password on Keycloak's own screen (application-initiated action
+/// <c>UPDATE_PASSWORD</c>); the console never sees the password. POST starts it; GET shows how it went.
+/// </summary>
+public sealed class PasswordModel : PageModel
+{
+    public string? Status { get; private set; }
+
+    public void OnGet(string? status) =>
+        Status = status is "success" or "cancelled" or "error" ? status : null;
+
+    public IActionResult OnPost()
+    {
+        var properties = new AuthenticationProperties { RedirectUri = Url.Page("/Account/Password") };
+        properties.Items[AdminAuthentication.RequiredActionItem] = AdminAuthentication.UpdatePasswordAction;
+        return Challenge(properties, OpenIdConnectDefaults.AuthenticationScheme);
+    }
+}
+
 /// <summary>Ends the console session and the Keycloak session (RP-initiated logout). POST only.</summary>
 public sealed class SignOutModel : PageModel
 {

@@ -126,6 +126,69 @@ public sealed class AdminAuthenticationTests
     }
 
     [Theory]
+    [InlineData(AdminAuthentication.UpdatePasswordAction, AdminAuthentication.UpdatePasswordAction)]
+    [InlineData("delete_account", null)]
+    [InlineData(null, null)]
+    public async Task Only_the_change_password_action_is_sent_to_keycloak(string? requested, string? sent)
+    {
+        var oidc = new OpenIdConnectOptions();
+        AdminAuthentication.ConfigureOidc(oidc, Options("mfa"));
+        var properties = new AuthenticationProperties();
+        if (requested is not null)
+        {
+            properties.Items[AdminAuthentication.RequiredActionItem] = requested;
+        }
+
+        var context = new RedirectContext(new DefaultHttpContext { RequestServices = Services(TimeProvider.System) }, Scheme(), oidc, properties) { ProtocolMessage = new OpenIdConnectMessage() };
+
+        await oidc.Events.OnRedirectToIdentityProvider(context);
+
+        context.ProtocolMessage.GetParameter("kc_action").ShouldBe(sent);
+        context.ProtocolMessage.AcrValues.ShouldBe("mfa");
+    }
+
+    [Theory]
+    [InlineData("success", "success")]
+    [InlineData("cancelled", "cancelled")]
+    [InlineData("error", "error")]
+    [InlineData(null, "error")]
+    [InlineData("<script>", "error")]
+    public async Task Keycloaks_answer_to_the_action_goes_back_to_the_page_and_not_into_the_session(string? kcStatus, string status)
+    {
+        var oidc = new OpenIdConnectOptions();
+        AdminAuthentication.ConfigureOidc(oidc, Options("mfa"));
+        TokenValidatedContext context = Validated(new Claim("acr", "mfa"), new Claim("auth_time", "1700000000"));
+        context.Properties!.RedirectUri = "/console/account/password";
+        context.Properties.Items[AdminAuthentication.RequiredActionItem] = AdminAuthentication.UpdatePasswordAction;
+        context.ProtocolMessage = new OpenIdConnectMessage();
+        if (kcStatus is not null)
+        {
+            context.ProtocolMessage.SetParameter("kc_action_status", kcStatus);
+        }
+
+        await oidc.Events.OnTokenValidated(context);
+
+        context.Result.ShouldBeNull();
+        context.Properties.RedirectUri.ShouldBe($"/console/account/password?status={status}");
+        context.Properties.Items.ShouldNotContainKey(AdminAuthentication.RequiredActionItem);
+    }
+
+    [Fact]
+    public async Task An_ordinary_sign_in_keeps_its_return_url()
+    {
+        var oidc = new OpenIdConnectOptions();
+        AdminAuthentication.ConfigureOidc(oidc, Options("mfa"));
+        TokenValidatedContext context = Validated(new Claim("acr", "mfa"), new Claim("auth_time", "1700000000"));
+        context.Properties!.RedirectUri = "/console/users/u-dan";
+        context.ProtocolMessage = new OpenIdConnectMessage();
+        context.ProtocolMessage.SetParameter("kc_action_status", "success");
+
+        await oidc.Events.OnTokenValidated(context);
+
+        context.Properties.RedirectUri.ShouldBe("/console/users/u-dan");
+    }
+
+    [Theory]
     [InlineData(null, new string[0], true)]
     [InlineData("pwd", new[] { "mfa" }, false)]
     [InlineData(null, new[] { "mfa" }, false)]

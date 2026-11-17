@@ -496,6 +496,14 @@ Where the build refined the decisions above:
   the one-minute scope cache, and nobody reinstates themselves. The wizard
   refuses an offboarded user ("reinstate instead") and never resets an existing
   person's password.
+- **Own password (D9).** Administrators never reset their own credential
+  through the console's reset tools (`RequireNotSelf`). Instead, **Change
+  password** challenges Keycloak with the application-initiated action
+  `kc_action=UPDATE_PASSWORD` (same client, same `acr_values`; Keycloak asks
+  for a fresh sign-in when the last one is older than its max auth age).
+  Keycloak's `kc_action_status` comes back on the authorization response, and
+  only `success`, `cancelled` or `error` reach the page. The marker never
+  stays in the session.
 - **Tokens (D7).** `SaveTokens` stays off; only the ID token is kept, in the
   encrypted cookie, as the `id_token_hint` Keycloak needs at sign-out. `acr` and
   `auth_time` are kept in the session (ASP.NET deletes them by default). A token
