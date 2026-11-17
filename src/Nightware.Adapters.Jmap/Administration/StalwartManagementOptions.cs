@@ -41,7 +41,7 @@ public sealed class StalwartManagementOptions
     /// <summary>Accounts per page of that scan (keep it within Stalwart's <c>maxObjectsInGet</c>).</summary>
     public int AccountPageSize { get; set; } = 250;
 
-    public override string ToString() => $"StalwartManagement {{ ApiUrl = {ApiUrl}, Username = {Username}, Credential = {(ApiKey is null ? "Password" : "ApiKey")} }}";
+    public override string ToString() => $"StalwartManagement {{ ApiUrl = {ApiUrl}, Username = {Username}, Credential = {(string.IsNullOrEmpty(ApiKey) ? "Password" : "ApiKey")} }}";
 }
 
 /// <summary>Validates <see cref="StalwartManagementOptions"/>; registered with <c>ValidateOnStart</c>.</summary>

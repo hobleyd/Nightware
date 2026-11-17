@@ -302,9 +302,12 @@ services:
       Directory__ClientSecret: ${NIGHTWARE_ADMIN_CLIENT_SECRET}
       Directory__ServiceAccountScope: kc-admin-api
       StalwartManagement__ApiUrl: http://stalwart:8080/jmap/
-      # The account stalwart/configure.sh creates; STALWART_MANAGEMENT_LOGIN overrides it (e.g. the recovery admin).
-      StalwartManagement__Username: ${STALWART_MANAGEMENT_LOGIN:-nightware-admin@${MAIL_DOMAIN:-nightware.localhost}}
-      StalwartManagement__Password: ${STALWART_MANAGEMENT_PASSWORD:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
+      # An API key stalwart/configure.sh mints for the console's own account and
+      # writes to .env. Fallback (full access): STALWART_MANAGEMENT_LOGIN and
+      # STALWART_MANAGEMENT_PASSWORD = the recovery admin, with the key left empty.
+      StalwartManagement__ApiKey: ${STALWART_MANAGEMENT_API_KEY:-}
+      StalwartManagement__Username: ${STALWART_MANAGEMENT_LOGIN:-}
+      StalwartManagement__Password: ${STALWART_MANAGEMENT_PASSWORD:-}
       NextcloudProvisioning__BaseUrl: http://nextcloud/
       NextcloudProvisioning__Username: ${NEXTCLOUD_PROVISIONING_USER:-nightware-admin}
       NextcloudProvisioning__Password: ${NEXTCLOUD_PROVISIONING_PASSWORD:?is not set in deploy/.env - run deploy/scripts/init-env.sh}

@@ -135,20 +135,36 @@ fi
 
 # ------------------------------------------------ 4d. admin console principal
 # The admin console (ADR 0002 D8) manages accounts and domains as its own
-# internal account with a custom role, never as the recovery admin. The role
-# holds what the console needs (destroy only for "delete mail", which the
-# console's policy gates) and no impersonation or domain deletion. Stalwart only
-# lets a principal change accounts whose permissions it holds, so the role also
-# extends the built-in user permissions when the server exposes them as a role.
-# UNVERIFIED (phase 8 step 0): that an internal password account can sign in
-# while Keycloak is the default directory. The check at the end says so loudly
-# and leaves the console's Stalwart status "Unavailable"; the documented
-# fallback is STALWART_MANAGEMENT_LOGIN/PASSWORD = the recovery admin.
-MGMT_USER="${STALWART_MANAGEMENT_USER:-nightware-admin}"
-if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" && -n "${STALWART_MANAGEMENT_PASSWORD:-}" ]]; then
+# internal account, never as the recovery admin. Verified on Stalwart 1.1.0:
+#   - an internal account cannot hold a password while Keycloak is the default
+#     directory ("Cannot set credentials for accounts in an external
+#     directory"), but the recovery admin can mint it an API key
+#     (x:ApiKey/set with the account's accountId); Stalwart returns the secret
+#     once, and it authenticates as `Authorization: Bearer API_...`;
+#   - roles are extended through roleIds, and the built-in role "User" holds
+#     `authenticate` plus the user permissions Stalwart requires a principal to
+#     hold before it may change user accounts.
+# Our role adds the management permissions (destroy only for "delete mail",
+# which the console's policy gates); no impersonation, no domain deletion.
+# The key is written to .env as STALWART_MANAGEMENT_API_KEY and re-minted when
+# it no longer authenticates. STALWART_MANAGEMENT_LOGIN (the recovery-admin
+# fallback) skips all of this.
+api_key_works() {
+  [[ -n "$1" ]] && ccurl -f -H "Authorization: Bearer $1" -H 'Content-Type: application/json' "${MAIL_URL}/jmap/" \
+    -d "{${USING},\"methodCalls\":[[\"x:Account/query\",{},\"q\"]]}" 2>/dev/null | jq -e '.methodResponses[0][0]=="x:Account/query"' >/dev/null
+}
+env_put() { # KEY VALUE: replace KEY= in deploy/.env, or append it
+  local tmp; tmp=$(mktemp)
+  awk -v k="$1" -v line="$1=$2" 'BEGIN{done=0} $0 ~ "^"k"=" {if(!done) print line; done=1; next} {print} END{if(!done) print line}' "$DEPLOY_DIR/.env" > "$tmp"
+  cat "$tmp" > "$DEPLOY_DIR/.env"; rm -f "$tmp"
+}
+if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" ]]; then
+  MGMT_USER="${STALWART_MANAGEMENT_USER:-nightware-admin}"
+  role_id() { call '[["x:Role/query",{},"q"],["x:Role/get",{"#ids":{"resultOf":"q","name":"x:Role/query","path":"/ids"},"properties":["description"]},"g"]]' \
+    | jq -r --arg d "$1" '.methodResponses[1][1].list[]? | select(.description==$d) | .id' | head -n1; }
   PERMS='{"sysAccountGet":true,"sysAccountQuery":true,"sysAccountCreate":true,"sysAccountUpdate":true,"sysAccountDestroy":true,"sysDomainGet":true,"sysDomainQuery":true,"sysDomainCreate":true,"sysDomainUpdate":true,"sysDkimSignatureGet":true,"sysDkimSignatureQuery":true,"sysActionCreate":true}'
-  ROLE_ID=$(call '[["x:Role/query",{},"q"],["x:Role/get",{"#ids":{"resultOf":"q","name":"x:Role/query","path":"/ids"},"properties":["description"]},"g"]]' \
-    | jq -r '.methodResponses[1][1].list[]? | select(.description=="Nightware admin console") | .id' | head -n1)
+  USER_ROLE=$(role_id "User")
+  ROLE_ID=$(role_id "Nightware admin console")
   if [[ -z "$ROLE_ID" ]]; then
     log "Stalwart: creating role 'Nightware admin console'"
     ROLE_ID=$(call "$(jq -cn --argjson p "$PERMS" '[["x:Role/set",{"create":{"r":{description:"Nightware admin console",enabledPermissions:$p,disabledPermissions:{},roleIds:{}}}},"c"]]')" \
@@ -156,19 +172,32 @@ if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" && -n "${STALWART_MANAGEMENT_PASSWORD:
   else
     call "$(jq -cn --arg id "$ROLE_ID" --argjson p "$PERMS" '[["x:Role/set",{"update":{($id):{enabledPermissions:$p}}},"c"]]')" >/dev/null
   fi
-  if [[ -z "$ROLE_ID" ]]; then
-    echo "Stalwart: could not create the admin console role; see deploy/README.md 'Admin console'" >&2
+  if [[ -z "$ROLE_ID" || -z "$USER_ROLE" ]]; then
+    echo "Stalwart: WARNING could not find or create the admin console role (User role: '${USER_ROLE}')" >&2
   else
+    ROLES=$(jq -cn --arg r "$ROLE_ID" --arg u "$USER_ROLE" '{"@type":"Custom",roleIds:{($r):true,($u):true}}')
     MGMT_ID=$(call "$(jq -cn --arg n "$MGMT_USER" --arg d "$DOMAIN_ID" '[["x:Account/query",{"filter":{"name":$n,"domainId":$d}},"q"]]')" | jq -r '.methodResponses[0][1].ids[0] // empty')
-    ACCOUNT=$(jq -cn --arg pw "$STALWART_MANAGEMENT_PASSWORD" --arg role "$ROLE_ID" '{
-      credentials:[{"@type":"Password",secret:$pw}],
-      roles:{"@type":"Custom",roleIds:{($role):true}}}')
     if [[ -z "$MGMT_ID" ]]; then
       log "Stalwart: creating the admin console account ${MGMT_USER}@${MAIL_DOMAIN}"
-      call "$(jq -cn --arg n "$MGMT_USER" --arg d "$DOMAIN_ID" --argjson a "$ACCOUNT" '[["x:Account/set",{"create":{"m":({"@type":"User",name:$n,domainId:$d,description:"Nightware admin console (no mail)"} + $a)}},"c"]]')" \
-        | jq -e '.methodResponses[0][1].created.m.id' >/dev/null || echo "Stalwart: admin console account create failed" >&2
+      MGMT_ID=$(call "$(jq -cn --arg n "$MGMT_USER" --arg d "$DOMAIN_ID" --argjson r "$ROLES" '[["x:Account/set",{"create":{"m":{"@type":"User",name:$n,domainId:$d,description:"Nightware admin console (not a person)",roles:$r}}},"c"]]')" \
+        | jq -r '.methodResponses[0][1].created.m.id // empty')
     else
-      call "$(jq -cn --arg id "$MGMT_ID" --argjson a "$ACCOUNT" '[["x:Account/set",{"update":{($id):$a}},"c"]]')" >/dev/null
+      call "$(jq -cn --arg id "$MGMT_ID" --argjson r "$ROLES" '[["x:Account/set",{"update":{($id):{roles:$r}}},"c"]]')" >/dev/null
+    fi
+    if [[ -z "$MGMT_ID" ]]; then
+      echo "Stalwart: WARNING could not create the admin console account" >&2
+    elif api_key_works "${STALWART_MANAGEMENT_API_KEY:-}"; then
+      log "Stalwart: admin console API key in .env still works"
+    else
+      log "Stalwart: minting an API key for ${MGMT_USER}@${MAIL_DOMAIN} -> .env STALWART_MANAGEMENT_API_KEY"
+      KEY=$(call "$(jq -cn --arg a "$MGMT_ID" '[["x:ApiKey/set",{"accountId":$a,"create":{"k":{description:"Nightware admin console",permissions:{"@type":"Inherit"},allowedIps:{}}}},"c"]]')" \
+        | jq -r '.methodResponses[0][1].created.k.secret // empty')
+      if [[ -n "$KEY" ]]; then
+        env_put STALWART_MANAGEMENT_API_KEY "$KEY"
+        STALWART_MANAGEMENT_API_KEY="$KEY"
+      else
+        echo "Stalwart: WARNING could not mint an API key for the admin console" >&2
+      fi
     fi
   fi
 fi
@@ -182,17 +211,12 @@ if (( RESTART_STALWART )); then
   wait_for "stalwart restart" ccurl -f "${MAIL_ALIAS_URL}/healthz/live"
 fi
 log "Stalwart: configured (directory ${DIR_ID} is the default directory)"
-# The console's principal must be able to list accounts and must NOT be able to
-# impersonate. Reported, not fatal: the rest of the stack works without it.
-if [[ -n "${STALWART_MANAGEMENT_PASSWORD:-}" ]]; then
-  MGMT_LOGIN="${STALWART_MANAGEMENT_LOGIN:-${STALWART_MANAGEMENT_USER:-nightware-admin}@${MAIL_DOMAIN}}"
-  if ccurl -f -u "${MGMT_LOGIN}:${STALWART_MANAGEMENT_PASSWORD}" -H 'Content-Type: application/json' "${MAIL_URL}/jmap/" \
-       -d "{${USING},\"methodCalls\":[[\"x:Account/query\",{},\"q\"]]}" | jq -e '.methodResponses[0][0]=="x:Account/query"' >/dev/null 2>&1; then
-    log "Stalwart: admin console principal ${MGMT_LOGIN} can manage accounts"
+# The console's principal must be able to list accounts. Reported, not fatal:
+# the rest of the stack works without it.
+if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" ]]; then
+  if api_key_works "${STALWART_MANAGEMENT_API_KEY:-}"; then
+    log "Stalwart: the admin console's API key can manage accounts (restart nightware-admin to pick up a new key)"
   else
-    echo "Stalwart: WARNING the admin console principal ${MGMT_LOGIN} cannot use the management API." >&2
-    echo "  Internal password accounts may not sign in while Keycloak is the default directory." >&2
-    echo "  Fallback (full access): STALWART_MANAGEMENT_LOGIN=${STALWART_ADMIN_USER} and STALWART_MANAGEMENT_PASSWORD=<STALWART_ADMIN_PASSWORD> in .env" >&2
+    echo "Stalwart: WARNING the admin console's API key does not work; see deploy/README.md 'Admin console'" >&2
   fi
 fi
-
