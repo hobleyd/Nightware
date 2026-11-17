@@ -167,9 +167,9 @@ internal sealed partial class JmapClient(
         return Encoding.UTF8.GetBytes(body.ToJsonString());
     }
 
-    private sealed record ParsedResponse(IReadOnlyList<MethodResponse> Responses, string? SessionState, IReadOnlyDictionary<string, string> CreatedIds);
+    internal sealed record ParsedResponse(IReadOnlyList<MethodResponse> Responses, string? SessionState, IReadOnlyDictionary<string, string> CreatedIds);
 
-    private static async Task<Result<ParsedResponse>> ParseAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    internal static async Task<Result<ParsedResponse>> ParseAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         try
         {
