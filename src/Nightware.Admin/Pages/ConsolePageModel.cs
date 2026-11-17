@@ -33,6 +33,12 @@ public abstract class ConsolePageModel(IAdminActor actor) : PageModel
             case ErrorKind.Forbidden:
                 return StatusCode(StatusCodes.Status403Forbidden);
             case ErrorKind.Unauthorized when error.Code == "reauthenticationRequired":
+                if (!HttpMethods.IsGet(Request.Method))
+                {
+                    // Survives the round trip to Keycloak, so the admin knows nothing happened yet.
+                    Notice = "You signed in again. Nothing was changed: repeat the action to complete it.";
+                }
+
                 return RedirectToPage("/Account/Reauthenticate", new { returnUrl = ReturnUrl() });
             default:
                 ModelState.AddModelError(error.Target ?? string.Empty, error.Message);

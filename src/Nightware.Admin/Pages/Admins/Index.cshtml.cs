@@ -14,8 +14,14 @@ public sealed class IndexModel(IAdminActor actor, ListGlobalAdmins list, SetGlob
 
     public Task<IActionResult> OnGetAsync(CancellationToken cancellationToken) => RenderAsync(cancellationToken);
 
-    public async Task<IActionResult> OnPostRevokeAsync(string userId, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostRevokeAsync(string userId, bool confirm, CancellationToken cancellationToken)
     {
+        if (!confirm)
+        {
+            ModelState.AddModelError(string.Empty, "Tick the box to confirm removing the global administrator rights.");
+            return await RenderAsync(cancellationToken);
+        }
+
         Result revoked = await set.ExecuteAsync(userId, false, cancellationToken);
         if (revoked.IsSuccess)
         {

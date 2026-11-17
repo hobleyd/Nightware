@@ -15,8 +15,18 @@ public sealed class DataDeletionTests
     {
         _bed.Options.AcceptedAcrValues.Add("mfa");
         _bed.AddUser("u-carol", "carol", Address, enabled: false);
-        _bed.AddMailbox(Address, "m-carol");
+        // Fully offboarded: mailbox sign-in blocked and Nextcloud disabled.
+        _bed.Mail.FindByAddressAsync(Address, Arg.Any<CancellationToken>()).Returns(new MailAccount("m-carol", Address, true) { Enabled = false });
         _bed.AddCloudUser("carol", Address, enabled: false);
+    }
+
+    [Fact]
+    public async Task Nothing_is_deleted_while_offboarding_is_incomplete()
+    {
+        _bed.AddMailbox(Address, "m-carol");
+
+        (await DeleteCloud.ExecuteAsync("u-carol", Address, Ct)).Error!.Message.ShouldStartWith("Finish offboarding first");
+        await _bed.Groupware.DidNotReceiveWithAnyArgs().DeleteAsync(default!, Ct);
     }
 
     private static CancellationToken Ct => AdminTestBed.Ct;

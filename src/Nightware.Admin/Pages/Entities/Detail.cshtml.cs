@@ -38,14 +38,26 @@ public sealed class DetailModel(
     public async Task<IActionResult> OnPostRepairDomainAsync(string domain, CancellationToken cancellationToken) =>
         await AfterAsync(await addDomain.ExecuteAsync(Id, domain, cancellationToken), s => $"{s.Domain}: {s.Mail.State}.", cancellationToken);
 
-    public async Task<IActionResult> OnPostRemoveDomainAsync(string domain, CancellationToken cancellationToken) =>
-        await AfterAsync(await removeDomain.ExecuteAsync(Id, domain, cancellationToken), _ => $"{domain} removed from the entity. The mail server keeps the domain.", cancellationToken);
+    public async Task<IActionResult> OnPostRemoveDomainAsync(string domain, bool confirm, CancellationToken cancellationToken) =>
+        !confirm
+            ? await UnconfirmedAsync("Tick the box to confirm removing the domain.", cancellationToken)
+            : await AfterAsync(await removeDomain.ExecuteAsync(Id, domain, cancellationToken), _ => $"{domain} removed from the entity. The mail server keeps the domain.", cancellationToken);
 
-    public async Task<IActionResult> OnPostGrantAdminAsync(string userId, CancellationToken cancellationToken) =>
-        await AfterAsync(await grantAdmin.ExecuteAsync(Id, userId, cancellationToken), "Administrator added. They must set up an authenticator app at their next sign-in.", cancellationToken);
+    public async Task<IActionResult> OnPostGrantAdminAsync(string userId, bool confirm, CancellationToken cancellationToken) =>
+        !confirm
+            ? await UnconfirmedAsync("Tick the box to confirm the new administrator.", cancellationToken)
+            : await AfterAsync(await grantAdmin.ExecuteAsync(Id, userId, cancellationToken), "Administrator added. They must set up an authenticator app at their next sign-in.", cancellationToken);
 
-    public async Task<IActionResult> OnPostRevokeAdminAsync(string userId, CancellationToken cancellationToken) =>
-        await AfterAsync(await revokeAdmin.ExecuteAsync(Id, userId, cancellationToken), "Administrator removed.", cancellationToken);
+    public async Task<IActionResult> OnPostRevokeAdminAsync(string userId, bool confirm, CancellationToken cancellationToken) =>
+        !confirm
+            ? await UnconfirmedAsync("Tick the box to confirm removing the administrator.", cancellationToken)
+            : await AfterAsync(await revokeAdmin.ExecuteAsync(Id, userId, cancellationToken), "Administrator removed.", cancellationToken);
+
+    private async Task<IActionResult> UnconfirmedAsync(string message, CancellationToken cancellationToken)
+    {
+        ModelState.AddModelError(string.Empty, message);
+        return await RenderAsync(cancellationToken);
+    }
 
     private Task<IActionResult> AfterAsync(Result result, string notice, CancellationToken cancellationToken) =>
         AfterAsync(result.IsSuccess ? Result<bool>.Success(true) : result.Error, _ => notice, cancellationToken);

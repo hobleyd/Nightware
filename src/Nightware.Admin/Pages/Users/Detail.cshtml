@@ -86,12 +86,15 @@
             {
                 <p>This user is offboarded: sign-in is disabled in every system.</p>
             }
-            <form method="post" asp-page-handler="Reinstate">
+            <form method="post" asp-page-handler="Reinstate" class="undo">
+                <h3>Undo offboarding</h3>
+                <p class="hint">Sign-in will work again in every system. Asks you to sign in again first.</p>
                 @if (Model.Subject.For(BackendKind.Mail).State == LinkState.Missing)
                 {
                     <label class="choice"><input type="checkbox" name="recreateMailbox" value="true"> Create a new, empty mailbox for @id.Email</label>
                 }
-                <button type="submit" class="@(open.Count > 0 ? "secondary" : null)">Reinstate</button>
+                <label class="choice"><input type="checkbox" name="confirm" value="true" required> Reinstate @id.DisplayName</label>
+                <button type="submit" class="secondary">Reinstate</button>
             </form>
         }
     </section>
@@ -134,6 +137,7 @@
             {
                 <form method="post" asp-page-handler="GlobalAdmin">
                     <p>@id.DisplayName is a global administrator.</p>
+                    <label class="choice"><input type="checkbox" name="confirm" value="true" required> Remove @id.DisplayName's global administrator rights</label>
                     <button type="submit" name="grant" value="false" class="secondary">Remove global administrator rights</button>
                 </form>
             }
@@ -152,9 +156,16 @@
     {
         <section class="panel danger-zone">
             <h2>Danger zone</h2>
-            <p>Deleting cannot be undone. Each deletion asks you to sign in again and to retype the address.</p>
-            <a class="button danger" asp-page="/Users/Delete" asp-route-id="@id.Id" asp-route-target="@DeletionTarget.Mail">Delete mail…</a>
-            <a class="button danger" asp-page="/Users/Delete" asp-route-id="@id.Id" asp-route-target="@DeletionTarget.GroupwareData">Delete files &amp; calendar data…</a>
+            @if (Nightware.Application.Administration.Users.OffboardUser.IsIncomplete(Model.Subject))
+            {
+                <p>Finish offboarding before deleting data: a mailbox or Nextcloud account may still let them sign in.</p>
+            }
+            else
+            {
+                <p>Deleting cannot be undone. Each deletion asks you to sign in again and to retype the address.</p>
+                <a class="button danger" asp-page="/Users/Delete" asp-route-id="@id.Id" asp-route-target="@DeletionTarget.Mail">Delete mail…</a>
+                <a class="button danger" asp-page="/Users/Delete" asp-route-id="@id.Id" asp-route-target="@DeletionTarget.GroupwareData">Delete files &amp; calendar data…</a>
+            }
         </section>
     }
 }

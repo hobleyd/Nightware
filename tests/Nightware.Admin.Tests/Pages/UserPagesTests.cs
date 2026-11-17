@@ -140,6 +140,45 @@ public sealed class UserPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task Reinstating_needs_the_confirmation_box()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example", enabled: false);
+        HttpClient client = _host.ClientAs(ConsoleHost.GlobalAdmin);
+
+        string html = await (await ConsoleHost.PostFormAsync(client, "/users/u-dan", "/users/u-dan?handler=Reinstate", new Dictionary<string, string>())).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain("Tick the box to confirm the reinstatement.");
+        await _host.Identities.DidNotReceiveWithAnyArgs().SetEnabledAsync(default!, default, Ct);
+    }
+
+    [Fact]
+    public async Task The_danger_zone_waits_for_an_incomplete_offboarding()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example", enabled: false);
+        _host.Mail.FindByAddressAsync("dan@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-dan", "dan@acme.example", true));
+
+        string html = await (await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri("/users/u-dan", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain("Finish offboarding before deleting data");
+        html.ShouldNotContain("Delete mail…");
+    }
+
+    [Fact]
+    public async Task Removing_a_domain_or_an_entity_admin_needs_the_confirmation_box()
+    {
+        HttpClient client = _host.ClientAs(ConsoleHost.GlobalAdmin);
+        const string url = "/entities/" + ConsoleHost.Acme;
+
+        string domain = await (await ConsoleHost.PostFormAsync(client, url, url + "?handler=RemoveDomain", new Dictionary<string, string> { ["domain"] = "acme.example" })).Content.ReadAsStringAsync(Ct);
+        domain.ShouldContain("Tick the box to confirm removing the domain.");
+
+        string admin = await (await ConsoleHost.PostFormAsync(client, url, url + "?handler=RevokeAdmin", new Dictionary<string, string> { ["userId"] = "u-dan" })).Content.ReadAsStringAsync(Ct);
+        admin.ShouldContain("Tick the box to confirm removing the administrator.");
+        await _host.Entities.DidNotReceiveWithAnyArgs().RevokeAdminAsync(default!, default!, Ct);
+        await _host.Entities.DidNotReceiveWithAnyArgs().RemoveDomainAsync(default!, default!, Ct);
+    }
+
+    [Fact]
     public async Task The_offboard_box_is_required_in_the_form()
     {
         _host.AddUser("u-dan", "dan", "dan@acme.example");
@@ -235,7 +274,7 @@ public sealed class UserPagesTests : IDisposable
     public async Task Deleting_mail_needs_the_retyped_address_and_never_happens_on_get()
     {
         _host.AddUser("u-dan", "dan", "dan@acme.example", enabled: false);
-        _host.Mail.FindByAddressAsync("dan@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-dan", "dan@acme.example", true));
+        _host.Mail.FindByAddressAsync("dan@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-dan", "dan@acme.example", true) { Enabled = false });
         HttpClient client = _host.ClientAs(ConsoleHost.GlobalAdmin);
         const string url = "/users/u-dan/delete/Mail";
 

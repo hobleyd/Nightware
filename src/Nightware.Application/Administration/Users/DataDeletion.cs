@@ -32,6 +32,13 @@ public sealed class DeletionGuard(IAdminActor actor, UserAccess users, Administr
             allowed = AdminAuthorization.RequireDisabled(loaded.Value.User.Identity);
         }
 
+        // Deleting data while a mailbox or Nextcloud account may still let them in would leave the
+        // offboarding half done and the evidence gone.
+        if (allowed.IsSuccess && OffboardUser.IsIncomplete(loaded.Value))
+        {
+            allowed = Error.Validation("Finish offboarding first: a mailbox or Nextcloud account may still let them sign in.");
+        }
+
         return allowed.IsSuccess ? loaded : allowed.Error;
     }
 

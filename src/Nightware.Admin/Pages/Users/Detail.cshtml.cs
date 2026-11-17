@@ -77,12 +77,20 @@ public sealed class DetailModel(
         return await AfterAsync(offboarded, offboarded.IsSuccess ? OffboardedNotice(offboarded.Value) : string.Empty, cancellationToken);
     }
 
-    public async Task<IActionResult> OnPostReinstateAsync(bool recreateMailbox, CancellationToken cancellationToken) =>
-        await AfterAsync(await reinstate.ExecuteAsync(Id, recreateMailbox, cancellationToken), "Reinstated.", cancellationToken);
+    public async Task<IActionResult> OnPostReinstateAsync(bool recreateMailbox, bool confirm, CancellationToken cancellationToken)
+    {
+        if (!confirm)
+        {
+            ModelState.AddModelError(string.Empty, "Tick the box to confirm the reinstatement.");
+            return await RenderAsync(cancellationToken);
+        }
+
+        return await AfterAsync(await reinstate.ExecuteAsync(Id, recreateMailbox, cancellationToken), "Reinstated: they can sign in again in every system.", cancellationToken);
+    }
 
     public async Task<IActionResult> OnPostGlobalAdminAsync(bool grant, bool confirm, CancellationToken cancellationToken)
     {
-        if (grant && !confirm)
+        if (!confirm)
         {
             ModelState.AddModelError(string.Empty, "Tick the box to confirm the global administrator rights.");
             return await RenderAsync(cancellationToken);

@@ -4,24 +4,34 @@
 <h1>Global administrators</h1>
 <p class="hint">They manage every entity, create entities and domains, and may delete a disabled user's data. Grant the role from a user's page; new administrators must set up an authenticator app.</p>
 <table>
-    <thead><tr><th>Name</th><th>Address</th><th></th></tr></thead>
+    <thead><tr><th>Name</th><th>Address</th></tr></thead>
     <tbody>
     @foreach (var a in Model.Admins)
     {
         <tr>
-            <td><a asp-page="/Users/Detail" asp-route-id="@a.Id">@a.DisplayName</a></td>
-            <td>@a.Email</td>
-            <td>
-                @if (a.Id != Model.Actor.UserId)
-                {
-                    <form method="post" asp-page-handler="Revoke" class="inline"><input type="hidden" name="userId" value="@a.Id"><button type="submit" class="secondary">Remove</button></form>
-                }
-                else
-                {
-                    <span class="hint">you</span>
-                }
-            </td>
+            <td><a asp-page="/Users/Detail" asp-route-id="@a.Id">@a.DisplayName</a>@(a.Id == Model.Actor.UserId ? " (you)" : "")</td>
+            <td data-label="Address">@a.Email</td>
         </tr>
     }
     </tbody>
 </table>
+
+@{ var removable = Model.Admins.Where(a => a.Id != Model.Actor.UserId).ToList(); }
+@if (removable.Count > 0)
+{
+    <form method="post" asp-page-handler="Revoke" class="panel">
+        <h2>Remove global administrator rights</h2>
+        <div class="row">
+            <label>Administrator
+                <select name="userId">
+                    @foreach (var a in removable)
+                    {
+                        <option value="@a.Id">@a.DisplayName (@a.Email)</option>
+                    }
+                </select>
+            </label>
+        </div>
+        <label class="choice"><input type="checkbox" name="confirm" value="true" required> They will no longer manage every entity</label>
+        <button type="submit" class="secondary">Remove rights</button>
+    </form>
+}

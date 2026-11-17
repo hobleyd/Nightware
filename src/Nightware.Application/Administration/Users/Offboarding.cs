@@ -96,13 +96,19 @@ public sealed class OffboardUser(IAdminActor actor, UserAccess users, IIdentityA
 /// <summary>
 /// Reverses an offboarding: enables sign-in and the Nextcloud account. A mailbox the console deleted is
 /// recreated (new and empty) only when the admin asked for it; Nextcloud data that was deleted comes back
-/// as a new, empty Nextcloud user.
+/// as a new, empty Nextcloud user. Reopening access is the security-critical direction, so it needs the same
+/// fresh, strong sign-in as granting global administrator rights.
 /// </summary>
-public sealed class ReinstateUser(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IMailAccounts mail, IGroupwareAccounts groupware, IAuditLog audit)
+public sealed class ReinstateUser(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IMailAccounts mail, IGroupwareAccounts groupware, IAuditLog audit, AdministrationOptions options, TimeProvider time)
 {
     public async Task<Result<UserDetail>> ExecuteAsync(string userId, bool recreateMailbox, CancellationToken cancellationToken)
     {
         Result self = AdminAuthorization.RequireNotSelf(actor.Current, userId);
+        if (self.IsSuccess)
+        {
+            self = AdminAuthorization.RequireFreshAuthentication(actor.Current, time.GetUtcNow(), options);
+        }
+
         if (!self.IsSuccess)
         {
             return self.Error;

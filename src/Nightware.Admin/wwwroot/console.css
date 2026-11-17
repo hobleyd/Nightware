@@ -123,3 +123,6 @@ ul.plain { list-style: none; padding: 0; }
   td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); }
   tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
 }
+
+.undo, .remove { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.undo h3, .remove h3 { margin: 0 0 4px; font-size: 1em; }

@@ -28,7 +28,6 @@
                         {
                             <form method="post" asp-page-handler="RepairDomain" class="inline"><input type="hidden" name="domain" value="@d.Domain.Name"><button type="submit" class="secondary">Repair</button></form>
                         }
-                        <form method="post" asp-page-handler="RemoveDomain" class="inline"><input type="hidden" name="domain" value="@d.Domain.Name"><button type="submit" class="secondary">Remove</button></form>
                     }
                 </td>
             </tr>
@@ -41,6 +40,25 @@
             <label>Add domain <input name="domain" placeholder="acme.org" autocomplete="off" required></label>
             <button type="submit">Add</button>
         </form>
+        @if (Model.Entity.Domains.Count > 0)
+        {
+            <form method="post" asp-page-handler="RemoveDomain" class="remove">
+                <h3>Remove a domain</h3>
+                <p class="hint">Takes the domain away from @entity.Name; the mail server keeps it. A domain that users' addresses still use cannot be removed.</p>
+                <div class="row">
+                    <label>Domain
+                        <select name="domain">
+                            @foreach (var d in Model.Entity.Domains)
+                            {
+                                <option value="@d.Domain.Name">@d.Domain.Name</option>
+                            }
+                        </select>
+                    </label>
+                </div>
+                <label class="choice"><input type="checkbox" name="confirm" value="true" required> Remove it from @entity.Name</label>
+                <button type="submit" class="secondary">Remove domain</button>
+            </form>
+        }
     }
 </section>
 
@@ -55,18 +73,15 @@
         @foreach (var a in Model.Admins)
         {
             <li>
-                <a asp-page="/Users/Detail" asp-route-id="@a.Id">@a.DisplayName</a> &lt;@a.Email&gt;
-                @if (a.Id != Model.Actor.UserId)
-                {
-                    <form method="post" asp-page-handler="RevokeAdmin" class="inline"><input type="hidden" name="userId" value="@a.Id"><button type="submit" class="secondary">Remove</button></form>
-                }
+                <a asp-page="/Users/Detail" asp-route-id="@a.Id">@a.DisplayName</a> &lt;@a.Email&gt;@(a.Id == Model.Actor.UserId ? " (you)" : "")
             </li>
         }
     </ul>
     @{ var candidates = Model.Members.Where(m => !adminIds.Contains(m.User.Identity.Id) && m.User.Identity.Enabled && m.User.Identity.Id != Model.Actor.UserId).ToList(); }
     @if (candidates.Count > 0)
     {
-        <form method="post" asp-page-handler="GrantAdmin" class="row">
+        <form method="post" asp-page-handler="GrantAdmin">
+            <div class="row">
             <label>Make administrator
                 <select name="userId">
                     @foreach (var m in candidates)
@@ -75,7 +90,28 @@
                     }
                 </select>
             </label>
-            <button type="submit">Grant</button>
+            </div>
+            <label class="choice"><input type="checkbox" name="confirm" value="true" required> They will manage this entity's users</label>
+            <button type="submit">Make administrator</button>
+        </form>
+    }
+    @{ var removable = Model.Admins.Where(a => a.Id != Model.Actor.UserId).ToList(); }
+    @if (removable.Count > 0)
+    {
+        <form method="post" asp-page-handler="RevokeAdmin" class="remove">
+            <h3>Remove an administrator</h3>
+            <div class="row">
+                <label>Administrator
+                    <select name="userId">
+                        @foreach (var a in removable)
+                        {
+                            <option value="@a.Id">@a.DisplayName (@a.Email)</option>
+                        }
+                    </select>
+                </label>
+            </div>
+            <label class="choice"><input type="checkbox" name="confirm" value="true" required> They will no longer manage @entity.Name</label>
+            <button type="submit" class="secondary">Remove administrator</button>
         </form>
     }
 </section>
