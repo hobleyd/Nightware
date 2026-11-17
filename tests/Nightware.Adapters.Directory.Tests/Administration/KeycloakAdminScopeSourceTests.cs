@@ -175,4 +175,20 @@ public sealed class KeycloakAdminScopeSourceTests : IDisposable
 
         (await host.Scoped<IAdminScopeSource>().ResolveAsync(UserId, Ct)).IsSuccess.ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task Without_view_clients_the_client_id_comes_from_our_own_service_accounts_mappings()
+    {
+        // Keycloak lists no clients to an account with query-clients only; the console does not hold view-clients.
+        _keycloak.GivenAdmin(RolesPath, 200, "[]");
+        _keycloak.GivenAdmin(OrgsPath, 200, "[]");
+        _keycloak.GivenAdmin("/clients", 200, "[]", priority: 1);
+        _keycloak.GivenAdmin("/users", 200, """[{"id":"sa-1","username":"service-account-nightware-admin","enabled":true}]""");
+        _keycloak.GivenAdmin("/users/sa-1/role-mappings", 200, """{"clientMappings":{"realm-management":{"id":"rm-uuid","client":"realm-management","mappings":[{"id":"x","name":"view-users"}]}}}""");
+        _keycloak.GivenAdmin(ClientRolesPath, 200, """[{"id":"c1","name":"realm-admin"}]""", priority: 1);
+        await using AdapterHost host = Host();
+
+        (await host.Scoped<IAdminScopeSource>().ResolveAsync(UserId, Ct)).Value.AdministersDirectory.ShouldBeTrue();
+        _keycloak.Admin("GET", "/users").Single().Query!["username"].ShouldBe(["service-account-nightware-admin"]);
+    }
 }

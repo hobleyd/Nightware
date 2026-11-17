@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Keycloak configuration for the admin console (ADR 0002), idempotent and safe on
 # a live realm (nothing here needs a fresh volume or a realm re-import):
-#   1. realm: Organizations on, admin events kept, acr.loa.map {pwd:1, mfa:2},
-#      SMTP through Stalwart when the realm has none (set-password e-mails)
+#   1. realm: Organizations on (with their identity-first login step off, so
+#      NightMail's sign-in page is unchanged), admin events kept,
+#      acr.loa.map {pwd:1, mfa:2}, SMTP through Stalwart when the realm has none
 #   2. realm roles nightware-global-admin and nightware-entity-admin
 #   3. user profile: nightware_aliases (multivalued) and the two deletion
 #      markers, admin-editable only
@@ -47,6 +48,19 @@ want=$(jq --arg host stalwart --arg from "noreply@${MAIL_DOMAIN}" '
 if [[ "$(jq -S . <<<"$realm")" != "$(jq -S . <<<"$want")" ]]; then
   log "Keycloak (console): realm -> organizations on, admin events kept 90 days, acr.loa.map, SMTP if unset"
   kcj -X PUT "${API}" --data-binary @- <<<"$want" >/dev/null
+fi
+
+# Organizations switch on the "Organization" identity-first step in Keycloak's
+# browser flow (username first, password on a second page). Nightware does not
+# route sign-in by organization, so turn that step off in the realm's bound
+# browser flow: NightMail's sign-in stays one page, as before (verified).
+BROWSER_FLOW=$(jq -r '.browserFlow // "browser"' <<<"$want")
+org_step=$(kc "${API}/authentication/flows/$(jq -rn --arg a "$BROWSER_FLOW" '$a|@uri')/executions" \
+  | jq -c '[.[] | select(.level==0 and .displayName=="Organization" and .requirement!="DISABLED")] | first // empty')
+if [[ -n "$org_step" ]]; then
+  log "Keycloak (console): disabling the organization identity-first step in the '${BROWSER_FLOW}' flow"
+  kcj -X PUT "${API}/authentication/flows/$(jq -rn --arg a "$BROWSER_FLOW" '$a|@uri')/executions" \
+    --data-binary @- <<<"$(jq -c '.requirement="DISABLED"' <<<"$org_step")" >/dev/null
 fi
 
 # ------------------------------------------------------------------ 2. roles

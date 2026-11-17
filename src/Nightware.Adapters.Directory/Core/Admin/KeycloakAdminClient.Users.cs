@@ -91,10 +91,40 @@ internal sealed partial class KeycloakAdminClient
             return clients.Error;
         }
 
-        KeycloakClientRef? client = clients.Value.FirstOrDefault(c => string.Equals(c.ClientId, clientId, StringComparison.Ordinal));
-        return client is null
+        string? clientUuid = clients.Value.FirstOrDefault(c => string.Equals(c.ClientId, clientId, StringComparison.Ordinal))?.Id;
+        if (clientUuid is null)
+        {
+            // query-clients alone lists no clients, and view-clients would expose every client's secret. Our own
+            // service account holds roles of the client we ask about (realm-management), so its role mappings,
+            // readable with view-users, name the client's id.
+            Result<string?> own = await ClientUuidFromOwnServiceAccountAsync(clientId, cancellationToken).ConfigureAwait(false);
+            if (!own.IsSuccess)
+            {
+                return own.Error;
+            }
+
+            clientUuid = own.Value;
+        }
+
+        return clientUuid is null
             ? Error.NotFound($"The realm has no client {clientId}.")
-            : await GetListAsync<KeycloakRole>($"users/{Segment(userId)}/role-mappings/clients/{Segment(client.Id)}/composite", cancellationToken).ConfigureAwait(false);
+            : await GetListAsync<KeycloakRole>($"users/{Segment(userId)}/role-mappings/clients/{Segment(clientUuid)}/composite", cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<Result<string?>> ClientUuidFromOwnServiceAccountAsync(string clientId, CancellationToken cancellationToken)
+    {
+        Result<KeycloakUser> self = await FindUserByUsernameAsync("service-account-" + options.Value.ClientId.ToLowerInvariant(), cancellationToken).ConfigureAwait(false);
+        if (!self.IsSuccess)
+        {
+            return self.Error.Kind == ErrorKind.NotFound ? Result<string?>.Success(null) : self.Error;
+        }
+
+        Result<JsonObject> mappings = await SendAsync(
+                () => new HttpRequestMessage(HttpMethod.Get, Url($"users/{Segment(self.Value.Id)}/role-mappings")),
+                ReadJsonAsync<JsonObject>,
+                cancellationToken)
+            .ConfigureAwait(false);
+        return mappings.Map(m => m["clientMappings"]?[clientId]?["id"]?.GetValue<string>());
     }
 
     public Task<Result> AddUserRealmRolesAsync(string userId, IReadOnlyList<KeycloakRole> roles, CancellationToken cancellationToken)
