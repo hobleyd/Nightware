@@ -39,6 +39,7 @@ volumes:
   nextcloud-db:
   nextcloud-html:
   nextcloud-data:
+  admin-keys:
 
 services:
   caddy:
@@ -316,6 +317,9 @@ services:
       SSL_CERT_FILE: ${NIGHTWARE_SSL_CERT_FILE:-/certs/caddy-root.crt}
     volumes:
       - ./.certs:/certs:ro
+      # Its data-protection keys (cookie and antiforgery encryption), so a
+      # rebuild or restart doesn't sign every admin out.
+      - admin-keys:/home/app/.aspnet/DataProtection-Keys
     depends_on:
       keycloak:
         condition: service_healthy

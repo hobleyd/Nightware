@@ -222,8 +222,9 @@ entity gets `403` from the use case. Endpoint tests assert that.
   credentials (D8); the human's identity is carried by `IAdminActor`.
 - Idle timeout 20 min sliding, absolute 8 h (ticket `IssuedUtc` checked in
   `OnValidatePrincipal`), sign-out also ends the Keycloak session (RP-initiated
-  logout). Data-protection keys are ephemeral per container: a restart signs
-  everyone out, which is the safe default for an admin tool.
+  logout). Data-protection keys persist in a volume (`admin-keys`), so a
+  rebuild or restart doesn't sign everyone out; sessions still end at the
+  idle and absolute limits, and deleting the keys signs everyone out.
 - **MFA/step-up.** The realm gets `acr.loa.map = {"pwd": 1, "mfa": 2}` and a
   browser flow with a Conditional-LoA subflow (level 2 → OTP form). The
   `nightware-admin` client sets "Minimum ACR value" = `mfa` (26.1+), so
