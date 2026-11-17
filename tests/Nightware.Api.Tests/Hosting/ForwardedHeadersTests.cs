@@ -2,12 +2,10 @@ using System.Net;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-using Nightware.Api.Hosting;
 using Nightware.Api.Tests.Support;
 
 namespace Nightware.Api.Tests.Hosting;
@@ -114,33 +112,6 @@ public sealed class ForwardedHeadersTests
 
         (await BodyAsync(await SendFromAsync(host, "127.0.0.1"))).ShouldContain("https://graph.example.org");
         (await BodyAsync(await SendFromAsync(host, "172.31.250.7"))).ShouldNotContain("graph.example.org");
-    }
-
-    [Fact]
-    public void Settings_replace_the_framework_defaults()
-    {
-        var settings = new ProxyOptions { ForwardLimit = 2 };
-        settings.KnownNetworks.Add("10.0.0.0/8");
-        var options = new ForwardedHeadersOptions();
-
-        settings.ApplyTo(options);
-
-        options.KnownIPNetworks.ShouldHaveSingleItem().ToString().ShouldBe("10.0.0.0/8");
-        options.KnownProxies.ShouldBeEmpty();
-        options.ForwardLimit.ShouldBe(2);
-        options.ForwardedHeaders.ShouldBe(ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedPrefix);
-    }
-
-    [Theory]
-    [InlineData("KnownProxies", "not-an-ip")]
-    [InlineData("KnownNetworks", "10.0.0.0/99")]
-    [InlineData("KnownNetworks", "10.0.0.1")]
-    public void Malformed_proxies_are_rejected(string list, string value)
-    {
-        var settings = new ProxyOptions();
-        (list == "KnownProxies" ? settings.KnownProxies : settings.KnownNetworks).Add(value);
-
-        new ProxyOptionsValidator().Validate(null, settings).Failed.ShouldBeTrue();
     }
 
     [Fact]

@@ -1,6 +1,6 @@
-using Nightware.Api.Observability;
+using Nightware.Hosting.Observability;
 
-namespace Nightware.Api.Tests.Observability;
+namespace Nightware.Hosting.Tests.Observability;
 
 public sealed class UrlRedactionTests
 {

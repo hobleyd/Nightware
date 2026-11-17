@@ -5,7 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
 
-using Nightware.Api.Hosting;
 using Nightware.Api.Tests.Support;
 
 namespace Nightware.Api.Tests.Hosting;
@@ -42,19 +41,6 @@ public sealed class HttpClientCookiePolicyTests
             };
             useCookies.ShouldBeFalse($"client '{name}' keeps cookies on its pooled handler");
         }
-    }
-
-    [Fact]
-    public void The_filter_turns_cookies_off_whatever_the_handler_type()
-    {
-        using var sockets = new SocketsHttpHandler { UseCookies = true };
-        using var classic = new HttpClientHandler { UseCookies = true };
-
-        CookielessHttpClientsFilter.DisableCookies(sockets);
-        CookielessHttpClientsFilter.DisableCookies(classic);
-
-        sockets.UseCookies.ShouldBeFalse();
-        classic.UseCookies.ShouldBeFalse();
     }
 
     /// <summary>Every named and typed client: from named factory options and the factory's client registry.</summary>

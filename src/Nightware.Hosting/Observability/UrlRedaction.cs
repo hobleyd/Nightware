@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Nightware.Api.Observability;
+namespace Nightware.Hosting.Observability;
 
 /// <summary>
 /// The path segments that are secrets although paths are otherwise logged: a Graph share id

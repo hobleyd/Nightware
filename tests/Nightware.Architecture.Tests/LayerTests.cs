@@ -14,6 +14,7 @@ public sealed class LayerTests
     private const string Domain = "Nightware.Domain";
     private const string Application = "Nightware.Application";
     private const string Api = "Nightware.Api";
+    private const string Hosting = "Nightware.Hosting";
     private const string Composition = "Nightware.Api.Composition";
     private const string Features = "Nightware.Api.Features";
     private const string AnyAdapter = @"^Nightware\.Adapters(\..*)?$";
@@ -27,7 +28,8 @@ public sealed class LayerTests
             typeof(Nightware.Adapters.Jmap.JmapAdapterServiceCollectionExtensions).Assembly,
             typeof(Nightware.Adapters.Dav.DavAdapterServiceCollectionExtensions).Assembly,
             typeof(Nightware.Adapters.Directory.DirectoryAdapterServiceCollectionExtensions).Assembly,
-            typeof(Nightware.Api.Composition.NightwareComposition).Assembly)
+            typeof(Nightware.Api.Composition.NightwareComposition).Assembly,
+            typeof(Nightware.Hosting.HostingDefaultsServiceCollectionExtensions).Assembly)
         .Build();
 
     private static ArchUnitNET.Fluent.Syntax.Elements.Types.GivenTypesConjunction InNamespace(string root) => Types().That().ResideInNamespaceOrBelow(root);
@@ -80,6 +82,25 @@ public sealed class LayerTests
     }
 
     [Fact]
+    public void Hosting_depends_on_no_other_nightware_namespace()
+    {
+        Types().That().ResideInNamespaceOrBelow(Hosting).Should()
+            .NotDependOnAny(Types().That().ResideInNamespaceMatching(@"^Nightware(\.(?!Hosting(\.|$)).*)?$"))
+            .Because("ADR 0002 §D2: shared hosting code is referenced by both hosts and references neither")
+            .Check(Architecture);
+    }
+
+    [Fact]
+    public void Nothing_inward_depends_on_hosting()
+    {
+        Types().That().ResideInNamespaceOrBelow(Domain).Or().ResideInNamespaceOrBelow(Application)
+            .Or().ResideInNamespaceMatching(AnyAdapter).Should()
+            .NotDependOnAny(InNamespace(Hosting))
+            .Because("hosting code is a host concern")
+            .Check(Architecture);
+    }
+
+    [Fact]
     public void Feature_endpoints_do_not_depend_on_adapters()
     {
         Types().That().ResideInNamespaceOrBelow(Features).Should()
@@ -104,6 +125,7 @@ public sealed class LayerTests
         Types().That().HaveFullName("Nightware.Api.Composition.NightwareComposition").Should()
             .DependOnAny(Types().That().ResideInNamespaceMatching(AnyAdapter))
             .AndShould().DependOnAny(InNamespace(Application))
+            .AndShould().DependOnAny(InNamespace(Hosting))
             .Check(Architecture);
     }
 }

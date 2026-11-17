@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 using Nightware.Api.Graph;
-using Nightware.Api.Observability;
+using Nightware.Hosting.Observability;
 using Nightware.Api.Tests.Support;
 using Nightware.Application.Common.Identity;
 using Nightware.Application.Tasks;

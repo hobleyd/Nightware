@@ -6,6 +6,7 @@
     <Project Path="src/Nightware.Api/Nightware.Api.csproj" />
     <Project Path="src/Nightware.Application/Nightware.Application.csproj" />
     <Project Path="src/Nightware.Domain/Nightware.Domain.csproj" />
+    <Project Path="src/Nightware.Hosting/Nightware.Hosting.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Nightware.Adapters.Dav.Tests/Nightware.Adapters.Dav.Tests.csproj" />
@@ -16,6 +17,7 @@
     <Project Path="tests/Nightware.Architecture.Tests/Nightware.Architecture.Tests.csproj" />
     <Project Path="tests/Nightware.Conformance.Tests/Nightware.Conformance.Tests.csproj" />
     <Project Path="tests/Nightware.Domain.Tests/Nightware.Domain.Tests.csproj" />
+    <Project Path="tests/Nightware.Hosting.Tests/Nightware.Hosting.Tests.csproj" />
     <Project Path="tests/Nightware.Integration.Tests/Nightware.Integration.Tests.csproj" />
   </Folder>
 </Solution>

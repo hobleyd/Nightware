@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Http;
 
-namespace Nightware.Api.Hosting;
+namespace Nightware.Hosting.Http;
 
 /// <summary>
 /// Turns cookies off on the primary handler of <b>every</b> <see cref="IHttpClientFactory"/> client

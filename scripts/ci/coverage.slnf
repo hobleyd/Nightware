@@ -8,13 +8,15 @@
       "src/Nightware.Api/Nightware.Api.csproj",
       "src/Nightware.Application/Nightware.Application.csproj",
       "src/Nightware.Domain/Nightware.Domain.csproj",
+      "src/Nightware.Hosting/Nightware.Hosting.csproj",
       "tests/Nightware.Adapters.Dav.Tests/Nightware.Adapters.Dav.Tests.csproj",
       "tests/Nightware.Adapters.Directory.Tests/Nightware.Adapters.Directory.Tests.csproj",
       "tests/Nightware.Adapters.Jmap.Tests/Nightware.Adapters.Jmap.Tests.csproj",
       "tests/Nightware.Api.Tests/Nightware.Api.Tests.csproj",
       "tests/Nightware.Application.Tests/Nightware.Application.Tests.csproj",
       "tests/Nightware.Conformance.Tests/Nightware.Conformance.Tests.csproj",
-      "tests/Nightware.Domain.Tests/Nightware.Domain.Tests.csproj"
+      "tests/Nightware.Domain.Tests/Nightware.Domain.Tests.csproj",
+      "tests/Nightware.Hosting.Tests/Nightware.Hosting.Tests.csproj"
     ]
   }
 }

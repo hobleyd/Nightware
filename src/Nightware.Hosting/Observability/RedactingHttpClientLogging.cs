@@ -3,7 +3,7 @@ using System.Diagnostics;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 
-namespace Nightware.Api.Observability;
+namespace Nightware.Hosting.Observability;
 
 /// <summary>
 /// HttpClient's request logging for every named client, in place of the factory's default (removed in

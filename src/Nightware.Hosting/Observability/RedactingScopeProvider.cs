@@ -5,7 +5,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
-namespace Nightware.Api.Observability;
+namespace Nightware.Hosting.Observability;
 
 /// <summary>
 /// The logger factory's scope provider, with <see cref="UrlRedaction"/> applied to every structured scope. The
