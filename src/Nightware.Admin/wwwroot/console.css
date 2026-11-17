@@ -126,3 +126,4 @@ ul.plain { list-style: none; padding: 0; }
 
 .undo, .remove { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
 .undo h3, .remove h3 { margin: 0 0 4px; font-size: 1em; }
+h1 .status { font-size: 0.45em; vertical-align: middle; margin-left: 0.5em; }

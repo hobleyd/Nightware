@@ -11,24 +11,29 @@
 {
     <p class="hint">Searches the users of every entity you manage.</p>
 }
-else if (Model.Found.Count == 0)
+else if (Model.Found.Users.Count == 0)
 {
     <p>Nobody in your entities matches “@Model.Q”.</p>
 }
 else
 {
     <table>
-        <thead><tr><th>Name</th><th>Address</th><th>Entity</th><th>Sign-in</th></tr></thead>
+        <thead><tr><th>Name</th><th>Address</th><th>Entity</th><th>Status</th></tr></thead>
         <tbody>
-        @foreach (var f in Model.Found)
+        @foreach (var f in Model.Found.Users)
         {
-            <tr class="@(f.Identity.Enabled ? "" : "disabled")">
-                <td><a asp-page="/Users/Detail" asp-route-id="@f.Identity.Id">@f.Identity.DisplayName</a></td>
-                <td>@f.Identity.Email</td>
+            var identity = f.User.User.Identity;
+            <tr class="@(identity.Enabled ? "" : "disabled")">
+                <td><a asp-page="/Users/Detail" asp-route-id="@identity.Id">@identity.DisplayName</a></td>
+                <td data-label="Address">@identity.Email</td>
                 <td data-label="Entity"><a asp-page="/Entities/Detail" asp-route-id="@f.Entity.Id">@f.Entity.Name</a></td>
-                <td data-label="Sign-in">@(f.Identity.Enabled ? "Active" : "Offboarded")</td>
+                <td data-label="Status"><partial name="_Status" model="f.User" /></td>
             </tr>
         }
         </tbody>
     </table>
+    @if (Model.Found.Truncated)
+    {
+        <p class="hint">Showing the first @Nightware.Application.Administration.Users.FindUsers.Limit matches. Type more of the name or address to narrow the search.</p>
+    }
 }

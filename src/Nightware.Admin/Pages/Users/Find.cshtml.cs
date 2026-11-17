@@ -11,18 +11,18 @@ public sealed class FindModel(IAdminActor actor, FindUsers find) : ConsolePageMo
     [BindProperty(SupportsGet = true)]
     public string? Q { get; set; }
 
-    public IReadOnlyList<FoundUser> Found { get; private set; } = [];
+    public FoundUsers Found { get; private set; } = new([], false);
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
-        if (!TryGet(await find.ExecuteAsync(Q, cancellationToken), out IReadOnlyList<FoundUser> found, out IActionResult? failure))
+        if (!TryGet(await find.ExecuteAsync(Q, cancellationToken), out FoundUsers found, out IActionResult? failure))
         {
             return failure!;
         }
 
-        if (found.Count == 1)
+        if (found.Users.Count == 1)
         {
-            return RedirectToPage("/Users/Detail", new { id = found[0].Identity.Id });
+            return RedirectToPage("/Users/Detail", new { id = found.Users[0].User.User.Identity.Id });
         }
 
         Found = found;

@@ -10,7 +10,7 @@
 {
     <nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Entities/Detail" asp-route-id="@u.EntityId">@Model.EntityName</a> › <a asp-page="/Users/Index" asp-route-entity="@u.EntityId">Users</a> › <span aria-current="page">@id.DisplayName</span></nav>
 }
-<h1>@id.DisplayName <small>@id.Email</small></h1>
+<h1>@id.DisplayName <small>@id.Email</small> <partial name="_Status" model="Model.Subject" /></h1>
 <p>
     Username <code>@id.Username</code>
     @if (u.EntityId is not null)
@@ -30,7 +30,7 @@
             var name = Systems.Name(link.Backend);
             <tr>
                 <td>@name</td>
-                <td><span class="chip @link.State.ToString().ToLowerInvariant()">@link.State</span></td>
+                <td><span class="chip @link.State.ToString().ToLowerInvariant()">@Systems.StateLabel(link.State)</span></td>
                 <td>@link.Detail</td>
             </tr>
         }

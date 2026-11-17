@@ -1,0 +1,3 @@
+@model Nightware.Application.Administration.UserDetail
+@{ var status = Nightware.Application.Administration.Users.UserStatuses.Of(Model); }
+<span class="chip status @Systems.StatusClass(status)">@Systems.StatusLabel(status)</span>

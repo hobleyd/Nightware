@@ -52,17 +52,24 @@ public sealed class GetUser(UserAccess users)
         users.LoadWithLinksAsync(userId, cancellationToken);
 }
 
-/// <summary>A user found by <see cref="FindUsers"/>, with the entity they were found in.</summary>
-public sealed record FoundUser(IdentityAccount Identity, Entity Entity);
+/// <summary>A user found by <see cref="FindUsers"/>, with the entity they were found in and their state everywhere.</summary>
+public sealed record FoundUser(UserDetail User, Entity Entity);
+
+/// <summary>What <see cref="FindUsers"/> found: at most <see cref="FindUsers.Limit"/> users, and whether there were more.</summary>
+public sealed record FoundUsers(IReadOnlyList<FoundUser> Users, bool Truncated);
 
 /// <summary>
 /// The users, across every entity the actor manages, whose name, username or address (aliases included)
 /// contains the text: the console's "find a user", so an admin need not remember which entity someone is in.
-/// Reads Keycloak only; a user's own page shows their state in every backend.
+/// Matches against Keycloak, then reads the first <see cref="Limit"/> matches' state in every backend, so the
+/// result can say truthfully whether each one is offboarded.
 /// </summary>
-public sealed class FindUsers(ListEntities entities, IEntityRegistry registry)
+public sealed class FindUsers(ListEntities entities, IEntityRegistry registry, UserAccess users)
 {
-    public async Task<Result<IReadOnlyList<FoundUser>>> ExecuteAsync(string? text, CancellationToken cancellationToken)
+    /// <summary>The most matches whose backend state is read; a broader search is asked to narrow.</summary>
+    public const int Limit = 25;
+
+    public async Task<Result<FoundUsers>> ExecuteAsync(string? text, CancellationToken cancellationToken)
     {
         Result<IReadOnlyList<Entity>> manageable = await entities.ExecuteAsync(cancellationToken).ConfigureAwait(false);
         if (!manageable.IsSuccess)
@@ -73,10 +80,10 @@ public sealed class FindUsers(ListEntities entities, IEntityRegistry registry)
         string q = text?.Trim() ?? string.Empty;
         if (q.Length == 0)
         {
-            return Array.Empty<FoundUser>();
+            return new FoundUsers([], false);
         }
 
-        var found = new Dictionary<string, FoundUser>(StringComparer.Ordinal);
+        var found = new Dictionary<string, (IdentityAccount Identity, Entity Entity)>(StringComparer.Ordinal);
         foreach (Entity entity in manageable.Value)
         {
             Result<IReadOnlyList<IdentityAccount>> members = await registry.ListMembersAsync(entity.Id, cancellationToken).ConfigureAwait(false);
@@ -87,11 +94,15 @@ public sealed class FindUsers(ListEntities entities, IEntityRegistry registry)
 
             foreach (IdentityAccount member in members.Value.Where(m => Matches(m, q)))
             {
-                found.TryAdd(member.Id, new FoundUser(member, entity));
+                found.TryAdd(member.Id, (member, entity));
             }
         }
 
-        return found.Values.OrderBy(static f => f.Identity.DisplayName, StringComparer.OrdinalIgnoreCase).ToList();
+        (IdentityAccount Identity, Entity Entity)[] first = [.. found.Values.OrderBy(static f => f.Identity.DisplayName, StringComparer.OrdinalIgnoreCase).Take(Limit)];
+        var result = new FoundUser[first.Length];
+        await Parallel.ForAsync(0, first.Length, new ParallelOptions { MaxDegreeOfParallelism = 8, CancellationToken = cancellationToken }, async (i, ct) =>
+            result[i] = new FoundUser(await users.WithLinksAsync(new ManagedUser(first[i].Identity, first[i].Entity.Id, false, false), ct).ConfigureAwait(false), first[i].Entity)).ConfigureAwait(false);
+        return new FoundUsers(result, found.Count > Limit);
     }
 
     private static bool Matches(IdentityAccount user, string q) =>

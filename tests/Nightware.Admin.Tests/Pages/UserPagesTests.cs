@@ -125,6 +125,7 @@ public sealed class UserPagesTests : IDisposable
 
         string several = await (await client.GetAsync(new Uri("/users/find?q=dan", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
         several.ShouldContain("dana@acme.example");
+        several.ShouldContain("Needs repair");
         several.ShouldContain(">Acme Pty</a>");
     }
 

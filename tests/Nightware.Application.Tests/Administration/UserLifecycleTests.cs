@@ -98,13 +98,16 @@ public sealed class UserLifecycleTests
             new IdentityAccount("u3", "amyl", "amy.lee@other.example", false),
             new IdentityAccount("u1", "amy", "amy@acme.example", true),
         ]));
-        var find = new FindUsers(new ListEntities(_bed.Actor, _bed.Entities), _bed.Entities);
+        var find = new FindUsers(new ListEntities(_bed.Actor, _bed.Entities), _bed.Entities, _bed.UserAccess());
 
-        IReadOnlyList<FoundUser> amy = (await find.ExecuteAsync(" AMY ", Ct)).Value;
-        amy.Select(f => (f.Identity.Id, f.Entity.Id)).ShouldBe([("u1", AdminTestBed.Acme), ("u3", AdminTestBed.Other)], ignoreOrder: true);
+        FoundUsers amy = (await find.ExecuteAsync(" AMY ", Ct)).Value;
+        amy.Users.Select(f => (f.User.User.Identity.Id, f.Entity.Id)).ShouldBe([("u1", AdminTestBed.Acme), ("u3", AdminTestBed.Other)], ignoreOrder: true);
+        amy.Truncated.ShouldBeFalse();
+        // Each match carries its state in every backend, so the result can say whether they are offboarded.
+        amy.Users[0].User.Links.Select(l => l.Backend).ShouldBe([BackendKind.Identity, BackendKind.Mail, BackendKind.Groupware]);
 
-        (await find.ExecuteAsync("sales@", Ct)).Value.Single().Identity.Id.ShouldBe("u2");
-        (await find.ExecuteAsync("  ", Ct)).Value.ShouldBeEmpty();
+        (await find.ExecuteAsync("sales@", Ct)).Value.Users.Single().User.User.Identity.Id.ShouldBe("u2");
+        (await find.ExecuteAsync("  ", Ct)).Value.Users.ShouldBeEmpty();
     }
 
     [Fact]
@@ -114,10 +117,25 @@ public sealed class UserLifecycleTests
         _bed.Entities.ListAsync(Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<Entity>>.Success([AdminTestBed.AcmeEntity, AdminTestBed.OtherEntity]));
         _bed.Entities.ListMembersAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
 
-        (await new FindUsers(new ListEntities(_bed.Actor, _bed.Entities), _bed.Entities).ExecuteAsync("amy", Ct)).IsSuccess.ShouldBeTrue();
+        (await new FindUsers(new ListEntities(_bed.Actor, _bed.Entities), _bed.Entities, _bed.UserAccess()).ExecuteAsync("amy", Ct)).IsSuccess.ShouldBeTrue();
 
         await _bed.Entities.Received(1).ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>());
         await _bed.Entities.DidNotReceive().ListMembersAsync(AdminTestBed.Other, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task One_status_says_whether_a_user_is_active_needs_repair_conflicts_or_is_offboarded()
+    {
+        static UserDetail User(bool enabled, LinkState mail, LinkState cloud) => new(
+            new ManagedUser(new IdentityAccount("u", "u", "u@acme.example", enabled), AdminTestBed.Acme, false, false),
+            [new BackendLink(BackendKind.Identity, enabled ? LinkState.Linked : LinkState.Disabled, null), new BackendLink(BackendKind.Mail, mail, null), new BackendLink(BackendKind.Groupware, cloud, null)]);
+
+        UserStatuses.Of(User(true, LinkState.Linked, LinkState.Pending)).ShouldBe(UserStatus.Active);
+        UserStatuses.Of(User(true, LinkState.Missing, LinkState.Linked)).ShouldBe(UserStatus.NeedsRepair);
+        UserStatuses.Of(User(true, LinkState.Error, LinkState.Linked)).ShouldBe(UserStatus.NeedsRepair);
+        UserStatuses.Of(User(true, LinkState.Linked, LinkState.Conflict)).ShouldBe(UserStatus.Conflict);
+        UserStatuses.Of(User(false, LinkState.Error, LinkState.Disabled)).ShouldBe(UserStatus.OffboardingIncomplete);
+        UserStatuses.Of(User(false, LinkState.Disabled, LinkState.Missing)).ShouldBe(UserStatus.Offboarded);
     }
 
     [Fact]

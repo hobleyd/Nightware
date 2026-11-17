@@ -9,7 +9,7 @@
         @foreach (var h in Model.Health)
         {
             var name = Systems.Name(h.Backend);
-            <li class="chip @(h.Healthy ? "linked" : "error")">@name: @(h.Healthy ? "OK" : "Unavailable")</li>
+            <li class="chip @(h.Healthy ? "linked" : "error")">@name: @(h.Healthy ? "OK" : "Unreachable")</li>
         }
     </ul>
     @foreach (var h in Model.Health.Where(h => !h.Healthy && !string.IsNullOrEmpty(h.Detail)))

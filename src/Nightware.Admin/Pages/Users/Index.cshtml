@@ -20,14 +20,15 @@
 else
 {
     <table>
-        <thead><tr><th>Name</th><th>Address</th><th>Status</th></tr></thead>
+        <thead><tr><th>Name</th><th>Address</th><th>Status</th><th>Systems</th></tr></thead>
         <tbody>
         @foreach (var u in Model.Users)
         {
             <tr class="@(u.User.Identity.Enabled ? "" : "disabled")">
                 <td><a asp-page="/Users/Detail" asp-route-id="@u.User.Identity.Id">@u.User.Identity.DisplayName</a></td>
-                <td>@u.User.Identity.Email</td>
-                <td><partial name="_Links" model="u.Links" /></td>
+                <td data-label="Address">@u.User.Identity.Email</td>
+                <td data-label="Status"><partial name="_Status" model="u" /></td>
+                <td data-label="Systems"><partial name="_Links" model="u.Links" /></td>
             </tr>
         }
         </tbody>
