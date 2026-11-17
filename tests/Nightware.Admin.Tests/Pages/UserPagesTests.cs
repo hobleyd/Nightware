@@ -89,7 +89,7 @@ public sealed class UserPagesTests : IDisposable
         string html = await (await _host.ClientAs(ConsoleHost.EntityAdmin).GetAsync(new Uri($"/entities/{ConsoleHost.Acme}/users", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
 
         html.ShouldContain("dan@acme.example");
-        html.ShouldContain("Keycloak: Linked");
+        html.ShouldContain("Sign-in: Linked");
         html.ShouldContain("Mail: Missing");
     }
 

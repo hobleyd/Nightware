@@ -2,7 +2,7 @@
 @model Nightware.Admin.Pages.Users.DeleteModel
 @{
     var p = Model.Preview;
-    var what = p.Target == DeletionTarget.Mail ? "mail" : "Nextcloud data";
+    var what = p.Target == DeletionTarget.Mail ? "mail" : "files & calendar data";
     ViewData["Title"] = "Delete " + what;
 }
 <h1>Delete @what of @p.User.Identity.DisplayName</h1>

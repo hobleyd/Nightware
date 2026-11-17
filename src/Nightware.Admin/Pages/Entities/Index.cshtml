@@ -22,7 +22,7 @@
 {
     <section class="panel">
         <h2>New entity</h2>
-        <p class="hint">Creates the organisation in Keycloak and its mail domain (with DKIM keys) on the mail server. A domain can belong to one entity only.</p>
+        <p class="hint">Creates the entity for sign-in and its mail domain, with signing (DKIM) keys, on the mail server. A domain can belong to one entity only.</p>
         <form method="post">
             <label>Name <input asp-for="Form.Name" placeholder="Acme Pty Ltd" autocomplete="off"></label>
             <label>Short name <input asp-for="Form.Alias" placeholder="acme" autocomplete="off"><span class="hint">lower-case letters, digits and hyphens</span></label>

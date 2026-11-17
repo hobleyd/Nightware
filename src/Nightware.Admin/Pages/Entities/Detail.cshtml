@@ -7,7 +7,7 @@
 }
 <nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Entities/Index">Entities</a> › <span aria-current="page">@entity.Name</span></nav>
 <h1>@entity.Name <small>@entity.Alias</small></h1>
-<p><a asp-page="/Users/Index" asp-route-entity="@entity.Id">@Model.Members.Count user(s)</a> · <a asp-page="/Users/New" asp-route-entity="@entity.Id">Add user</a></p>
+<p><a asp-page="/Users/Index" asp-route-entity="@entity.Id">@Model.Members.Count @(Model.Members.Count == 1 ? "user" : "users")</a> · <a asp-page="/Users/New" asp-route-entity="@entity.Id">Add or link a user</a></p>
 
 <section class="panel">
     <h2>Mail domains</h2>

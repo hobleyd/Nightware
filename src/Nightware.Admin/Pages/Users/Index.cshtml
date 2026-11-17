@@ -6,23 +6,30 @@
 <form method="get" class="row">
     <label>Search <input name="q" value="@Model.Q" autocomplete="off"></label>
     <button type="submit" class="secondary">Filter</button>
+    @if (!string.IsNullOrEmpty(Model.Q))
+    {
+        <a asp-page="/Users/Index" asp-route-entity="@Model.Entity">Show all</a>
+    }
     <a class="button" asp-page="/Users/New" asp-route-entity="@Model.Entity">Add or link a user</a>
 </form>
 
-<table>
-    <thead><tr><th>Name</th><th>Address</th><th>Status</th></tr></thead>
-    <tbody>
-    @foreach (var u in Model.Users)
-    {
-        <tr class="@(u.User.Identity.Enabled ? "" : "disabled")">
-            <td><a asp-page="/Users/Detail" asp-route-id="@u.User.Identity.Id">@u.User.Identity.DisplayName</a></td>
-            <td>@u.User.Identity.Email</td>
-            <td><partial name="_Links" model="u.Links" /></td>
-        </tr>
-    }
-    </tbody>
-</table>
 @if (Model.Users.Count == 0)
 {
-    <p>No users@(string.IsNullOrEmpty(Model.Q) ? "" : " match") yet.</p>
+    <p>@(string.IsNullOrEmpty(Model.Q) ? "This entity has no users yet." : $"No users of {Model.Detail.Entity.Name} match “{Model.Q}”.")</p>
+}
+else
+{
+    <table>
+        <thead><tr><th>Name</th><th>Address</th><th>Status</th></tr></thead>
+        <tbody>
+        @foreach (var u in Model.Users)
+        {
+            <tr class="@(u.User.Identity.Enabled ? "" : "disabled")">
+                <td><a asp-page="/Users/Detail" asp-route-id="@u.User.Identity.Id">@u.User.Identity.DisplayName</a></td>
+                <td>@u.User.Identity.Email</td>
+                <td><partial name="_Links" model="u.Links" /></td>
+            </tr>
+        }
+        </tbody>
+    </table>
 }

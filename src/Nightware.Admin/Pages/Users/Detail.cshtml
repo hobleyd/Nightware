@@ -27,7 +27,7 @@
         <tbody>
         @foreach (var link in Model.Subject.Links)
         {
-            var name = link.Backend switch { BackendKind.Identity => "Keycloak", BackendKind.Mail => "Mail (Stalwart)", _ => "Nextcloud" };
+            var name = Systems.Name(link.Backend);
             <tr>
                 <td>@name</td>
                 <td><span class="chip @link.State.ToString().ToLowerInvariant()">@link.State</span></td>
@@ -68,11 +68,11 @@
             if (open.Count > 0)
             {
                 <div class="warning" role="alert">
-                    <p><strong>Offboarding incomplete.</strong> Keycloak sign-in is disabled, but these may still let them in:</p>
+                    <p><strong>Offboarding incomplete.</strong> Sign-in is disabled, but these may still let them in:</p>
                     <ul>
                         @foreach (var link in open)
                         {
-                            <li>@(link.Backend == BackendKind.Mail ? "Mail (Stalwart)" : "Nextcloud"): @link.Detail</li>
+                            <li>@Systems.Name(link.Backend): @link.Detail</li>
                         }
                     </ul>
                     <form method="post" asp-page-handler="Offboard">
@@ -154,7 +154,7 @@
             <h2>Danger zone</h2>
             <p>Deleting cannot be undone. Each deletion asks you to sign in again and to retype the address.</p>
             <a class="button danger" asp-page="/Users/Delete" asp-route-id="@id.Id" asp-route-target="@DeletionTarget.Mail">Delete mail…</a>
-            <a class="button danger" asp-page="/Users/Delete" asp-route-id="@id.Id" asp-route-target="@DeletionTarget.GroupwareData">Delete Nextcloud data…</a>
+            <a class="button danger" asp-page="/Users/Delete" asp-route-id="@id.Id" asp-route-target="@DeletionTarget.GroupwareData">Delete files &amp; calendar data…</a>
         </section>
     }
 }

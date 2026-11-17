@@ -2,11 +2,11 @@
 <ul class="chips">
     @foreach (var link in Model)
     {
-        var name = link.Backend switch { BackendKind.Identity => "Keycloak", BackendKind.Mail => "Mail", _ => "Nextcloud" };
+        var name = Systems.ShortName(link.Backend);
         <li class="chip @link.State.ToString().ToLowerInvariant()">@name: @link.State</li>
     }
 </ul>
 @foreach (var link in Model.Where(l => l.State is LinkState.Conflict or LinkState.Error))
 {
-    <p class="hint detail">@link.Detail</p>
+    <p class="hint detail">@Systems.ShortName(link.Backend): @link.Detail</p>
 }

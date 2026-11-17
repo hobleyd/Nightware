@@ -50,7 +50,7 @@ public sealed class DetailModel(
 
         if (issued.Value is null)
         {
-            Notice = "Keycloak has e-mailed a set-password link.";
+            Notice = "A set-password link was e-mailed to them.";
             return RedirectToPage(new { id = Id });
         }
 
@@ -96,7 +96,7 @@ public sealed class DetailModel(
     private string OffboardedNotice(UserDetail user)
     {
         IEnumerable<string> downstream = user.Links.Where(l => l.Backend != BackendKind.Identity).Select(l => (l.Detail?.TrimEnd('.') ?? $"{l.Backend}: {l.State}") + ".");
-        return $"Offboarded. Keycloak sign-in is disabled and their sessions ended. {string.Join(" ", downstream)} "
+        return $"Offboarded. Sign-in is disabled and their sessions ended. {string.Join(" ", downstream)} "
             + $"Apps already signed in lose access within {(int)options.AccessTokenLifespan.TotalMinutes} minutes, when their tokens expire. Mail and files are kept.";
     }
 
