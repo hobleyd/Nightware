@@ -46,7 +46,7 @@ Dependencies point inward only. Enforced by `tests/Nightware.Architecture.Tests`
 | `Nightware.Adapters.Jmap` | Application | Stalwart JMAP client + mail/mailbox-settings/spam port implementations. |
 | `Nightware.Adapters.Dav` | Application | Nextcloud CalDAV/CardDAV/WebDAV/OCS client + calendar, contacts, tasks, rooms, file-share port implementations. |
 | `Nightware.Adapters.Directory` | Application | Keycloak admin/userinfo + Nextcloud avatar: user lookup, photos. |
-| `Nightware.Adapters.Cloudflare` | Application | Cloudflare v4 API for the admin console: publishing an entity's DNS records with the entity's own token. |
+| `Nightware.Adapters.Cloudflare` | Application | Cloudflare v4 API for the admin console: publishing an entity's DNS records with the entity's own token; and public DNS lookups (Cloudflare's DNS-over-HTTPS resolver) for the server's public addresses. |
 | `Nightware.Hosting` | nothing in the solution (ASP.NET Core only) | Hosting code shared by the hosts (ADR 0002 §D2): security headers with a configurable CSP, trusted-proxy (`ForwardedHeaders`) registration, the cookie-free `HttpClient` filter, log redaction. |
 | `Nightware.Admin` | Application, all Adapters (composition root only), Hosting | The admin console (ADR 0002): Razor Pages, OIDC + MFA sign-in, the `Administration/` use cases. Never references `Nightware.Api`, and the Api never references the `Administration/` feature. |
 | `Nightware.Api` | Application, all Adapters (composition root only), Hosting | ASP.NET Core host, JWT auth, Graph routes, OData-subset parsing, `Prefer` header handling, Graph JSON DTOs + mappers, Graph error envelope. |

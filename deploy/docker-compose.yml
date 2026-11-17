@@ -296,6 +296,8 @@ services:
       Admin__ClientSecret: ${NIGHTWARE_ADMIN_CLIENT_SECRET:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
       Admin__AcceptedAcrValues__0: ${ADMIN_REQUIRED_ACR-mfa}
       Admin__EntityAdminsMayDeleteData: ${ADMIN_ENTITY_ADMINS_MAY_DELETE_DATA:-false}
+      # Its public addresses (Cloudflare zone, else public DNS) go into the SPF record the DNS page suggests.
+      Admin__PublicHost: ${PUBLIC_HOST:-nightware.localhost}
       # Keycloak admin API as the console's own service account.
       Directory__KeycloakBaseUrl: http://keycloak:8080/auth
       Directory__Realm: nightware

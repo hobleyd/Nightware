@@ -113,14 +113,42 @@ else
         <form method="post" asp-page-handler="MailPolicy">
             <p class="now">Now: @if (Model.SpfDefaultInUse is { } spfNow) { <text>the mail server's record </text><code>@spfNow</code> } else { <text>this domain's own record, below.</text> }</p>
             <label>SPF record
-                <textarea asp-for="Spf" rows="2" class="mono" aria-describedby="spf-hint"></textarea>
+                <textarea asp-for="Spf" rows="2" class="mono" aria-describedby="@(Model.SpfSuggested ? "spf-suggested spf-hint" : "spf-hint")"></textarea>
             </label>
+            @if (Model.SpfSuggested && Model.Suggestion is { } s)
+            {
+                <p id="spf-suggested" class="suggested">Suggested, not in use until you save: only @(s.Addresses.Count > 0 ? "this server's public " + (s.Addresses.Count == 1 ? "address" : "addresses") : "the domain's MX hosts") may send, and other senders are refused.
+                    @switch (s.Source)
+                    {
+                        case Nightware.Application.Administration.Entities.PublicAddressSource.Cloudflare:
+                            <text>The address comes from the A/AAAA records for @s.Host in the entity's Cloudflare zone.</text>
+                            break;
+                        case Nightware.Application.Administration.Entities.PublicAddressSource.PublicDns:
+                            <text>The address comes from public DNS for @s.Host. Behind NAT, mail can leave from a different address: check it.</text>
+                            break;
+                        case Nightware.Application.Administration.Entities.PublicAddressSource.Proxied:
+                            <text>Cloudflare proxies @s.Host, so its addresses are Cloudflare's, not this server's. Enter the server's own address with <code>ip4:</code> if you know it.</text>
+                            break;
+                        default:
+                            <text>@(s.Host is null ? "No public host is configured" : $"No public address was found for {s.Host}"), so the MX hosts stand in. Enter the server's own address with <code>ip4:</code> if you know it.</text>
+                            break;
+                    }
+                </p>
+            }
             <p id="spf-hint" class="hint">For example <code>v=spf1 mx -all</code>; add <code>include:</code> for any other service that sends as @Model.Domain. Leave blank to use the mail server's record.</p>
-            <p class="now">Now: @if (Model.DmarcDefaultInUse is { } dmarcNow) { <text>the mail server's record </text><code>@dmarcNow</code> } else { <text>this domain's own record, below.</text> }@if (Model.DmarcPolicyInUse == "reject") { <text>. It is strict: mail that fails the checks is refused.</text> }</p>
+            <p class="now">Now: @if (Model.DmarcDefaultInUse is { } dmarcNow) { <text>the mail server's record </text><code>@dmarcNow</code>@(Model.DmarcPolicyInUse == "reject" ? ". It is strict: mail that fails the checks is refused." : "") } else { <text>this domain's own record, below.</text>@(Model.DmarcPolicyInUse == "reject" ? " It is strict: mail that fails the checks is refused." : "") }</p>
             <label>DMARC record
-                <textarea asp-for="Dmarc" rows="2" class="mono" aria-describedby="dmarc-hint"></textarea>
+                <textarea asp-for="Dmarc" rows="2" class="mono" aria-describedby="@(Model.DmarcSuggested ? "dmarc-suggested dmarc-hint" : "dmarc-hint")"></textarea>
             </label>
+            @if (Model.DmarcSuggested)
+            {
+                <p id="dmarc-suggested" class="suggested">Suggested, not in use until you save: mail that fails is refused, for subdomains too, and both checks must match the domain exactly. Reports go to postmaster@@@Model.Domain.</p>
+            }
             <p id="dmarc-hint" class="hint">For example <code>v=DMARC1; p=quarantine; rua=mailto:postmaster@@@Model.Domain</code>. While other services still send as @Model.Domain, a gentler <code>p=none</code> only reports failures instead of refusing them. Reports sent to a <code>rua=</code> address need a mailbox there. Leave blank to use the mail server's record.</p>
+            @if (Model.SpfSuggested || Model.DmarcSuggested)
+            {
+                <p class="hint">Saving makes both fields this domain's own records, suggestions included. Clear a field to keep the mail server's record for it.</p>
+            }
             <button type="submit">Save</button>
         </form>
         @if (!Model.Policy.IsDefault)

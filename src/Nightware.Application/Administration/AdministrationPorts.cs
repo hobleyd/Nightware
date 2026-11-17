@@ -230,6 +230,17 @@ public interface IDnsHosting
     Task<Result> ApplyAsync(DnsProviderToken token, DnsZone zone, DnsChange change, CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Public DNS, asked from outside the deployment's own network: inside it, the public host name resolves to the
+/// reverse proxy's private address. A lookup that fails or times out is an error for the caller to treat as
+/// "not known", never as a page failure.
+/// </summary>
+public interface IPublicDns
+{
+    /// <summary>The host's A and AAAA addresses, as public resolvers answer them.</summary>
+    Task<Result<IReadOnlyList<System.Net.IPAddress>>> ResolveAsync(string host, CancellationToken cancellationToken);
+}
+
 public interface IPasswordGenerator
 {
     TemporaryCredential Generate();
@@ -255,6 +266,12 @@ public sealed class AdministrationOptions
     /// which the console tells the admin.
     /// </summary>
     public TimeSpan AccessTokenLifespan { get; set; } = TimeSpan.FromMinutes(15);
+
+    /// <summary>
+    /// The public host name the stack is served at (<c>PUBLIC_HOST</c>); its public addresses are the ones the
+    /// suggested SPF record lets send. Null leaves the suggestion on the domain's MX hosts.
+    /// </summary>
+    public string? PublicHost { get; set; }
 
     /// <summary>
     /// Local parts never given to a person, on any domain: the console's own mail principal, the realm's

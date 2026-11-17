@@ -28,6 +28,7 @@ internal sealed class CloudflareTestHost : IDisposable
         var settings = new Dictionary<string, string?>
         {
             ["Cloudflare:ApiBaseUrl"] = $"{Server.Url}/client/v4/",
+            ["Cloudflare:PublicDnsUrl"] = $"{Server.Url}/dns-query",
             ["Cloudflare:MaxRetryAttempts"] = "0",
             ["Cloudflare:RequestTimeout"] = "00:00:05",
             ["Cloudflare:AttemptTimeout"] = "00:00:05",

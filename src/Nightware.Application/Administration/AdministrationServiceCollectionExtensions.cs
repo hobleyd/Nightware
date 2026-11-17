@@ -36,6 +36,7 @@ public static class AdministrationServiceCollectionExtensions
         services.TryAddScoped<SetDomainMailPolicy>();
         services.TryAddScoped<SetEntityDnsToken>();
         services.TryAddScoped<PlanDnsPublication>();
+        services.TryAddScoped<SuggestMailAuthentication>();
         services.TryAddScoped<PublishDnsRecords>();
         services.TryAddScoped<ListEntityAdmins>();
         services.TryAddScoped<GrantEntityAdmin>();

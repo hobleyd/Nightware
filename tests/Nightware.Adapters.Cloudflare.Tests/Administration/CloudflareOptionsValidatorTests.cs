@@ -23,6 +23,13 @@ public sealed class CloudflareOptionsValidatorTests
     }
 
     [Fact]
+    public void The_public_resolver_is_an_absolute_url_with_a_positive_timeout()
+    {
+        Failures(static o => o.PublicDnsUrl = new Uri("/dns-query", UriKind.Relative)).ShouldHaveSingleItem().ShouldContain("PublicDnsUrl");
+        Failures(static o => o.PublicDnsTimeout = TimeSpan.Zero).ShouldHaveSingleItem().ShouldContain("PublicDnsTimeout");
+    }
+
+    [Fact]
     public void Timeouts_retries_and_paging_are_bounded()
     {
         Failures(static o => o.AttemptTimeout = TimeSpan.Zero).ShouldHaveSingleItem();

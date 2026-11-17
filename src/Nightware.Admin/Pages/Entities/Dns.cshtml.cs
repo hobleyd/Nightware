@@ -21,6 +21,7 @@ public sealed class DnsModel(
     AddEntityDomain repairDomain,
     SetDomainMailPolicy setMailPolicy,
     PlanDnsPublication planPublication,
+    SuggestMailAuthentication suggest,
     PublishDnsRecords publish) : ConsolePageModel(actor)
 {
     [BindProperty(SupportsGet = true)]
@@ -58,6 +59,18 @@ public sealed class DnsModel(
     public string? Dmarc { get; set; }
 
     public EntityDetail Entity { get; private set; } = null!;
+
+    /// <summary>
+    /// The hardened SPF and DMARC offered (prefilled, not yet in use) where the domain has no record of its own;
+    /// global administrators only, null otherwise.
+    /// </summary>
+    public MailAuthenticationSuggestion? Suggestion { get; private set; }
+
+    /// <summary>The SPF field holds the suggestion rather than a record of the domain's own.</summary>
+    public bool SpfSuggested => Suggestion is not null && Policy.Spf is null && Spf == Suggestion.Spf.Value;
+
+    /// <summary>The DMARC field holds the suggestion rather than a record of the domain's own.</summary>
+    public bool DmarcSuggested => Suggestion is not null && Policy.Dmarc is null && Dmarc == Suggestion.Dmarc.Value;
 
     /// <summary>What publishing to Cloudflare would change; null when not offered or not readable (<see cref="PublicationUnread"/>).</summary>
     public DnsPublicationPreview? Publication { get; private set; }
@@ -157,10 +170,17 @@ public sealed class DnsModel(
 
         Status = status;
         Policy = entity.Entity.MailPolicyFor(status.Domain);
+        if (Actor.IsGlobal && (Policy.Spf is null || Policy.Dmarc is null))
+        {
+            // Never fails the page: without a suggestion the fields are simply left empty.
+            Result<MailAuthenticationSuggestion> suggested = await suggest.ExecuteAsync(Id, Domain, cancellationToken);
+            Suggestion = suggested.IsSuccess ? suggested.Value : null;
+        }
+
         if (!keepForm)
         {
-            Spf = Policy.Spf?.Value;
-            Dmarc = Policy.Dmarc?.Value;
+            Spf = Policy.Spf?.Value ?? Suggestion?.Spf.Value;
+            Dmarc = Policy.Dmarc?.Value ?? Suggestion?.Dmarc.Value;
         }
 
         // A domain the mail server does not serve has no records to read; asking would only fail.

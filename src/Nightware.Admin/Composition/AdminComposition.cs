@@ -65,6 +65,7 @@ public static partial class AdminComposition
                 EntityAdminsMayDeleteData = admin.EntityAdminsMayDeleteData,
                 ActionEmailLifespan = admin.ActionEmailLifespan,
                 AccessTokenLifespan = admin.AccessTokenLifespan,
+                PublicHost = admin.PublicHost,
             };
             foreach (string acr in admin.AcceptedAcrValues)
             {

@@ -51,7 +51,7 @@ public sealed class MailPolicyPageTests : IDisposable
     }
 
     [Fact]
-    public async Task A_global_admin_sees_the_mail_servers_records_stated_above_an_empty_form()
+    public async Task A_global_admin_sees_the_mail_servers_records_stated_above_the_form()
     {
         string html = await GetAsync(DnsUrl);
 

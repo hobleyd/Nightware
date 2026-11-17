@@ -135,6 +135,8 @@ from `deploy/.env`.
 | `Admin:ActionEmailLifespan` | `3.00:00:00` | Validity of a set-password e-mail link. |
 | `Admin:AccessTokenLifespan` | `00:15:00` | Keep equal to the realm's `accessTokenLifespan`; the console tells the admin an offboarding is fully effective after this long. |
 | `Admin:ScopeCacheLifetime` | `00:01:00` | How long an admin's rights, read from Keycloak, are reused. |
+| `Admin:PublicHost` | — (compose: `PUBLIC_HOST`) | The host the stack is served at. The DNS page suggests an SPF record naming its public addresses: the A/AAAA records in the entity's Cloudflare zone when the entity has a token and the host is in a zone it reaches, otherwise public DNS (Cloudflare's resolver, never the container's). Unset, or with no public address, the suggestion names the MX hosts. |
+| `Cloudflare:PublicDnsUrl` / `Cloudflare:PublicDnsTimeout` | `https://cloudflare-dns.com/dns-query` / `00:00:03` | The DNS-over-HTTPS resolver asked for `Admin:PublicHost`, once per DNS page view, never retried. |
 | `Directory:*` | as the façade | Keycloak admin API, bound to `nightware-admin`'s service account. |
 | `StalwartManagement:ApiUrl` | — | Stalwart management (JMAP) endpoint, e.g. `http://stalwart:8080/jmap/`. |
 | `StalwartManagement:ApiKey` 🔒 | — | The console account's API key (minted by `stalwart/configure.sh`). Or, for the recovery-admin fallback, `Username` + `Password` 🔒. Exactly one of the two. |

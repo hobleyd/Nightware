@@ -37,6 +37,7 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
 
     public ConsoleHost()
     {
+        PublicDns.ResolveAsync(default!, default).ReturnsForAnyArgs(Error.NotFound("not in public DNS"));
         Entities.GetAsync(Acme, Arg.Any<CancellationToken>()).Returns(AcmeEntity);
         Entities.GetAsync(Other, Arg.Any<CancellationToken>()).Returns(OtherEntity);
         Entities.ListAsync(Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<Entity>>.Success([AcmeEntity, OtherEntity]));
@@ -99,6 +100,12 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
 
     public IDnsHosting DnsHosting { get; } = Substitute.For<IDnsHosting>();
 
+    /// <summary>Public DNS; answers nothing unless a test arranges it, so no test reaches the real resolver.</summary>
+    public IPublicDns PublicDns { get; } = Substitute.For<IPublicDns>();
+
+    /// <summary><c>Admin:PublicHost</c>; unset unless a test sets it before the first client.</summary>
+    public string? PublicHost { get; set; }
+
     public List<IBackendStatus> Statuses { get; } = [];
 
     public FakeTimeProvider Time { get; } = new(Now);
@@ -154,6 +161,11 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
         builder.UseSetting("Admin:ClientSecret", "test-secret");
         builder.UseSetting("Admin:AcceptedAcrValues:0", "mfa");
         builder.UseSetting("Admin:EntityAdminsMayDeleteData", EntityAdminsMayDeleteData ? "true" : "false");
+        if (PublicHost is not null)
+        {
+            builder.UseSetting("Admin:PublicHost", PublicHost);
+        }
+
         // The real adapters are registered and validated on start; the tests replace their ports below.
         builder.UseSetting("NextcloudProvisioning:BaseUrl", "https://cloud.example/cloud");
         builder.UseSetting("NextcloudProvisioning:Username", "nightware-admin");
@@ -178,7 +190,7 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
             });
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Time);
-            services.AddSingleton(Entities).AddSingleton(Identities).AddSingleton(Scopes).AddSingleton(Mail).AddSingleton(MailDomains).AddSingleton(Groupware).AddSingleton(DnsHosting);
+            services.AddSingleton(Entities).AddSingleton(Identities).AddSingleton(Scopes).AddSingleton(Mail).AddSingleton(MailDomains).AddSingleton(Groupware).AddSingleton(DnsHosting).AddSingleton(PublicDns);
             services.RemoveAll<IBackendStatus>();
             foreach (IBackendStatus status in Statuses)
             {

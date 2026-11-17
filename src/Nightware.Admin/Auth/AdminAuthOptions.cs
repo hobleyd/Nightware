@@ -42,6 +42,12 @@ public sealed class AdminAuthOptions
     /// <summary>The realm's <c>accessTokenLifespan</c> (keep them equal); shown when offboarding.</summary>
     public TimeSpan AccessTokenLifespan { get; set; } = TimeSpan.FromMinutes(15);
 
+    /// <summary>
+    /// The public host the stack is served at (<c>PUBLIC_HOST</c>); its public addresses go into the SPF record
+    /// suggested for a domain. Unset, the suggestion names the domain's MX hosts.
+    /// </summary>
+    public string? PublicHost { get; set; }
+
     /// <summary>How long an administrator's scope, resolved from Keycloak, is reused.</summary>
     public TimeSpan ScopeCacheLifetime { get; set; } = TimeSpan.FromSeconds(60);
 }

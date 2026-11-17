@@ -14,8 +14,9 @@ namespace Nightware.Adapters.Cloudflare.Administration;
 public static class CloudflareAdministrationServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers <see cref="IDnsHosting"/> over Cloudflare for the admin console. Configuration (<c>Cloudflare</c>)
-    /// is optional and carries no credential: every call uses the entity's own token.
+    /// Registers <see cref="IDnsHosting"/> over Cloudflare for the admin console, and <see cref="IPublicDns"/> over
+    /// Cloudflare's public resolver. Configuration (<c>Cloudflare</c>) is optional and carries no credential: every
+    /// zone call uses the entity's own token, and the resolver needs none.
     /// </summary>
     public static IServiceCollection AddCloudflareAdministration(this IServiceCollection services, IConfiguration configuration)
     {
@@ -50,6 +51,11 @@ public static class CloudflareAdministrationServiceCollectionExtensions
             });
 
         services.TryAddScoped<IDnsHosting, CloudflareDnsHosting>();
+
+        // No resilience pipeline: one short attempt, so a slow resolver never holds up the page that asks.
+        services.AddHttpClient<IPublicDns, CloudflarePublicDns>(static (provider, http) =>
+                http.Timeout = provider.GetRequiredService<IOptions<CloudflareOptions>>().Value.PublicDnsTimeout)
+            .ConfigurePrimaryHttpMessageHandler(static () => new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = false });
         return services;
     }
 

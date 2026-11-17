@@ -27,6 +27,12 @@ public sealed class CloudflareOptions
 
     /// <summary>Most records read from one zone; a larger zone fails rather than being planned against in part.</summary>
     public int MaxRecords { get; set; } = 10_000;
+
+    /// <summary>Cloudflare's public DNS-over-HTTPS resolver (JSON), asked for the public host's addresses.</summary>
+    public Uri PublicDnsUrl { get; set; } = new("https://cloudflare-dns.com/dns-query");
+
+    /// <summary>Time for one public DNS lookup, never retried: the page that asks shows a fallback instead.</summary>
+    public TimeSpan PublicDnsTimeout { get; set; } = TimeSpan.FromSeconds(3);
 }
 
 /// <summary>Validates <see cref="CloudflareOptions"/>; registered with <c>ValidateOnStart</c>.</summary>
@@ -60,6 +66,16 @@ internal sealed class CloudflareOptionsValidator : IValidateOptions<CloudflareOp
         if (options.MaxRetryAttempts is < 0 or > 10)
         {
             failures.Add($"{Prefix}MaxRetryAttempts must be between 0 and 10.");
+        }
+
+        if (options.PublicDnsUrl is not { IsAbsoluteUri: true } dns || (dns.Scheme != Uri.UriSchemeHttps && dns.Scheme != Uri.UriSchemeHttp))
+        {
+            failures.Add($"{Prefix}PublicDnsUrl must be an absolute http(s) URL.");
+        }
+
+        if (options.PublicDnsTimeout <= TimeSpan.Zero)
+        {
+            failures.Add($"{Prefix}PublicDnsTimeout must be positive.");
         }
 
         if (options.RecordPageSize is < 5 or > 5000 || options.MaxRecords < options.RecordPageSize)
