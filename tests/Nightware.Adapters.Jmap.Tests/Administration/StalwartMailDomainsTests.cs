@@ -1,0 +1,189 @@
+using Nightware.Adapters.Jmap.Administration;
+using Nightware.Adapters.Jmap.Tests.Support;
+using Nightware.Application.Administration;
+using Nightware.Domain.Administration;
+using Nightware.Domain.Kernel;
+
+namespace Nightware.Adapters.Jmap.Tests.Administration;
+
+public sealed class StalwartMailDomainsTests : IAsyncDisposable
+{
+    private static readonly MailDomain Acme = Parse("acme.example");
+    private readonly StalwartManagementTestHost _host = new();
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    private IMailDomains Domains() => _host.Get<IMailDomains>();
+
+    private static MailDomain Parse(string name) => MailDomain.TryParse(name, out var domain) ? domain : throw new ArgumentException(name);
+
+    private void StubDkim(params string[] ids) =>
+        _host.Stub("x:DkimSignature/query", $$"""[["x:DkimSignature/query",{"ids":[{{string.Join(',', ids.Select(i => $"\"{i}\""))}}],"position":0},"c0"]]""");
+
+    [Fact]
+    public void Is_registered_as_the_port()
+    {
+        Domains().ShouldBeOfType<StalwartMailDomains>();
+    }
+
+    [Fact]
+    public async Task Finds_a_domain_by_name_with_its_dkim_keys()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d7", "acme.example")));
+        StubDkim("k1", "k2");
+
+        var info = (await Domains().FindAsync(Acme, Ct)).Value;
+
+        info.ShouldBe(new MailDomainInfo("d7", Acme, DkimPresent: true));
+        var calls = _host.Calls();
+        calls[0][0]!.GetValue<string>().ShouldBe("x:Domain/query");
+        calls[0][1]!["filter"]!["name"]!.GetValue<string>().ShouldBe("acme.example");
+        calls[1][0]!.GetValue<string>().ShouldBe("x:Domain/get");
+        calls[1][1]!["#ids"]!["resultOf"]!.GetValue<string>().ShouldBe("c0");
+        calls[1][1]!["#ids"]!["path"]!.GetValue<string>().ShouldBe("/ids");
+        calls[2][0]!.GetValue<string>().ShouldBe("x:DkimSignature/query");
+        calls[2][1]!["filter"]!["domainId"]!.GetValue<string>().ShouldBe("d7");
+    }
+
+    [Fact]
+    public async Task Reports_a_domain_without_dkim_keys()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d7", "acme.example")));
+        StubDkim();
+
+        (await Domains().FindAsync(Acme, Ct)).Value.DkimPresent.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Only_an_exact_name_matches()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d8", "mail.acme.example"), ("d9", "acme.example.org")));
+
+        var found = await Domains().FindAsync(Acme, Ct);
+
+        found.Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        _host.Calls("x:DkimSignature/query").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Matching_ignores_case_and_a_trailing_dot()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d8", "mail.acme.example"), ("d7", "ACME.example.")));
+        StubDkim();
+
+        (await Domains().FindAsync(Acme, Ct)).Value.Id.ShouldBe("d7");
+    }
+
+    [Fact]
+    public async Task An_unknown_domain_is_not_found()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup());
+
+        (await Domains().FindAsync(Acme, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task A_failed_dkim_query_is_reported()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d7", "acme.example")));
+        _host.Stub("x:DkimSignature/query", """[["error",{"type":"forbidden"},"c0"]]""");
+
+        (await Domains().FindAsync(Acme, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+    }
+
+    [Fact]
+    public async Task Creates_with_automatic_dkim_and_manual_dns_then_reloads_in_the_same_request()
+    {
+        _host.Stub("x:Domain/set", """[["x:Domain/set",{"created":{"d":{"id":"d9"}}},"c0"],["x:Action/set",{"created":{"r":{"id":"a1"}}},"c1"]]""");
+        StubDkim("k1");
+
+        var info = (await Domains().CreateAsync(Acme, "Acme (acme)", Ct)).Value;
+
+        info.ShouldBe(new MailDomainInfo("d9", Acme, DkimPresent: true));
+        var body = _host.Bodies()[0];
+        var set = body["methodCalls"]![0]!.AsArray();
+        set[0]!.GetValue<string>().ShouldBe("x:Domain/set");
+        var create = set[1]!["create"]!["d"]!;
+        create["name"]!.GetValue<string>().ShouldBe("acme.example");
+        create["description"]!.GetValue<string>().ShouldBe("Acme (acme)");
+        create["dkimManagement"]!["@type"]!.GetValue<string>().ShouldBe("Automatic");
+        create["dnsManagement"]!["@type"]!.GetValue<string>().ShouldBe("Manual");
+        var reload = body["methodCalls"]![1]!.AsArray();
+        reload[0]!.GetValue<string>().ShouldBe("x:Action/set");
+        reload[1]!["create"]!["r"]!["@type"]!.GetValue<string>().ShouldBe("ReloadSettings");
+        _host.Calls("x:DkimSignature/query").Single()[1]!["filter"]!["domainId"]!.GetValue<string>().ShouldBe("d9");
+    }
+
+    [Theory]
+    [InlineData("alreadyExists", ErrorKind.Conflict)]
+    [InlineData("forbidden", ErrorKind.Forbidden)]
+    [InlineData("invalidProperties", ErrorKind.Validation)]
+    public async Task Maps_a_refused_create(string type, ErrorKind kind)
+    {
+        _host.Stub("x:Domain/set", $$$$"""[["x:Domain/set",{"notCreated":{"d":{"type":"{{{{type}}}}","description":"no"}}},"c0"],["x:Action/set",{"created":{"r":{"id":"a1"}}},"c1"]]""");
+
+        (await Domains().CreateAsync(Acme, "Acme", Ct)).Error!.Kind.ShouldBe(kind);
+        _host.Calls("x:DkimSignature/query").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_failed_reload_after_a_create_is_reported()
+    {
+        _host.Stub("x:Domain/set", """[["x:Domain/set",{"created":{"d":{"id":"d9"}}},"c0"],["x:Action/set",{"notCreated":{"r":{"type":"forbidden"}}},"c1"]]""");
+
+        var created = await Domains().CreateAsync(Acme, "Acme", Ct);
+
+        created.Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+        created.Error.Message.ShouldContain("did not reload");
+    }
+
+    [Fact]
+    public async Task Reads_the_dns_records_from_the_zone_file()
+    {
+        const string zone = "$ORIGIN acme.example.\\n@ 3600 IN MX 10 mail.acme.example.\\n_dmarc IN TXT \\\"v=DMARC1; p=reject\\\"\\n";
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup([("d7", "acme.example")], $",\"dnsZoneFile\":\"{zone}\""));
+
+        var records = (await Domains().GetDnsRecordsAsync(Acme, Ct)).Value;
+
+        records.ShouldBe([
+            new DnsRecord("acme.example", "MX", 3600, "10 mail.acme.example"),
+            new DnsRecord("_dmarc.acme.example", "TXT", 3600, "v=DMARC1; p=reject"),
+        ]);
+        _host.Calls("x:Domain/get").Single()[1]!["properties"]!.AsArray().Select(p => p!.GetValue<string>()).ShouldBe(["name", "dnsZoneFile"]);
+    }
+
+    [Fact]
+    public async Task A_domain_without_zone_data_has_no_records()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d7", "acme.example")));
+
+        (await Domains().GetDnsRecordsAsync(Acme, Ct)).Value.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Unreadable_zone_lines_are_logged()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup([("d7", "acme.example")], ",\"dnsZoneFile\":\"$INCLUDE other.zone\\n\""));
+
+        (await Domains().GetDnsRecordsAsync(Acme, Ct)).Value.ShouldBeEmpty();
+        _host.Logs.AllText.ShouldContain("Skipped 1 unreadable line");
+    }
+
+    [Fact]
+    public async Task Dns_records_of_an_unknown_domain_are_not_found()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup());
+
+        (await Domains().GetDnsRecordsAsync(Acme, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task A_method_error_on_lookup_is_returned()
+    {
+        _host.Stub("x:Domain/query", """[["error",{"type":"forbidden"},"c0"],["error",{"type":"invalidResultReference"},"c1"]]""");
+
+        (await Domains().FindAsync(Acme, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+    }
+
+    public ValueTask DisposeAsync() => _host.DisposeAsync();
+}
