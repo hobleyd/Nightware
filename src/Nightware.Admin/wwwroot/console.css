@@ -119,6 +119,8 @@ form.inline { display: inline; }
 button + .hint { margin-left: 8px; }
 li > form.inline, li > a:last-child:not(:first-child) { margin-left: 8px; }
 input:not([type=radio]):not([type=checkbox]), select, textarea { display: block; width: 100%; padding: 6px 8px; border: 1px solid var(--control-line); border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; }
+/* A native select draws shorter than a text field; matched to the field's line plus padding and border. */
+select { height: calc(1.5em + 14px); }
 input.input-validation-error, select.input-validation-error, textarea.input-validation-error { border-color: var(--bad); }
 /* A group of choices inside a panel, not a box of its own: no border, the legend reads as the group's label. */
 fieldset { border: 0; padding: 0; margin: 16px 0 8px; min-width: 0; }
