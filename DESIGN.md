@@ -264,7 +264,9 @@ Native `<button>` elements, compact and unadorned.
 ### Inputs / Fields
 - **Style:** full width, 1px Control Edge border, 6px radius, Panel White fill, 6px × 8px padding, inherited type.
 - **Read-only copy fields:** the DNS table uses read-only inputs and textareas in mono at 0.85em on Paper.
-- **Fieldset:** a Hairline border at 6px radius groups radio choices under a legend.
+- **Fieldset:** groups radio choices under a legend that reads as the group's label; no border, so it never draws a box inside its panel.
+- **Rows:** a button in a form row lines up with the bottom of the field beside it (labels in a row drop their bottom margin).
+- **Read-only copy fields** carry a label naming their record ("MX record name", "TXT record value at _dmarc.example.com"), since every row has the same columns.
 
 ### Night Band (navigation)
 - Night fill; the 28px mark with a 6px radius; the product name in bold Starlight; nav links in Moonlit Link, the current one in Starlight with a 2px underline.

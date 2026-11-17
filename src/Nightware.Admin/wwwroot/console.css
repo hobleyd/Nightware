@@ -112,14 +112,17 @@ textarea.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size
 
 form label { display: block; margin: 8px 0; }
 form label.choice { display: flex; gap: 8px; align-items: baseline; }
-.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
-.row label { flex: 1 1 200px; }
+/* Labels in a row drop their bottom margin, so a button lines up with the field beside it, not below it. */
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 8px 0; }
+.row label { flex: 1 1 200px; margin-bottom: 0; }
 form.inline { display: inline; }
 button + .hint { margin-left: 8px; }
 li > form.inline, li > a:last-child:not(:first-child) { margin-left: 8px; }
 input:not([type=radio]):not([type=checkbox]), select, textarea { display: block; width: 100%; padding: 6px 8px; border: 1px solid var(--control-line); border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; }
 input.input-validation-error, select.input-validation-error, textarea.input-validation-error { border-color: var(--bad); }
-fieldset { border: 1px solid var(--line); border-radius: 6px; margin: 12px 0; }
+/* A group of choices inside a panel, not a box of its own: no border, the legend reads as the group's label. */
+fieldset { border: 0; padding: 0; margin: 16px 0 8px; min-width: 0; }
+legend { padding: 0; margin-bottom: 4px; }
 button, .button { display: inline-block; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font: inherit; cursor: pointer; text-decoration: none; }
 button.secondary { background: transparent; color: var(--accent); }
 button.danger, .button.danger { background: var(--bad); border-color: var(--bad); color: var(--on-bad); }

@@ -50,9 +50,9 @@ else
         {
             <tr>
                 <td data-label="Type">@r.Type</td>
-                <td data-label="Name"><input readonly value="@r.Name" aria-label="Name"></td>
+                <td data-label="Name"><input readonly value="@r.Name" aria-label="@($"{r.Type} record name")"></td>
                 <td data-label="TTL">@r.Ttl</td>
-                <td data-label="Value"><textarea readonly rows="@(r.Value.Length > 60 ? 3 : 1)" aria-label="Value">@r.Value</textarea></td>
+                <td data-label="Value"><textarea readonly rows="@(r.Value.Length > 60 ? 3 : 1)" aria-label="@($"{r.Type} record value at {r.Name}")">@r.Value</textarea></td>
             </tr>
         }
         </tbody>
@@ -90,8 +90,8 @@ else
                             <td data-label="Change">@Systems.DnsChangeLabel(c.Kind)@if (c.Note is not null) { <span class="hint detail">@c.Note</span> }</td>
                             <td data-label="Type">@record.Type</td>
                             <td data-label="Name">@record.Name</td>
-                            <td data-label="Value">@if (c.Desired is not null) { <textarea readonly rows="@(c.Desired.Value.Length > 60 ? 3 : 1)" aria-label="Value">@c.Desired.Value</textarea> } else { <text>—</text> }</td>
-                            <td data-label="In Cloudflare now">@if (c.Current is not null) { <textarea readonly rows="@(c.Current.Record.Value.Length > 60 ? 3 : 1)" aria-label="In Cloudflare now">@c.Current.Record.Value</textarea> } else { <text>—</text> }</td>
+                            <td data-label="Value">@if (c.Desired is not null) { <textarea readonly rows="@(c.Desired.Value.Length > 60 ? 3 : 1)" aria-label="@($"{record.Type} value to publish at {record.Name}")">@c.Desired.Value</textarea> } else { <text>—</text> }</td>
+                            <td data-label="In Cloudflare now">@if (c.Current is not null) { <textarea readonly rows="@(c.Current.Record.Value.Length > 60 ? 3 : 1)" aria-label="@($"{record.Type} value in Cloudflare now at {record.Name}")">@c.Current.Record.Value</textarea> } else { <text>—</text> }</td>
                         </tr>
                     }
                     </tbody>

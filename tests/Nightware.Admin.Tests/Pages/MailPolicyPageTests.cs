@@ -82,6 +82,16 @@ public sealed class MailPolicyPageTests : IDisposable
     }
 
     [Fact]
+    public async Task Each_record_field_is_labelled_with_the_record_it_belongs_to()
+    {
+        string html = await GetAsync(DnsUrl);
+
+        html.ShouldContain("aria-label=\"MX record name\"");
+        html.ShouldContain("aria-label=\"TXT record value at _dmarc.acme.example.\"");
+        html.ShouldNotContain("aria-label=\"Name\"");
+    }
+
+    [Fact]
     public async Task A_chosen_record_replaces_the_mail_servers_in_the_table_and_fills_the_form()
     {
         GivenChosen(new DomainMailPolicy(SpfRecord.Parse("v=spf1 mx include:mailer.example -all").Value, null));
