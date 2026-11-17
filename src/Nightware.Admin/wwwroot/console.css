@@ -48,6 +48,7 @@ a { color: var(--accent); text-underline-offset: 0.15em; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 main { max-width: 1080px; margin: 0 auto; padding: 16px; }
 h1 small { color: var(--muted); font-weight: normal; font-size: 0.6em; margin-left: 0.5em; }
+p, li { text-wrap: pretty; }
 code { font-family: ui-monospace, Menlo, Consolas, monospace; }
 
 .top { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; padding: 10px 16px; background: var(--night); color: var(--night-text); }
@@ -76,7 +77,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; }
 .panel > h2:first-child { margin-top: 0; }
 .panel table + form { margin-top: 12px; }
 .detail { margin: 4px 0 0; }
-.danger-zone { border-color: var(--bad); }
+.danger-zone, .panel.incomplete { border-color: var(--bad); }
 .hint { color: var(--muted); font-size: 0.9em; }
 .notice, .warning, .errors ul { margin: 12px 0; padding: 8px 12px; border: 1px solid; border-radius: 8px; background: var(--panel); }
 .notice { border-color: var(--ok); }
@@ -117,6 +118,7 @@ fieldset { border: 1px solid var(--line); border-radius: 6px; margin: 12px 0; }
 button, .button { display: inline-block; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font: inherit; cursor: pointer; text-decoration: none; }
 button.secondary { background: transparent; color: var(--accent); }
 button.danger, .button.danger { background: var(--bad); border-color: var(--bad); color: var(--on-bad); }
+button.danger.quiet { background: transparent; color: var(--bad); }
 button.link { background: none; border: none; color: var(--accent); padding: 0; }
 ul.plain { list-style: none; padding: 0; }
 
@@ -128,7 +130,9 @@ ul.plain { list-style: none; padding: 0; }
   tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
 }
 
-.undo, .remove { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
-.undo h3, .remove h3 { margin: 0 0 4px; font-size: 1em; }
+.undo, .remove, .block { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.undo h3, .remove h3, .block h3 { margin: 0 0 4px; font-size: 1em; }
+details.more > summary { cursor: pointer; }
+details.more > summary h2 { display: inline; margin: 0; }
 h1 .status { font-size: 0.45em; vertical-align: middle; margin-left: 0.5em; }
 .attention td .detail { display: block; }

@@ -147,6 +147,8 @@ public sealed class DashboardAndReadFailureTests : IDisposable
         string html = await GetAsync("/");
 
         html.ShouldContain("Reachable, failed for 1");
+        html.ShouldContain("Mail: Failed <span class=\"hint\">(Connection refused)</span>");
+        html.ShouldNotContain(">Unreachable<");
         html.ShouldContain("answers its health check but failed to answer for eve");
     }
 
@@ -218,7 +220,9 @@ public sealed class DashboardAndReadFailureTests : IDisposable
         string html = await GetAsync("/users/u-eve/delete/Mail");
 
         html.ShouldContain("Finish offboarding first");
+        html.ShouldContain("<h1>Delete data of eve</h1>");
         html.ShouldContain("href=\"/users/u-eve\">Go back</a>");
+        html.ShouldContain("action=\"/users/u-eve?handler=Offboard\"");
         html.ShouldNotContain("Could not read");
         html.ShouldNotContain("Try again");
     }
@@ -248,5 +252,47 @@ public sealed class DashboardAndReadFailureTests : IDisposable
 
         html.ShouldContain("Ask your Nightware operator to repair it.");
         html.ShouldNotContain("handler=RepairDomain");
+    }
+
+    [Fact]
+    public async Task A_page_that_cannot_be_read_keeps_a_way_up_the_breadcrumb()
+    {
+        _host.Identities.GetAsync("u-dan", Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("Keycloak is down."));
+
+        string html = await GetAsync("/users/u-dan");
+
+        html.ShouldContain("<a href=\"/entities\">Entities</a> › <span aria-current=\"page\">User</span></nav>");
+        html.ShouldContain("<h1>User</h1>");
+        html.ShouldContain("Keycloak is down.");
+    }
+
+    [Fact]
+    public async Task A_user_page_leads_with_the_action_their_status_calls_for()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+        string repair = await GetAsync("/users/u-dan");
+        repair.ShouldContain("<button type=\"submit\">Repair</button>");
+        repair.ShouldContain("class=\"danger quiet\">Offboard</button>");
+        repair.ShouldContain("<details class=\"panel more\">");
+
+        _host.AddUser("u-eve", "eve", "eve@acme.example", enabled: false);
+        _host.Mail.FindByAddressAsync("eve@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-eve", "eve@acme.example", true));
+        string incomplete = await GetAsync("/users/u-eve");
+        incomplete.ShouldContain("<section class=\"panel incomplete\">");
+        incomplete.ShouldContain("<button type=\"submit\">Finish offboarding</button>");
+        incomplete.ShouldNotContain("class=\"warning\"");
+    }
+
+    [Fact]
+    public async Task Signing_keys_read_as_a_state_and_addresses_without_brackets()
+    {
+        _host.MailDomains.FindAsync(ConsoleHost.Domain("acme.example"), Arg.Any<CancellationToken>()).Returns(new MailDomainInfo("d", ConsoleHost.Domain("acme.example"), false));
+        _host.Entities.ListAdminsAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([new IdentityAccount("u-dan", "dan", "dan@acme.example", true)]));
+
+        string html = await GetAsync("/entities/" + ConsoleHost.Acme);
+
+        html.ShouldContain("<span class=\"chip missing\">Missing</span>");
+        html.ShouldContain("<span class=\"hint\">dan@acme.example</span>");
+        html.ShouldNotContain("&lt;dan@acme.example&gt;");
     }
 }

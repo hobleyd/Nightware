@@ -6,8 +6,14 @@
     var error = console.Unread!;
     var outage = error.Kind is not (ErrorKind.NotFound or ErrorKind.Conflict or ErrorKind.Validation or ErrorKind.Unsupported);
     var back = ViewData["Back"] as string;
+    var crumbs = ViewData["Crumbs"] as IEnumerable<(string Text, string? Href)>;
+    var title = ViewData["Title"] as string ?? (outage ? "Could not load this page" : "Not possible");
 }
-<h1>@(ViewData["Title"] as string ?? (outage ? "Could not load this page" : "Not possible"))</h1>
+@if (crumbs is not null)
+{
+    <nav class="crumbs" aria-label="Breadcrumb">@foreach (var c in crumbs) { <a href="@c.Href">@c.Text</a><text> › </text> }<span aria-current="page">@title</span></nav>
+}
+<h1>@title</h1>
 <partial name="_Messages" />
 <div class="warning" role="alert">
     @if (outage)

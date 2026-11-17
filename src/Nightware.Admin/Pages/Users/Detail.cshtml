@@ -1,10 +1,14 @@
 @page "/users/{id}"
 @model Nightware.Admin.Pages.Users.DetailModel
+@{ ViewData["Title"] = "User"; ViewData["Crumbs"] = new (string, string?)[] { ("Entities", Url.Page("/Entities/Index")) }; }
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 @{
     var u = Model.Subject.User;
     var id = u.Identity;
     var self = id.Id == Model.Actor.UserId;
+    // The page's one primary action is the one this user's status calls for.
+    var status = Nightware.Application.Administration.Users.UserStatuses.Of(Model.Subject);
+    var incomplete = status == Nightware.Application.Administration.Users.UserStatus.OffboardingIncomplete;
     ViewData["Title"] = id.DisplayName;
 }
 @if (u.EntityId is not null && Model.EntityName is not null)
@@ -33,15 +37,15 @@
             var name = Systems.Name(link.Backend);
             <tr>
                 <td>@name</td>
-                <td><span class="chip @link.State.ToString().ToLowerInvariant()">@Systems.StateLabel(link.State)</span></td>
-                <td>@link.Detail</td>
+                <td data-label="State"><span class="chip @link.State.ToString().ToLowerInvariant()">@Systems.StateLabel(link.State)</span></td>
+                <td data-label="Detail">@link.Detail</td>
             </tr>
         }
         </tbody>
     </table>
     @if (id.Enabled)
     {
-        <form method="post" asp-page-handler="Repair"><button type="submit" class="secondary">Repair</button> <span class="hint">Creates what is missing; never changes a conflicting account.</span></form>
+        <form method="post" asp-page-handler="Repair"><button type="submit" class="@(status == Nightware.Application.Administration.Users.UserStatus.NeedsRepair ? null : "secondary")">Repair</button> <span class="hint">Creates what is missing; never changes a conflicting account.</span></form>
     }
 </section>
 
@@ -55,14 +59,15 @@
 
 @if (!self)
 {
-    <section class="panel">
+    @* An incomplete offboarding is this page's subject: the Access panel itself carries its colour, not a box inside it. *@
+    <section class="panel@(incomplete ? " incomplete" : "")">
         <h2>Access</h2>
         @if (id.Enabled)
         {
             <form method="post" asp-page-handler="Offboard">
                 <p>Offboarding disables sign-in everywhere and ends their sessions. Their mail keeps arriving and is kept, as are their files, calendars and contacts. It can be undone.</p>
                 <label class="choice"><input type="checkbox" name="confirm" value="true" required> Offboard @id.DisplayName</label>
-                <button type="submit" class="danger">Offboard</button>
+                <button type="submit" class="danger quiet">Offboard</button>
             </form>
         }
         else
@@ -70,20 +75,18 @@
             var open = Nightware.Application.Administration.Users.OffboardUser.StillOpen(Model.Subject).ToList();
             if (open.Count > 0)
             {
-                <div class="warning">
-                    <p><strong>Offboarding incomplete.</strong> Sign-in is disabled, but these may still let them in:</p>
-                    <ul>
-                        @foreach (var link in open)
-                        {
-                            <li>@Systems.Name(link.Backend): @link.Detail</li>
-                        }
-                    </ul>
-                    <form method="post" asp-page-handler="Offboard">
-                        <input type="hidden" name="confirm" value="true">
-                        <button type="submit" class="secondary">Finish offboarding</button>
-                        <span class="hint">Safe to repeat; run it again once the system is reachable.</span>
-                    </form>
-                </div>
+                <p><strong>Offboarding incomplete.</strong> Sign-in is disabled, but these may still let them in:</p>
+                <ul>
+                    @foreach (var link in open)
+                    {
+                        <li>@Systems.Name(link.Backend): @link.Detail</li>
+                    }
+                </ul>
+                <form method="post" asp-page-handler="Offboard">
+                    <input type="hidden" name="confirm" value="true">
+                    <button type="submit">Finish offboarding</button>
+                    <span class="hint">Safe to repeat; run it again once the system is reachable.</span>
+                </form>
             }
             else
             {
@@ -121,39 +124,51 @@
         </form>
     </section>
 
-    <section class="panel">
-        <h2>Other addresses</h2>
-        <form method="post" asp-page-handler="Aliases" class="row">
-            <label>Aliases <input name="aliases" value="@string.Join(", ", id.Aliases)" autocomplete="off"></label>
-            <button type="submit" class="secondary">Save</button>
-        </form>
-    </section>
 }
 
 @if (!self)
 {
-    @* Granting is for people who can sign in; an offboarded global admin can still have the rights removed. *@
-    @if (Model.Actor.IsGlobal && (u.IsGlobalAdmin || id.Enabled))
+    @* Rare changes wait behind one summary, so the page leads with state, access and passwords. Granting global
+       rights is for people who can sign in; an offboarded global admin can still have the rights removed. *@
+    var aliases = id.Enabled;
+    var rights = Model.Actor.IsGlobal && (u.IsGlobalAdmin || id.Enabled);
+    @if (aliases || rights)
     {
-        <section class="panel">
-            <h2>Administrator rights</h2>
-            @if (u.IsGlobalAdmin)
+        <details class="panel more" open="@(!ViewData.ModelState.IsValid ? "open" : null)">
+            <summary><h2>More for @id.DisplayName</h2> <span class="hint">@string.Join(" and ", new[] { aliases ? "other addresses" : null, rights ? "administrator rights" : null }.Where(x => x is not null))</span></summary>
+            @if (aliases)
             {
-                <form method="post" asp-page-handler="GlobalAdmin">
-                    <p>@id.DisplayName is a global administrator.</p>
-                    <label class="choice"><input type="checkbox" name="confirm" value="true" required> Remove @id.DisplayName's global administrator rights</label>
-                    <button type="submit" name="grant" value="false" class="secondary">Remove global administrator rights</button>
-                </form>
+                <div class="block">
+                    <h3>Other addresses</h3>
+                    <form method="post" asp-page-handler="Aliases" class="row">
+                        <label>Aliases <input name="aliases" value="@string.Join(", ", id.Aliases)" autocomplete="off"></label>
+                        <button type="submit" class="secondary">Save</button>
+                    </form>
+                </div>
             }
-            else
+            @if (rights)
             {
-                <form method="post" asp-page-handler="GlobalAdmin">
-                    <p class="hint">A global administrator manages every entity, creates entities and domains, and may delete a disabled user's data. Granting it asks you to sign in again; they must set up an authenticator app.</p>
-                    <label class="choice"><input type="checkbox" name="confirm" value="true" required> Give @id.DisplayName global administrator rights</label>
-                    <button type="submit" name="grant" value="true" class="secondary">Make global administrator</button>
-                </form>
+                <div class="block">
+                    <h3>Administrator rights</h3>
+                    @if (u.IsGlobalAdmin)
+                    {
+                        <form method="post" asp-page-handler="GlobalAdmin">
+                            <p>@id.DisplayName is a global administrator.</p>
+                            <label class="choice"><input type="checkbox" name="confirm" value="true" required> Remove @id.DisplayName's global administrator rights</label>
+                            <button type="submit" name="grant" value="false" class="secondary">Remove global administrator rights</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form method="post" asp-page-handler="GlobalAdmin">
+                            <p class="hint">A global administrator manages every entity, creates entities and domains, and may delete a disabled user's data. Granting it asks you to sign in again; they must set up an authenticator app.</p>
+                            <label class="choice"><input type="checkbox" name="confirm" value="true" required> Give @id.DisplayName global administrator rights</label>
+                            <button type="submit" name="grant" value="true" class="secondary">Make global administrator</button>
+                        </form>
+                    }
+                </div>
             }
-        </section>
+        </details>
     }
 
     @if (!id.Enabled && Model.MayDeleteData)

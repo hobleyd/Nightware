@@ -19,6 +19,7 @@ else if (Model.Found.Users.Count == 0)
 }
 else
 {
+    <section class="panel" aria-label="Matches">
     <table>
         <thead><tr><th>Name</th><th>Address</th><th>Entity</th><th>Status</th></tr></thead>
         <tbody>
@@ -34,6 +35,7 @@ else
         }
         </tbody>
     </table>
+    </section>
     @if (Model.Found.Truncated)
     {
         <p class="hint">Showing the first @Nightware.Application.Administration.Users.FindUsers.Limit matches. Type more of the name or address to narrow the search.</p>

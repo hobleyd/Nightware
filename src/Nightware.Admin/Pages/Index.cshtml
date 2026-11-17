@@ -34,7 +34,7 @@
                             }
                             @foreach (var link in wrong)
                             {
-                                <span class="detail">@Systems.ShortName(link.Backend): @Systems.StateLabel(link.State)</span>
+                                <span class="detail">@Systems.ShortName(link.Backend): @Systems.StateLabel(link.State)@if (link.State is LinkState.Error or LinkState.Conflict && !string.IsNullOrEmpty(link.Detail)) { <span class="hint">(@link.Detail.TrimEnd('.'))</span> }</span>
                             }
                         </td>
                         <td class="actions">

@@ -1,5 +1,6 @@
 @page "/entities/{id}"
 @model Nightware.Admin.Pages.Entities.DetailModel
+@{ ViewData["Title"] = "Entity"; ViewData["Crumbs"] = new (string, string?)[] { ("Entities", Url.Page("/Entities/Index")) }; }
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 @{
     var entity = Model.Entity.Entity;
@@ -14,14 +15,14 @@
 <section class="panel">
     <h2>Mail domains</h2>
     <table>
-        <thead><tr><th>Domain</th><th>Mail server</th><th>DKIM</th><th>SPF</th><th>DMARC</th><th></th></tr></thead>
+        <thead><tr><th>Domain</th><th>Mail server</th><th>Signing (DKIM)</th><th>SPF</th><th>DMARC</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
         <tbody>
         @foreach (var d in Model.Entity.Domains)
         {
             <tr>
                 <td>@d.Domain</td>
                 <td data-label="Mail server"><span class="chip @d.Mail.State.ToString().ToLowerInvariant()">@Systems.StateLabel(d.Mail.State)</span>@if (d.Mail.State != LinkState.Linked) { <span class="hint detail">@d.Mail.Detail</span> }</td>
-                <td data-label="DKIM">@(d.DkimPresent ? "Keys present" : "—")</td>
+                <td data-label="Signing (DKIM)">@if (d.Mail.State != LinkState.Linked) { <text>—</text> } else { <span class="chip @(d.DkimPresent ? "linked" : "missing")">@(d.DkimPresent ? "Keys present" : "Missing")</span> }</td>
                 @{ var policy = entity.MailPolicyFor(d.Domain); }
                 <td data-label="SPF">@(policy.Spf is null ? "Mail server's" : "Custom")</td>
                 <td data-label="DMARC">@(policy.Dmarc is null ? "Mail server's" : $"Custom (p={policy.Dmarc.Policy})")</td>
@@ -92,7 +93,7 @@
         @foreach (var a in Model.Admins)
         {
             <li>
-                <a asp-page="/Users/Detail" asp-route-id="@a.Id">@a.DisplayName</a> &lt;@a.Email&gt;@(a.Id == Model.Actor.UserId ? " (you)" : "")
+                <a asp-page="/Users/Detail" asp-route-id="@a.Id">@a.DisplayName</a>@(a.Id == Model.Actor.UserId ? " (you)" : "") <span class="hint">@a.Email</span>
             </li>
         }
     </ul>

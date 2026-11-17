@@ -223,7 +223,7 @@ Forms flow top to bottom. Related fields share a wrapping row in which each fiel
 
 ## Elevation & Depth
 
-The system is flat. There are no shadows anywhere. Depth is a single tonal step: Panel White panels sit on the slightly darker Paper field, outlined by a 1px Hairline; in the dark theme the same step runs from the night-sky page (`bg-dark`) to a lifted indigo panel (`panel-dark`). The night band is the only full-colour region.
+The system is flat. There are no shadows anywhere. Depth is a single tonal step: Panel White panels sit on the slightly darker Paper field, outlined by a 1px Hairline; in the dark theme the same step runs from the night-sky page (`bg-dark`) to a lifted indigo panel (`panel-dark`). The night band is the only full-colour region; the browser bar follows it (`theme-color` per scheme).
 
 ### Named Rules
 **The Flat Board Rule.** Nothing floats. If something needs attention, it earns it through state colour or position, never a shadow or overlay.
@@ -237,26 +237,28 @@ Gently rounded and low-key. Controls (buttons, inputs, fieldsets) have a 6px rad
 ### Buttons
 Native `<button>` elements, compact and unadorned.
 - **Shape:** 6px radius, 6px × 14px padding, body type.
-- **Primary:** Envelope Indigo fill. Used for the step that commits: "Create and link", "Add", "Make administrator" (entity).
-- **Secondary:** transparent with an indigo outline. Used for safe, repeatable or preparatory actions and for rare, powerful ones that must not lead the page: "Check what will happen", "Repair" and "Finish offboarding" (everywhere, including dashboard rows), "Save", the password actions, "Reinstate", "Make global administrator", "Remove".
-- **Danger:** Fault Red fill. Used for "Offboard" and the "Delete …" links only.
+- **Primary:** Envelope Indigo fill. Used for the step that commits ("Create and link", "Add", "Make administrator" for an entity) and, on a user's page, for the one action their status calls for: "Repair" when they need repair, "Finish offboarding" when an offboarding is incomplete (also on a refused Delete page). A page has at most one.
+- **Secondary:** transparent with an indigo outline. Used for safe, repeatable or preparatory actions and for rare, powerful ones that must not lead the page: "Check what will happen", "Repair" and "Finish offboarding" on dashboard rows and when not the status action, "Save", the password actions, "Reinstate", "Make global administrator", "Remove".
+- **Danger:** Fault Red. Filled for the "Delete …" links, whose page is the deletion; a red outline (`danger quiet`) for "Offboard", which sits on routine pages and must not be their loudest mark.
 - **Link:** no chrome, link colour. Used for Sign out only.
 - **Focus:** a 2px outline in the accent (Moonlit Link on the night band), 2px offset.
 
 ### Chips (state)
 - **Style:** pill, Chip Grey fill, 12.75px, no border, never wrapping.
-- **State:** the text colour carries the state and the word says it: linked green, missing and pending amber, conflict and error red and bold, disabled Slate. Detail for a conflict or error appears inline beneath the chips as a hint, never only in a tooltip.
+- **State:** the text colour carries the state and the word says it: linked green, missing and pending amber, conflict and error red and bold, disabled Slate. An error link reads "Failed" (the system gave no usable answer for this account), never "Unreachable", which belongs to the dashboard's health check alone; on the worklist its reason follows in a hint. Signing keys on the entity page are a chip too. Detail for a conflict or error appears inline beneath the chips as a hint, never only in a tooltip.
 
 ### Status chip
 - One status per user, derived once (`UserStatuses.Of`): Active (green), Needs repair (amber), Conflict and Offboarding incomplete (red, bold), Offboarded (Slate). The same chip and words sit beside the user's name, in an entity's user list, in Find and on the dashboard. Labels live in `Systems.StatusLabel`.
 
 ### Panels
 - **Corner Style:** 8px. **Background:** Panel White. **Border:** 1px Hairline, Fault Red for the danger zone. **Padding:** 16px.
-- **Use:** one panel per topic, on every page including the dashboard.
+- **Use:** one panel per topic, on every page including the dashboard; a list that is a page's whole subject still sits in one (labelled, without a repeated heading).
+- **Folded:** rare changes on a user's page (other addresses, administrator rights) share one `details.more` panel whose summary names what is inside; it opens itself when a post there fails.
+- **Incomplete offboarding:** the Access panel takes the Fault Red border itself, matching its red status chip; no callout card is nested inside a panel.
 
 ### Callouts
 - **Notice** (success after a redirect, `role=status`), **Warning** (partial results, blocked steps, an incomplete offboarding) and **Errors** (the validation summary, `role=alert`): Panel White with a full 1px border in the state colour, 8px radius, 8px × 12px padding. No side stripe.
-- **Could not read** (`_Unread`): when a page's own data cannot be had, the page shows its heading and one warning, and nothing else. A system that did not answer reads "Could not read this page's information" with "Try again" and the dashboard; a refusal (validation, conflict, not found) states its reason with "Nothing was changed" and a way back. No empty table or "none yet" ever stands in for either.
+- **Could not read** (`_Unread`): when a page's own data cannot be had, the page shows its heading and one warning, and nothing else. It keeps a breadcrumb and a heading that names what the page is (pages set `ViewData["Title"]` and `ViewData["Crumbs"]` before the check). A system that did not answer reads "Could not read this page's information" with "Try again" and the dashboard; a refusal (validation, conflict, not found) states its reason with "Nothing was changed" and a way back, and offers the fix it names when the page can (Finish offboarding on a refused Delete). No empty table or "none yet" ever stands in for either.
 - An invalid field also takes a Fault Red border.
 
 ### Inputs / Fields
