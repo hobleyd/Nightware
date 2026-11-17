@@ -1,0 +1,23 @@
+[
+  {
+    "id": "0b7f3a52-9c41-4d6e-8a2f-5e1c9d3b7a10",
+    "name": "Nightware",
+    "alias": "nightware",
+    "enabled": true,
+    "description": "Bootstrap entity",
+    "domains": [
+      { "name": "nightware.localhost", "verified": false }
+    ]
+  },
+  {
+    "id": "6a1e8d27-3f5b-4c90-b7d4-2e8f1a6c9b33",
+    "name": "Acme",
+    "alias": "acme",
+    "enabled": true,
+    "domains": [
+      { "name": "acme.example", "verified": false },
+      { "name": "Acme-Mail.example", "verified": true },
+      { "name": "not a domain", "verified": false }
+    ]
+  }
+]

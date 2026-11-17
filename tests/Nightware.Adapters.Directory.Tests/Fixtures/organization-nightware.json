@@ -1,0 +1,14 @@
+{
+  "id": "0b7f3a52-9c41-4d6e-8a2f-5e1c9d3b7a10",
+  "name": "Nightware",
+  "alias": "nightware",
+  "enabled": true,
+  "description": "Bootstrap entity",
+  "redirectUrl": "",
+  "attributes": {
+    "billing": ["internal"]
+  },
+  "domains": [
+    { "name": "nightware.localhost", "verified": false }
+  ]
+}

@@ -1,11 +1,15 @@
+using System.Text.Json.Nodes;
+
 using Nightware.Domain.Kernel;
 
 namespace Nightware.Adapters.Directory.Core.Admin;
 
 /// <summary>
 /// Typed wrapper over the Keycloak admin REST API for the configured realm, authenticated as the
-/// <c>nightware-api</c> service account (needs <c>realm-management</c> <c>view-users</c>/<c>query-users</c>,
-/// and <c>manage-users</c> for attribute updates).
+/// service account of <see cref="DirectoryOptions.ClientId"/>: <c>nightware-api</c> in the Graph host
+/// (needs <c>realm-management</c> <c>view-users</c>/<c>query-users</c>, and <c>manage-users</c> for
+/// attribute updates), <c>nightware-admin</c> in the admin console (additionally
+/// <c>view-</c>/<c>query-</c>/<c>manage-organizations</c> for the organization calls, ADR 0002 D8).
 /// </summary>
 /// <remarks>
 /// Error mapping: 400 → Validation, 401 (after one token refresh) → BackendUnavailable (the façade's
@@ -46,4 +50,121 @@ public interface IKeycloakAdminClient
         string id,
         IReadOnlyDictionary<string, IReadOnlyList<string>?> changes,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Read-modify-write of the full <c>UserRepresentation</c> (<c>GET</c>, then <c>PUT /users/{id}</c>
+    /// when <paramref name="mutate"/> returns true). <paramref name="mutate"/> edits the raw JSON in place,
+    /// so every field it does not touch is written back unchanged. Returns the user as written (or as read
+    /// when nothing changed). Same lost-update caveat as <see cref="UpdateUserAttributesAsync"/>.
+    /// </summary>
+    Task<Result<KeycloakUser>> UpdateUserAsync(string id, Func<JsonObject, bool> mutate, CancellationToken cancellationToken);
+
+    /// <summary><c>POST /users</c>; returns the new user's id (from <c>Location</c>). 409 → Conflict (username or email taken).</summary>
+    Task<Result<string>> CreateUserAsync(KeycloakNewUser user, CancellationToken cancellationToken);
+
+    /// <summary><c>POST /users/{id}/logout</c> — ends every session of the user.</summary>
+    Task<Result> LogoutUserAsync(string id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// <c>PUT /users/{id}/execute-actions-email?client_id=…&amp;lifespan=…</c> (lifespan in whole seconds)
+    /// with the action aliases as a JSON array: Keycloak e-mails the user a link that performs them.
+    /// </summary>
+    Task<Result> ExecuteActionsEmailAsync(string id, IReadOnlyList<string> actions, string clientId, TimeSpan lifespan, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// <c>PUT /users/{id}/reset-password</c> with <c>{type: "password", value, temporary}</c>. The password
+    /// never appears in a log line or in the returned error's message.
+    /// </summary>
+    Task<Result> ResetPasswordAsync(string id, string password, bool temporary, CancellationToken cancellationToken);
+
+    /// <summary><c>GET /roles/{name}</c> — a realm role; NotFound when the realm has none of that name.</summary>
+    Task<Result<KeycloakRole>> GetRealmRoleAsync(string name, CancellationToken cancellationToken);
+
+    /// <summary><c>GET /roles/{name}/users</c> (all pages, full representations) — users with the role mapped directly.</summary>
+    Task<Result<IReadOnlyList<KeycloakUser>>> ListRealmRoleUsersAsync(string roleName, CancellationToken cancellationToken);
+
+    /// <summary><c>GET /users/{id}/role-mappings/realm</c> — the realm roles mapped directly to the user.</summary>
+    Task<Result<IReadOnlyList<KeycloakRole>>> GetUserRealmRolesAsync(string userId, CancellationToken cancellationToken);
+
+    /// <summary><c>GET /users/{id}/role-mappings/realm/composite</c> — effective realm roles (composites and groups expanded).</summary>
+    Task<Result<IReadOnlyList<KeycloakRole>>> GetEffectiveUserRealmRolesAsync(string userId, CancellationToken cancellationToken);
+
+    /// <summary><c>POST /users/{id}/role-mappings/realm</c>.</summary>
+    Task<Result> AddUserRealmRolesAsync(string userId, IReadOnlyList<KeycloakRole> roles, CancellationToken cancellationToken);
+
+    /// <summary><c>DELETE /users/{id}/role-mappings/realm</c>.</summary>
+    Task<Result> RemoveUserRealmRolesAsync(string userId, IReadOnlyList<KeycloakRole> roles, CancellationToken cancellationToken);
+
+    /// <summary><c>GET /organizations</c> (all pages, brief representations — which include <c>domains</c>).</summary>
+    Task<Result<IReadOnlyList<KeycloakOrganization>>> ListOrganizationsAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// <c>GET /organizations?search=…&amp;exact=…</c> (all pages): organizations whose name or one of whose
+    /// domains matches <paramref name="search"/> (exactly, when <paramref name="exact"/>).
+    /// </summary>
+    Task<Result<IReadOnlyList<KeycloakOrganization>>> SearchOrganizationsAsync(string search, bool exact, CancellationToken cancellationToken);
+
+    /// <summary><c>GET /organizations/{id}</c>.</summary>
+    Task<Result<KeycloakOrganization>> GetOrganizationAsync(string id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// <c>POST /organizations</c>; returns the new organization's id (from <c>Location</c>). A taken name or
+    /// alias is 409 → Conflict; a domain another organization holds is 400 → Validation.
+    /// </summary>
+    Task<Result<string>> CreateOrganizationAsync(KeycloakOrganization organization, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Read-modify-write of the full <c>OrganizationRepresentation</c> (<c>GET</c>, then <c>PUT
+    /// /organizations/{id}</c> when <paramref name="mutate"/> returns true), preserving attributes, the alias
+    /// and every field <paramref name="mutate"/> leaves alone. Returns the organization as written.
+    /// </summary>
+    Task<Result<KeycloakOrganization>> UpdateOrganizationAsync(string id, Func<JsonObject, bool> mutate, CancellationToken cancellationToken);
+
+    /// <summary><c>GET /organizations/{id}/members</c> (all pages, full representations so attributes are included).</summary>
+    Task<Result<IReadOnlyList<KeycloakUser>>> ListOrganizationMembersAsync(string organizationId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// <c>POST /organizations/{id}/members</c> with the user id as a JSON string: an unmanaged membership.
+    /// Idempotent: Keycloak's 409 "already a member" is success.
+    /// </summary>
+    Task<Result> AddOrganizationMemberAsync(string organizationId, string userId, CancellationToken cancellationToken);
+
+    /// <summary><c>GET /organizations/members/{userId}/organizations</c> — the organizations the user belongs to.</summary>
+    Task<Result<IReadOnlyList<KeycloakOrganization>>> ListMemberOrganizationsAsync(string userId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// <c>GET /organizations/{id}/members/{userId}/groups</c> — the organization groups the member is in.
+    /// NotFound when the user is not a member of the organization.
+    /// </summary>
+    Task<Result<IReadOnlyList<KeycloakGroup>>> ListMemberOrganizationGroupsAsync(string organizationId, string userId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// <c>GET /organizations/{id}/groups</c> without <c>search</c>/<c>q</c> (all pages): the organization's top-level
+    /// groups. Their <c>parentId</c> is the organization's internal backing group, not null.
+    /// </summary>
+    Task<Result<IReadOnlyList<KeycloakGroup>>> ListOrganizationTopLevelGroupsAsync(string organizationId, CancellationToken cancellationToken);
+
+    /// <summary><c>POST /organizations/{id}/groups</c> — a new top-level organization group; returns its id. 409 → Conflict (name taken).</summary>
+    Task<Result<string>> CreateOrganizationGroupAsync(string organizationId, string name, CancellationToken cancellationToken);
+
+    /// <summary><c>GET /organizations/{id}/groups/{groupId}/members</c> (all pages, full representations).</summary>
+    Task<Result<IReadOnlyList<KeycloakUser>>> ListOrganizationGroupMembersAsync(string organizationId, string groupId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// <c>PUT /organizations/{id}/groups/{groupId}/members/{userId}</c>. Idempotent (409 "already a member of
+    /// the group" is success); 400 → Validation when the user is not a member of the organization.
+    /// </summary>
+    Task<Result> AddOrganizationGroupMemberAsync(string organizationId, string groupId, string userId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// <c>DELETE /organizations/{id}/groups/{groupId}/members/{userId}</c>. Keycloak answers 400 when the user
+    /// is not in the group, so callers check membership first.
+    /// </summary>
+    Task<Result> RemoveOrganizationGroupMemberAsync(string organizationId, string groupId, string userId, CancellationToken cancellationToken);
+
+    /// <summary><c>GET /organizations/{id}/groups/{groupId}/role-mappings/realm</c>.</summary>
+    Task<Result<IReadOnlyList<KeycloakRole>>> GetOrganizationGroupRealmRolesAsync(string organizationId, string groupId, CancellationToken cancellationToken);
+
+    /// <summary><c>POST /organizations/{id}/groups/{groupId}/role-mappings/realm</c>.</summary>
+    Task<Result> AddOrganizationGroupRealmRolesAsync(string organizationId, string groupId, IReadOnlyList<KeycloakRole> roles, CancellationToken cancellationToken);
 }

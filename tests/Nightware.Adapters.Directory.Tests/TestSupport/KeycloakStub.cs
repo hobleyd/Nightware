@@ -86,5 +86,37 @@ internal sealed class KeycloakStub : IDisposable
             .RespondWith(response);
     }
 
+    /// <summary>
+    /// Admin REST call <paramref name="method"/> <c>{AdminPath}{path}</c> (query ignored unless
+    /// <paramref name="query"/> pins parameters) answers <paramref name="status"/>.
+    /// </summary>
+    public void GivenAdmin(
+        string path,
+        int status,
+        string? body = null,
+        string method = "GET",
+        int priority = 10,
+        string? location = null,
+        IReadOnlyDictionary<string, string>? query = null)
+    {
+        IRequestBuilder request = Request.Create().WithPath(AdminPath + path).UsingMethod(method);
+        foreach ((string name, string value) in query ?? new Dictionary<string, string>())
+        {
+            request = request.WithParam(name, value);
+        }
+
+        IResponseBuilder response = Response.Create().WithStatusCode(status).WithHeader("Content-Type", "application/json").WithBody(body ?? string.Empty);
+        if (location is not null)
+        {
+            response = response.WithHeader("Location", location);
+        }
+
+        Server.Given(request).AtPriority(priority).RespondWith(response);
+    }
+
+    /// <summary>The admin requests with this method whose path is exactly <c>{AdminPath}{path}</c>.</summary>
+    public IReadOnlyList<WireMock.RequestMessage> Admin(string method, string path) =>
+        [.. AdminRequests.Select(static e => (WireMock.RequestMessage)e.RequestMessage!).Where(m => m.Method == method && m.Path == AdminPath + path)];
+
     public void Dispose() => Server.Stop();
 }
