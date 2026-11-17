@@ -182,6 +182,29 @@ public sealed class CollaboraDocumentConverterTests : IDisposable
     public void The_part_is_named_by_extension_only(string fileName, string expected) =>
         CollaboraDocumentConverter.PartName(fileName).ShouldBe(expected);
 
+    [Fact]
+    public async Task The_built_in_code_server_is_called_through_its_proxy()
+    {
+        const string proxy = "/extra-apps/richdocumentscode/proxy.php";
+        _server.Given(Request.Create().WithPath(proxy).WithParam("req", "/cool/convert-to/pdf").UsingPost())
+            .RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "application/octet-stream").WithBody(Pdf));
+        using var provider = Provider(new() { ["Collabora:BaseUrl"] = _server.Url + proxy });
+        var (blob, _) = Source(Docx);
+
+        var result = (await provider.GetRequiredService<IDocumentConverter>().ConvertToPdfAsync(blob, "Budget.docx", Ct)).Value;
+
+        result.ContentType.ShouldBe("application/pdf");
+        _server.LogEntries.Single().RequestMessage!.Url.ShouldEndWith(proxy + "?req=/cool/convert-to/pdf");
+    }
+
+    [Theory]
+    [InlineData("http://collabora:9980/", "http://collabora:9980/cool/convert-to/pdf")]
+    [InlineData("http://collabora:9980/office/", "http://collabora:9980/office/cool/convert-to/pdf")]
+    [InlineData("http://collabora:9980/office", "http://collabora:9980/office/cool/convert-to/pdf")]
+    [InlineData("https://nc.example.com/apps/richdocumentscode/proxy.php", "https://nc.example.com/apps/richdocumentscode/proxy.php?req=/cool/convert-to/pdf")]
+    public void The_convert_url_follows_the_base_url(string baseUrl, string expected) =>
+        CollaboraDocumentConverter.ConvertUri(new Uri(baseUrl)).ToString().ShouldBe(expected);
+
     [Theory]
     [InlineData("http://collabora:9980/", true)]
     [InlineData("ftp://collabora/", false)]

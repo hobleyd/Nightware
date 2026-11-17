@@ -12,7 +12,8 @@ namespace Nightware.Adapters.Dav.Office;
 
 /// <summary>
 /// <see cref="IDocumentConverter"/> on Collabora Online's conversion API:
-/// <c>POST {BaseUrl}cool/convert-to/pdf</c> with the document as the multipart field <c>data</c>.
+/// <c>POST {BaseUrl}cool/convert-to/pdf</c> with the document as the multipart field <c>data</c> (through
+/// <c>proxy.php?req=</c> for the built-in CODE server, see <see cref="ConvertUri"/>).
 /// </summary>
 /// <remarks>
 /// <para>Why in the Dav adapter: Collabora is Nextcloud Office's engine, deployed beside Nextcloud and only
@@ -29,6 +30,16 @@ internal sealed partial class CollaboraDocumentConverter(
     IOptions<CollaboraOptions> options,
     ILogger<CollaboraDocumentConverter> logger) : IDocumentConverter
 {
+    /// <summary>
+    /// <c>{BaseUrl}cool/convert-to/pdf</c>, or for the built-in CODE server (Nextcloud's richdocumentscode app,
+    /// whose <see cref="CollaboraOptions.BaseUrl"/> is its <c>proxy.php</c>) that path as <c>proxy.php</c>'s
+    /// <c>req</c> parameter.
+    /// </summary>
+    internal static Uri ConvertUri(Uri baseUrl) =>
+        baseUrl.AbsolutePath.EndsWith("/proxy.php", StringComparison.Ordinal)
+            ? new Uri(baseUrl, $"{baseUrl.AbsolutePath}?req=/cool/convert-to/pdf")
+            : new Uri(baseUrl, $"{baseUrl.AbsolutePath.TrimEnd('/')}/cool/convert-to/pdf");
+
     public bool CanConvertToPdf(string fileName, string? mimeType) =>
         options.Value.BaseUrl is not null && OfficeFormats.IsConvertible(fileName, mimeType);
 
@@ -49,7 +60,7 @@ internal sealed partial class CollaboraDocumentConverter(
         using var part = new StreamContent(document);
         part.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
         using var form = new MultipartFormDataContent { { part, "data", PartName(fileName) } };
-        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(baseUrl, $"{baseUrl.AbsolutePath.TrimEnd('/')}/cool/convert-to/pdf")) { Content = form };
+        using var request = new HttpRequestMessage(HttpMethod.Post, ConvertUri(baseUrl)) { Content = form };
         HttpResponseMessage? response = null;
         try
         {

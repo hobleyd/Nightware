@@ -13,6 +13,9 @@ public sealed class CollaboraOptions
     /// <summary>
     /// Collabora's internal URL (e.g. <c>http://collabora:9980/</c>). Its <c>convert-to</c> endpoint answers only
     /// addresses in its <c>net.post_allow</c> list, so this must be a direct route, not a public proxy.
+    /// For Nextcloud's built-in CODE server (the richdocumentscode app) it is that app's <c>proxy.php</c>,
+    /// e.g. <c>https://cloud.example.com/apps/richdocumentscode/proxy.php</c>: the request then reaches
+    /// CODE from the proxy on the Nextcloud host itself.
     /// </summary>
     public Uri? BaseUrl { get; set; }
 
