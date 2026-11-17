@@ -159,7 +159,7 @@ if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" ]]; then
   MGMT_USER="${STALWART_MANAGEMENT_USER:-nightware-admin}"
   role_id() { call '[["x:Role/query",{},"q"],["x:Role/get",{"#ids":{"resultOf":"q","name":"x:Role/query","path":"/ids"},"properties":["description"]},"g"]]' \
     | jq -r --arg d "$1" '.methodResponses[1][1].list[]? | select(.description==$d) | .id' | head -n1; }
-  PERMS='{"sysAccountGet":true,"sysAccountQuery":true,"sysAccountCreate":true,"sysAccountUpdate":true,"sysAccountDestroy":true,"sysDomainGet":true,"sysDomainQuery":true,"sysDomainCreate":true,"sysDomainUpdate":true,"sysDkimSignatureGet":true,"sysDkimSignatureQuery":true,"sysActionCreate":true}'
+  PERMS='{"sysAccountGet":true,"sysAccountQuery":true,"sysAccountCreate":true,"sysAccountUpdate":true,"sysAccountDestroy":true,"sysDomainGet":true,"sysDomainQuery":true,"sysDomainCreate":true,"sysDomainUpdate":true,"sysDkimSignatureGet":true,"sysDkimSignatureQuery":true,"sysActionCreate":true,"actionReloadSettings":true}'
   USER_ROLE=$(role_id "User")
   ROLE_ID=$(role_id "Nightware admin console")
   if [[ -z "$ROLE_ID" ]]; then
