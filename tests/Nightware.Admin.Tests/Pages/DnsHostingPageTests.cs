@@ -187,6 +187,12 @@ public sealed partial class DnsHostingPageTests : IDisposable
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         html.ShouldContain("changed since the page was loaded, so nothing was published");
         await _host.DnsHosting.DidNotReceiveWithAnyArgs().ApplyAsync(default!, default!, default!, Ct);
+
+        // The page now carries the current plan, so publishing again from it goes ahead.
+        string current = Fingerprint().Match(html).Groups[1].Value;
+        current.ShouldNotBeEmpty();
+        (await PostAsync(DnsUrl, "Publish", new() { ["PlanFingerprint"] = current })).StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        await _host.DnsHosting.Received(3).ApplyAsync(Arg.Any<DnsProviderToken>(), AcmeZone, Arg.Any<DnsChange>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
