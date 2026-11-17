@@ -158,7 +158,8 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
         builder.UseSetting("StalwartManagement:ApiUrl", "https://mail.example/jmap");
         builder.UseSetting("StalwartManagement:Username", "nightware-admin@acme.example");
         builder.UseSetting("StalwartManagement:Password", "stalwart-test-password");
-        builder.UseSetting("Directory:Authority", "https://kc.example/auth/realms/nightware");
+        builder.UseSetting("Directory:KeycloakBaseUrl", "https://kc.example/auth");
+        builder.UseSetting("Directory:Realm", "nightware");
         builder.UseSetting("Directory:ClientId", "nightware-admin");
         builder.UseSetting("Directory:ClientSecret", "kc-test-secret");
         builder.ConfigureLogging(logging => logging.AddProvider(Logs));

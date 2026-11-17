@@ -115,6 +115,47 @@ and a path to another user's data). Rules:
 3. `tests/Nightware.Api.Tests/Hosting/HttpClientCookiePolicyTests.cs` enumerates every named and
    typed client in the real composition and fails if any primary handler keeps cookies.
 
+## Admin console (`src/Nightware.Admin`, ADR 0002)
+
+The console at `/console` manages entities, users and their accounts in all
+three backends. It is a separate host from the Graph façade and shares no
+credentials with it.
+
+- **Sign-in.** OIDC authorization code + PKCE against its own confidential
+  client `nightware-admin`. The ID token is validated and dropped
+  (`SaveTokens=false`); the browser holds only the encrypted, `HttpOnly`,
+  `Secure`, `SameSite=Lax` session cookie `__Secure-nightware.console`. Sessions
+  end after 20 minutes idle and 8 hours absolute. A sign-in whose `acr` is not in
+  `Admin:AcceptedAcrValues` (default `mfa`) is refused; Production refuses to
+  start with the list empty.
+- **Authorization** is decided in the Application use cases
+  (`AdminAuthorization`), not the pages, so a forged form post gets the same
+  answer. The admin's scope (global, or the entities whose `admins` group they
+  are in) is re-read from Keycloak at most a minute old, never trusted from the
+  token. Entity admins act only on users wholly inside their entities and never
+  on another administrator; they cannot create entities, change domains or grant
+  global rights. Nobody can offboard or demote themselves.
+- **Destructive actions.** Deleting a user's mail or Nextcloud data needs a
+  disabled user, a sign-in less than 5 minutes old with an accepted `acr` (the
+  console sends the admin back to Keycloak with `max_age=0` otherwise), and the
+  retyped address; it refuses an account it cannot prove belongs to the user.
+  Global admins only, unless `ADMIN_ENTITY_ADMINS_MAY_DELETE_DATA=true`.
+- **Pages** carry no script: `default-src 'none'; style-src 'self'; img-src
+  'self'; form-action 'self' <keycloak origin>; frame-ancestors 'none';
+  base-uri 'none'`, `Cache-Control: no-store`. Every POST needs an antiforgery
+  token. A generated temporary password appears once, on a no-store response,
+  and is never logged.
+- **Backend credentials** are the console's own and least-privilege where the
+  backend allows it: Keycloak service account of `nightware-admin`
+  (`manage-users`, organizations), a Stalwart account with a custom role (no
+  impersonation, no domain deletion), and a Nextcloud local administrator
+  (Nextcloud has no narrower role that can create users).
+- **Exposure.** Caddy admits `ADMIN_ALLOWED_CIDRS` (default: anywhere). Narrow
+  it to a management network or VPN where you have one.
+- **Audit.** Every action logs one `admin.audit` event naming the human actor;
+  Keycloak's admin events record the console's service account for Keycloak
+  writes.
+
 ## Dependencies
 
 CI fails on any known-vulnerable NuGet package, direct or transitive (`make vulnerable`), and

@@ -439,6 +439,36 @@ admin choose a password:
   Application policy; `ADMIN_ALLOWED_CIDRS` defaults to `0.0.0.0/0 ::/0` and
   stays as a knob.
 
+## Implementation notes (2026-11-17)
+
+Where the build refined the decisions above:
+
+- **Target-user scope (D6).** An entity admin may act on an existing user only
+  when every entity the user belongs to is one the admin administers, and never
+  on a global admin or an admin of another entity
+  (`AdminAuthorization.RequireMayManageUser`, applied by `UserAccess` to every
+  per-user use case and by the planner before linking an existing Keycloak
+  user). Without it, issuing a temporary password to a global admin who is a
+  member of the entity would hand the entity admin global rights. Users outside
+  the scope answer NotFound to entity admins, not Forbidden.
+- **Session cookie (D7)** is `SameSite=Lax`, not Strict: the session must ride
+  on the top-level redirect back from Keycloak. Every state-changing request is
+  a POST with an antiforgery token (antiforgery cookie `SameSite=Strict`).
+- **Stalwart domain fields (D4).** `dkimManagement`/`dnsManagement` are typed
+  objects (`{"@type":"Automatic"}`), per the schema reference.
+- **Nextcloud local accounts (D3).** A uid held by a `Database`-backend user is
+  a Conflict: with `--unique-uid=0` and no `soft_auto_provision`, Keycloak
+  sign-in would not use it. `NextcloudProvisioning:IdentityProviderBackends`
+  can widen this deliberately.
+- **Nextcloud pre-provisioning (D5)** answers 200 and is idempotent
+  (`getOrCreate`); its `providerId` is user_oidc's numeric provider id, looked up
+  from the identifier `keycloak` when not configured numerically.
+- **MFA switch.** `ADMIN_REQUIRED_ACR` (default `mfa`) feeds
+  `Admin:AcceptedAcrValues`; an empty value turns the requirement off and is
+  refused in Production.
+- **Stalwart principal (D8)** login is overridable as a whole
+  (`STALWART_MANAGEMENT_LOGIN`) for the recovery-admin fallback.
+
 ## Open questions
 
 - **OQ1 — first credential delivery.** Is the system-generated, shown-once,

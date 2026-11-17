@@ -188,3 +188,41 @@ together; base64 makes the JSON body 4/3 of the attachment size.
 
 A route the façade does not implement (Graph's own answer for unknown paths). NightMail falls back
 where it can. If a feature that should work answers this, the deployed image predates it.
+
+## Admin console: locked out (no global administrator can sign in)
+
+Sign in to Keycloak's own admin console (`/auth/admin`, master realm
+`KEYCLOAK_ADMIN_USER`), open realm `nightware` → Users → the person → Role
+mapping, and assign `nightware-global-admin`. They must have an authenticator
+app set up (Keycloak asks at next sign-in) unless `ADMIN_REQUIRED_ACR` is empty.
+
+## Admin console: a user shows "Conflict"
+
+The console found an account with the user's key that disagrees with Keycloak
+and will not merge it. The chip's tooltip and the user page say what differs:
+
+- *Mail: the address belongs to a group or mailing list, or is another
+  mailbox's alias* — free the address in Stalwart, or choose another.
+- *Nextcloud: the uid is a local account, or has another address* — rename or
+  remove the stray Nextcloud user, or give the person another username.
+- *Keycloak: the username is taken / the address belongs to another username or
+  entity* — pick another username, or move the user deliberately.
+
+Then use **Repair** (existing user) or run the wizard again.
+
+## Admin console: Stalwart shows "Unavailable"
+
+`stalwart/configure.sh` warns when the console's account cannot use the
+management API. Use the documented fallback in `.env`
+(`STALWART_MANAGEMENT_LOGIN=admin`, `STALWART_MANAGEMENT_PASSWORD=<STALWART_ADMIN_PASSWORD>`)
+and `docker compose --profile api up -d nightware-admin`. The fallback is a
+full-access credential; see deploy/README.md "Admin console".
+
+## Rotating the admin console's credentials
+
+Clear the value in `deploy/.env`, run `scripts/init-env.sh`, then the
+configure script of that backend (`NIGHTWARE_ADMIN_CLIENT_SECRET`: Keycloak
+client secret, `keycloak/configure.sh`; `STALWART_MANAGEMENT_PASSWORD`:
+`stalwart/configure.sh`; `NEXTCLOUD_PROVISIONING_PASSWORD`:
+`nextcloud/configure.sh`), and restart `nightware-admin`.
+
