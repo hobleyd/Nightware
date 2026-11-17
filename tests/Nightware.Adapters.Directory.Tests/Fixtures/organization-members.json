@@ -1,0 +1,31 @@
+[
+  {
+    "id": "5d2c6a4e-2f0b-4a8e-9f3c-1b7e2d9a6c11",
+    "username": "alice",
+    "firstName": "Alice",
+    "lastName": "Anderson",
+    "email": "alice@nightware.localhost",
+    "emailVerified": true,
+    "enabled": true,
+    "attributes": {
+      "nightware_aliases": ["a@nightware.localhost", "postmaster@nightware.localhost"],
+      "locale": ["en"]
+    },
+    "createdTimestamp": 1794690000123,
+    "membershipType": "UNMANAGED"
+  },
+  {
+    "id": "8e4b1c90-7a2d-4f35-9b6e-3c1d5a7f2e44",
+    "username": "bob",
+    "firstName": "",
+    "email": "bob@nightware.localhost",
+    "emailVerified": true,
+    "enabled": false,
+    "attributes": {
+      "nightware_mail_deleted_at": ["2026-11-10T09:30:00.0000000+00:00"],
+      "nightware_groupware_deleted_at": ["yesterday"]
+    },
+    "createdTimestamp": 1794690000456,
+    "membershipType": "UNMANAGED"
+  }
+]

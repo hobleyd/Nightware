@@ -26,29 +26,44 @@ public static class DirectoryAdapterServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        services.AddOptions<DirectoryOptions>().Bind(configuration.GetSection(DirectoryOptions.SectionName));
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DirectoryOptions>, DirectoryOptionsValidator>());
+        services.AddKeycloakCore(configuration);
+
         services.AddOptions<BackendCredentialOptions>().Bind(configuration.GetSection(BackendCredentialOptions.SectionName));
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<BackendCredentialOptions>, BackendCredentialOptionsValidator>());
 
-        services.TryAddSingleton(TimeProvider.System);
-        services.AddMemoryCache();
-
-        // Core: token endpoint (singleton, owns the service-account token) and the admin REST client.
-        // Cookie-free: pooled handlers are shared across callers, so cookies must never persist.
-        services.AddHttpClient(KeycloakHttp.TokenClientName).ConfigurePrimaryHttpMessageHandler(CookieFreeHandler).AddKeycloakResilience();
-        services.TryAddSingleton<IKeycloakTokenClient, KeycloakTokenClient>();
-        services.AddHttpClient<IKeycloakAdminClient, KeycloakAdminClient>().ConfigurePrimaryHttpMessageHandler(CookieFreeHandler).AddKeycloakResilience();
-
         // Credentials: per request, because it reads the caller's IUserContext.
         services.AddScoped<IBackendCredentials, BackendCredentials>();
-
-        services.AddHealthChecks().AddCheck<KeycloakRealmHealthCheck>(KeycloakRealmHealthCheck.Name, tags: [BackendHealthTag]);
 
         // Each feature registers its ports from its own folder, so phases never edit this file.
         return services
             .AddDirectoryUsers()
             .AddDirectoryPreferences();
+    }
+
+    /// <summary>
+    /// Registers the Keycloak core only: <see cref="DirectoryOptions"/> (section <c>Directory</c>), the
+    /// token client (singleton, owns the service-account token), the typed admin REST client and the realm
+    /// health check. No <see cref="IUserContext"/> is needed. The admin console calls this with
+    /// <c>Directory:</c> bound to its own client (<c>nightware-admin</c>, ADR 0002 D2); the Graph host gets it
+    /// through <see cref="AddDirectoryAdapter"/>. Call it once per container.
+    /// </summary>
+    public static IServiceCollection AddKeycloakCore(this IServiceCollection services, IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        services.AddOptions<DirectoryOptions>().Bind(configuration.GetSection(DirectoryOptions.SectionName));
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DirectoryOptions>, DirectoryOptionsValidator>());
+
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddMemoryCache();
+
+        // Cookie-free: pooled handlers are shared across callers, so cookies must never persist.
+        services.AddHttpClient(KeycloakHttp.TokenClientName).ConfigurePrimaryHttpMessageHandler(CookieFreeHandler).AddKeycloakResilience();
+        services.TryAddSingleton<IKeycloakTokenClient, KeycloakTokenClient>();
+        services.AddHttpClient<IKeycloakAdminClient, KeycloakAdminClient>().ConfigurePrimaryHttpMessageHandler(CookieFreeHandler).AddKeycloakResilience();
+
+        services.AddHealthChecks().AddCheck<KeycloakRealmHealthCheck>(KeycloakRealmHealthCheck.Name, tags: [BackendHealthTag]);
+        return services;
     }
 
     internal static SocketsHttpHandler CookieFreeHandler() => new() { UseCookies = false };
