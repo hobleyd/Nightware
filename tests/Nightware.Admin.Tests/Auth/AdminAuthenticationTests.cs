@@ -248,4 +248,30 @@ public sealed class AdminAuthenticationTests
 
         context.Principal!.FindFirst(AdminAuthentication.AuthTimeClaim)!.Value.ShouldBe("1700000000");
     }
+
+    [Fact]
+    public async Task The_id_token_from_the_token_endpoint_is_kept_for_sign_out_and_nothing_else()
+    {
+        var oidc = new OpenIdConnectOptions();
+        AdminAuthentication.ConfigureOidc(oidc, Options("mfa"));
+        TokenValidatedContext context = Validated(new Claim("acr", "mfa"), new Claim("auth_time", "1700000000"));
+        context.TokenEndpointResponse = new OpenIdConnectMessage { IdToken = "id.token.value", AccessToken = "access", RefreshToken = "refresh" };
+
+        await oidc.Events.OnTokenValidated(context);
+
+        context.Properties!.GetTokens().Select(t => t.Name).ShouldBe(["id_token"]);
+        context.Properties!.GetTokenValue("id_token").ShouldBe("id.token.value");
+    }
+
+    [Fact]
+    public async Task Sign_out_names_the_client_to_keycloak()
+    {
+        var oidc = new OpenIdConnectOptions();
+        AdminAuthentication.ConfigureOidc(oidc, Options("mfa"));
+        var context = new RedirectContext(new DefaultHttpContext(), Scheme(), oidc, new AuthenticationProperties()) { ProtocolMessage = new OpenIdConnectMessage() };
+
+        await oidc.Events.OnRedirectToIdentityProviderForSignOut(context);
+
+        context.ProtocolMessage.ClientId.ShouldBe("nightware-admin");
+    }
 }

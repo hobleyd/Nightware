@@ -169,7 +169,10 @@ SA=$(kc "${API}/clients/${CLIENT_UUID}/service-account-user" | jq -r .id)
 RM=$(kc "${API}/clients?clientId=realm-management" | jq -r '.[0].id')
 have=$(kc "${API}/users/${SA}/role-mappings/clients/${RM}" | jq -r '.[].name')
 available=$(kc "${API}/users/${SA}/role-mappings/clients/${RM}/available")
-for role in view-users query-users manage-users query-groups query-clients view-organizations query-organizations manage-organizations; do
+# view-realm: GET /roles/{name} and /roles/{name}/users answer 403 without it (verified on 26.8), and the
+# console needs both to grant and list global admins. It is read-only; Keycloak masks the realm's secrets.
+# No view-clients: that would expose every client's secret.
+for role in view-users query-users manage-users query-groups query-clients view-realm view-organizations query-organizations manage-organizations; do
   grep -qx "$role" <<<"$have" && continue
   rep=$(jq -c --arg n "$role" '[.[] | select(.name==$n)]' <<<"$available")
   if [[ "$rep" == "[]" ]]; then
@@ -178,14 +181,6 @@ for role in view-users query-users manage-users query-groups query-clients view-
   fi
   log "Keycloak (console): service account gets realm-management ${role}"
   kcj -X POST "${API}/users/${SA}/role-mappings/clients/${RM}" -d "$rep" >/dev/null
-done
-
-# Roles an earlier version of this script granted and the console no longer needs.
-for role in view-realm; do
-  grep -qx "$role" <<<"$have" || continue
-  rep=$(kc "${API}/users/${SA}/role-mappings/clients/${RM}" | jq -c --arg n "$role" '[.[] | select(.name==$n)]')
-  log "Keycloak (console): service account no longer holds realm-management ${role}"
-  kcj -X DELETE "${API}/users/${SA}/role-mappings/clients/${RM}" -d "$rep" >/dev/null
 done
 
 # -------------------------------------------------------- 6. default entity

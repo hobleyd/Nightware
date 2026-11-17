@@ -163,11 +163,18 @@ public static class AdminAuthentication
 
             // Only the ID token is kept (in the encrypted cookie), as the id_token_hint Keycloak needs to end the
             // SSO session at sign-out. No access or refresh token is ever stored.
-            if (context.ProtocolMessage?.IdToken is { Length: > 0 } idToken)
+            // In the code flow the ID token comes from the token endpoint, not the authorization response.
+            if ((context.TokenEndpointResponse?.IdToken ?? context.ProtocolMessage?.IdToken) is { Length: > 0 } idToken)
             {
                 context.Properties.StoreTokens([new AuthenticationToken { Name = "id_token", Value = idToken }]);
             }
 
+            return Task.CompletedTask;
+        };
+        oidc.Events.OnRedirectToIdentityProviderForSignOut = context =>
+        {
+            // Keycloak requires id_token_hint or client_id with post_logout_redirect_uri.
+            context.ProtocolMessage.ClientId = admin.ClientId;
             return Task.CompletedTask;
         };
         oidc.Events.OnRemoteFailure = static context =>

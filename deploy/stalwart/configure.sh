@@ -149,10 +149,6 @@ fi
 # The key is written to .env as STALWART_MANAGEMENT_API_KEY and re-minted when
 # it no longer authenticates. STALWART_MANAGEMENT_LOGIN (the recovery-admin
 # fallback) skips all of this.
-api_key_works() { # the key goes through stdin, not the command line (ps)
-  [[ -n "$1" ]] && printf 'Authorization: Bearer %s\n' "$1" | ccurl -f -H @- -H 'Content-Type: application/json' "${MAIL_URL}/jmap/" \
-    -d "{${USING},\"methodCalls\":[[\"x:Account/query\",{},\"q\"]]}" 2>/dev/null | jq -e '.methodResponses[0][0]=="x:Account/query"' >/dev/null
-}
 env_put() { # KEY VALUE: replace KEY= in deploy/.env, or append it (value via the environment, not argv)
   local tmp; tmp=$(mktemp)
   ENV_PUT_KEY="$1" ENV_PUT_LINE="$1=$2" awk 'BEGIN{k=ENVIRON["ENV_PUT_KEY"]; line=ENVIRON["ENV_PUT_LINE"]; done=0}
@@ -187,19 +183,34 @@ if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" ]]; then
     fi
     if [[ -z "$MGMT_ID" ]]; then
       echo "Stalwart: WARNING could not create the admin console account" >&2
-    elif api_key_works "${STALWART_MANAGEMENT_API_KEY:-}"; then
-      log "Stalwart: admin console API key in .env still works"
     else
-      log "Stalwart: minting an API key for ${MGMT_USER}@${MAIL_DOMAIN} -> .env STALWART_MANAGEMENT_API_KEY"
-      # Usable only from the console's container (it reaches Stalwart directly on the stack network).
-      ADMIN_IP="${NIGHTWARE_ADMIN_ADDRESS:-172.31.250.249}/32"
-      KEY=$(call "$(jq -cn --arg a "$MGMT_ID" --arg ip "$ADMIN_IP" '[["x:ApiKey/set",{"accountId":$a,"create":{"k":{description:"Nightware admin console",permissions:{"@type":"Inherit"},allowedIps:{($ip):true}}}},"c"]]')" \
-        | jq -r '.methodResponses[0][1].created.k.secret // empty')
-      if [[ -n "$KEY" ]]; then
-        env_put STALWART_MANAGEMENT_API_KEY "$KEY"
-        STALWART_MANAGEMENT_API_KEY="$KEY"
+      # The key only works from the console's container, so it cannot be tried from here. Keep it while the key
+      # recorded in .env still exists on the account; otherwise mint a new one and destroy every other key of the
+      # account, so no older (or unrestricted) key stays valid.
+      ADMIN_IP="${NIGHTWARE_ADMIN_ADDRESS:-172.31.250.249}"
+      keys=$(call "$(jq -cn --arg a "$MGMT_ID" '[["x:ApiKey/query",{"accountId":$a},"q"],["x:ApiKey/get",{"accountId":$a,"#ids":{"resultOf":"q","name":"x:ApiKey/query","path":"/ids"},"properties":["allowedIps"]},"g"]]')" \
+        | jq -c '.methodResponses[1][1].list // []')
+      current=$(jq -r --arg id "${STALWART_MANAGEMENT_API_KEY_ID:-}" --arg ip "$ADMIN_IP" '.[] | select(.id==$id and (.allowedIps | has($ip))) | .id' <<<"$keys")
+      if [[ -n "${STALWART_MANAGEMENT_API_KEY:-}" && -n "$current" ]]; then
+        log "Stalwart: the admin console's API key (${current}) is in place, usable from ${ADMIN_IP} only"
       else
-        echo "Stalwart: WARNING could not mint an API key for the admin console" >&2
+        log "Stalwart: minting an API key for ${MGMT_USER}@${MAIL_DOMAIN}, usable from ${ADMIN_IP} only -> .env"
+        created=$(call "$(jq -cn --arg a "$MGMT_ID" --arg ip "$ADMIN_IP" '[["x:ApiKey/set",{"accountId":$a,"create":{"k":{description:"Nightware admin console",permissions:{"@type":"Inherit"},allowedIps:{($ip):true}}}},"c"]]')" \
+          | jq -c '.methodResponses[0][1].created.k // empty')
+        if [[ -n "$created" ]]; then
+          STALWART_MANAGEMENT_API_KEY=$(jq -r .secret <<<"$created")
+          STALWART_MANAGEMENT_API_KEY_ID=$(jq -r .id <<<"$created")
+          env_put STALWART_MANAGEMENT_API_KEY "$STALWART_MANAGEMENT_API_KEY"
+          env_put STALWART_MANAGEMENT_API_KEY_ID "$STALWART_MANAGEMENT_API_KEY_ID"
+          stale=$(jq -c --arg id "$STALWART_MANAGEMENT_API_KEY_ID" '[.[].id | select(. != $id)]' <<<"$keys")
+          if [[ "$stale" != "[]" ]]; then
+            log "Stalwart: destroying the console account's older API keys ${stale}"
+            call "$(jq -cn --arg a "$MGMT_ID" --argjson ids "$stale" '[["x:ApiKey/set",{"accountId":$a,"destroy":$ids},"c"]]')" >/dev/null
+          fi
+          echo "Stalwart: restart the console to use the new key: docker compose --profile api up -d nightware-admin" >&2
+        else
+          echo "Stalwart: WARNING could not mint an API key for the admin console" >&2
+        fi
       fi
     fi
   fi
@@ -214,12 +225,4 @@ if (( RESTART_STALWART )); then
   wait_for "stalwart restart" ccurl -f "${MAIL_ALIAS_URL}/healthz/live"
 fi
 log "Stalwart: configured (directory ${DIR_ID} is the default directory)"
-# The console's principal must be able to list accounts. Reported, not fatal:
-# the rest of the stack works without it.
-if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" ]]; then
-  if api_key_works "${STALWART_MANAGEMENT_API_KEY:-}"; then
-    log "Stalwart: the admin console's API key can manage accounts (restart nightware-admin to pick up a new key)"
-  else
-    echo "Stalwart: WARNING the admin console's API key does not work; see deploy/README.md 'Admin console'" >&2
-  fi
-fi
+# The console's dashboard reports whether its key works (Stalwart: OK / Unavailable).
