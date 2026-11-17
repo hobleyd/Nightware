@@ -3,6 +3,10 @@
     @foreach (var link in Model)
     {
         var name = link.Backend switch { BackendKind.Identity => "Keycloak", BackendKind.Mail => "Mail", _ => "Nextcloud" };
-        <li class="chip @link.State.ToString().ToLowerInvariant()" title="@link.Detail">@name: @link.State</li>
+        <li class="chip @link.State.ToString().ToLowerInvariant()">@name: @link.State</li>
     }
 </ul>
+@foreach (var link in Model.Where(l => l.State is LinkState.Conflict or LinkState.Error))
+{
+    <p class="hint detail">@link.Detail</p>
+}

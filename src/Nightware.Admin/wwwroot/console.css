@@ -59,8 +59,23 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; }
 .top .signout { margin-left: auto; display: flex; gap: 10px; align-items: center; }
 .who { color: var(--muted); }
 .top .who { color: var(--night-muted); }
+.top nav a[aria-current="page"] { color: var(--night-text); text-decoration-thickness: 2px; }
+.top .find { margin: 0; }
+.top .find label { margin: 0; }
+.top .find input[type=search] { width: 14em; padding: 4px 8px; border-color: var(--night-muted); background: transparent; color: var(--night-text); }
+.top .find input::placeholder { color: var(--night-muted); }
+
+.skip { position: absolute; left: 8px; top: -48px; padding: 8px 12px; background: var(--panel); color: var(--accent); border-radius: 6px; z-index: 1; }
+.skip:focus { top: 8px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.crumbs { color: var(--muted); font-size: 0.9em; margin: 8px 0 -8px; }
+.crumbs [aria-current] { color: var(--text); }
 
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin: 16px 0; }
+.panel > h2:first-child { margin-top: 0; }
+.panel table + form { margin-top: 12px; }
+.detail { margin: 4px 0 0; }
 .danger-zone { border-color: var(--bad); }
 .hint { color: var(--muted); font-size: 0.9em; }
 .notice { background: var(--panel); border-left: 4px solid var(--ok); padding: 8px 12px; }

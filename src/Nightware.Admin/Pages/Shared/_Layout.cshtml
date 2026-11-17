@@ -1,6 +1,9 @@
 @{
     var actor = (ViewData.Model as ConsolePageModel)?.Actor;
     var signedIn = User.Identity?.IsAuthenticated == true;
+    var page = ViewContext.RouteData.Values["page"] as string ?? string.Empty;
+    var inEntities = page.StartsWith("/Entities/", StringComparison.Ordinal) || page.StartsWith("/Users/", StringComparison.Ordinal);
+    var inAdmins = page.StartsWith("/Admins/", StringComparison.Ordinal);
 }
 <!doctype html>
 <html lang="en">
@@ -15,17 +18,21 @@
     <link rel="stylesheet" href="~/console.css" asp-append-version="true">
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <header class="top">
     <a class="brand" asp-page="/Index"><img src="~/img/mark.png" width="28" height="28" alt="">Nightware console</a>
     @if (signedIn && actor?.IsAdmin == true)
     {
         <nav>
-            <a asp-page="/Entities/Index">Entities</a>
+            <a asp-page="/Entities/Index" aria-current="@(inEntities ? "page" : null)">Entities</a>
             @if (actor.IsGlobal)
             {
-                <a asp-page="/Admins/Index">Global admins</a>
+                <a asp-page="/Admins/Index" aria-current="@(inAdmins ? "page" : null)">Global admins</a>
             }
         </nav>
+        <form method="get" asp-page="/Users/Find" class="find" role="search">
+            <label><span class="visually-hidden">Find a user</span><input type="search" name="q" placeholder="Find a user" autocomplete="off" required></label>
+        </form>
     }
     @if (signedIn)
     {
@@ -36,7 +43,7 @@
         </form>
     }
 </header>
-<main>
+<main id="main">
     @if (ViewData.Model is ConsolePageModel { Notice: { Length: > 0 } notice })
     {
         <p class="notice" role="status">@notice</p>

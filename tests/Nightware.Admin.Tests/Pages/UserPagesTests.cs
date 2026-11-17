@@ -109,6 +109,37 @@ public sealed class UserPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task Finding_one_user_opens_them_and_several_are_listed_with_their_entity()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+        _host.Entities.ListMembersAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success(
+        [
+            new IdentityAccount("u-dan", "dan", "dan@acme.example", true),
+            new IdentityAccount("u-dana", "dana", "dana@acme.example", true),
+        ]));
+        HttpClient client = _host.ClientAs(ConsoleHost.GlobalAdmin);
+
+        using HttpResponseMessage one = await client.GetAsync(new Uri("/users/find?q=dan%40", UriKind.Relative), Ct);
+        one.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        one.Headers.Location!.OriginalString.ShouldBe("/users/u-dan");
+
+        string several = await (await client.GetAsync(new Uri("/users/find?q=dan", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+        several.ShouldContain("dana@acme.example");
+        several.ShouldContain(">Acme Pty</a>");
+    }
+
+    [Fact]
+    public async Task The_user_page_names_their_entity_and_puts_access_before_password()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+
+        string html = await (await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri("/users/u-dan", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain("aria-label=\"Breadcrumb\"");
+        html.IndexOf("<h2>Access</h2>", StringComparison.Ordinal).ShouldBeLessThan(html.IndexOf("<h2>Password</h2>", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task The_offboard_box_is_required_in_the_form()
     {
         _host.AddUser("u-dan", "dan", "dan@acme.example");

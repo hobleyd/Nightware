@@ -1,0 +1,34 @@
+@page "/users/find"
+@model Nightware.Admin.Pages.Users.FindModel
+@{ ViewData["Title"] = "Find a user"; }
+<h1>Find a user</h1>
+<form method="get" class="row" role="search">
+    <label>Name, username or address <input name="q" value="@Model.Q" autocomplete="off" required></label>
+    <button type="submit" class="secondary">Find</button>
+</form>
+
+@if (string.IsNullOrWhiteSpace(Model.Q))
+{
+    <p class="hint">Searches the users of every entity you manage.</p>
+}
+else if (Model.Found.Count == 0)
+{
+    <p>Nobody in your entities matches “@Model.Q”.</p>
+}
+else
+{
+    <table>
+        <thead><tr><th>Name</th><th>Address</th><th>Entity</th><th>Sign-in</th></tr></thead>
+        <tbody>
+        @foreach (var f in Model.Found)
+        {
+            <tr class="@(f.Identity.Enabled ? "" : "disabled")">
+                <td><a asp-page="/Users/Detail" asp-route-id="@f.Identity.Id">@f.Identity.DisplayName</a></td>
+                <td>@f.Identity.Email</td>
+                <td><a asp-page="/Entities/Detail" asp-route-id="@f.Entity.Id">@f.Entity.Name</a></td>
+                <td>@(f.Identity.Enabled ? "Active" : "Offboarded")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

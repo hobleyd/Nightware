@@ -1,4 +1,5 @@
 using Nightware.Application.Administration;
+using Nightware.Application.Administration.Entities;
 using Nightware.Application.Administration.Users;
 using Nightware.Domain.Administration;
 using Nightware.Domain.Kernel;
@@ -81,6 +82,42 @@ public sealed class UserLifecycleTests
 
         (await new ListUsers(_bed.Actor, _bed.Entities, _bed.UserAccess()).ExecuteAsync(AdminTestBed.Other, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         await _bed.Entities.DidNotReceiveWithAnyArgs().ListMembersAsync(default!, Ct);
+    }
+
+    [Fact]
+    public async Task FindUsers_searches_every_manageable_entity_by_name_username_address_and_alias()
+    {
+        _bed.Entities.ListAsync(Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<Entity>>.Success([AdminTestBed.AcmeEntity, AdminTestBed.OtherEntity]));
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success(
+        [
+            new IdentityAccount("u1", "amy", "amy@acme.example", true),
+            new IdentityAccount("u2", "zed", "zed@acme.example", true) { Aliases = ["sales@acme.example"] },
+        ]));
+        _bed.Entities.ListMembersAsync(AdminTestBed.Other, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success(
+        [
+            new IdentityAccount("u3", "amyl", "amy.lee@other.example", false),
+            new IdentityAccount("u1", "amy", "amy@acme.example", true),
+        ]));
+        var find = new FindUsers(new ListEntities(_bed.Actor, _bed.Entities), _bed.Entities);
+
+        IReadOnlyList<FoundUser> amy = (await find.ExecuteAsync(" AMY ", Ct)).Value;
+        amy.Select(f => (f.Identity.Id, f.Entity.Id)).ShouldBe([("u1", AdminTestBed.Acme), ("u3", AdminTestBed.Other)], ignoreOrder: true);
+
+        (await find.ExecuteAsync("sales@", Ct)).Value.Single().Identity.Id.ShouldBe("u2");
+        (await find.ExecuteAsync("  ", Ct)).Value.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task FindUsers_never_looks_outside_an_entity_admins_entities()
+    {
+        _bed.ActAsEntityAdmin();
+        _bed.Entities.ListAsync(Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<Entity>>.Success([AdminTestBed.AcmeEntity, AdminTestBed.OtherEntity]));
+        _bed.Entities.ListMembersAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+
+        (await new FindUsers(new ListEntities(_bed.Actor, _bed.Entities), _bed.Entities).ExecuteAsync("amy", Ct)).IsSuccess.ShouldBeTrue();
+
+        await _bed.Entities.Received(1).ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>());
+        await _bed.Entities.DidNotReceive().ListMembersAsync(AdminTestBed.Other, Arg.Any<CancellationToken>());
     }
 
     [Fact]

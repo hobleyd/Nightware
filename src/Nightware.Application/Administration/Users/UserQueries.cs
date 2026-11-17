@@ -1,3 +1,4 @@
+using Nightware.Application.Administration.Entities;
 using Nightware.Domain.Administration;
 using Nightware.Domain.Kernel;
 
@@ -49,4 +50,53 @@ public sealed class GetUser(UserAccess users)
 {
     public Task<Result<UserDetail>> ExecuteAsync(string userId, CancellationToken cancellationToken) =>
         users.LoadWithLinksAsync(userId, cancellationToken);
+}
+
+/// <summary>A user found by <see cref="FindUsers"/>, with the entity they were found in.</summary>
+public sealed record FoundUser(IdentityAccount Identity, Entity Entity);
+
+/// <summary>
+/// The users, across every entity the actor manages, whose name, username or address (aliases included)
+/// contains the text: the console's "find a user", so an admin need not remember which entity someone is in.
+/// Reads Keycloak only; a user's own page shows their state in every backend.
+/// </summary>
+public sealed class FindUsers(ListEntities entities, IEntityRegistry registry)
+{
+    public async Task<Result<IReadOnlyList<FoundUser>>> ExecuteAsync(string? text, CancellationToken cancellationToken)
+    {
+        Result<IReadOnlyList<Entity>> manageable = await entities.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+        if (!manageable.IsSuccess)
+        {
+            return manageable.Error;
+        }
+
+        string q = text?.Trim() ?? string.Empty;
+        if (q.Length == 0)
+        {
+            return Array.Empty<FoundUser>();
+        }
+
+        var found = new Dictionary<string, FoundUser>(StringComparer.Ordinal);
+        foreach (Entity entity in manageable.Value)
+        {
+            Result<IReadOnlyList<IdentityAccount>> members = await registry.ListMembersAsync(entity.Id, cancellationToken).ConfigureAwait(false);
+            if (!members.IsSuccess)
+            {
+                return members.Error;
+            }
+
+            foreach (IdentityAccount member in members.Value.Where(m => Matches(m, q)))
+            {
+                found.TryAdd(member.Id, new FoundUser(member, entity));
+            }
+        }
+
+        return found.Values.OrderBy(static f => f.Identity.DisplayName, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private static bool Matches(IdentityAccount user, string q) =>
+        user.Email.Contains(q, StringComparison.OrdinalIgnoreCase)
+        || user.Username.Contains(q, StringComparison.OrdinalIgnoreCase)
+        || user.DisplayName.Contains(q, StringComparison.OrdinalIgnoreCase)
+        || user.Aliases.Any(a => a.Contains(q, StringComparison.OrdinalIgnoreCase));
 }

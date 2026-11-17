@@ -5,6 +5,7 @@
     ViewData["Title"] = entity.Name;
     var adminIds = Model.Admins.Select(a => a.Id).ToHashSet();
 }
+<nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Entities/Index">Entities</a> › <span aria-current="page">@entity.Name</span></nav>
 <h1>@entity.Name <small>@entity.Alias</small></h1>
 <p><a asp-page="/Users/Index" asp-route-entity="@entity.Id">@Model.Members.Count user(s)</a> · <a asp-page="/Users/New" asp-route-entity="@entity.Id">Add user</a></p>
 
@@ -17,7 +18,7 @@
         {
             <tr>
                 <td>@d.Domain</td>
-                <td><span class="chip @d.Mail.State.ToString().ToLowerInvariant()" title="@d.Mail.Detail">@d.Mail.State</span></td>
+                <td><span class="chip @d.Mail.State.ToString().ToLowerInvariant()">@d.Mail.State</span>@if (d.Mail.State != LinkState.Linked) { <span class="hint detail">@d.Mail.Detail</span> }</td>
                 <td>@(d.DkimPresent ? "Keys present" : "—")</td>
                 <td class="actions">
                     <a asp-page="/Entities/Dns" asp-route-id="@entity.Id" asp-route-domain="@d.Domain.Name">DNS records</a>

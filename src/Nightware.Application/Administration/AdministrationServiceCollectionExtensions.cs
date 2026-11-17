@@ -41,6 +41,7 @@ public static class AdministrationServiceCollectionExtensions
 
         services.TryAddScoped<ListUsers>();
         services.TryAddScoped<GetUser>();
+        services.TryAddScoped<FindUsers>();
         services.TryAddScoped<PlanUserProvisioning>();
         services.TryAddScoped<ApplyUserProvisioning>();
         services.TryAddScoped<RepairUser>();

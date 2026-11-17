@@ -3,18 +3,22 @@
 @{ ViewData["Title"] = "Dashboard"; }
 <h1>Dashboard</h1>
 
-<section>
+<section class="panel">
     <h2>Systems</h2>
     <ul class="chips">
         @foreach (var h in Model.Health)
         {
             var name = h.Backend switch { BackendKind.Identity => "Keycloak", BackendKind.Mail => "Stalwart", _ => "Nextcloud" };
-            <li class="chip @(h.Healthy ? "linked" : "error")" title="@h.Detail">@name: @(h.Healthy ? "OK" : "Unavailable")</li>
+            <li class="chip @(h.Healthy ? "linked" : "error")">@name: @(h.Healthy ? "OK" : "Unavailable")</li>
         }
     </ul>
+    @foreach (var h in Model.Health.Where(h => !h.Healthy && !string.IsNullOrEmpty(h.Detail)))
+    {
+        <p class="hint detail">@(h.Backend switch { BackendKind.Identity => "Keycloak", BackendKind.Mail => "Stalwart", _ => "Nextcloud" }): @h.Detail</p>
+    }
 </section>
 
-<section>
+<section class="panel">
     <h2>@(Model.Actor.IsGlobal ? "Entities" : "Your entities")</h2>
     @if (Model.Entities.Count == 0)
     {

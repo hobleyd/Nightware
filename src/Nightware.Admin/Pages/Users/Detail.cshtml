@@ -6,12 +6,16 @@
     var self = id.Id == Model.Actor.UserId;
     ViewData["Title"] = id.DisplayName;
 }
+@if (u.EntityId is not null && Model.EntityName is not null)
+{
+    <nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Entities/Detail" asp-route-id="@u.EntityId">@Model.EntityName</a> › <a asp-page="/Users/Index" asp-route-entity="@u.EntityId">Users</a> › <span aria-current="page">@id.DisplayName</span></nav>
+}
 <h1>@id.DisplayName <small>@id.Email</small></h1>
 <p>
     Username <code>@id.Username</code>
     @if (u.EntityId is not null)
     {
-        <text> · <a asp-page="/Entities/Detail" asp-route-id="@u.EntityId">entity</a></text>
+        <text> · <a asp-page="/Entities/Detail" asp-route-id="@u.EntityId">@(Model.EntityName ?? "entity")</a></text>
     }
     @if (u.IsGlobalAdmin) { <text> · <strong>global administrator</strong></text> }
     else if (u.IsEntityAdmin) { <text> · entity administrator</text> }
@@ -44,33 +48,6 @@
         <p><strong>Temporary password — shown once.</strong> They must change it at their next sign-in.</p>
         <p><code>@credential.Password</code></p>
     </div>
-}
-
-@if (self)
-{
-    <section class="panel">
-        <h2>Password</h2>
-        <p>This is you: change your own password on <a asp-page="/Account/Password">Change password</a>. Administrators never reset their own password here.</p>
-    </section>
-}
-
-@if (id.Enabled && !self)
-{
-    <section class="panel">
-        <h2>Password</h2>
-        <form method="post" asp-page-handler="Reset" class="row">
-            <button type="submit" name="delivery" value="@CredentialDelivery.TemporaryPassword" class="secondary">Generate a temporary password</button>
-            <button type="submit" name="delivery" value="@CredentialDelivery.ActionEmail" class="secondary">E-mail a set-password link</button>
-        </form>
-    </section>
-
-    <section class="panel">
-        <h2>Other addresses</h2>
-        <form method="post" asp-page-handler="Aliases" class="row">
-            <label>Aliases <input name="aliases" value="@string.Join(", ", id.Aliases)" autocomplete="off"></label>
-            <button type="submit" class="secondary">Save</button>
-        </form>
-    </section>
 }
 
 @if (!self)
@@ -118,7 +95,37 @@
             </form>
         }
     </section>
+}
 
+@if (self)
+{
+    <section class="panel">
+        <h2>Password</h2>
+        <p>This is you: change your own password on <a asp-page="/Account/Password">Change password</a>. Administrators never reset their own password here.</p>
+    </section>
+}
+
+@if (id.Enabled && !self)
+{
+    <section class="panel">
+        <h2>Password</h2>
+        <form method="post" asp-page-handler="Reset" class="row">
+            <button type="submit" name="delivery" value="@CredentialDelivery.TemporaryPassword" class="secondary">Generate a temporary password</button>
+            <button type="submit" name="delivery" value="@CredentialDelivery.ActionEmail" class="secondary">E-mail a set-password link</button>
+        </form>
+    </section>
+
+    <section class="panel">
+        <h2>Other addresses</h2>
+        <form method="post" asp-page-handler="Aliases" class="row">
+            <label>Aliases <input name="aliases" value="@string.Join(", ", id.Aliases)" autocomplete="off"></label>
+            <button type="submit" class="secondary">Save</button>
+        </form>
+    </section>
+}
+
+@if (!self)
+{
     @if (Model.Actor.IsGlobal)
     {
         <section class="panel">
