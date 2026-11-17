@@ -225,4 +225,21 @@ public sealed class DashboardAndReadFailureTests : IDisposable
         html.ShouldContain("<h1>User</h1>");
         html.ShouldContain("Keycloak is down.");
     }
+
+    [Fact]
+    public async Task A_user_page_leads_with_the_action_their_status_calls_for()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+        string repair = await GetAsync("/users/u-dan");
+        repair.ShouldContain("<button type=\"submit\">Repair</button>");
+        repair.ShouldContain("class=\"danger quiet\">Offboard</button>");
+        repair.ShouldContain("<details class=\"panel more\">");
+
+        _host.AddUser("u-eve", "eve", "eve@acme.example", enabled: false);
+        _host.Mail.FindByAddressAsync("eve@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-eve", "eve@acme.example", true));
+        string incomplete = await GetAsync("/users/u-eve");
+        incomplete.ShouldContain("<section class=\"panel incomplete\">");
+        incomplete.ShouldContain("<button type=\"submit\">Finish offboarding</button>");
+        incomplete.ShouldNotContain("class=\"warning\"");
+    }
 }
