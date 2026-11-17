@@ -45,7 +45,7 @@
 @if (Model.Credential is { } credential)
 {
     <div class="secret">
-        <p><strong>Temporary password — shown once.</strong> They must change it at their next sign-in.</p>
+        <p><strong>Temporary password — shown once.</strong> Give it to them by a channel other than this mailbox; they must change it at their next sign-in.</p>
         <p><code>@credential.Password</code></p>
     </div>
 }

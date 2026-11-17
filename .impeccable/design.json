@@ -1,23 +1,39 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-17T08:40:00+00:00",
+  "generatedAt": "2026-11-17T09:58:43+00:00",
   "title": "Design System: Nightware console",
   "extensions": {
     "colorMeta": {
       "accent": {
         "role": "primary",
-        "displayName": "Switchboard Blue",
-        "canonical": "#2f5bd3",
-        "oklch": "oklch(51.4% 0.192 265)",
+        "displayName": "Envelope Indigo",
+        "canonical": "#3a3db0",
+        "oklch": "oklch(43.4% 0.178 275)",
         "tonalRamp": [
-          "oklch(15% 0.094 265)",
-          "oklch(26% 0.125 265)",
-          "oklch(38% 0.155 265)",
-          "oklch(49% 0.186 265)",
-          "oklch(61% 0.167 265)",
-          "oklch(72% 0.136 265)",
-          "oklch(84% 0.105 265)",
-          "oklch(95% 0.075 265)"
+          "oklch(15% 0.107 275)",
+          "oklch(26% 0.136 275)",
+          "oklch(38% 0.165 275)",
+          "oklch(49% 0.164 275)",
+          "oklch(61% 0.135 275)",
+          "oklch(72% 0.107 275)",
+          "oklch(84% 0.078 275)",
+          "oklch(95% 0.050 275)"
+        ]
+      },
+      "on-accent": {
+        "role": "primary",
+        "displayName": "On Indigo",
+        "canonical": "#ffffff",
+        "oklch": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
         ]
       },
       "ok": {
@@ -68,68 +84,100 @@
           "oklch(95% 0.066 29)"
         ]
       },
+      "on-bad": {
+        "role": "status",
+        "displayName": "On Red",
+        "canonical": "#ffffff",
+        "oklch": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
       "text": {
         "role": "neutral",
         "displayName": "Ink",
-        "canonical": "#1d1f23",
-        "oklch": "oklch(23.9% 0.008 264)",
+        "canonical": "#191a2c",
+        "oklch": "oklch(22.6% 0.035 281)",
         "tonalRamp": [
-          "oklch(15% 0.007 264)",
-          "oklch(26% 0.008 264)",
-          "oklch(38% 0.007 264)",
-          "oklch(49% 0.005 264)",
-          "oklch(61% 0.004 264)",
-          "oklch(72% 0.003 264)",
-          "oklch(84% 0.001 264)",
-          "oklch(95% 0.001 264)"
+          "oklch(15% 0.031 281)",
+          "oklch(26% 0.033 281)",
+          "oklch(38% 0.027 281)",
+          "oklch(49% 0.022 281)",
+          "oklch(61% 0.016 281)",
+          "oklch(72% 0.011 281)",
+          "oklch(84% 0.005 281)",
+          "oklch(95% 0.005 281)"
         ]
       },
       "muted": {
         "role": "neutral",
         "displayName": "Slate",
-        "canonical": "#5d6470",
-        "oklch": "oklch(50.1% 0.021 261)",
+        "canonical": "#565a74",
+        "oklch": "oklch(47.4% 0.042 278)",
         "tonalRamp": [
-          "oklch(15% 0.011 261)",
-          "oklch(26% 0.014 261)",
-          "oklch(38% 0.017 261)",
-          "oklch(49% 0.021 261)",
-          "oklch(61% 0.018 261)",
-          "oklch(72% 0.015 261)",
-          "oklch(84% 0.011 261)",
-          "oklch(95% 0.008 261)"
+          "oklch(15% 0.023 278)",
+          "oklch(26% 0.030 278)",
+          "oklch(38% 0.037 278)",
+          "oklch(49% 0.041 278)",
+          "oklch(61% 0.034 278)",
+          "oklch(72% 0.028 278)",
+          "oklch(84% 0.021 278)",
+          "oklch(95% 0.014 278)"
         ]
       },
       "line": {
         "role": "neutral",
         "displayName": "Hairline",
-        "canonical": "#dcdfe4",
-        "oklch": "oklch(90.3% 0.008 261)",
+        "canonical": "#dcdde8",
+        "oklch": "oklch(90.0% 0.015 282)",
         "tonalRamp": [
-          "oklch(15% 0.001 261)",
-          "oklch(26% 0.001 261)",
-          "oklch(38% 0.002 261)",
-          "oklch(49% 0.003 261)",
-          "oklch(61% 0.004 261)",
-          "oklch(72% 0.006 261)",
-          "oklch(84% 0.007 261)",
-          "oklch(95% 0.007 261)"
+          "oklch(15% 0.002 282)",
+          "oklch(26% 0.002 282)",
+          "oklch(38% 0.004 282)",
+          "oklch(49% 0.006 282)",
+          "oklch(61% 0.009 282)",
+          "oklch(72% 0.011 282)",
+          "oklch(84% 0.014 282)",
+          "oklch(95% 0.014 282)"
+        ]
+      },
+      "control-line": {
+        "role": "neutral",
+        "displayName": "Control Edge",
+        "canonical": "#82869f",
+        "oklch": "oklch(62.5% 0.038 278)",
+        "tonalRamp": [
+          "oklch(15% 0.013 278)",
+          "oklch(26% 0.019 278)",
+          "oklch(38% 0.025 278)",
+          "oklch(49% 0.031 278)",
+          "oklch(61% 0.037 278)",
+          "oklch(72% 0.033 278)",
+          "oklch(84% 0.027 278)",
+          "oklch(95% 0.021 278)"
         ]
       },
       "bg": {
         "role": "neutral",
         "displayName": "Paper",
-        "canonical": "#f7f7f5",
-        "oklch": "oklch(97.6% 0.003 106)",
+        "canonical": "#f5f5f9",
+        "oklch": "oklch(97.1% 0.005 286)",
         "tonalRamp": [
-          "oklch(15% 0.000 106)",
-          "oklch(26% 0.000 106)",
-          "oklch(38% 0.000 106)",
-          "oklch(49% 0.001 106)",
-          "oklch(61% 0.001 106)",
-          "oklch(72% 0.002 106)",
-          "oklch(84% 0.002 106)",
-          "oklch(95% 0.003 106)"
+          "oklch(15% 0.001 286)",
+          "oklch(26% 0.001 286)",
+          "oklch(38% 0.001 286)",
+          "oklch(49% 0.002 286)",
+          "oklch(61% 0.003 286)",
+          "oklch(72% 0.003 286)",
+          "oklch(84% 0.004 286)",
+          "oklch(95% 0.005 286)"
         ]
       },
       "panel": {
@@ -151,33 +199,129 @@
       "chip-bg": {
         "role": "neutral",
         "displayName": "Chip Grey",
-        "canonical": "#eef0f3",
-        "oklch": "oklch(95.4% 0.005 258)",
+        "canonical": "#eeeff5",
+        "oklch": "oklch(95.3% 0.008 279)",
         "tonalRamp": [
-          "oklch(15% 0.001 258)",
-          "oklch(26% 0.001 258)",
-          "oklch(38% 0.001 258)",
-          "oklch(49% 0.002 258)",
-          "oklch(61% 0.002 258)",
-          "oklch(72% 0.003 258)",
-          "oklch(84% 0.004 258)",
-          "oklch(95% 0.005 258)"
+          "oklch(15% 0.001 279)",
+          "oklch(26% 0.001 279)",
+          "oklch(38% 0.002 279)",
+          "oklch(49% 0.003 279)",
+          "oklch(61% 0.004 279)",
+          "oklch(72% 0.005 279)",
+          "oklch(84% 0.007 279)",
+          "oklch(95% 0.008 279)"
+        ]
+      },
+      "selection": {
+        "role": "neutral",
+        "displayName": "Selection",
+        "canonical": "#d9dbff",
+        "oklch": "oklch(90.1% 0.049 283)",
+        "tonalRamp": [
+          "oklch(15% 0.007 283)",
+          "oklch(26% 0.007 283)",
+          "oklch(38% 0.013 283)",
+          "oklch(49% 0.021 283)",
+          "oklch(61% 0.029 283)",
+          "oklch(72% 0.037 283)",
+          "oklch(84% 0.045 283)",
+          "oklch(95% 0.046 283)"
+        ]
+      },
+      "night": {
+        "role": "night",
+        "displayName": "Night",
+        "canonical": "#121433",
+        "oklch": "oklch(20.9% 0.060 277)",
+        "tonalRamp": [
+          "oklch(15% 0.055 277)",
+          "oklch(26% 0.055 277)",
+          "oklch(38% 0.046 277)",
+          "oklch(49% 0.036 277)",
+          "oklch(61% 0.027 277)",
+          "oklch(72% 0.017 277)",
+          "oklch(84% 0.009 277)",
+          "oklch(95% 0.009 277)"
+        ]
+      },
+      "night-text": {
+        "role": "night",
+        "displayName": "Starlight",
+        "canonical": "#eceeff",
+        "oklch": "oklch(95.3% 0.023 281)",
+        "tonalRamp": [
+          "oklch(15% 0.003 281)",
+          "oklch(26% 0.003 281)",
+          "oklch(38% 0.004 281)",
+          "oklch(49% 0.008 281)",
+          "oklch(61% 0.012 281)",
+          "oklch(72% 0.015 281)",
+          "oklch(84% 0.019 281)",
+          "oklch(95% 0.023 281)"
+        ]
+      },
+      "night-muted": {
+        "role": "night",
+        "displayName": "Dusk",
+        "canonical": "#a9add6",
+        "oklch": "oklch(75.8% 0.059 281)",
+        "tonalRamp": [
+          "oklch(15% 0.009 281)",
+          "oklch(26% 0.018 281)",
+          "oklch(38% 0.028 281)",
+          "oklch(49% 0.037 281)",
+          "oklch(61% 0.046 281)",
+          "oklch(72% 0.056 281)",
+          "oklch(84% 0.052 281)",
+          "oklch(95% 0.043 281)"
+        ]
+      },
+      "night-link": {
+        "role": "night",
+        "displayName": "Moonlit Link",
+        "canonical": "#c3c8ff",
+        "oklch": "oklch(84.8% 0.077 281)",
+        "tonalRamp": [
+          "oklch(15% 0.012 281)",
+          "oklch(26% 0.014 281)",
+          "oklch(38% 0.026 281)",
+          "oklch(49% 0.039 281)",
+          "oklch(61% 0.051 281)",
+          "oklch(72% 0.063 281)",
+          "oklch(84% 0.076 281)",
+          "oklch(95% 0.066 281)"
         ]
       },
       "accent-dark": {
         "role": "primary",
-        "displayName": "Switchboard Blue (dark)",
-        "canonical": "#7ea2ff",
-        "oklch": "oklch(72.5% 0.142 267)",
+        "displayName": "Envelope Indigo (dark)",
+        "canonical": "#aab1ff",
+        "oklch": "oklch(78.4% 0.111 280)",
         "tonalRamp": [
-          "oklch(15% 0.028 267)",
-          "oklch(26% 0.050 267)",
-          "oklch(38% 0.073 267)",
-          "oklch(49% 0.095 267)",
-          "oklch(61% 0.118 267)",
-          "oklch(72% 0.141 267)",
-          "oklch(84% 0.120 267)",
-          "oklch(95% 0.097 267)"
+          "oklch(15% 0.017 280)",
+          "oklch(26% 0.030 280)",
+          "oklch(38% 0.048 280)",
+          "oklch(49% 0.066 280)",
+          "oklch(61% 0.084 280)",
+          "oklch(72% 0.101 280)",
+          "oklch(84% 0.103 280)",
+          "oklch(95% 0.085 280)"
+        ]
+      },
+      "on-accent-dark": {
+        "role": "primary",
+        "displayName": "On Indigo (dark)",
+        "canonical": "#0c0e22",
+        "oklch": "oklch(17.4% 0.041 277)",
+        "tonalRamp": [
+          "oklch(15% 0.040 277)",
+          "oklch(26% 0.036 277)",
+          "oklch(38% 0.029 277)",
+          "oklch(49% 0.023 277)",
+          "oklch(61% 0.016 277)",
+          "oklch(72% 0.010 277)",
+          "oklch(84% 0.006 277)",
+          "oklch(95% 0.006 277)"
         ]
       },
       "ok-dark": {
@@ -215,113 +359,177 @@
       "bad-dark": {
         "role": "status",
         "displayName": "Fault Red (dark)",
-        "canonical": "#ff7b72",
-        "oklch": "oklch(73.4% 0.163 26)",
+        "canonical": "#ff8a80",
+        "oklch": "oklch(75.9% 0.144 26)",
         "tonalRamp": [
-          "oklch(15% 0.030 26)",
-          "oklch(26% 0.056 26)",
-          "oklch(38% 0.082 26)",
-          "oklch(49% 0.108 26)",
-          "oklch(61% 0.134 26)",
-          "oklch(72% 0.160 26)",
-          "oklch(84% 0.140 26)",
-          "oklch(95% 0.114 26)"
+          "oklch(15% 0.022 26)",
+          "oklch(26% 0.044 26)",
+          "oklch(38% 0.067 26)",
+          "oklch(49% 0.090 26)",
+          "oklch(61% 0.113 26)",
+          "oklch(72% 0.136 26)",
+          "oklch(84% 0.128 26)",
+          "oklch(95% 0.105 26)"
+        ]
+      },
+      "on-bad-dark": {
+        "role": "status",
+        "displayName": "On Red (dark)",
+        "canonical": "#0c0e22",
+        "oklch": "oklch(17.4% 0.041 277)",
+        "tonalRamp": [
+          "oklch(15% 0.040 277)",
+          "oklch(26% 0.036 277)",
+          "oklch(38% 0.029 277)",
+          "oklch(49% 0.023 277)",
+          "oklch(61% 0.016 277)",
+          "oklch(72% 0.010 277)",
+          "oklch(84% 0.006 277)",
+          "oklch(95% 0.006 277)"
         ]
       },
       "text-dark": {
         "role": "neutral",
         "displayName": "Ink (dark)",
-        "canonical": "#e6e8eb",
-        "oklch": "oklch(93.0% 0.005 258)",
+        "canonical": "#e8e9f6",
+        "oklch": "oklch(93.7% 0.018 283)",
         "tonalRamp": [
-          "oklch(15% 0.001 258)",
-          "oklch(26% 0.001 258)",
-          "oklch(38% 0.001 258)",
-          "oklch(49% 0.002 258)",
-          "oklch(61% 0.003 258)",
-          "oklch(72% 0.003 258)",
-          "oklch(84% 0.004 258)",
-          "oklch(95% 0.004 258)"
+          "oklch(15% 0.003 283)",
+          "oklch(26% 0.003 283)",
+          "oklch(38% 0.004 283)",
+          "oklch(49% 0.007 283)",
+          "oklch(61% 0.009 283)",
+          "oklch(72% 0.012 283)",
+          "oklch(84% 0.015 283)",
+          "oklch(95% 0.017 283)"
         ]
       },
       "muted-dark": {
         "role": "neutral",
         "displayName": "Slate (dark)",
-        "canonical": "#9aa1ab",
-        "oklch": "oklch(70.7% 0.017 257)",
+        "canonical": "#a3a7c6",
+        "oklch": "oklch(73.6% 0.045 279)",
         "tonalRamp": [
-          "oklch(15% 0.004 257)",
-          "oklch(26% 0.006 257)",
-          "oklch(38% 0.009 257)",
-          "oklch(49% 0.012 257)",
-          "oklch(61% 0.014 257)",
-          "oklch(72% 0.016 257)",
-          "oklch(84% 0.014 257)",
-          "oklch(95% 0.011 257)"
+          "oklch(15% 0.008 279)",
+          "oklch(26% 0.015 279)",
+          "oklch(38% 0.022 279)",
+          "oklch(49% 0.030 279)",
+          "oklch(61% 0.037 279)",
+          "oklch(72% 0.044 279)",
+          "oklch(84% 0.039 279)",
+          "oklch(95% 0.031 279)"
         ]
       },
       "line-dark": {
         "role": "neutral",
         "displayName": "Hairline (dark)",
-        "canonical": "#33373d",
-        "oklch": "oklch(33.5% 0.012 258)",
+        "canonical": "#2c3055",
+        "oklch": "oklch(32.5% 0.066 277)",
         "tonalRamp": [
-          "oklch(15% 0.009 258)",
-          "oklch(26% 0.011 258)",
-          "oklch(38% 0.011 258)",
-          "oklch(49% 0.009 258)",
-          "oklch(61% 0.007 258)",
-          "oklch(72% 0.005 258)",
-          "oklch(84% 0.004 258)",
-          "oklch(95% 0.002 258)"
+          "oklch(15% 0.050 277)",
+          "oklch(26% 0.060 277)",
+          "oklch(38% 0.061 277)",
+          "oklch(49% 0.050 277)",
+          "oklch(61% 0.040 277)",
+          "oklch(72% 0.029 277)",
+          "oklch(84% 0.019 277)",
+          "oklch(95% 0.010 277)"
+        ]
+      },
+      "control-line-dark": {
+        "role": "neutral",
+        "displayName": "Control Edge (dark)",
+        "canonical": "#6d72a0",
+        "oklch": "oklch(56.6% 0.071 279)",
+        "tonalRamp": [
+          "oklch(15% 0.030 279)",
+          "oklch(26% 0.041 279)",
+          "oklch(38% 0.053 279)",
+          "oklch(49% 0.064 279)",
+          "oklch(61% 0.067 279)",
+          "oklch(72% 0.056 279)",
+          "oklch(84% 0.044 279)",
+          "oklch(95% 0.033 279)"
         ]
       },
       "bg-dark": {
         "role": "neutral",
         "displayName": "Paper (dark)",
-        "canonical": "#15171a",
-        "oklch": "oklch(20.4% 0.007 258)",
+        "canonical": "#0c0e22",
+        "oklch": "oklch(17.4% 0.041 277)",
         "tonalRamp": [
-          "oklch(15% 0.006 258)",
-          "oklch(26% 0.006 258)",
-          "oklch(38% 0.005 258)",
-          "oklch(49% 0.004 258)",
-          "oklch(61% 0.003 258)",
-          "oklch(72% 0.002 258)",
-          "oklch(84% 0.001 258)",
-          "oklch(95% 0.001 258)"
+          "oklch(15% 0.040 277)",
+          "oklch(26% 0.036 277)",
+          "oklch(38% 0.029 277)",
+          "oklch(49% 0.023 277)",
+          "oklch(61% 0.016 277)",
+          "oklch(72% 0.010 277)",
+          "oklch(84% 0.006 277)",
+          "oklch(95% 0.006 277)"
         ]
       },
       "panel-dark": {
         "role": "neutral",
         "displayName": "Panel White (dark)",
-        "canonical": "#1d2024",
-        "oklch": "oklch(24.2% 0.009 256)",
+        "canonical": "#161935",
+        "oklch": "oklch(22.7% 0.054 277)",
         "tonalRamp": [
-          "oklch(15% 0.008 256)",
-          "oklch(26% 0.009 256)",
-          "oklch(38% 0.007 256)",
-          "oklch(49% 0.006 256)",
-          "oklch(61% 0.004 256)",
-          "oklch(72% 0.003 256)",
-          "oklch(84% 0.001 256)",
-          "oklch(95% 0.001 256)"
+          "oklch(15% 0.048 277)",
+          "oklch(26% 0.051 277)",
+          "oklch(38% 0.043 277)",
+          "oklch(49% 0.034 277)",
+          "oklch(61% 0.025 277)",
+          "oklch(72% 0.017 277)",
+          "oklch(84% 0.008 277)",
+          "oklch(95% 0.008 277)"
         ]
       },
       "chip-bg-dark": {
         "role": "neutral",
         "displayName": "Chip Grey (dark)",
-        "canonical": "#2a2e34",
-        "oklch": "oklch(30.0% 0.012 258)",
+        "canonical": "#22264a",
+        "oklch": "oklch(28.5% 0.066 277)",
         "tonalRamp": [
-          "oklch(15% 0.010 258)",
-          "oklch(26% 0.012 258)",
-          "oklch(38% 0.011 258)",
-          "oklch(49% 0.009 258)",
-          "oklch(61% 0.007 258)",
-          "oklch(72% 0.005 258)",
-          "oklch(84% 0.003 258)",
-          "oklch(95% 0.002 258)"
+          "oklch(15% 0.053 277)",
+          "oklch(26% 0.064 277)",
+          "oklch(38% 0.057 277)",
+          "oklch(49% 0.047 277)",
+          "oklch(61% 0.036 277)",
+          "oklch(72% 0.026 277)",
+          "oklch(84% 0.015 277)",
+          "oklch(95% 0.010 277)"
+        ]
+      },
+      "selection-dark": {
+        "role": "neutral",
+        "displayName": "Selection (dark)",
+        "canonical": "#34397a",
+        "oklch": "oklch(37.7% 0.109 277)",
+        "tonalRamp": [
+          "oklch(15% 0.074 277)",
+          "oklch(26% 0.092 277)",
+          "oklch(38% 0.109 277)",
+          "oklch(49% 0.091 277)",
+          "oklch(61% 0.074 277)",
+          "oklch(72% 0.056 277)",
+          "oklch(84% 0.039 277)",
+          "oklch(95% 0.022 277)"
+        ]
+      },
+      "night-dark": {
+        "role": "night",
+        "displayName": "Night (dark)",
+        "canonical": "#181c56",
+        "oklch": "oklch(26.5% 0.103 274)",
+        "tonalRamp": [
+          "oklch(15% 0.087 274)",
+          "oklch(26% 0.103 274)",
+          "oklch(38% 0.087 274)",
+          "oklch(49% 0.070 274)",
+          "oklch(61% 0.054 274)",
+          "oklch(72% 0.037 274)",
+          "oklch(84% 0.021 274)",
+          "oklch(95% 0.015 274)"
         ]
       }
     },
@@ -340,7 +548,7 @@
       },
       "hint": {
         "displayName": "Hint",
-        "purpose": "One-line explanations in Slate."
+        "purpose": "Persistent guidance and inline backend detail, in Slate."
       },
       "label": {
         "displayName": "Label",
@@ -357,13 +565,20 @@
       {
         "name": "stack",
         "value": "640px",
-        "purpose": "Below this, tables collapse to stacked records."
+        "purpose": "Below this, tables collapse to labelled stacked records."
       }
     ],
     "themes": {
       "mechanism": "prefers-color-scheme",
       "darkTokenSuffix": "-dark"
-    }
+    },
+    "assets": [
+      {
+        "name": "mark",
+        "path": "src/Nightware.Admin/wwwroot/img/mark.png",
+        "source": "../nightmail/assets/logo.png (cropped)"
+      }
+    ]
   },
   "components": [
     {
@@ -372,73 +587,75 @@
       "refersTo": "button-primary",
       "description": "The step that commits: Create and link, Reinstate.",
       "html": "<button class=\"ds-btn-primary\">Create and link</button>",
-      "css": ".ds-btn-primary { display:inline-block; padding:6px 14px; border-radius:6px; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; cursor:pointer; text-decoration:none; border:1px solid var(--accent, #2f5bd3); background:var(--accent, #2f5bd3); color:#fff; } .ds-btn-primary:focus-visible { outline:2px solid var(--accent, #2f5bd3); outline-offset:2px; }"
+      "css": ".ds-btn-primary { display:inline-block; padding:6px 14px; border-radius:6px; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; cursor:pointer; text-decoration:none; border:1px solid var(--accent, #3a3db0); background:var(--accent, #3a3db0); color:var(--on-accent, #ffffff); } .ds-btn-primary:focus-visible { outline:2px solid var(--accent, #3a3db0); outline-offset:2px; }"
     },
     {
       "name": "Secondary Button",
       "kind": "button",
       "refersTo": "button-secondary",
       "description": "Safe or preparatory actions: Check what will happen, Repair, Save.",
-      "html": "<button class=\"ds-btn-secondary\">Check what will happen</button>",
-      "css": ".ds-btn-secondary { display:inline-block; padding:6px 14px; border-radius:6px; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; cursor:pointer; text-decoration:none; border:1px solid var(--accent, #2f5bd3); background:transparent; color:var(--accent, #2f5bd3); } .ds-btn-secondary:focus-visible { outline:2px solid var(--accent, #2f5bd3); outline-offset:2px; }"
+      "html": "<button class=\"ds-btn-secondary\">Repair</button>",
+      "css": ".ds-btn-secondary { display:inline-block; padding:6px 14px; border-radius:6px; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; cursor:pointer; text-decoration:none; border:1px solid var(--accent, #3a3db0); background:transparent; color:var(--accent, #3a3db0); } .ds-btn-secondary:focus-visible { outline:2px solid var(--accent, #3a3db0); outline-offset:2px; }"
     },
     {
       "name": "Danger Button",
       "kind": "button",
       "refersTo": "button-danger",
-      "description": "Destructive actions: Offboard, Delete mail…",
+      "description": "Offboard, Finish offboarding, Delete.",
       "html": "<button class=\"ds-btn-danger\">Offboard</button>",
-      "css": ".ds-btn-danger { display:inline-block; padding:6px 14px; border-radius:6px; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; cursor:pointer; text-decoration:none; border:1px solid var(--bad, #b3261e); background:var(--bad, #b3261e); color:#fff; } .ds-btn-danger:focus-visible { outline:2px solid var(--bad, #b3261e); outline-offset:2px; }"
+      "css": ".ds-btn-danger { display:inline-block; padding:6px 14px; border-radius:6px; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; cursor:pointer; text-decoration:none; border:1px solid var(--bad, #b3261e); background:var(--bad, #b3261e); color:var(--on-bad, #ffffff); } .ds-btn-danger:focus-visible { outline:2px solid var(--bad, #b3261e); outline-offset:2px; }"
     },
     {
       "name": "Text Input",
       "kind": "input",
       "refersTo": "input",
-      "description": "Full-width field wrapped by its label.",
-      "html": "<label class=\"ds-label\">Address <input class=\"ds-input\" placeholder=\"carol.jones\"></label>",
-      "css": ".ds-label { display:block; margin:8px 0; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; color:var(--text, #1d1f23); } .ds-input { display:block; width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid var(--line, #dcdfe4); border-radius:6px; background:var(--panel, #ffffff); color:var(--text, #1d1f23); font:inherit; } .ds-input:focus-visible { outline:2px solid var(--accent, #2f5bd3); outline-offset:1px; }"
+      "description": "Full-width field wrapped by its label, with a persistent hint.",
+      "html": "<label class=\"ds-label\">Username <input class=\"ds-input\"><span class=\"ds-hint\">Leave empty to use the part of the address before the @.</span></label>",
+      "css": ".ds-label { display:block; margin:8px 0; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; color:var(--text, #191a2c); } .ds-input { display:block; width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid var(--control-line, #82869f); border-radius:6px; background:var(--panel, #ffffff); color:var(--text, #191a2c); font:inherit; } .ds-input:focus-visible { outline:2px solid var(--accent, #3a3db0); outline-offset:2px; } .ds-hint { color:var(--muted, #565a74); font-size:0.9em; }"
     },
     {
       "name": "State Chips",
       "kind": "chip",
       "refersTo": "chip",
-      "description": "Per-backend link state; colour of the text carries the state.",
-      "html": "<ul class=\"ds-chips\"><li class=\"ds-chip ds-linked\">Keycloak: Linked</li><li class=\"ds-chip ds-pending\">Mail: Pending</li><li class=\"ds-chip ds-conflict\">Nextcloud: Conflict</li><li class=\"ds-chip ds-disabled\">Mail: Disabled</li></ul>",
-      "css": ".ds-chips { list-style:none; display:flex; flex-wrap:wrap; gap:6px; margin:0; padding:0; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; } .ds-chip { display:inline-block; padding:1px 8px; border-radius:999px; background:var(--chip-bg, #eef0f3); font-size:0.85em; white-space:nowrap; } .ds-linked { color:var(--ok, #1f7a3f); } .ds-pending { color:var(--warn, #9a5b00); } .ds-conflict { color:var(--bad, #b3261e); font-weight:600; } .ds-disabled { color:var(--muted, #5d6470); }"
+      "description": "Per-system link state with inline detail for problems.",
+      "html": "<ul class=\"ds-chips\"><li class=\"ds-chip ds-linked\">Sign-in: Linked</li><li class=\"ds-chip ds-pending\">Mail: Pending</li><li class=\"ds-chip ds-conflict\">Files &amp; calendar: Conflict</li></ul><p class=\"ds-detail\">Files &amp; calendar: Nextcloud user carol has the address c@other.example.</p>",
+      "css": ".ds-chips { list-style:none; display:flex; flex-wrap:wrap; gap:6px; margin:0; padding:0; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; } .ds-chip { display:inline-block; padding:1px 8px; border-radius:999px; background:var(--chip-bg, #eeeff5); font-size:0.85em; white-space:nowrap; } .ds-linked { color:var(--ok, #1f7a3f); } .ds-pending { color:var(--warn, #9a5b00); } .ds-conflict { color:var(--bad, #b3261e); font-weight:700; } .ds-detail { margin:4px 0 0; color:var(--muted, #565a74); font-size:0.9em; font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; }"
     },
     {
-      "name": "Panel",
-      "kind": "card",
-      "refersTo": "panel",
-      "description": "One topic per panel on a detail page.",
-      "html": "<section class=\"ds-panel\"><h2>Systems</h2><p class=\"ds-hint\">Repair creates what is missing; never changes a conflicting account.</p></section>",
-      "css": ".ds-panel { background:var(--panel, #ffffff); border:1px solid var(--line, #dcdfe4); border-radius:8px; padding:16px; color:var(--text, #1d1f23); font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; } .ds-panel h2 { font-size:22.5px; margin:0 0 8px; } .ds-hint { color:var(--muted, #5d6470); font-size:0.9em; margin:0; }"
+      "name": "Callout",
+      "kind": "custom",
+      "refersTo": "callout",
+      "description": "Warning with a full state-colour outline; no side stripe.",
+      "html": "<div class=\"ds-callout\"><strong>Offboarding incomplete.</strong> Sign-in is disabled, but Mail (Stalwart) could not be checked.</div>",
+      "css": ".ds-callout { padding:8px 12px; border:1px solid var(--warn, #9a5b00); border-radius:8px; background:var(--panel, #ffffff); color:var(--text, #191a2c); font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; }"
     },
     {
-      "name": "Header Navigation",
+      "name": "Night Band",
       "kind": "nav",
-      "description": "Brand, role-gated links, identity and sign-out.",
-      "html": "<header class=\"ds-top\"><a class=\"ds-brand\" href=\"#\">Nightware console</a><nav class=\"ds-nav\"><a href=\"#\">Entities</a><a href=\"#\">Global admins</a></nav><span class=\"ds-who\">admin@example.com · global admin <button class=\"ds-link\">Sign out</button></span></header>",
-      "css": ".ds-top { display:flex; flex-wrap:wrap; gap:16px; align-items:center; padding:10px 16px; background:var(--panel, #ffffff); border-bottom:1px solid var(--line, #dcdfe4); font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; } .ds-brand { font-weight:600; text-decoration:none; color:var(--text, #1d1f23); } .ds-nav { display:flex; gap:14px; } .ds-nav a { color:var(--accent, #2f5bd3); } .ds-who { margin-left:auto; color:var(--muted, #5d6470); display:flex; gap:10px; align-items:center; } .ds-link { background:none; border:none; padding:0; color:var(--accent, #2f5bd3); font:inherit; cursor:pointer; } .ds-nav a:focus-visible, .ds-link:focus-visible { outline:2px solid var(--accent, #2f5bd3); outline-offset:2px; }"
+      "refersTo": "night-band",
+      "description": "Mark, product name, current section, find a user, identity.",
+      "html": "<header class=\"ds-top\"><span class=\"ds-brand\"><span class=\"ds-mark\"></span>Nightware console</span><nav class=\"ds-nav\"><a href=\"#\" aria-current=\"page\">Entities</a><a href=\"#\">Global admins</a></nav><input class=\"ds-find\" type=\"search\" placeholder=\"Find a user\" aria-label=\"Find a user\"><span class=\"ds-who\">admin · global admin</span></header>",
+      "css": ".ds-top { display:flex; flex-wrap:wrap; gap:16px; align-items:center; padding:10px 16px; background:var(--night, #121433); color:var(--night-text, #eceeff); font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; } .ds-brand { display:flex; gap:10px; align-items:center; font-weight:700; } .ds-mark { width:28px; height:28px; border-radius:6px; background:#171f66; } .ds-nav { display:flex; gap:14px; } .ds-nav a { color:var(--night-link, #c3c8ff); } .ds-nav a[aria-current] { color:var(--night-text, #eceeff); text-decoration-thickness:2px; } .ds-find { width:14em; padding:4px 8px; border:1px solid var(--night-muted, #a9add6); border-radius:6px; background:transparent; color:var(--night-text, #eceeff); font:inherit; } .ds-find::placeholder { color:var(--night-muted, #a9add6); } .ds-who { margin-left:auto; color:var(--night-muted, #a9add6); } .ds-nav a:focus-visible, .ds-find:focus-visible { outline:2px solid var(--night-link, #c3c8ff); outline-offset:2px; }"
     },
     {
       "name": "Secret Box",
       "kind": "custom",
       "description": "One-time credential, shown once.",
-      "html": "<div class=\"ds-secret\"><p><strong>Temporary password — shown once.</strong> They must change it at their next sign-in.</p><p><code>q7Fh-2mLx-9Rtz</code></p></div>",
-      "css": ".ds-secret { border:2px dashed var(--warn, #9a5b00); padding:12px 16px; border-radius:8px; background:var(--panel, #ffffff); color:var(--text, #1d1f23); font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; } .ds-secret code { font-family:ui-monospace, Menlo, Consolas, monospace; font-size:1.3em; user-select:all; }"
+      "html": "<div class=\"ds-secret\"><p><strong>Temporary password — shown once.</strong> Give it to them by a channel other than this mailbox.</p><p><code>q7Fh-2mLx-9Rtz</code></p></div>",
+      "css": ".ds-secret { border:2px dashed var(--warn, #9a5b00); padding:12px 16px; border-radius:8px; background:var(--panel, #ffffff); color:var(--text, #191a2c); font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; } .ds-secret code { font-family:ui-monospace, Menlo, Consolas, monospace; font-size:1.3em; user-select:all; }"
     }
   ],
   "narrative": {
     "northStar": "The Switchboard",
-    "overview": "**Creative North Star: \"The Switchboard\"**\n\nThe console is a switchboard: one quiet panel where every line from a person to every backend is visible, and the state of each line is plain. Nothing on the board is decorative. The surface stays neutral so that the few coloured marks (a green link, an amber pending, a red conflict) are the first things the eye finds. An admin who has not visited in months should be able to read the board cold.\n\nDensity is moderate and the structure is document-like. Pages are a single centred column of headings, flat panels, tables and forms in reading order, server-rendered with no script. Buttons, inputs, checkboxes and radios are the browser's own, lightly styled, so they behave exactly as the platform expects. The theme follows the operating system: every colour has a light value and a dark value, and the dark theme is a full counterpart, not an inversion.\n\nThe system is **restrained and exact**. Restraint is the default; exactness lives in the state colours, the confirmation copy and the one-time secret box.",
+    "overview": "**Creative North Star: \"The Switchboard\"**\n\nThe console is a switchboard under a night sky. A band of NightMail night runs across the top: the app's moon-and-envelope mark, the product name, navigation and the find-a-user search. Below it is a quiet board where every line from a person to every system is visible, and the state of each line is plain. The surface stays neutral so that the few coloured marks (a green link, an amber pending, a red conflict) are the first things the eye finds. An admin who has not visited in months should be able to read the board cold.\n\nDensity is moderate and the structure is document-like. Pages are a single centred column with a breadcrumb, then headings, flat panels, tables and forms in the order the admin acts. Everything is server-rendered with no script, and the controls are the browser's own, styled from the palette. The theme follows the operating system. The dark theme is built on the night sky, not an inversion of the light one.\n\nThe system is **restrained and exact**. The brand lives in the night band and the envelope indigo; exactness lives in the state colours, the confirmation copy and the one-time secret box.",
     "keyCharacteristics": [
-      "Flat, shadow-free surfaces separated by 1px hairlines",
-      "System UI type at 15px, browser-default heading scale",
-      "One accent for actions and links; three state colours for meaning only",
+      "A NightMail night band with the app's mark, in both themes",
+      "Flat, shadow-free panels separated by 1px hairlines",
+      "System UI type at 15px, browser-default heading scale, two weights",
+      "One indigo accent for actions and links; three state colours for meaning only",
       "Automatic light and dark themes from `prefers-color-scheme`",
-      "Tables become stacked records below 640px",
-      "No script, no icons, no imagery"
+      "Tables become labelled, stacked records below 640px",
+      "No script; the only imagery is the family mark"
     ],
     "rules": [
       {
@@ -448,22 +665,32 @@
       },
       {
         "name": "The One Accent Rule",
-        "body": "Switchboard Blue is the only colour that means \"interactive\". A second accent dilutes it.",
+        "body": "Envelope Indigo is the only colour that means \"interactive\". A second accent dilutes it.",
         "section": "colors"
       },
       {
         "name": "The Paired Theme Rule",
-        "body": "A new colour is not finished until it has its `-dark` counterpart defined in the same `prefers-color-scheme` block.",
+        "body": "A new colour is not finished until its `-dark` counterpart exists in the `prefers-color-scheme` block and both pass contrast.",
+        "section": "colors"
+      },
+      {
+        "name": "The Family Rule",
+        "body": "The NightMail link is the night band, the mark and the indigo. It does not spread into page backgrounds, illustrations or gradients.",
         "section": "colors"
       },
       {
         "name": "The Plain Words Rule",
-        "body": "Hierarchy comes from the heading scale and the copy, not from extra weights, uppercase labels or letter-spacing. The system has two weights, regular and bold.",
+        "body": "Hierarchy comes from the heading scale and the copy, not from extra weights, uppercase labels or letter-spacing. The system has two weights, regular (400) and bold (700).",
+        "section": "typography"
+      },
+      {
+        "name": "The One Name Rule",
+        "body": "Each system has one name everywhere, function first and product second: Sign-in (Keycloak), Mail (Stalwart), Files & calendar (Nextcloud). Chips use the short form (Sign-in, Mail, Files & calendar). The names live in `Pages/Systems.cs`.",
         "section": "typography"
       },
       {
         "name": "The Reading-Order Rule",
-        "body": "A page reads top to bottom in the order the admin acts: what this is, its state, what you can do, and what is destructive (last).",
+        "body": "A page reads top to bottom in the order the admin acts: where you are, what this is, its state, what you can do, and what is destructive (last). On a user's page Access comes straight after Systems, so offboarding on a phone is one screen away.",
         "section": "layout"
       },
       {
@@ -473,18 +700,20 @@
       }
     ],
     "dos": [
-      "**Do** define every new colour twice: in `:root` and in the `prefers-color-scheme: dark` block.",
-      "**Do** report state with the chip vocabulary (linked, missing, pending, conflict, error, disabled). Don't invent a new indicator.",
-      "**Do** put destructive actions last on the page, in a panel with a red border, behind a confirming checkbox or retyped value.",
-      "**Do** set copyable values in mono and make them easy to select.",
-      "**Do** keep tables usable below 640px by letting them collapse into stacked records."
+      "**Do** define every new colour twice and check its contrast in both themes.",
+      "**Do** report state with the chip vocabulary (linked, missing, pending, conflict, error, disabled), with the detail inline.",
+      "**Do** name systems through `Systems.Name` / `Systems.ShortName`.",
+      "**Do** put destructive actions last on the page, behind a confirming checkbox, a retyped value or a fresh sign-in.",
+      "**Do** give every table cell a `data-label` so stacked rows stay readable on a phone.",
+      "**Do** set copyable values in mono and make them easy to select."
     ],
     "donts": [
       "**Don't** add shadows, gradients, overlays or modals. The board is flat and there is no script.",
       "**Don't** use green, amber or red for anything that is not a state or a consequence.",
-      "**Don't** add a second accent colour.",
-      "**Don't** spread the 4px leading-stripe callout to new components; it is under review.",
-      "**Don't** treat today's neutral grey and generic blue as the NightMail family identity. PRODUCT.md commits the console to the NightMail family (name and the `../nightmail/assets/logo.png` icon), and that link is **not yet expressed visually**. Close the gap deliberately, for example through `colorize` or `polish`. Don't drift into it piecemeal."
+      "**Don't** add a second accent colour, or spread the night palette beyond the band.",
+      "**Don't** use a thick side stripe on callouts or panels.",
+      "**Don't** put information only in a `title` tooltip or a placeholder.",
+      "**Don't** use a weight other than 400 or 700."
     ]
   }
 }

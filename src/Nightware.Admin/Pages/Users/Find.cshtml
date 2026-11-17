@@ -25,8 +25,8 @@ else
             <tr class="@(f.Identity.Enabled ? "" : "disabled")">
                 <td><a asp-page="/Users/Detail" asp-route-id="@f.Identity.Id">@f.Identity.DisplayName</a></td>
                 <td>@f.Identity.Email</td>
-                <td><a asp-page="/Entities/Detail" asp-route-id="@f.Entity.Id">@f.Entity.Name</a></td>
-                <td>@(f.Identity.Enabled ? "Active" : "Offboarded")</td>
+                <td data-label="Entity"><a asp-page="/Entities/Detail" asp-route-id="@f.Entity.Id">@f.Entity.Name</a></td>
+                <td data-label="Sign-in">@(f.Identity.Enabled ? "Active" : "Offboarded")</td>
             </tr>
         }
         </tbody>

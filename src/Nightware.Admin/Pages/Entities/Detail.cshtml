@@ -18,15 +18,15 @@
         {
             <tr>
                 <td>@d.Domain</td>
-                <td><span class="chip @d.Mail.State.ToString().ToLowerInvariant()">@d.Mail.State</span>@if (d.Mail.State != LinkState.Linked) { <span class="hint detail">@d.Mail.Detail</span> }</td>
-                <td>@(d.DkimPresent ? "Keys present" : "—")</td>
+                <td data-label="Mail server"><span class="chip @d.Mail.State.ToString().ToLowerInvariant()">@d.Mail.State</span>@if (d.Mail.State != LinkState.Linked) { <span class="hint detail">@d.Mail.Detail</span> }</td>
+                <td data-label="DKIM">@(d.DkimPresent ? "Keys present" : "—")</td>
                 <td class="actions">
                     <a asp-page="/Entities/Dns" asp-route-id="@entity.Id" asp-route-domain="@d.Domain.Name">DNS records</a>
                     @if (Model.Actor.IsGlobal)
                     {
                         @if (d.Mail.State != LinkState.Linked)
                         {
-                            <form method="post" asp-page-handler="RepairDomain" class="inline"><input type="hidden" name="domain" value="@d.Domain.Name"><button type="submit">Repair</button></form>
+                            <form method="post" asp-page-handler="RepairDomain" class="inline"><input type="hidden" name="domain" value="@d.Domain.Name"><button type="submit" class="secondary">Repair</button></form>
                         }
                         <form method="post" asp-page-handler="RemoveDomain" class="inline"><input type="hidden" name="domain" value="@d.Domain.Name"><button type="submit" class="secondary">Remove</button></form>
                     }

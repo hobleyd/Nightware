@@ -7,7 +7,7 @@
         var name = Systems.Name(step.Backend);
         <tr class="@step.Action.ToString().ToLowerInvariant()">
             <td>@name</td>
-            <td><strong>@(step.Action switch { PlannedAction.Create => "Will be created", PlannedAction.Link => "Will be linked", PlannedAction.Update => "Will be re-enabled", PlannedAction.Skip => "Created at first sign-in", _ => "Conflict" })</strong></td>
+            <td data-label="Action"><strong>@(step.Action switch { PlannedAction.Create => "Will be created", PlannedAction.Link => "Will be linked", PlannedAction.Update => "Will be re-enabled", PlannedAction.Skip => "Created at first sign-in", _ => "Conflict" })</strong></td>
             <td>@step.Reason</td>
         </tr>
     }

@@ -10,8 +10,8 @@
     {
         <tr>
             <td><a asp-page="/Entities/Detail" asp-route-id="@e.Id">@e.Name</a></td>
-            <td>@e.Alias</td>
-            <td>@string.Join(", ", e.Domains.Select(d => d.Name))</td>
+            <td data-label="Short name">@e.Alias</td>
+            <td data-label="Domains">@string.Join(", ", e.Domains.Select(d => d.Name))</td>
             <td><a asp-page="/Users/Index" asp-route-entity="@e.Id">Users</a></td>
         </tr>
     }

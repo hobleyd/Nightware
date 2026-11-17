@@ -33,7 +33,7 @@
             {
                 <tr>
                     <td><a asp-page="/Entities/Detail" asp-route-id="@e.Id">@e.Name</a></td>
-                    <td>@string.Join(", ", e.Domains.Select(d => d.Name))</td>
+                    <td data-label="Domains">@string.Join(", ", e.Domains.Select(d => d.Name))</td>
                     <td><a asp-page="/Users/Index" asp-route-entity="@e.Id">Users</a> · <a asp-page="/Users/New" asp-route-entity="@e.Id">Add or link a user</a></td>
                 </tr>
             }
