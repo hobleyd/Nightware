@@ -1,6 +1,7 @@
 @page "/account/passkey"
 @model Nightware.Admin.Pages.Account.PasskeyModel
 @{ ViewData["Title"] = "Add a passkey"; }
+<section class="panel">
 <h1>Add a passkey</h1>
 @switch (Model.Status)
 {
@@ -26,3 +27,4 @@
         <button type="submit">Add a passkey</button>
     </form>
 }
+</section>

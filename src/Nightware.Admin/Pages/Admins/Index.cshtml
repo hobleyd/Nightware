@@ -2,11 +2,11 @@
 @model Nightware.Admin.Pages.Admins.IndexModel
 @{ ViewData["Title"] = "Global administrators"; }
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
+<section class="panel">
 <h1>Global administrators</h1>
 <partial name="_Messages" />
 <p>They manage every entity, create entities and domains, and may delete a disabled user's data. To grant the role, <a asp-page="/Users/Find">find the user</a> and use their page; new administrators must set up an authenticator app, and can then add a passkey.</p>
-<section class="panel" aria-label="Current global administrators">
-<table>
+<table aria-label="Current global administrators">
     <thead><tr><th>Name</th><th>Address</th></tr></thead>
     <tbody>
     @foreach (var a in Model.Admins)

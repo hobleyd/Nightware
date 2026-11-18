@@ -2,6 +2,7 @@
 @model Nightware.Admin.Pages.Users.FindModel
 @{ ViewData["Title"] = "Find a user"; }
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
+<section class="panel">
 <h1>Find a user</h1>
 <partial name="_Messages" />
 <form method="get" class="row" role="search">
@@ -19,8 +20,7 @@ else if (Model.Found.Users.Count == 0)
 }
 else
 {
-    <section class="panel" aria-label="Matches">
-    <table>
+    <table aria-label="Matches">
         <thead><tr><th>Name</th><th>Address</th><th>Entity</th><th>Status</th></tr></thead>
         <tbody>
         @foreach (var f in Model.Found.Users)
@@ -35,9 +35,9 @@ else
         }
         </tbody>
     </table>
-    </section>
     @if (Model.Found.Truncated)
     {
         <p class="hint">Showing the first @Nightware.Application.Administration.Users.FindUsers.Limit matches. Type more of the name or address to narrow the search.</p>
     }
 }
+</section>

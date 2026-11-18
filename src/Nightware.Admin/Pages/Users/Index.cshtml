@@ -8,6 +8,7 @@
 }
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 @{ ViewData["Title"] = "Users of " + Model.Detail.Entity.Name; }
+<section class="panel">
 <h1>Users of @Model.Detail.Entity.Name</h1>
 <partial name="_Messages" />
 <form method="get" class="row">
@@ -26,7 +27,6 @@
 }
 else
 {
-    <section class="panel">
     <table>
         <thead><tr><th>Name</th><th>Address</th><th>Status</th><th>Systems</th></tr></thead>
         <tbody>
@@ -41,5 +41,5 @@ else
         }
         </tbody>
     </table>
-    </section>
 }
+</section>

@@ -24,6 +24,7 @@
         : u.IsGlobalAdmin && Model.Actor.IsGlobal ? new (string, string?)[] { ("Global admins", Url.Page("/Admins/Index")) }
         : null;
 }
+<section class="panel">
 <h1>@id.DisplayName <small>@id.Email</small> <partial name="_Status" model="Model.Subject" /></h1>
 <partial name="_Messages" />
 <p>
@@ -35,8 +36,6 @@
     @if (u.IsGlobalAdmin) { <text> · <strong>global administrator</strong></text> }
     else if (u.IsEntityAdmin) { <text> · entity administrator</text> }
 </p>
-
-<section class="panel">
     <h2>Systems</h2>
     <table>
         <thead class="visually-hidden"><tr><th>System</th><th>State</th><th>Detail</th></tr></thead>

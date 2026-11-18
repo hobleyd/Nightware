@@ -7,11 +7,10 @@
     ViewData["Title"] = entity.Name;
     var adminIds = Model.Admins.Select(a => a.Id).ToHashSet();
 }
+<section class="panel">
 <h1>@entity.Name <small>@entity.Alias</small></h1>
 <partial name="_Messages" />
 <p><a asp-page="/Users/Index" asp-route-entity="@entity.Id">@Model.Members.Count @(Model.Members.Count == 1 ? "user" : "users")</a> · <a asp-page="/Users/New" asp-route-entity="@entity.Id">Add or link a user</a></p>
-
-<section class="panel">
     <h2>Mail domains</h2>
     <table>
         <thead><tr><th>Domain</th><th>Mail server</th><th>Signing (DKIM)</th><th>SPF</th><th>DMARC</th><th><span class="visually-hidden">Actions</span></th>@if (Model.Actor.IsGlobal) { <th><span class="visually-hidden">Remove</span></th> }</tr></thead>

@@ -8,6 +8,7 @@
     var back = ViewData["Back"] as string;
     var title = ViewData["Title"] as string ?? (outage ? "Could not load this page" : "Not possible");
 }
+<section class="panel">
 <h1>@title</h1>
 <partial name="_Messages" />
 <div class="warning" role="alert">
@@ -22,3 +23,4 @@
         <p>Nothing was changed. @if (back is not null) { <a href="@back">Go back</a> } else { <a asp-page="/Index">Back to the dashboard</a> }</p>
     }
 </div>
+</section>

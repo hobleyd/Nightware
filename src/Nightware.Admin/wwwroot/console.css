@@ -111,6 +111,9 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; }
 
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin: 16px 0; }
 .panel > h2:first-child { margin-top: 0; }
+/* A page's heading opens its first pane, sized as a pane's heading so every page starts level with the menu. */
+.panel > h1 { font-size: 1.5em; }
+.panel > h1:first-child { margin-top: 0; }
 .panel table + form { margin-top: 12px; }
 /* The dashboard's systems sit in a narrow box at the top right, beside the worklist, on screens wide enough for both. */
 main:has(> .dashboard) { max-width: calc(1080px + 17rem); }

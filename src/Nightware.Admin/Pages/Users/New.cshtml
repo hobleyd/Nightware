@@ -12,40 +12,39 @@
     };
 }
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
+<section class="panel">
 <h1>Add or link a user — @Model.Detail.Entity.Name</h1>
 <partial name="_Messages" />
 
 @if (Model.Result is { } result)
 {
-    <section class="panel">
-        @{ var partial = result.Links.Any(l => l.State == LinkState.Error); }
-        <h2>@(partial ? "Partly done" : "Done"): @result.User.DisplayName &lt;@result.User.Email&gt;</h2>
-        <partial name="_Links" model="result.Links" />
-        @if (partial)
-        {
-            <p class="warning">Some systems could not be set up. Nothing that existed before was removed. Open the user and use <strong>Repair</strong> once the system is reachable.</p>
-        }
-        @if (result.Credential is { } credential)
-        {
-            <div class="secret">
-                <p><strong>Temporary password — shown once.</strong> Give it to the person by a channel other than this mailbox. They must change it at first sign-in.</p>
-                <p><code>@credential.Password</code></p>
-            </div>
-        }
-        else if (result.CredentialError is { } error)
-        {
-            <p class="warning">The password could not be delivered: @error. Open the user and use <strong>Generate a temporary password</strong> or <strong>E-mail a set-password link</strong>.</p>
-        }
-        else if (Model.Form.Delivery == CredentialDelivery.ActionEmail)
-        {
-            <p>A set-password link was e-mailed to @result.User.Email.</p>
-        }
-        <p><a asp-page="/Users/Detail" asp-route-id="@result.User.Id">Open the user</a> · <a asp-page="/Users/New" asp-route-entity="@Model.Entity">Add another</a></p>
-    </section>
+    var partial = result.Links.Any(l => l.State == LinkState.Error);
+    <h2>@(partial ? "Partly done" : "Done"): @result.User.DisplayName &lt;@result.User.Email&gt;</h2>
+    <partial name="_Links" model="result.Links" />
+    @if (partial)
+    {
+        <p class="warning">Some systems could not be set up. Nothing that existed before was removed. Open the user and use <strong>Repair</strong> once the system is reachable.</p>
+    }
+    @if (result.Credential is { } credential)
+    {
+        <div class="secret">
+            <p><strong>Temporary password — shown once.</strong> Give it to the person by a channel other than this mailbox. They must change it at first sign-in.</p>
+            <p><code>@credential.Password</code></p>
+        </div>
+    }
+    else if (result.CredentialError is { } error)
+    {
+        <p class="warning">The password could not be delivered: @error. Open the user and use <strong>Generate a temporary password</strong> or <strong>E-mail a set-password link</strong>.</p>
+    }
+    else if (Model.Form.Delivery == CredentialDelivery.ActionEmail)
+    {
+        <p>A set-password link was e-mailed to @result.User.Email.</p>
+    }
+    <p><a asp-page="/Users/Detail" asp-route-id="@result.User.Id">Open the user</a> · <a asp-page="/Users/New" asp-route-entity="@Model.Entity">Add another</a></p>
 }
 else
 {
-    <form method="post" class="panel">
+    <form method="post">
         <h2>Step 1 of 2: Who</h2>
         <div class="row">
             <label>First name <input asp-for="Form.FirstName" autocomplete="off"></label>
@@ -88,3 +87,4 @@ else
         }
     </form>
 }
+</section>

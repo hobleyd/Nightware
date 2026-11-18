@@ -1,6 +1,7 @@
 @page "/account/denied"
 @model Nightware.Admin.Pages.Account.DeniedModel
 @{ ViewData["Title"] = "Access denied"; }
+<section class="panel">
 <h1>Access denied</h1>
 @if (Model.Reason == "signin")
 {
@@ -11,3 +12,4 @@ else
     <p>You are signed in, but you are not an administrator of any entity. Ask a global administrator for access.</p>
 }
 <p><a asp-page="/Account/SignIn">Try again</a></p>
+</section>
