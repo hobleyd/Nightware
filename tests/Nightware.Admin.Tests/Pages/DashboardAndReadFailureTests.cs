@@ -244,7 +244,8 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
 
         html.ShouldContain("Finish offboarding first");
         html.ShouldContain("<h1>Delete mail of eve</h1>");
-        Crumbs(html).ShouldBe("Acme Pty › Users › eve › Delete mail of eve");
+        Crumbs(html).ShouldBe("Entities › Acme Pty › Users › eve › Delete mail of eve");
+        html.ShouldContain("Finish offboarding first: their mailbox may still let them sign in.");
         html.ShouldContain("href=\"/users/u-eve\">Go back</a>");
         html.ShouldContain("action=\"/users/u-eve?handler=Offboard\"");
         html.ShouldNotContain("Could not read");
@@ -327,7 +328,7 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
 
         string html = await GetAsync("/users/u-dan/delete/GroupwareData");
 
-        Crumbs(html).ShouldBe("Acme Pty › Users › dan › Delete files &amp; calendar data");
+        Crumbs(html).ShouldBe("Entities › Acme Pty › Users › dan › Delete files &amp; calendar data");
         html.ShouldContain("<h1>Delete files &amp; calendar data of dan</h1>");
     }
 
@@ -372,5 +373,25 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         html.ShouldContain("No account for dan.");
         html.ShouldNotContain("Nextcloud user");
         html.ShouldNotContain("Keycloak user");
+    }
+
+    [Fact]
+    public async Task A_users_page_is_reached_from_entities_and_a_global_admin_without_one_from_global_admins()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+        Crumbs(await GetAsync("/users/u-dan")).ShouldBe("Entities › Acme Pty › Users › dan");
+
+        _host.Identities.GetAsync("u-ops", Arg.Any<CancellationToken>()).Returns(new IdentityAccount("u-ops", "ops", "ops@example.net", true));
+        _host.Scopes.ResolveAsync("u-ops", Arg.Any<CancellationToken>()).Returns(new AdminScope(true, new HashSet<string>()));
+        Crumbs(await GetAsync("/users/u-ops")).ShouldBe("Global admins › ops");
+    }
+
+    [Fact]
+    public async Task An_entity_page_has_one_primary_action_at_most()
+    {
+        string html = await GetAsync("/entities/" + ConsoleHost.Acme);
+
+        html.ShouldContain("<button type=\"submit\" class=\"secondary\">Add</button>");
+        html.ShouldNotContain("<button type=\"submit\">Connect</button>");
     }
 }

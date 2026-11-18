@@ -210,7 +210,7 @@ A cool, faintly indigo neutral field under a night band, with a single envelope-
 
 A single centred column, at most 1080px wide with 16px padding, under a full-width night band. The band holds the mark and product name, the role-gated navigation (Entities, plus Global admins for global admins; the current section is marked with `aria-current`), the find-a-user search, and, pushed to the far edge, the signed-in identity, Change password and Sign out. On narrow screens the band wraps onto several lines rather than collapsing into a menu. A skip link leads past it to the content.
 
-Entity, user, DNS and delete pages open with a breadcrumb (Entity › Users › Person) above the h1. The notice and errors for a request sit directly under the h1 (the `_Messages` partial), so they are read with the page they concern. The dashboard reads top-down as a worklist: Needs attention, then Systems, then Entities.
+Entity, user, DNS and delete pages open with a breadcrumb that starts at Entities (Entities › Entity › Users › Person) above the h1; a global administrator in no entity is reached from Global admins. Dashboard Systems chips use the short names. The notice and errors for a request sit directly under the h1 (the `_Messages` partial), so they are read with the page they concern. The dashboard reads top-down as a worklist: Needs attention, then Systems, then Entities.
 
 The spacing steps are 6, 8, 12 and 16px. Panels sit 16px apart with 16px inner padding, and a panel's first heading sits flush to its top. Form rows use a 12px gap; chips use a 6px gap; table cells have 8px padding.
 
@@ -237,7 +237,7 @@ Gently rounded and low-key. Controls (buttons, inputs, fieldsets) have a 6px rad
 ### Buttons
 Native `<button>` elements, compact and unadorned.
 - **Shape:** 6px radius, 6px × 14px padding, body type.
-- **Primary:** Envelope Indigo fill. Used for the step that commits ("Create and link", "Add", "Make administrator" for an entity) and, on a user's page, for the one action their status calls for: "Repair" when they need repair, "Finish offboarding" when an offboarding is incomplete (also on a refused Delete page). A page has at most one.
+- **Primary:** Envelope Indigo fill. A page has at most one, and it is the page's main or status-driven action: "Create and link" on the new-user plan, "Create entity", "Publish N changes" on the DNS page, "Add" on an entity that has no domain yet, and on a user's page the one action their status calls for ("Repair" when they need repair, "Finish offboarding" when an offboarding is incomplete, also on a refused Delete page). A commit local to one panel of a larger page is secondary.
 - **Secondary:** transparent with an indigo outline. Used for safe, repeatable or preparatory actions and for rare, powerful ones that must not lead the page: "Check what will happen", "Repair" and "Finish offboarding" on dashboard rows and when not the status action, "Save", the password actions, "Reinstate", "Make global administrator", "Remove".
 - **Danger:** Fault Red. Filled for the "Delete …" links, whose page is the deletion; a red outline (`danger quiet`) for "Offboard", which sits on routine pages and must not be their loudest mark.
 - **Link:** no chrome, link colour. Used for Sign out only.

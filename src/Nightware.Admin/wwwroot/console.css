@@ -85,7 +85,7 @@ details.teach { margin: 0 0 12px; }
 details.teach > summary { cursor: pointer; color: var(--accent); }
 p.suggested { margin: 4px 0; font-size: 0.9em; }
 p.now { margin: 12px 0 4px; }
-p.now code { overflow-wrap: anywhere; }
+p.now code { overflow-wrap: anywhere; font-size: 0.9em; }
 .notice, .warning, .errors ul { margin: 12px 0; padding: 8px 12px; border: 1px solid; border-radius: 8px; background: var(--panel); }
 .notice { border-color: var(--ok); }
 .warning { border-color: var(--warn); }

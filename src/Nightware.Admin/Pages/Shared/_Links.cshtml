@@ -10,5 +10,5 @@
 </ul>
 @foreach (var link in Model.Where(l => l.State is LinkState.Conflict or LinkState.Error))
 {
-    <p class="hint detail">@(link.State == LinkState.Error ? $"{Systems.ShortName(link.Backend)} gave no answer: {link.Detail}" : $"{Systems.ShortName(link.Backend)}: {link.Detail}")</p>
+    <p class="hint detail">@(link.State == LinkState.Error ? $"{Systems.FailedSentence(link.Backend)} {link.Detail}" : $"{Systems.ShortName(link.Backend)}: {link.Detail}")</p>
 }

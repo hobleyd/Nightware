@@ -36,7 +36,9 @@ public sealed class DeletionGuard(IAdminActor actor, UserAccess users, Administr
         // offboarding half done and the evidence gone.
         if (allowed.IsSuccess && OffboardUser.IsIncomplete(loaded.Value))
         {
-            allowed = Error.Validation("Finish offboarding first: a mailbox or Files & calendar account may still let them sign in.");
+            // Names only what is actually open, so the refusal points at the system to wait for.
+            string[] open = [.. OffboardUser.StillOpen(loaded.Value).Select(static l => l.Backend == BackendKind.Mail ? "their mailbox" : "their Files & calendar account")];
+            allowed = Error.Validation($"Finish offboarding first: {string.Join(" and ", open)} may still let them sign in.");
         }
 
         return allowed.IsSuccess ? loaded : allowed.Error;

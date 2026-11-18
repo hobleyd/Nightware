@@ -103,7 +103,7 @@
     <ul class="chips">
         @foreach (var h in Model.Health)
         {
-            var name = Systems.Name(h.Backend);
+            var name = Systems.ShortName(h.Backend);
             var failed = h.Healthy ? Model.FailedFor(h.Backend) : [];
             <li class="chip @(!h.Healthy ? "error" : failed.Count > 0 ? "missing" : "linked")">@name: @(!h.Healthy ? "Unreachable" : failed.Count > 0 ? $"Reachable, failed for {failed.Count}" : "OK")</li>
         }

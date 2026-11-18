@@ -60,7 +60,8 @@
     {
         <form method="post" asp-page-handler="AddDomain" class="row">
             <label>Add domain <input name="domain" placeholder="acme.org" autocomplete="off" required></label>
-            <button type="submit">Add</button>
+            @* Adding the first domain is what a new entity is waiting for; after that it is a panel-local change. *@
+            <button type="submit" class="@(Model.Entity.Domains.Count == 0 ? null : "secondary")">Add</button>
         </form>
     }
 </section>
@@ -77,7 +78,7 @@
                 <input type="password" name="dnsToken" autocomplete="off" spellcheck="false" required aria-describedby="dns-token-hint">
             </label>
             <p id="dns-token-hint" class="hint">In Cloudflare, create an API token from the "Edit zone DNS" template, limited to this entity's zones. The console checks it with Cloudflare, stores it encrypted, and never shows it again.</p>
-            <button type="submit">@(entity.HasDnsToken ? "Replace token" : "Connect")</button>
+            <button type="submit" class="secondary">@(entity.HasDnsToken ? "Replace token" : "Connect")</button>
         </form>
         @if (entity.HasDnsToken)
         {
@@ -125,7 +126,7 @@
             </label>
             </div>
             <label class="choice"><input type="checkbox" name="confirm" value="true" required> They will manage this entity's users</label>
-            <button type="submit">Make administrator</button>
+            <button type="submit" class="secondary">Make administrator</button>
         </form>
     }
     @{ var removable = Model.Admins.Where(a => a.Id != Model.Actor.UserId).ToList(); }

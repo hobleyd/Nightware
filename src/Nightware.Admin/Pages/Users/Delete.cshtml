@@ -3,7 +3,7 @@
 @{
     // Entity › Users › person, as on the person's own page, whether or not the deletion is possible.
     var whose = Model.Subject?.User.Identity.DisplayName ?? (Model.Unread is null ? Model.Preview.User.Identity.DisplayName : null);
-    var crumbs = new List<(string Text, string? Href)>();
+    var crumbs = new List<(string Text, string? Href)> { ("Entities", Url.Page("/Entities/Index")) };
     if (Model.EntityId is not null)
     {
         crumbs.Add((Model.EntityName ?? "Entity", Url.Page("/Entities/Detail", new { id = Model.EntityId })));
