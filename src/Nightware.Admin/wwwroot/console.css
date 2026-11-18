@@ -96,9 +96,10 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; }
 main:has(> .dashboard) { max-width: calc(1080px + 17rem); }
 .dashboard { display: grid; grid-template-columns: minmax(0, 1fr) 16rem; gap: 0 16px; align-items: start; }
 .dashboard > .systems { margin-top: 1.34em; } /* level with the h1, whose 2em heading has a 0.67em margin */
-.systems ul { margin: 0; }
+.systems > h2 { text-align: center; }
+.systems ul { margin: 0; text-align: right; }
 .systems li + li { margin-top: 8px; }
-.systems p.detail { margin: 4px 0 0; }
+.systems p.detail { margin: 4px 0 0; text-align: left; }
 a.chip { text-decoration: none; }
 a.chip:hover { text-decoration: underline; }
 @media (max-width: 900px) {
