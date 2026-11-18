@@ -118,6 +118,22 @@ public sealed class UserAccess(
         return (new ManagedUser(identity.Value, memberships.Value.Count > 0 ? memberships.Value[0] : null, scope.Value.IsGlobal, scope.Value.EntityIds.Count > 0), offLimits);
     }
 
+    /// <summary>
+    /// The global admins' ids, for lists that build users without resolving each one's scope: where global admins
+    /// administer the servers, a global admin's administrator accounts are theirs to hold, not conflicts. Empty
+    /// otherwise, or when Keycloak cannot say; a list is only a view, and every action loads the user properly.
+    /// </summary>
+    public async Task<IReadOnlySet<string>> GlobalAdminIdsAsync(CancellationToken cancellationToken)
+    {
+        if (!options.GlobalAdminsAdministerServers)
+        {
+            return new HashSet<string>();
+        }
+
+        Result<IReadOnlyList<IdentityAccount>> admins = await identities.ListGlobalAdminsAsync(cancellationToken).ConfigureAwait(false);
+        return admins.IsSuccess ? admins.Value.Select(static a => a.Id).ToHashSet(StringComparer.Ordinal) : new HashSet<string>();
+    }
+
     public async Task<Result<UserDetail>> LoadWithLinksAsync(string userId, CancellationToken cancellationToken)
     {
         Result<ManagedUser> user = await LoadAsync(userId, cancellationToken).ConfigureAwait(false);

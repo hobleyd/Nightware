@@ -76,6 +76,43 @@ public sealed class UserLifecycleTests
     }
 
     [Fact]
+    public async Task Where_global_admins_administer_the_servers_lists_show_a_global_admins_administrator_accounts_as_linked()
+    {
+        _bed.Options.GlobalAdminsAdministerServers = true;
+        IdentityAccount dan = new("u-dan", "dan", "dan@acme.example", true);
+        IdentityAccount eve = new("u-eve", "eve", "eve@acme.example", true);
+        _bed.Entities.ListAsync(Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<Entity>>.Success([AdminTestBed.AcmeEntity]));
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([dan, eve]));
+        _bed.Identities.ListGlobalAdminsAsync(Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([dan]));
+        foreach (string who in new[] { "dan", "eve" })
+        {
+            _bed.Mail.FindByAddressAsync($"{who}@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount($"m-{who}", $"{who}@acme.example", true) { IsPrivileged = true, IsAdministrator = true });
+            _bed.Groupware.FindAsync(who, Arg.Any<CancellationToken>()).Returns(new GroupwareAccount(who, $"{who}@acme.example", who, true, true) { IsAdministrator = true, IsAdminGroupMember = true });
+        }
+
+        IReadOnlyList<UserDetail> listed = (await new ListUsers(_bed.Actor, _bed.Entities, _bed.UserAccess()).ExecuteAsync(AdminTestBed.Acme, Ct)).Value;
+        IReadOnlyList<FoundUser> found = (await new FindUsers(new ListEntities(_bed.Actor, _bed.Entities), _bed.Entities, _bed.UserAccess()).ExecuteAsync("acme.example", Ct)).Value.Users;
+
+        foreach (UserDetail user in listed.Concat(found.Select(static f => f.User)))
+        {
+            LinkState expected = user.User.Identity.Id == "u-dan" ? LinkState.Linked : LinkState.Conflict;
+            user.User.IsGlobalAdmin.ShouldBe(user.User.Identity.Id == "u-dan");
+            user.For(BackendKind.Mail).State.ShouldBe(expected);
+            user.For(BackendKind.Groupware).State.ShouldBe(expected);
+        }
+    }
+
+    [Fact]
+    public async Task A_list_is_drawn_without_global_admins_when_keycloak_cannot_name_them()
+    {
+        _bed.Options.GlobalAdminsAdministerServers = true;
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([new IdentityAccount("u-dan", "dan", "dan@acme.example", true)]));
+        _bed.Identities.ListGlobalAdminsAsync(Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("down"));
+
+        (await new ListUsers(_bed.Actor, _bed.Entities, _bed.UserAccess()).ExecuteAsync(AdminTestBed.Acme, Ct)).Value.Single().User.IsGlobalAdmin.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task ListUsers_is_scoped_to_the_actors_entities()
     {
         _bed.ActAsEntityAdmin();

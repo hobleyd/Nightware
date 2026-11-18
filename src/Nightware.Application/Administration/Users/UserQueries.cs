@@ -39,8 +39,9 @@ public sealed class ListUsers(IAdminActor actor, IEntityRegistry entities, UserA
             return details;
         }
 
+        IReadOnlySet<string> globalAdmins = await users.GlobalAdminIdsAsync(cancellationToken).ConfigureAwait(false);
         await Parallel.ForAsync(0, ordered.Length, new ParallelOptions { MaxDegreeOfParallelism = Parallelism, CancellationToken = cancellationToken }, async (i, ct) =>
-            details[i] = await users.WithLinksAsync(new ManagedUser(ordered[i], entityId, false, false), ct).ConfigureAwait(false)).ConfigureAwait(false);
+            details[i] = await users.WithLinksAsync(new ManagedUser(ordered[i], entityId, globalAdmins.Contains(ordered[i].Id), false), ct).ConfigureAwait(false)).ConfigureAwait(false);
         return details;
     }
 }
@@ -103,8 +104,9 @@ public sealed class FindUsers(ListEntities entities, IEntityRegistry registry, U
 
         (IdentityAccount Identity, Entity Entity)[] first = [.. found.Values.OrderBy(static f => f.Identity.DisplayName, StringComparer.OrdinalIgnoreCase).Take(Limit)];
         var result = new FoundUser[first.Length];
+        IReadOnlySet<string> globalAdmins = first.Length == 0 ? new HashSet<string>() : await users.GlobalAdminIdsAsync(cancellationToken).ConfigureAwait(false);
         await Parallel.ForAsync(0, first.Length, new ParallelOptions { MaxDegreeOfParallelism = 8, CancellationToken = cancellationToken }, async (i, ct) =>
-            result[i] = new FoundUser(await users.WithLinksAsync(new ManagedUser(first[i].Identity, first[i].Entity.Id, false, false), ct).ConfigureAwait(false), first[i].Entity)).ConfigureAwait(false);
+            result[i] = new FoundUser(await users.WithLinksAsync(new ManagedUser(first[i].Identity, first[i].Entity.Id, globalAdmins.Contains(first[i].Identity.Id), false), ct).ConfigureAwait(false), first[i].Entity)).ConfigureAwait(false);
         return new FoundUsers(result, found.Count > Limit);
     }
 
