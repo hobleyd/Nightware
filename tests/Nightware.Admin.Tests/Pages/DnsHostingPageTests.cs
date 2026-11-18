@@ -278,4 +278,45 @@ public sealed partial class DnsHostingPageTests : IDisposable
         (await PostAsync(DnsUrl, "Publish", new() { ["PlanFingerprint"] = fingerprint, ["ConfirmMailMove"] = "true" })).StatusCode.ShouldBe(HttpStatusCode.Redirect);
         await _host.DnsHosting.Received(1).ApplyAsync(Arg.Any<DnsProviderToken>(), Arg.Any<DnsZone>(), Arg.Is<DnsChange>(c => c.Kind == DnsChangeKind.Remove && c.Current!.Id == "r-old"), Arg.Any<CancellationToken>());
     }
+
+    [Fact]
+    public async Task Removing_a_domain_can_clean_its_mail_records_out_of_cloudflare_first()
+    {
+        GivenConnected();
+        _host.DnsHosting.ListRecordsAsync(default!, default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<ZoneRecord>>.Success(
+            [new ZoneRecord("r-mx", new DnsRecord("acme.example", "MX", 3600, "10 mail.acme.example"))]));
+        _host.Entities.RemoveDomainAsync(default!, default!, Ct).ReturnsForAnyArgs(ConsoleHost.AcmeEntity);
+
+        string page = await GetAsync(EntityUrl);
+        page.ShouldContain("name=\"cleanUpDns\" value=\"true\"> Also remove acme.example's mail records from Cloudflare");
+
+        using HttpResponseMessage response = await PostAsync(EntityUrl, "RemoveDomain", new() { ["domain"] = "acme.example", ["confirm"] = "true", ["cleanUpDns"] = "true" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        Received.InOrder(() =>
+        {
+            _host.DnsHosting.ApplyAsync(Arg.Any<DnsProviderToken>(), AcmeZone, Arg.Is<DnsChange>(c => c.Kind == DnsChangeKind.Remove && c.Current!.Id == "r-mx"), Arg.Any<CancellationToken>());
+            _host.Entities.RemoveDomainAsync(ConsoleHost.Acme, Arg.Any<MailDomain>(), Arg.Any<CancellationToken>());
+        });
+    }
+
+    [Fact]
+    public async Task A_clean_up_cloudflare_refuses_leaves_the_domain_in_place()
+    {
+        GivenConnected();
+        _host.DnsHosting.ListRecordsAsync(default!, default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<ZoneRecord>>.Success(
+            [new ZoneRecord("r-mx", new DnsRecord("acme.example", "MX", 3600, "10 mail.acme.example"))]));
+        _host.DnsHosting.ApplyAsync(default!, default!, default!, Ct).ReturnsForAnyArgs(Error.Validation("Cloudflare refused it."));
+
+        string html = await (await PostAsync(EntityUrl, "RemoveDomain", new() { ["domain"] = "acme.example", ["confirm"] = "true", ["cleanUpDns"] = "true" })).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain("acme.example was not removed: Cloudflare refused to delete 1 of its mail records (Cloudflare refused it.)");
+        await _host.Entities.DidNotReceiveWithAnyArgs().RemoveDomainAsync(default!, default!, Ct);
+    }
+
+    [Fact]
+    public async Task Without_a_cloudflare_token_the_removal_says_dns_is_not_touched()
+    {
+        (await GetAsync(EntityUrl)).ShouldContain("Its DNS records at your provider are not touched.");
+    }
 }

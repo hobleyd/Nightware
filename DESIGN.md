@@ -275,7 +275,7 @@ Native `<button>` elements, compact and unadorned.
 ### Confirmed changes
 - Every change to who can get in names its consequence in a checkbox beside the button: offboard, reinstate, grant or remove global rights, grant or remove an entity administrator. Reopening access (reinstate, granting global rights) also asks for a fresh sign-in. A new SPF record for a domain, which decides who may send its mail, is reviewed before it is saved: Save shows a "Use this SPF record?" panel with the exact record posted, its weaknesses, and a box whose words are worked out from that record ("Only 81.2.69.160 and whatever mailer.example lists may send mail for acme.example; other senders only soft-fail…"), with a primary "Use this SPF record". Saving with SPF unchanged or blank needs no review. So is publishing a Cloudflare plan that removes another server's MX record, which moves all of the domain's mail here ("All mail for acme.example comes here: mail.oldhost.example stops receiving it").
 - Reversals and removals live in their own block under a hairline with a small heading ("Undo offboarding", "Remove an administrator"), never in a table row beside a routine link, and use the secondary button.
-- Removing a domain follows the same pattern: a "Remove a domain" block under a hairline in the domains panel, listing only domains no user's address is on, with a box naming the consequence. The console runs no script (the CSP allows none), so nothing may rely on a browser dialog.
+- Removing a domain is the one exception: a red ✕ at the right end of its row (only for a domain no user's address is on) opens a confirmation in the browser's own popover — plain HTML (`popovertarget`), so the CSP that forbids every script cannot switch it off. It names the domain and the entity, offers "Also remove its mail records from Cloudflare" when the entity has a token (only records matching what the console publishes; if that clean-up fails, the domain stays), and has a red "Remove domain" and a Cancel. It is the console's only overlay.
 
 ### Needs attention (signature)
 The dashboard's first panel: users whose offboarding is incomplete, who conflict or who need repair (most urgent first, each with the systems at fault), domains the mail server does not serve or that lack signing keys, and any entity that could not be checked. Empty, it says "Nothing needs you." It is read on each visit and never stored.
@@ -313,7 +313,7 @@ A credential the console keeps (an entity's Cloudflare token) is entered in a pa
 - **Do** word a next step for the reader's role: an entity admin is sent to their operator, not to a button they lack.
 
 ### Don't:
-- **Don't** add shadows, gradients, overlays or modals. The board is flat and there is no script.
+- **Don't** add shadows, gradients, overlays or modals (the domain-removal popover is the single exception). The board is flat and there is no script; nothing may rely on one.
 - **Don't** use green, amber or red for anything that is not a state or a consequence.
 - **Don't** add a second accent colour, or spread the night palette beyond the band.
 - **Don't** use a thick side stripe on callouts or panels.

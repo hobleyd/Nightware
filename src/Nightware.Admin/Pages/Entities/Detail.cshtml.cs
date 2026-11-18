@@ -16,6 +16,7 @@ public sealed class DetailModel(
     ListUsers listUsers,
     AddEntityDomain addDomain,
     RemoveEntityDomain removeDomain,
+    RemoveDomainDnsRecords removeDnsRecords,
     GrantEntityAdmin grantAdmin,
     RevokeEntityAdmin revokeAdmin,
     SetEntityDnsToken setDnsToken) : ConsolePageModel(actor)
@@ -43,10 +44,39 @@ public sealed class DetailModel(
     public async Task<IActionResult> OnPostRepairDomainAsync(string domain, CancellationToken cancellationToken) =>
         await AfterAsync(await addDomain.ExecuteAsync(Id, domain, cancellationToken), Systems.DomainRepairNotice, cancellationToken);
 
-    public async Task<IActionResult> OnPostRemoveDomainAsync(string domain, bool confirm, CancellationToken cancellationToken) =>
-        !confirm
-            ? await UnconfirmedAsync("Tick the box to confirm removing the domain.", cancellationToken)
-            : await AfterAsync(await removeDomain.ExecuteAsync(Id, domain, cancellationToken), _ => $"{domain} removed from the entity. The mail server keeps the domain.", cancellationToken);
+    /// <summary>
+    /// Removes a domain, confirmed in the row's pop-up. With <paramref name="cleanUpDns"/>, the domain's mail records
+    /// come out of its Cloudflare zone first (only those matching what the console publishes); if that fails, the
+    /// domain stays, so its records can still be found and cleaned up.
+    /// </summary>
+    public async Task<IActionResult> OnPostRemoveDomainAsync(string domain, bool confirm, bool cleanUpDns, CancellationToken cancellationToken)
+    {
+        if (!confirm)
+        {
+            return await UnconfirmedAsync("Confirm removing the domain in its row.", cancellationToken);
+        }
+
+        string cleaned = string.Empty;
+        if (cleanUpDns)
+        {
+            Result<DnsCleanUp> cleanUp = await removeDnsRecords.ExecuteAsync(Id, domain, cancellationToken);
+            if (!cleanUp.IsSuccess)
+            {
+                return Fail(cleanUp.Error) ?? await UnconfirmedAsync($"Nothing was removed: the mail records for {domain} could not be cleaned up at Cloudflare.", cancellationToken);
+            }
+
+            if (cleanUp.Value.Failed.Count > 0)
+            {
+                ModelState.AddModelError(string.Empty, $"{domain} was not removed: Cloudflare refused to delete {cleanUp.Value.Failed.Count} of its mail records ({cleanUp.Value.Failed[0].Error!.Message}). {cleanUp.Value.Removed} were deleted; try again.");
+                return await RenderAsync(cancellationToken);
+            }
+
+            cleaned = $" {cleanUp.Value.Removed} mail {(cleanUp.Value.Removed == 1 ? "record was" : "records were")} removed from Cloudflare"
+                + (cleanUp.Value.Left > 0 ? $"; {cleanUp.Value.Left} that differ from what the console publishes were left." : ".");
+        }
+
+        return await AfterAsync(await removeDomain.ExecuteAsync(Id, domain, cancellationToken), _ => $"{domain} removed from the entity. The mail server keeps the domain.{cleaned}", cancellationToken);
+    }
 
     public async Task<IActionResult> OnPostGrantAdminAsync(string userId, bool confirm, CancellationToken cancellationToken) =>
         !confirm

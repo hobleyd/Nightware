@@ -42,6 +42,50 @@ public sealed class DnsPublishingTests
 
     private PublishDnsRecords Publisher() => new(_bed.Actor, Planner(), _hosting, _bed.Audit);
 
+    private RemoveDomainDnsRecords CleanUp() => new(_bed.Actor, Planner(), _hosting, _bed.Audit);
+
+    [Fact]
+    public async Task Cleaning_up_removes_only_the_records_that_match_what_the_console_publishes()
+    {
+        _hosting.ListRecordsAsync(default!, default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<ZoneRecord>>.Success(
+        [
+            new ZoneRecord("r-mx", new DnsRecord("acme.example", "MX", 3600, "10 mail.acme.example")),
+            new ZoneRecord("r-spf", new DnsRecord("acme.example", "TXT", null, "v=spf1 include:other.example -all")),
+            new ZoneRecord("r-web", new DnsRecord("www.acme.example", "A", 300, "81.2.69.160")),
+        ]));
+
+        DnsCleanUp done = (await CleanUp().ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Value;
+
+        done.Removed.ShouldBe(1);
+        done.Left.ShouldBe(1);
+        done.Failed.ShouldBeEmpty();
+        await _hosting.Received(1).ApplyAsync(Arg.Any<DnsProviderToken>(), AcmeZone, Arg.Is<DnsChange>(c => c.Kind == DnsChangeKind.Remove && c.Current!.Id == "r-mx"), Arg.Any<CancellationToken>());
+        _bed.Audit.Single("entity.domain.dns-removed").Details["removed"].ShouldBe("1");
+    }
+
+    [Fact]
+    public async Task A_record_cloudflare_refuses_to_delete_is_reported()
+    {
+        _hosting.ListRecordsAsync(default!, default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<ZoneRecord>>.Success(
+            [new ZoneRecord("r-mx", new DnsRecord("acme.example", "MX", 3600, "10 mail.acme.example"))]));
+        _hosting.ApplyAsync(default!, default!, default!, Ct).ReturnsForAnyArgs(Error.Validation("Cloudflare refused it."));
+
+        DnsCleanUp done = (await CleanUp().ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Value;
+
+        done.Removed.ShouldBe(0);
+        done.Failed.ShouldHaveSingleItem().Error!.Message.ShouldBe("Cloudflare refused it.");
+        _bed.Audit.Single("entity.domain.dns-removed").Succeeded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Only_a_global_administrator_cleans_up_dns()
+    {
+        _bed.ActAsEntityAdmin();
+
+        (await CleanUp().ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        await _hosting.DidNotReceiveWithAnyArgs().ApplyAsync(default!, default!, default!, Ct);
+    }
+
     [Fact]
     public async Task A_token_that_reaches_the_entitys_zone_is_stored_sealed_for_that_entity()
     {

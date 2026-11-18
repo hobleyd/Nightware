@@ -245,7 +245,7 @@ public sealed class UserPagesTests : IDisposable
         const string url = "/entities/" + ConsoleHost.Acme;
 
         string domain = await (await ConsoleHost.PostFormAsync(client, url, url + "?handler=RemoveDomain", new Dictionary<string, string> { ["domain"] = "acme.example" })).Content.ReadAsStringAsync(Ct);
-        domain.ShouldContain("Tick the box to confirm removing the domain.");
+        domain.ShouldContain("Confirm removing the domain in its row.");
 
         string admin = await (await ConsoleHost.PostFormAsync(client, url, url + "?handler=RevokeAdmin", new Dictionary<string, string> { ["userId"] = "u-dan" })).Content.ReadAsStringAsync(Ct);
         admin.ShouldContain("Tick the box to confirm removing the administrator.");

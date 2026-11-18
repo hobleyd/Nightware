@@ -145,20 +145,22 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
 
         string html = await GetAsync("/entities/" + ConsoleHost.Acme);
 
-        html.ShouldContain("<option value=\"spare.example\">");
-        html.ShouldNotContain("<option value=\"acme.example\">");
-        html.ShouldContain("name=\"confirm\" value=\"true\" required> Remove it from Acme Pty; the mail server keeps it");
+        html.ShouldContain("popovertarget=\"remove-spare-example\" title=\"Remove spare.example\"");
+        html.ShouldNotContain("popovertarget=\"remove-acme-example\"");
+        html.ShouldContain("<h3>Remove spare.example from Acme Pty?</h3>");
     }
 
     [Fact]
-    public async Task Removing_a_domain_never_relies_on_a_script_or_a_hidden_confirmation()
+    public async Task Removing_a_domain_is_confirmed_in_a_popover_that_needs_no_script()
     {
         _host.Entities.GetAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(new Entity(ConsoleHost.Acme, "acme", "Acme Pty", [ConsoleHost.Domain("acme.example"), ConsoleHost.Domain("spare.example")]));
 
         string html = await GetAsync("/entities/" + ConsoleHost.Acme);
 
+        // The confirmation is the browser's popover, which needs no script; nothing posts from the row itself.
         html.ShouldNotContain("onsubmit");
-        html.ShouldNotContain("type=\"hidden\" name=\"confirm\"");
+        html.ShouldContain("<div id=\"remove-spare-example\" popover class=\"confirm\">");
+        html.ShouldContain("<button type=\"button\" class=\"icon danger quiet\" popovertarget=\"remove-spare-example\"");
     }
 
     [Fact]
