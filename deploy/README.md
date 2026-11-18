@@ -156,7 +156,8 @@ Admin consoles (credentials are in `.env`):
 - Stalwart WebUI: `https://nightware.localhost/admin/`. Type a Keycloak
   user's address (alice's, on a seeded stack) and Stalwart sends the sign-in to
   Keycloak: with a Keycloak session already open (the console, Grafana) it
-  comes straight back, otherwise password + OTP, the console's MFA. The client
+  comes straight back, otherwise password + OTP, the console's MFA. An OTP
+  counts for `ADMIN_MFA_MAX_AGE` (8 hours) across all three. The client
   is Keycloak's `https://<host>/admin/oauth-client.json` (the web admin's own
   id, which `stalwart/configure.sh` pins and `keycloak/configure-console.sh`
   creates), and Caddy drops the `prompt=login` the web admin always sends for

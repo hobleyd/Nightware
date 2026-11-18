@@ -8,8 +8,9 @@
 #   2. realm roles nightware-global-admin and nightware-entity-admin
 #   3. user profile: nightware_aliases (multivalued), the two deletion
 #      markers and nightware_access_history (multivalued), admin-editable only
-#   4. a step-up browser flow (password = level 1, + passkey or OTP = level 2)
-#      bound to the console's client only; NightMail's sign-in is not touched.
+#   4. a step-up browser flow (password = level 1, + passkey or OTP = level 2,
+#      which counts for ADMIN_MFA_MAX_AGE, default 8 hours) bound to the
+#      console's clients only; NightMail's sign-in is not touched.
 #      It replaces the OTP-only flow nightware-console-browser, which is deleted
 #      once the client is bound to the new one
 #   5. client nightware-admin (confidential, code + PKCE, own secret, minimum
@@ -122,6 +123,12 @@ fi
 # with neither is asked to set up OTP (the set-up subflow runs only when the
 # second-factor subflow did not).
 FLOW=nightware-console-mfa
+# How long a second factor counts (seconds). Every client on this flow (the
+# console, Grafana, Stalwart's web admin) shares the Keycloak session, so
+# within this a sign-in to one signs in to the others without an OTP. As long
+# as the password's level (8 hours, the console's absolute lifetime). The
+# console's destructive actions ask for a fresh sign-in whatever this is.
+MFA_MAX_AGE="${ADMIN_MFA_MAX_AGE:-28800}"
 OLD_FLOW=nightware-console-browser  # OTP only; replaced by FLOW
 SECOND="${FLOW} second factor"
 SETUP="${FLOW} second factor setup"
@@ -161,7 +168,7 @@ if [[ -z "$(flow_id "$FLOW")" ]]; then
      && loa_condition "${FLOW} level 1" 1 28800 \
      && add_execution "${FLOW} level 1" auth-username-password-form REQUIRED \
      && add_subflow "${FLOW} forms" "${FLOW} level 2" CONDITIONAL \
-     && loa_condition "${FLOW} level 2" 2 300 \
+     && loa_condition "${FLOW} level 2" 2 "$MFA_MAX_AGE" \
      && add_subflow "${FLOW} level 2" "$SECOND" CONDITIONAL \
      && add_execution "$SECOND" conditional-user-configured REQUIRED \
      && add_execution "$SECOND" webauthn-authenticator ALTERNATIVE \
@@ -178,6 +185,22 @@ if [[ -z "$(flow_id "$FLOW")" ]]; then
 fi
 FLOW_ID=$(flow_id "$FLOW")
 [[ -n "$FLOW_ID" ]] || FLOW_ID=$(flow_id "$OLD_FLOW")
+
+# A flow built earlier keeps the max age it was built with (300 s before
+# 2026-11-19): bring level 2's condition in line.
+if [[ -n "$(flow_id "$FLOW")" ]]; then
+  cfg_id=$(executions "${FLOW} level 2" | jq -r 'map(select(.level==0 and .providerId=="conditional-level-of-authentication")) | first | .authenticationConfig // empty')
+  if [[ -z "$cfg_id" ]]; then
+    warn "no level-2 condition config in ${FLOW}; the MFA max age is unchanged"
+  else
+    cfg=$(kc "${API}/authentication/config/${cfg_id}")
+    if [[ "$(jq -r '.config["loa-max-age"]' <<<"$cfg")" != "$MFA_MAX_AGE" ]]; then
+      log "Keycloak (console): a second factor counts for ${MFA_MAX_AGE} s (${FLOW} level 2)"
+      kcj -X PUT "${API}/authentication/config/${cfg_id}" --data-binary @- <<<"$(jq -c --arg m "$MFA_MAX_AGE" '.config["loa-max-age"] = $m' <<<"$cfg")" >/dev/null \
+        || warn "could not set the MFA max age"
+    fi
+  fi
+fi
 
 # --------------------------------------------------------------- 5. client
 : "${NIGHTWARE_ADMIN_CLIENT_SECRET:?run scripts/init-env.sh}"
