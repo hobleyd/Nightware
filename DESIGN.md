@@ -280,7 +280,7 @@ Native `<button>` elements, compact and unadorned.
 ### Needs attention (signature)
 The dashboard's first panel: users whose offboarding is incomplete, who conflict or who need repair (most urgent first, each with the systems at fault), domains the mail server does not serve or that lack signing keys, and any entity that could not be checked. Empty, it says "Nothing needs you." It is read on each visit and never stored.
 
-Each row carries its fix when the fix is safe to repeat: "Finish offboarding" (only for someone already offboarded; the dashboard never offboards an active user), "Repair" for a user or, for global admins, a domain. A conflict needs a person to decide, so its row links to the user instead. A domain lacking keys links to its DNS records.
+A domain whose own SPF or DMARC lets anyone send as it (Unsafe) is listed too, with "Fix SPF and DMARC" to the edit form; merely Weak records are shown where they are read, not here. Each row carries its fix when the fix is safe to repeat: "Finish offboarding" (only for someone already offboarded; the dashboard never offboards an active user), "Repair" for a user or, for global admins, a domain. A conflict needs a person to decide, so its row links to the user instead. A domain lacking keys links to its DNS records.
 
 The Systems chips below agree with it: a system that answers its health check but failed for someone in the sweep reads "Reachable, failed for N" in amber, with the names beneath, never a plain "OK".
 

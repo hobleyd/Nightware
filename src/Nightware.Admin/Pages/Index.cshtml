@@ -76,14 +76,22 @@
                 {
                     var served = d.Domain.Mail.State == LinkState.Linked;
                     <li>
-                        <a asp-page="/Entities/Detail" asp-route-id="@d.Entity.Id">@d.Domain.Domain</a> (@d.Entity.Name): @(served ? "no signing (DKIM) keys" : $"the mail server does not serve it ({Systems.StateLabel(d.Domain.Mail.State)})")
-                        @if (Model.Actor.IsGlobal)
+                        <a asp-page="/Entities/Detail" asp-route-id="@d.Entity.Id">@d.Domain.Domain</a> (@d.Entity.Name): @string.Join("; ", new[]
+                        {
+                            !served ? $"the mail server does not serve it ({Systems.StateLabel(d.Domain.Mail.State)})" : served && !d.Domain.DkimPresent ? "no signing (DKIM) keys" : null,
+                            d.Unsafe.Count > 0 ? "its SPF lets any server send mail as it" : null,
+                        }.Where(static x => x is not null))
+                        @if (Model.Actor.IsGlobal && d.Unsafe.Count > 0)
+                        {
+                            <a asp-page="/Entities/Dns" asp-route-id="@d.Entity.Id" asp-route-domain="@d.Domain.Domain.Name" asp-route-edit="true" asp-fragment="mail-policy">Fix SPF and DMARC</a>
+                        }
+                        @if (d.NeedsRepair && Model.Actor.IsGlobal)
                         {
                             <form method="post" asp-page-handler="RepairDomain" class="inline"><input type="hidden" name="entityId" value="@d.Entity.Id"><input type="hidden" name="domain" value="@d.Domain.Domain.Name"><button type="submit" class="secondary">Repair</button></form>
                         }
-                        else
+                        else if (!Model.Actor.IsGlobal)
                         {
-                            <span class="hint">Ask your Nightware operator to repair it.</span>
+                            <span class="hint">Ask your Nightware operator to @(d.NeedsRepair ? "repair" : "fix") it.</span>
                         }
                         @if (served)
                         {

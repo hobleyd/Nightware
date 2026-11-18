@@ -57,6 +57,25 @@ public sealed class AttentionTests
     }
 
     [Fact]
+    public async Task A_domain_whose_own_spf_lets_anyone_send_needs_attention_but_a_merely_weak_one_does_not()
+    {
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        MailDomain acme = AdminTestBed.Domain("acme.example");
+        void Policy(string spf, string dmarc) => _bed.Entities.GetAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(AdminTestBed.AcmeEntity with
+        {
+            MailPolicies = new Dictionary<MailDomain, DomainMailPolicy> { [acme] = new(SpfRecord.Parse(spf).Value, DmarcRecord.Parse(dmarc).Value) },
+        });
+
+        Policy("v=spf1 mx ~all", "v=DMARC1; p=none");
+        (await Attention.ExecuteAsync(Ct)).Value.Domains.ShouldBeEmpty();
+
+        Policy("v=spf1 +all", "v=DMARC1; p=reject; rua=mailto:postmaster@acme.example");
+        DomainNeedingAttention flagged = (await Attention.ExecuteAsync(Ct)).Value.Domains.ShouldHaveSingleItem();
+        flagged.Unsafe.ShouldHaveSingleItem().Severity.ShouldBe(WeaknessSeverity.Unsafe);
+        flagged.NeedsRepair.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task An_entity_that_cannot_be_read_is_named_never_silently_clear()
     {
         _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("Keycloak is down."));

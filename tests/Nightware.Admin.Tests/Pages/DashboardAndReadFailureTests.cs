@@ -408,4 +408,20 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         html.ShouldContain("<button type=\"submit\" class=\"secondary\">Add</button>");
         html.ShouldNotContain("<button type=\"submit\">Connect</button>");
     }
+
+    [Fact]
+    public async Task An_spf_that_lets_anyone_send_is_on_the_dashboard_with_the_way_to_fix_it()
+    {
+        _host.Entities.GetAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(ConsoleHost.AcmeEntity with
+        {
+            MailPolicies = new Dictionary<MailDomain, DomainMailPolicy> { [ConsoleHost.Domain("acme.example")] = new(SpfRecord.Parse("v=spf1 +all").Value, null) },
+        });
+
+        string global = await GetAsync("/");
+        global.ShouldContain("its SPF lets any server send mail as it");
+        global.ShouldContain("?edit=true#mail-policy\">Fix SPF and DMARC</a>");
+        global.ShouldNotContain("handler=RepairDomain");
+
+        (await GetAsync("/", ConsoleHost.EntityAdmin)).ShouldContain("Ask your Nightware operator to fix it.");
+    }
 }
