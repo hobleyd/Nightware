@@ -102,6 +102,18 @@ public sealed class LinkStateEvaluatorTests
     }
 
     [Fact]
+    public void A_global_admins_nextcloud_admin_account_is_linked_and_a_sub_administrator_stays_a_conflict()
+    {
+        var admin = new GroupwareAccount("carol", Address, "Carol", true, true) { IsAdministrator = true, IsAdminGroupMember = true };
+        var subadmin = new GroupwareAccount("carol", Address, "Carol", true, true) { IsAdministrator = true };
+
+        LinkStateEvaluator.Groupware("carol", Address, admin, administratorExpected: true)
+            .ShouldBe(new BackendLink(BackendKind.Groupware, LinkState.Linked, "Account carol (Nextcloud administrator).", "carol"));
+        LinkStateEvaluator.Groupware("carol", Address, admin).Detail!.ShouldContain("not a global administrator");
+        LinkStateEvaluator.Groupware("carol", Address, subadmin, administratorExpected: true).State.ShouldBe(LinkState.Conflict);
+    }
+
+    [Fact]
     public void Other_mail_server_rights_are_a_conflict_even_for_a_global_admin() =>
         LinkStateEvaluator.Mail(Address, new MailAccount("m", Address, true) { IsPrivileged = true }, administratorExpected: true).State.ShouldBe(LinkState.Conflict);
 

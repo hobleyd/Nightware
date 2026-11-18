@@ -477,6 +477,19 @@ public sealed class UserLifecycleTests
     }
 
     [Fact]
+    public async Task Where_global_admins_administer_the_servers_a_global_admins_nextcloud_admin_account_links()
+    {
+        _bed.Options.GlobalAdminsAdministerServers = true;
+        Carol(scope: new AdminScope(true, new HashSet<string>(), AdministersDirectory: true));
+        _bed.Groupware.FindAsync("carol", Arg.Any<CancellationToken>()).Returns(new GroupwareAccount("carol", "carol@acme.example", "carol", true, true) { IsAdministrator = true, IsAdminGroupMember = true });
+
+        UserDetail detail = (await new GetUser(_bed.UserAccess()).ExecuteAsync("u-carol", Ct)).Value;
+
+        detail.OffLimits.ShouldBeNull();
+        detail.For(BackendKind.Groupware).State.ShouldBe(LinkState.Linked);
+    }
+
+    [Fact]
     public async Task A_mail_server_administrator_who_is_not_a_global_admin_stays_off_limits()
     {
         _bed.Options.GlobalAdminsAdministerServers = true;

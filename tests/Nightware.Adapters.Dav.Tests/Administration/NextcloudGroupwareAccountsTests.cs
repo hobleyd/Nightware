@@ -382,6 +382,31 @@ public sealed class NextcloudGroupwareAccountsTests : IDisposable
     }
 
     [Theory]
+    [InlineData(true, "POST")]
+    [InlineData(false, "DELETE")]
+    public async Task Set_administrator_adds_to_or_removes_from_the_admin_group(bool administrator, string method)
+    {
+        _nextcloud.Answer(method, $"{UserPath}/groups", 200, 100);
+
+        (await Accounts.SetAdministratorAsync("alice", administrator, Ct)).IsSuccess.ShouldBeTrue();
+
+        var request = Single;
+        request.Method.ShouldBe(method);
+        request.AbsolutePath.ShouldBe($"{UserPath}/groups");
+        request.RawQuery.ShouldBe("?groupid=admin&format=json");
+    }
+
+    [Theory]
+    [InlineData(103, ErrorKind.NotFound)]
+    [InlineData(105, ErrorKind.Validation)]
+    public async Task A_refused_admin_group_change_is_an_error(int ocsStatus, ErrorKind kind)
+    {
+        _nextcloud.Answer("DELETE", $"{UserPath}/groups", 200, ocsStatus, message: "refused");
+
+        (await Accounts.SetAdministratorAsync("alice", false, Ct)).Error!.Kind.ShouldBe(kind);
+    }
+
+    [Theory]
     [InlineData("""["users"]""", "[]", false)]
     [InlineData("""["users","admin"]""", "[]", true)]
     [InlineData("""["users"]""", """["staff"]""", true)]
@@ -392,6 +417,8 @@ public sealed class NextcloudGroupwareAccountsTests : IDisposable
         data["subadmin"] = JsonNode.Parse(subadmin);
         _nextcloud.Answer("GET", UserPath, 200, 100, data.ToJsonString());
 
-        (await Accounts.FindAsync("alice", Ct)).Value.IsAdministrator.ShouldBe(administrator);
+        GroupwareAccount found = (await Accounts.FindAsync("alice", Ct)).Value;
+        found.IsAdministrator.ShouldBe(administrator);
+        found.IsAdminGroupMember.ShouldBe(groups.Contains("admin", StringComparison.Ordinal));
     }
 }

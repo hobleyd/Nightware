@@ -59,6 +59,7 @@ internal sealed class NextcloudGroupwareAccounts(NextcloudProvisioningClient cli
             managed)
         {
             IsAdministrator = HasAny(data["groups"], static g => g == "admin") || HasAny(data["subadmin"], static _ => true),
+            IsAdminGroupMember = HasAny(data["groups"], static g => g == "admin"),
         };
     }
 
@@ -111,6 +112,35 @@ internal sealed class NextcloudGroupwareAccounts(NextcloudProvisioningClient cli
 
         return reply.StatusCode == 409 && reply.IsEnvelope
             ? Error.Conflict($"Nextcloud user {uid} exists and cannot be taken over by user_oidc.")
+            : reply.ToError($"No Nextcloud user {uid}.");
+    }
+
+    /// <remarks>
+    /// <c>POST|DELETE users/{uid}/groups</c> with <c>groupid</c> (read from the query string for either method):
+    /// OCS 100 on success, 103 for a missing user, 104 without the rights, 105 when it failed (Nextcloud refuses
+    /// to take the last administrator, or the caller itself, out of <c>admin</c>).
+    /// </remarks>
+    public async Task<Result> SetAdministratorAsync(string uid, bool administrator, CancellationToken cancellationToken)
+    {
+        if (InvalidUid(uid) is { } invalid)
+        {
+            return invalid;
+        }
+
+        var sent = await client.SendAsync(administrator ? HttpMethod.Post : HttpMethod.Delete, UsersPath + Escape(uid) + "/groups?groupid=admin", null, cancellationToken).ConfigureAwait(false);
+        if (!sent.IsSuccess)
+        {
+            return sent.Error;
+        }
+
+        var reply = sent.Value;
+        if (reply.Succeeded)
+        {
+            return Result.Success();
+        }
+
+        return reply.IsEnvelope && reply.StatusCode == 103
+            ? Error.NotFound($"No Nextcloud user {uid}.")
             : reply.ToError($"No Nextcloud user {uid}.");
     }
 

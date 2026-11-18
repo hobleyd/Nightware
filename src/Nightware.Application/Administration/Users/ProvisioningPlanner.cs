@@ -118,7 +118,8 @@ public sealed class ProvisioningPlanner(
             mailStep = await CheckAliasesAsync(mailStep, mailLink.DownstreamId, existing?.Id, aliases, cancellationToken).ConfigureAwait(false);
         }
 
-        BackendLink cloudLink = LinkStateEvaluator.Groupware(username, address.Value, await groupware.FindAsync(username, cancellationToken).ConfigureAwait(false));
+        BackendLink cloudLink = LinkStateEvaluator.Groupware(username, address.Value, await groupware.FindAsync(username, cancellationToken).ConfigureAwait(false),
+            options.GlobalAdminsAdministerServers && existing is not null && targetIsGlobal);
         PlannedStep cloudStep = LinkStateEvaluator.Step(cloudLink, $"Create Nextcloud user {username}.");
 
         var plan = new ProvisioningPlan([identityStep, mailStep, cloudStep]);

@@ -72,7 +72,8 @@ internal sealed partial class NextcloudProvisioningClient(
     internal Uri Url(string path)
     {
         var baseUrl = options.Value.BaseUrl ?? throw new InvalidOperationException("NextcloudProvisioning:BaseUrl is not configured.");
-        return new Uri(baseUrl, $"{baseUrl.AbsolutePath.TrimEnd('/')}/{path.TrimStart('/')}?format=json");
+        // A path may carry its own query (users/{uid}/groups?groupid=admin).
+        return new Uri(baseUrl, $"{baseUrl.AbsolutePath.TrimEnd('/')}/{path.TrimStart('/')}{(path.Contains('?', StringComparison.Ordinal) ? '&' : '?')}format=json");
     }
 
     private AuthenticationHeaderValue BasicCredential()

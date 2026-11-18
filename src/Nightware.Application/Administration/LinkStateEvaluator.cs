@@ -56,7 +56,11 @@ public static class LinkStateEvaluator
     }
 
     /// <param name="uid">The Nextcloud uid sign-in would use (the Keycloak username).</param>
-    public static BackendLink Groupware(string uid, string email, Result<GroupwareAccount> found)
+    /// <param name="administratorExpected">
+    /// The uid is a global administrator's, whom the console puts in Nextcloud's <c>admin</c> group
+    /// (<see cref="AdministrationOptions.GlobalAdminsAdministerServers"/>).
+    /// </param>
+    public static BackendLink Groupware(string uid, string email, Result<GroupwareAccount> found, bool administratorExpected = false)
     {
         if (!found.IsSuccess)
         {
@@ -66,9 +70,11 @@ public static class LinkStateEvaluator
         }
 
         GroupwareAccount account = found.Value;
-        if (account.IsAdministrator)
+        if (account.IsAdministrator && !(administratorExpected && account.IsAdminGroupMember))
         {
-            return new BackendLink(BackendKind.Groupware, LinkState.Conflict, $"{uid} is a Nextcloud administrator; the console never links or manages it.", account.Uid);
+            return new BackendLink(BackendKind.Groupware, LinkState.Conflict, account.IsAdminGroupMember
+                ? $"{uid} is a Nextcloud administrator but not a global administrator; take them out of Nextcloud's admin group."
+                : $"{uid} is a Nextcloud administrator; the console never links or manages it.", account.Uid);
         }
 
         if (!account.ManagedByIdentityProvider)
@@ -82,7 +88,7 @@ public static class LinkStateEvaluator
         }
 
         return account.Enabled
-            ? new BackendLink(BackendKind.Groupware, LinkState.Linked, $"Account {uid}.", account.Uid)
+            ? new BackendLink(BackendKind.Groupware, LinkState.Linked, account.IsAdminGroupMember ? $"Account {uid} (Nextcloud administrator)." : $"Account {uid}.", account.Uid)
             : new BackendLink(BackendKind.Groupware, LinkState.Disabled, $"Account {uid} is disabled.", account.Uid);
     }
 

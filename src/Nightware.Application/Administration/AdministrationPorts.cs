@@ -187,8 +187,15 @@ public interface IMailDomains
 /// <param name="ManagedByIdentityProvider">The account signs in through Keycloak (Nextcloud <c>user_oidc</c>), not a local password.</param>
 public sealed record GroupwareAccount(string Uid, string? Email, string? DisplayName, bool Enabled, bool ManagedByIdentityProvider)
 {
-    /// <summary>A Nextcloud administrator or group sub-administrator. Never linked or managed by the console.</summary>
+    /// <summary>
+    /// A Nextcloud administrator or group sub-administrator. Never linked or managed by the console, unless it is a
+    /// global administrator's account in the <c>admin</c> group (<see cref="IsAdminGroupMember"/>,
+    /// <see cref="AdministrationOptions.GlobalAdminsAdministerServers"/>).
+    /// </summary>
     public bool IsAdministrator { get; init; }
+
+    /// <summary>In Nextcloud's <c>admin</c> group, the role the console gives a global administrator. Implies <see cref="IsAdministrator"/>.</summary>
+    public bool IsAdminGroupMember { get; init; }
 }
 
 /// <summary>Accounts on the groupware server (Nextcloud), managed with the console's own credential.</summary>
@@ -204,6 +211,9 @@ public interface IGroupwareAccounts
     Task<Result> PreProvisionAsync(string uid, string email, string displayName, CancellationToken cancellationToken);
 
     Task<Result> SetEnabledAsync(string uid, bool enabled, CancellationToken cancellationToken);
+
+    /// <summary>Adds the user to Nextcloud's <c>admin</c> group, or takes them out of it. NotFound when there is no such user.</summary>
+    Task<Result> SetAdministratorAsync(string uid, bool administrator, CancellationToken cancellationToken);
 
     /// <summary>Deletes the user and every file, calendar and contact they own; NotFound when already gone.</summary>
     Task<Result> DeleteAsync(string uid, CancellationToken cancellationToken);
@@ -285,11 +295,12 @@ public sealed class AdministrationOptions
     public bool EntityAdminsMayDeleteData { get; set; }
 
     /// <summary>
-    /// Global administrators also administer Keycloak's realm and the mail server (ADR 0002 D6, amended): their
-    /// role carries Keycloak's <c>realm-admin</c> (keycloak/configure-console.sh), granting or revoking it sets
-    /// their mailbox's administrator role, and a global admin may manage another global admin although that
-    /// account administers those servers, since the actor holds the same rights already. Off by default: the
-    /// console's mail principal must itself be a mail-server administrator to grant the role.
+    /// Global administrators also administer Keycloak's realm, the mail server and Nextcloud (ADR 0002 D6,
+    /// amended): their role carries Keycloak's <c>realm-admin</c> (keycloak/configure-console.sh), granting or
+    /// revoking it sets their mailbox's administrator role and their Nextcloud <c>admin</c> group membership, and a
+    /// global admin may manage another global admin although that account administers those servers, since the
+    /// actor holds the same rights already. Off by default: the console's mail principal must itself be a
+    /// mail-server administrator to grant the role.
     /// </summary>
     public bool GlobalAdminsAdministerServers { get; set; }
 

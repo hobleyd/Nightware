@@ -90,15 +90,17 @@ public sealed class UserAccess(
         }
 
         // Administrators of the mail or groupware server are as off-limits as Keycloak's own: resetting their
-        // password would hand the actor that server's administration. A global admin's mailbox, holding the
-        // administrator role their role brings, is not, to another global admin, who holds that role already.
+        // password would hand the actor that server's administration. A global admin's mailbox and Nextcloud
+        // account, holding the administrator role their role brings, are not, to another global admin, who holds
+        // those roles already.
         Task<Result<MailAccount>> mailbox = mail.FindByAddressAsync(identity.Value.Email, cancellationToken);
         Task<Result<GroupwareAccount>> cloud = groupware.FindAsync(identity.Value.Username, cancellationToken);
         await Task.WhenAll(mailbox, cloud).ConfigureAwait(false);
         bool ownAdministratorRole = options.GlobalAdminsAdministerServers && actor.Current.IsGlobal && scope.Value.IsGlobal;
         if ((await mailbox.ConfigureAwait(false)) is { IsSuccess: true, Value.IsPrivileged: true } privileged
                 && !(ownAdministratorRole && privileged.Value.IsAdministrator)
-            || (await cloud.ConfigureAwait(false)) is { IsSuccess: true, Value.IsAdministrator: true })
+            || (await cloud.ConfigureAwait(false)) is { IsSuccess: true, Value.IsAdministrator: true } administrator
+                && !(ownAdministratorRole && administrator.Value.IsAdminGroupMember))
         {
             const string ServerAdministrator = "This account administers the mail or Nextcloud server; manage it there.";
             if (showOnly)
@@ -136,7 +138,7 @@ public sealed class UserAccess(
             mailLink = mailLink with { Detail = $"Mail deleted on {mailDeleted:yyyy-MM-dd HH:mm} UTC." };
         }
 
-        BackendLink cloudLink = LinkStateEvaluator.Groupware(identity.Username, identity.Email, await cloud.ConfigureAwait(false));
+        BackendLink cloudLink = LinkStateEvaluator.Groupware(identity.Username, identity.Email, await cloud.ConfigureAwait(false), options.GlobalAdminsAdministerServers && user.IsGlobalAdmin);
         if (cloudLink.State == LinkState.Missing && identity.GroupwareDeletedAt is { } cloudDeleted)
         {
             cloudLink = cloudLink with { Detail = $"Nextcloud data deleted on {cloudDeleted:yyyy-MM-dd HH:mm} UTC." };

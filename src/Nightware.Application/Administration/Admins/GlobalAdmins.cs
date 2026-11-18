@@ -18,9 +18,10 @@ public sealed class ListGlobalAdmins(IAdminActor actor, IIdentityAccounts identi
 /// global admin must set up a second factor before they can use the console. Granting the widest role there
 /// is needs the same fresh, strong sign-in as deleting data; revoking narrows access and does not. Where
 /// global admins administer the servers (<see cref="AdministrationOptions.GlobalAdminsAdministerServers"/>),
-/// their mailbox's administrator role follows (Keycloak's realm-admin follows by itself, as part of the role).
+/// their mailbox's administrator role and their Nextcloud <c>admin</c> group membership follow (Keycloak's
+/// realm-admin follows by itself, as part of the role).
 /// </summary>
-public sealed class SetGlobalAdmin(IAdminActor actor, IIdentityAccounts identities, IMailAccounts mail, IAuditLog audit, AdministrationOptions options, TimeProvider time)
+public sealed class SetGlobalAdmin(IAdminActor actor, IIdentityAccounts identities, IMailAccounts mail, IGroupwareAccounts groupware, IAuditLog audit, AdministrationOptions options, TimeProvider time)
 {
     public async Task<Result> ExecuteAsync(string userId, bool granted, CancellationToken cancellationToken)
     {
@@ -58,46 +59,77 @@ public sealed class SetGlobalAdmin(IAdminActor actor, IIdentityAccounts identiti
             result = await identities.AddRequiredActionAsync(userId, RequiredAction.ConfigureTotp, cancellationToken).ConfigureAwait(false);
         }
 
-        // After Keycloak, which decides who uses the console: a revoke must not wait on the mail server.
+        // After Keycloak, which decides who uses the console: a revoke must not wait on the other servers, and
+        // one server refusing does not stop the other.
         if (result.IsSuccess && options.GlobalAdminsAdministerServers)
         {
-            result = await SetMailAdministratorAsync(target.Value, granted, cancellationToken).ConfigureAwait(false);
+            string?[] left =
+            [
+                await SetMailAdministratorAsync(target.Value, granted, cancellationToken).ConfigureAwait(false),
+                await SetGroupwareAdministratorAsync(target.Value, granted, cancellationToken).ConfigureAwait(false),
+            ];
+            if (left.OfType<string>().ToList() is { Count: > 0 } failures)
+            {
+                result = Error.Conflict(granted
+                    ? $"{target.Value.DisplayName} is a global administrator, but not yet an administrator of every server: {string.Join("; ", failures)}."
+                    : $"{target.Value.DisplayName} is no longer a global administrator, but still administers a server: {string.Join("; ", failures)}. Take the role away there.");
+            }
         }
 
         audit.Record(new AuditEvent(granted ? "global.admin.granted" : "global.admin.revoked", actor.Current.UserId, result.IsSuccess) { TargetUserId = userId });
         return result;
     }
 
-    private async Task<Result> SetMailAdministratorAsync(IdentityAccount target, bool administrator, CancellationToken cancellationToken)
+    /// <summary>Null when the mailbox now matches (or there is none); otherwise what is left, in words.</summary>
+    private async Task<string?> SetMailAdministratorAsync(IdentityAccount target, bool administrator, CancellationToken cancellationToken)
     {
         Result<MailAccount> mailbox = await mail.FindByAddressAsync(target.Email, cancellationToken).ConfigureAwait(false);
         if (!mailbox.IsSuccess)
         {
-            return mailbox.Error.Kind == ErrorKind.NotFound ? Result.Success() : Partly(target, administrator, mailbox.Error.Message);
+            return mailbox.Error.Kind == ErrorKind.NotFound ? null : $"the mail server: {mailbox.Error.Message}";
         }
 
         MailAccount account = mailbox.Value;
         if (!account.IsIndividual || !string.Equals(account.Address, target.Email, StringComparison.OrdinalIgnoreCase))
         {
-            return Result.Success();
+            return null;
         }
 
         if (account.IsPrivileged && !account.IsAdministrator)
         {
-            return Partly(target, administrator, $"{account.Address} holds other mail-server rights, which the console leaves alone");
+            return $"the mailbox {account.Address} holds other mail-server rights, which the console leaves alone";
         }
 
         if (account.IsAdministrator == administrator)
         {
-            return Result.Success();
+            return null;
         }
 
         Result set = await mail.SetAdministratorAsync(account.Id, administrator, cancellationToken).ConfigureAwait(false);
-        return set.IsSuccess ? set : Partly(target, administrator, set.Error.Message);
+        return set.IsSuccess ? null : $"the mail server: {set.Error.Message}";
     }
 
-    private static Result Partly(IdentityAccount target, bool administrator, string why) =>
-        Error.Conflict(administrator
-            ? $"{target.DisplayName} is a global administrator, but their mailbox is not a mail-server administrator: {why}."
-            : $"{target.DisplayName} is no longer a global administrator, but their mailbox is still a mail-server administrator: {why}. Take the role away in the mail server.");
+    /// <summary>Null when the Nextcloud account now matches (or there is none); otherwise what is left, in words.</summary>
+    private async Task<string?> SetGroupwareAdministratorAsync(IdentityAccount target, bool administrator, CancellationToken cancellationToken)
+    {
+        Result<GroupwareAccount> found = await groupware.FindAsync(target.Username, cancellationToken).ConfigureAwait(false);
+        if (!found.IsSuccess)
+        {
+            return found.Error.Kind == ErrorKind.NotFound ? null : $"Nextcloud: {found.Error.Message}";
+        }
+
+        if (found.Value.IsAdminGroupMember == administrator)
+        {
+            return null;
+        }
+
+        // A local account of the same name is not theirs: Keycloak sign-in never reaches it.
+        if (!found.Value.ManagedByIdentityProvider)
+        {
+            return $"the Nextcloud account {target.Username} is a local account, which the console leaves alone";
+        }
+
+        Result set = await groupware.SetAdministratorAsync(target.Username, administrator, cancellationToken).ConfigureAwait(false);
+        return set.IsSuccess ? null : $"Nextcloud: {set.Error.Message}";
+    }
 }
