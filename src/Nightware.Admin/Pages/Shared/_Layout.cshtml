@@ -17,17 +17,17 @@
     var self = Context.Request.PathBase + Context.Request.Path;
 
     // Every entity the actor manages; a list that cannot be read leaves just the section, plus the entity this page is under.
-    var entities = new List<(string Id, string Name)>();
+    var entities = new List<(string Id, string Name, IReadOnlyList<string> Domains)>();
     if (sections && await ListEntities.ExecuteAsync(Context.RequestAborted) is { IsSuccess: true } listed)
     {
-        entities.AddRange(listed.Value.Select(e => (e.Id, e.Name)));
+        entities.AddRange(listed.Value.Select(e => (e.Id, e.Name, (IReadOnlyList<string>)[.. e.Domains.Select(d => d.Name)])));
     }
 
     var entityHref = entityId is null ? null : Url.Page("/Entities/Detail", new { id = entityId });
     var at = crumbs.FindIndex(c => c.Href == entityHref);
     if (entityId is not null && !entities.Any(e => e.Id == entityId))
     {
-        entities.Add((entityId, at >= 0 ? crumbs[at].Text : here));
+        entities.Add((entityId, at >= 0 ? crumbs[at].Text : here, []));
     }
 
     // What hangs below the entity (or below the section, when no entity is on the way), ending with this page.
@@ -96,7 +96,21 @@
                         {
                             var on = e.Id == entityId;
                             var current = on && below.Count == 0;
-                            <li><a aria-current="@(current ? "page" : null)" class="@(on && !current ? "trail" : null)" href="@Url.Page("/Entities/Detail", new { id = e.Id })">@e.Name</a>@if (on) { Chain(0); }</li>
+                            // A domain's DNS records are its own entry, so on that page the domain is the current one.
+                            var domains = e.Domains.Select(d => (Name: d, Href: Url.Page("/Entities/Dns", new { id = e.Id, domain = d }))).ToList();
+                            var atDomain = on && below.Count == 1 && domains.Any(d => string.Equals(d.Href, self, StringComparison.OrdinalIgnoreCase));
+                            <li><a aria-current="@(current ? "page" : null)" class="@(on && !current ? "trail" : null)" href="@Url.Page("/Entities/Detail", new { id = e.Id })">@e.Name</a>
+                                @if (domains.Count > 0)
+                                {
+                                    <ul class="domains">
+                                        @foreach (var d in domains)
+                                        {
+                                            <li><a aria-current="@(atDomain && string.Equals(d.Href, self, StringComparison.OrdinalIgnoreCase) ? "page" : null)" href="@d.Href">@d.Name</a></li>
+                                        }
+                                    </ul>
+                                }
+                                @if (on && !atDomain) { Chain(0); }
+                            </li>
                         }
                     </ul>
                 }

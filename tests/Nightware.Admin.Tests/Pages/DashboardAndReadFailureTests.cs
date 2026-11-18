@@ -69,6 +69,21 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
     }
 
     [Fact]
+    public async Task Each_entitys_domains_sit_under_it_and_the_dns_page_is_its_domain()
+    {
+        string side = Side(await GetAsync("/entities"));
+
+        side.ShouldContain("<a href=\"/entities/e-acme/dns/acme.example\">acme.example</a>");
+        side.ShouldContain("<a href=\"/entities/e-other/dns/other.example\">other.example</a>");
+        side.IndexOf(">acme.example</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">Other Co</a>", StringComparison.Ordinal));
+
+        string dns = Side(await GetAsync(DnsUrl));
+        dns.ShouldContain("<a aria-current=\"page\" href=\"/entities/e-acme/dns/acme.example\">acme.example</a>");
+        dns.ShouldNotContain("DNS records for");
+        Regex.Count(dns, "aria-current=").ShouldBe(1);
+    }
+
+    [Fact]
     public async Task An_entity_admins_menu_lists_only_their_own_entity()
     {
         string side = Side(await GetAsync("/entities", ConsoleHost.EntityAdmin));
@@ -103,7 +118,7 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         html.ShouldContain("Connection refused (mail.example:443).");
         html.ShouldContain("Try again");
         html.ShouldNotContain("no records for this domain yet");
-        Crumbs(html).ShouldBe("Entities › Acme Pty › DNS records for acme.example");
+        Crumbs(html).ShouldBe("Entities › Acme Pty › acme.example");
     }
 
     [Fact]
@@ -113,7 +128,7 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
 
         string html = await GetAsync(DnsUrl);
 
-        Crumbs(html).ShouldBe("Entities › Acme Pty › DNS records for acme.example");
+        Crumbs(html).ShouldBe("Entities › Acme Pty › acme.example");
         Side(html).ShouldContain("<a class=\"trail\" href=\"/entities/e-acme\">Acme Pty</a>");
     }
 

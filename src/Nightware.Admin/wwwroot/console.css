@@ -96,6 +96,8 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; }
 .side ul ul { margin-top: 2px; padding-left: 10px; font-size: 0.95em; }
 .side a { display: block; padding: 6px 10px; border-radius: 6px; text-decoration: none; overflow-wrap: anywhere; }
 .side ul ul a { padding: 4px 10px; }
+.side ul.domains a { color: var(--muted); }
+.side ul.domains a[aria-current="page"] { color: var(--text); }
 .side a:hover { background: var(--bg); text-decoration: underline; }
 .side a.trail { color: var(--text); font-weight: 600; }
 .side a[aria-current="page"] { background: var(--chip-bg); color: var(--text); font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
