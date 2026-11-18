@@ -33,94 +33,96 @@
     </div>
 }
 
-@if (Model.Actor.IsGlobal)
+@{
+    // Steps appear only when there is something to do: deciding SPF and DMARC while the domain has not, or on Edit;
+    // publishing while Cloudflare differs. Otherwise the page is the records as they stand, read-only.
+    var global = Model.Actor.IsGlobal;
+    var plan = Model.Publication?.Plan;
+    var showPolicy = global && Model.ShowPolicyForm;
+    var showPublish = global && (plan?.HasWork == true || Model.PublicationUnread is not null);
+    var numbered = showPolicy && showPublish;
+    ViewData["PolicyStep"] = numbered ? "1. " : "";
+}
+@if (showPolicy)
 {
-    @* Decided first, so what is copied or published below already carries it. *@
+    @* Decided first, so what is published below already carries it. *@
     <partial name="_MailPolicy" model="Model" />
 }
 
-@* With Cloudflare connected and readable, publishing there is the step; the full list folds under it for anyone
-   publishing elsewhere, since Cloudflare's table shows only what would change. *@
-@{ var viaCloudflare = Model.Actor.IsGlobal && Model.Publication is not null; }
-@if (Model.Records.Count == 0)
-{
-    @if (!Model.Repairable)
-    {
-        <p>The mail server serves @Model.Domain with its signing keys but returned no records for it. Repair would not change that. @(Model.Actor.IsGlobal ? "Check the domain in the mail server's own settings." : "Tell your Nightware operator.")</p>
-    }
-}
-else if (!viaCloudflare)
+@if (showPublish)
 {
     <section class="panel">
-    <h2>@(Model.Actor.IsGlobal ? "2. Publish these records" : "Publish these records")</h2>
-    <p class="hint">Publish these at your DNS provider so mail for @Model.Domain is delivered here and your outgoing mail passes SPF, DKIM and DMARC checks. Select a value to copy it.</p>
-    <partial name="_DnsRecords" model="Model.Records" />
-    </section>
-}
-
-@if (Model.Actor.IsGlobal && Model.Records.Count > 0)
-{
-    <section class="panel">
-        <h2>@(viaCloudflare ? "2." : "3.") Publish to Cloudflare</h2>
-        @if (!Model.Entity.Entity.HasDnsToken)
-        {
-            <p class="hint">Connect @Model.Entity.Entity.Name's Cloudflare account on <a asp-page="/Entities/Detail" asp-route-id="@Model.Id">the entity's page</a> to publish these records from here.</p>
-        }
-        else if (Model.PublicationUnread is not null)
+        <h2>@(numbered ? "2. " : "")Publish to Cloudflare</h2>
+        @if (Model.PublicationUnread is not null)
         {
             <div class="warning"><p>The Cloudflare zone could not be compared: @Model.PublicationUnread.Message</p></div>
         }
-        else if (Model.Publication is { } publication)
+        else if (plan is not null)
         {
-            var plan = publication.Plan;
             var shown = plan.Changes.Where(c => c.Kind != DnsChangeKind.Unchanged).ToList();
             var published = plan.Count(DnsChangeKind.Unchanged);
-            <p>Zone @plan.Zone.Name. @(published == 1 ? "1 record is" : $"{published} records are") already published as needed.@(plan.HasWork ? "" : " Cloudflare has every record " + Model.Domain + " needs.")</p>
-            @if (shown.Count > 0)
-            {
-                <table class="dns changes">
-                    <colgroup><col class="change"><col class="type"><col class="name"><col class="value"><col class="value"></colgroup>
-                    <thead><tr><th>Change</th><th>Type</th><th>Name</th><th>Value</th><th>In Cloudflare now</th></tr></thead>
-                    <tbody>
-                    @foreach (var c in shown)
-                    {
-                        var record = c.Desired ?? c.Current!.Record;
-                        <tr>
-                            <td data-label="Change">@Systems.DnsChangeLabel(c.Kind)@if (c.Note is not null) { <span class="hint detail">@c.Note</span> }</td>
-                            <td data-label="Type">@record.Type</td>
-                            <td data-label="Name">@record.Name</td>
-                            <td data-label="Value">@if (c.Desired is not null) { <textarea readonly rows="@Systems.ValueRows(c.Desired.Value)" aria-label="@($"{record.Type} value to publish at {record.Name}")">@c.Desired.Value</textarea> } else { <text>—</text> }</td>
-                            <td data-label="In Cloudflare now">@if (c.Current is not null) { <textarea readonly rows="@Systems.ValueRows(c.Current.Record.Value)" aria-label="@($"{record.Type} value in Cloudflare now at {record.Name}")">@c.Current.Record.Value</textarea> } else { <text>—</text> }</td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
-            }
+            <p>Zone @plan.Zone.Name. @(published == 1 ? "1 record is" : $"{published} records are") already published as needed.</p>
+            <table class="dns changes">
+                <colgroup><col class="change"><col class="type"><col class="name"><col class="value"><col class="value"></colgroup>
+                <thead><tr><th>Change</th><th>Type</th><th>Name</th><th>Value</th><th>In Cloudflare now</th></tr></thead>
+                <tbody>
+                @foreach (var c in shown)
+                {
+                    var record = c.Desired ?? c.Current!.Record;
+                    <tr>
+                        <td data-label="Change">@Systems.DnsChangeLabel(c.Kind)@if (c.Note is not null) { <span class="hint detail">@c.Note</span> }</td>
+                        <td data-label="Type">@record.Type</td>
+                        <td data-label="Name">@record.Name</td>
+                        <td data-label="Value">@if (c.Desired is not null) { <textarea readonly rows="@Systems.ValueRows(c.Desired.Value)" aria-label="@($"{record.Type} value to publish at {record.Name}")">@c.Desired.Value</textarea> } else { <text>—</text> }</td>
+                        <td data-label="In Cloudflare now">@if (c.Current is not null) { <textarea readonly rows="@Systems.ValueRows(c.Current.Record.Value)" aria-label="@($"{record.Type} value in Cloudflare now at {record.Name}")">@c.Current.Record.Value</textarea> } else { <text>—</text> }</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
             @foreach (var warning in plan.Warnings)
             {
                 <div class="warning"><p>@warning</p></div>
             }
-            @if (plan.HasWork)
-            {
-                var writes = plan.Changes.Count(c => c.IsWrite);
-                <form method="post" asp-page-handler="Publish">
-                    <input type="hidden" asp-for="PlanFingerprint">
-                    @if (plan.MailServersRemoved is { Count: > 0 } others)
-                    {
-                        <label class="choice"><input type="checkbox" name="ConfirmMailMove" value="true" required> All mail for @Model.Domain comes here: @string.Join(" and ", others) @(others.Count == 1 ? "stops" : "stop") receiving it</label>
-                    }
-                    <button type="submit">Publish @writes @(writes == 1 ? "change" : "changes")</button><span class="hint">@(plan.Count(DnsChangeKind.Remove) > 0 ? "Makes exactly the changes listed. Nothing else in the zone is touched." : "Adds and corrects these records. Nothing else in the zone is removed.")</span>
-                </form>
-            }
-            <details class="records">
-                <summary>All @Model.Records.Count records, to publish by hand</summary>
-                <partial name="_DnsRecords" model="Model.Records" />
-            </details>
+            var writes = plan.Changes.Count(c => c.IsWrite);
+            <form method="post" asp-page-handler="Publish">
+                <input type="hidden" asp-for="PlanFingerprint">
+                @if (plan.MailServersRemoved is { Count: > 0 } others)
+                {
+                    <label class="choice"><input type="checkbox" name="ConfirmMailMove" value="true" required> All mail for @Model.Domain comes here: @string.Join(" and ", others) @(others.Count == 1 ? "stops" : "stop") receiving it</label>
+                }
+                <button type="submit">Publish @writes @(writes == 1 ? "change" : "changes")</button><span class="hint">@(plan.Count(DnsChangeKind.Remove) > 0 ? "Makes exactly the changes listed. Nothing else in the zone is touched." : "Adds and corrects these records. Nothing else in the zone is removed.")</span>
+            </form>
         }
     </section>
 }
 
-@if (!Model.Actor.IsGlobal)
+@if (Model.Records.Count == 0)
 {
-    <partial name="_MailPolicy" model="Model" />
+    @if (!Model.Repairable)
+    {
+        <p>The mail server serves @Model.Domain with its signing keys but returned no records for it. Repair would not change that. @(global ? "Check the domain in the mail server's own settings." : "Tell your Nightware operator.")</p>
+    }
+}
+else
+{
+    <section class="panel" id="records">
+        <h2>Records for @Model.Domain</h2>
+        @if (global && plan is { HasWork: false })
+        {
+            <p><span class="chip linked">Published</span> Cloudflare zone @plan.Zone.Name has every record @Model.Domain needs.</p>
+        }
+        else if (global && !Model.Entity.Entity.HasDnsToken)
+        {
+            <p class="hint">Publish these at your DNS provider so mail for @Model.Domain is delivered here and passes SPF, DKIM and DMARC checks. Select a value to copy it. To publish from here instead, connect @Model.Entity.Entity.Name's Cloudflare account on <a asp-page="/Entities/Detail" asp-route-id="@Model.Id">the entity's page</a>.</p>
+        }
+        else if (!global)
+        {
+            <p class="hint">Publish these at your DNS provider so mail for @Model.Domain is delivered here and passes SPF, DKIM and DMARC checks. Select a value to copy it. Only your Nightware operator can change SPF and DMARC.</p>
+        }
+        @if (global && !showPolicy)
+        {
+            <p><a class="button secondary" asp-route-edit="true" asp-fragment="mail-policy">Edit SPF and DMARC</a></p>
+        }
+        <partial name="_DnsRecords" model="Model.Records" view-data="@(new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(ViewData) { ["EditUrl"] = global && !showPolicy ? Url.Page("/Entities/Dns", null, new { id = Model.Id, domain = Model.Domain, edit = true }, null, null, "mail-policy") : null })" />
+    </section>
 }

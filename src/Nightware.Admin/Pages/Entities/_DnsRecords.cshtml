@@ -1,5 +1,6 @@
 @model IReadOnlyList<DnsRecord>
-@* Every record the domain needs, read-only and selectable for copying to any DNS provider. *@
+@* Every record the domain needs, read-only and selectable for copying to any DNS provider. ViewData["EditUrl"]: where a
+   weak SPF or DMARC record links to be fixed, for those who may. *@
 <table class="dns">
     <colgroup><col class="type"><col class="name"><col class="ttl"><col class="value"></colgroup>
     <thead><tr><th>Type</th><th>Name</th><th>TTL</th><th>Value</th></tr></thead>
@@ -10,7 +11,19 @@
             <td data-label="Type">@r.Type</td>
             <td data-label="Name"><input readonly value="@r.Name" aria-label="@($"{r.Type} record name")"></td>
             <td data-label="TTL">@r.Ttl</td>
-            <td data-label="Value"><textarea readonly rows="@Systems.ValueRows(r.Value)" aria-label="@($"{r.Type} record value at {r.Name}")">@r.Value</textarea></td>
+            @{ var weaknesses = Nightware.Domain.Administration.MailAuthenticationWeaknesses.Of(r); }
+            <td data-label="Value">
+                <textarea readonly rows="@Systems.ValueRows(r.Value)" aria-label="@($"{r.Type} record value at {r.Name}")">@r.Value</textarea>
+                @* A weak SPF or DMARC record says so where it is read: a state chip per weakness, its reason, and the way to fix it. *@
+                @foreach (var w in weaknesses)
+                {
+                    <p class="weakness"><span class="chip @(w.Severity == Nightware.Domain.Administration.WeaknessSeverity.Unsafe ? "error" : "missing")">@(w.Severity == Nightware.Domain.Administration.WeaknessSeverity.Unsafe ? "Unsafe" : "Weak")</span> @w.Message</p>
+                }
+                @if (weaknesses.Count > 0 && ViewData["EditUrl"] is string editUrl)
+                {
+                    <p class="weakness"><a href="@editUrl">Edit SPF and DMARC</a></p>
+                }
+            </td>
         </tr>
     }
     </tbody>

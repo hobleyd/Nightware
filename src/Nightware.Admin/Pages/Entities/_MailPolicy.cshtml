@@ -1,7 +1,7 @@
 @model Nightware.Admin.Pages.Entities.DnsModel
-@* The domain's SPF and DMARC choice: first on the page for a global administrator, who decides it before publishing. *@
-<section class="panel">
-    <h2>@(Model.Actor.IsGlobal ? "1. Decide SPF and DMARC" : "SPF and DMARC")</h2>
+@* The domain's SPF and DMARC choice, for a global administrator: shown while the domain has none of its own, or on Edit. *@
+<section class="panel" id="mail-policy">
+    <h2>@ViewData["PolicyStep"]Decide SPF and DMARC</h2>
     <details class="teach">
         <summary>How SPF and DMARC work</summary>
         <p>SPF lists the servers allowed to send mail for @Model.Domain. DMARC tells receiving servers what to do with mail that fails SPF and DKIM, and where to send reports. Unless you set your own, the domain uses the mail server's records.</p>
@@ -60,9 +60,9 @@
                 <button type="submit" class="secondary">Use the mail server's records</button>
             </form>
         }
-    }
-    else
-    {
-        <p>SPF: @(Model.Policy.Spf is null ? "the mail server's record" : "set for this domain"). DMARC: @(Model.Policy.Dmarc is null ? "the mail server's record" : $"set for this domain (p={Model.Policy.Dmarc.Policy})"). Only your Nightware operator can change them.</p>
+        @if (Model.Edit)
+        {
+            <p><a asp-route-edit="" asp-fragment="records">Cancel</a></p>
+        }
     }
 </section>

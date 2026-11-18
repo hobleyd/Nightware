@@ -131,8 +131,7 @@ public sealed partial class DnsHostingPageTests : IDisposable
     {
         string html = await GetAsync(DnsUrl);
 
-        html.ShouldContain("<h2>3. Publish to Cloudflare</h2>");
-        html.ShouldContain("Connect Acme Pty's Cloudflare account");
+        html.ShouldContain("connect Acme Pty's Cloudflare account");
         await _host.DnsHosting.DidNotReceiveWithAnyArgs().FindZoneAsync(default!, default!, Ct);
     }
 
@@ -230,26 +229,33 @@ public sealed partial class DnsHostingPageTests : IDisposable
     private static partial Regex Fingerprint();
 
     [Fact]
-    public async Task With_cloudflare_connected_publishing_there_is_step_two_and_the_full_list_folds_under_it()
+    public async Task Publishing_to_cloudflare_is_a_step_only_while_the_zone_differs()
     {
         GivenConnected();
+        string pending = await GetAsync(DnsUrl);
+        pending.ShouldContain("Publish to Cloudflare</h2>");
+        pending.ShouldContain("<h2>Records for acme.example</h2>");
+        pending.ShouldContain("<main id=\"main\" class=\"wide\">");
 
-        string html = await GetAsync(DnsUrl);
-
-        html.ShouldContain("<h2>2. Publish to Cloudflare</h2>");
-        html.ShouldNotContain("Publish these records</h2>");
-        html.ShouldContain("<summary>All 3 records, to publish by hand</summary>");
-        html.ShouldContain("<main id=\"main\" class=\"wide\">");
+        _host.DnsHosting.ListRecordsAsync(default!, default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<ZoneRecord>>.Success(
+        [
+            new ZoneRecord("1", new DnsRecord("acme.example", "MX", 3600, "10 mail.acme.example")),
+            new ZoneRecord("2", new DnsRecord("acme.example", "TXT", 3600, "v=spf1 mx -all")),
+            new ZoneRecord("3", new DnsRecord("_dmarc.acme.example", "TXT", 3600, "v=DMARC1; p=reject")),
+        ]));
+        string published = await GetAsync(DnsUrl);
+        published.ShouldNotContain("Publish to Cloudflare</h2>");
+        published.ShouldContain("<span class=\"chip linked\">Published</span> Cloudflare zone acme.example has every record acme.example needs.");
     }
 
     [Fact]
-    public async Task Without_cloudflare_the_records_stay_step_two()
+    public async Task Without_cloudflare_the_records_stand_read_only_with_where_to_publish_them()
     {
         string html = await GetAsync(DnsUrl);
 
-        html.ShouldContain("<h2>2. Publish these records</h2>");
-        html.ShouldContain("<h2>3. Publish to Cloudflare</h2>");
-        html.ShouldNotContain("to publish by hand</summary>");
+        html.ShouldContain("<h2>Records for acme.example</h2>");
+        html.ShouldContain("Publish these at your DNS provider");
+        html.ShouldNotContain("Publish to Cloudflare</h2>");
     }
 
     [Fact]

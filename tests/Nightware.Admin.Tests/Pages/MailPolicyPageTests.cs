@@ -55,7 +55,7 @@ public sealed class MailPolicyPageTests : IDisposable
     {
         string html = await GetAsync(DnsUrl);
 
-        html.ShouldContain("<h2>1. Decide SPF and DMARC</h2>");
+        html.ShouldContain("<h2>Decide SPF and DMARC</h2>");
         html.ShouldContain("handler=MailPolicy");
         html.ShouldContain("Now: the mail server's record <code>v=spf1 mx ra=postmaster -all</code>");
         html.ShouldContain("Now: the mail server's record <code>v=DMARC1; p=reject</code>");
@@ -76,20 +76,26 @@ public sealed class MailPolicyPageTests : IDisposable
     }
 
     [Fact]
-    public async Task The_records_to_publish_sit_in_their_own_panel()
+    public async Task The_records_sit_in_their_own_panel()
     {
-        (await GetAsync(DnsUrl)).ShouldContain("<h2>2. Publish these records</h2>");
+        (await GetAsync(DnsUrl)).ShouldContain("<h2>Records for acme.example</h2>");
     }
 
     [Fact]
-    public async Task A_global_admin_decides_spf_and_dmarc_before_the_records_to_publish()
+    public async Task Deciding_spf_and_dmarc_is_a_step_only_until_the_domain_has_both()
     {
-        string global = await GetAsync(DnsUrl);
-        global.IndexOf("1. Decide SPF and DMARC", StringComparison.Ordinal).ShouldBeLessThan(global.IndexOf("2. Publish these records", StringComparison.Ordinal));
-        global.ShouldContain("<summary>How SPF and DMARC work</summary>");
+        string undecided = await GetAsync(DnsUrl);
+        undecided.ShouldContain("<h2>Decide SPF and DMARC</h2>");
+        undecided.IndexOf("Decide SPF and DMARC", StringComparison.Ordinal).ShouldBeLessThan(undecided.IndexOf("Records for acme.example", StringComparison.Ordinal));
 
-        string entityAdmin = await GetAsync(DnsUrl, ConsoleHost.EntityAdmin);
-        entityAdmin.IndexOf("<h2>Publish these records</h2>", StringComparison.Ordinal).ShouldBeLessThan(entityAdmin.IndexOf("<h2>SPF and DMARC</h2>", StringComparison.Ordinal));
+        GivenChosen(new DomainMailPolicy(SpfRecord.Parse("v=spf1 mx -all").Value, DmarcRecord.Parse("v=DMARC1; p=reject; rua=mailto:postmaster@acme.example").Value));
+        string decided = await GetAsync(DnsUrl);
+        decided.ShouldNotContain("handler=MailPolicy");
+        decided.ShouldContain("Edit SPF and DMARC</a>");
+
+        string editing = await GetAsync(DnsUrl + "?edit=true");
+        editing.ShouldContain("handler=MailPolicy");
+        editing.ShouldContain(">Cancel</a>");
     }
 
     [Fact]
@@ -115,15 +121,36 @@ public sealed class MailPolicyPageTests : IDisposable
     }
 
     [Fact]
-    public async Task An_entity_admin_sees_which_records_are_in_use_but_no_form()
+    public async Task An_entity_admin_sees_the_records_and_their_weaknesses_but_no_form()
     {
         GivenChosen(new DomainMailPolicy(null, DmarcRecord.Parse("v=DMARC1; p=none").Value));
 
         string html = await GetAsync(DnsUrl, ConsoleHost.EntityAdmin);
 
-        html.ShouldContain("set for this domain (p=none)");
-        html.ShouldContain("Only your Nightware operator can change them.");
+        html.ShouldContain("Only your Nightware operator can change SPF and DMARC.");
+        html.ShouldContain("p=none only reports mail that fails");
         html.ShouldNotContain("handler=MailPolicy");
+        html.ShouldNotContain("Edit SPF and DMARC");
+    }
+
+    [Fact]
+    public async Task A_weak_record_is_marked_where_it_is_read_with_the_way_to_fix_it()
+    {
+        GivenChosen(new DomainMailPolicy(SpfRecord.Parse("v=spf1 mx ~all").Value, DmarcRecord.Parse("v=DMARC1; p=none").Value));
+
+        string html = await GetAsync(DnsUrl);
+
+        html.ShouldContain("<span class=\"chip missing\">Weak</span> ~all only soft-fails unlisted senders");
+        html.ShouldContain("<span class=\"chip missing\">Weak</span> p=none only reports mail that fails");
+        html.ShouldContain("href=\"/entities/e-acme/dns/acme.example?edit=true#mail-policy\">Edit SPF and DMARC</a></p>");
+    }
+
+    [Fact]
+    public async Task An_spf_record_that_lets_anyone_send_is_marked_unsafe()
+    {
+        GivenChosen(new DomainMailPolicy(SpfRecord.Parse("v=spf1 +all").Value, DmarcRecord.Parse("v=DMARC1; p=reject; rua=mailto:postmaster@acme.example").Value));
+
+        (await GetAsync(DnsUrl)).ShouldContain("<span class=\"chip error\">Unsafe</span> &#x2B;all lets any server send mail as the domain.");
     }
 
     [Fact]

@@ -54,6 +54,19 @@ public sealed class DnsModel(
     [BindProperty]
     public string? Spf { get; set; }
 
+    /// <summary>The administrator asked to change SPF and DMARC (<c>?edit=true</c>) although the domain has its own.</summary>
+    [BindProperty(SupportsGet = true)]
+    public bool Edit { get; set; }
+
+    /// <summary>A save of SPF and DMARC is being re-shown, to be corrected or confirmed.</summary>
+    private bool _policyPosted;
+
+    /// <summary>
+    /// The SPF and DMARC form is a step only while the domain has not chosen both records of its own, on Edit, or
+    /// while a save is corrected; otherwise the records stand read-only with an Edit link.
+    /// </summary>
+    public bool ShowPolicyForm => Edit || _policyPosted || Policy.Spf is null || Policy.Dmarc is null;
+
     /// <summary>The box confirming a change to the SPF record, which decides who may send the domain's mail.</summary>
     [BindProperty]
     public bool ConfirmSpf { get; set; }
@@ -164,6 +177,7 @@ public sealed class DnsModel(
 
     public async Task<IActionResult> OnPostMailPolicyAsync(CancellationToken cancellationToken)
     {
+        _policyPosted = true;
         // A wrong SPF with -all stops the domain's outgoing mail, so changing it is confirmed like any change to who
         // can get in. Saving only DMARC, with SPF as it was, needs no box.
         // Only global administrators may set records at all; anyone else is refused by the use case, not asked to confirm.
