@@ -137,6 +137,7 @@ from `deploy/.env`.
 | `Admin:ScopeCacheLifetime` | `00:01:00` | How long an admin's rights, read from Keycloak, are reused. |
 | `Admin:PublicHost` | — (compose: `PUBLIC_HOST`) | The host the stack is served at. The DNS page suggests an SPF record naming its public addresses: the A/AAAA records in the entity's Cloudflare zone when the entity has a token and the host is in a zone it reaches, otherwise public DNS (Cloudflare's resolver, never the container's). Unset, or with no public address, the suggestion names the MX hosts. |
 | `Admin:KeycloakAdminUrl` / `Admin:StalwartAdminUrl` / `Admin:NextcloudAdminUrl` | — (compose: under `PUBLIC_HOST`) | Each system's own admin console, linked from the dashboard's Systems panel for global admins (new tab). Absolute http(s) URLs; unset hides that link. Point them where the admin can reach them (in production Keycloak's and Stalwart's are LAN/VPN only). |
+| `Admin:GrafanaUrl` | — (compose: `https://${PUBLIC_HOST}/grafana/`) | Grafana, the stack's telemetry, linked from the dashboard's Systems panel for global admins (new tab). Absolute http(s) URL; unset hides the link. |
 | `Cloudflare:PublicDnsUrl` / `Cloudflare:PublicDnsTimeout` | `https://cloudflare-dns.com/dns-query` / `00:00:03` | The DNS-over-HTTPS resolver asked for `Admin:PublicHost`, once per DNS page view, never retried. |
 | `Directory:*` | as the façade | Keycloak admin API, bound to `nightware-admin`'s service account. |
 | `StalwartManagement:ApiUrl` | — | Stalwart management (JMAP) endpoint, e.g. `http://stalwart:8080/jmap/`. |

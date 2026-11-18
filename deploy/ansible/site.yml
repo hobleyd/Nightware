@@ -1,0 +1,11 @@
+---
+# Nightware on a Docker host: deploy/docker-compose.yml with every service,
+# Grafana included. See README.md.
+#
+#   ansible-playbook -i inventory.yml site.yml --ask-vault-pass
+- name: Deploy Nightware
+  hosts: nightware
+  vars_files:
+    - vars.yml
+  roles:
+    - nightware

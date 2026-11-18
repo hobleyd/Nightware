@@ -19,6 +19,11 @@
 #      MAIL_DOMAIN, its users with an @MAIL_DOMAIN address as unmanaged members
 #   7. global admins named in ADMIN_BOOTSTRAP_USERS (usernames or addresses;
 #      alice on a seeded dev stack)
+#   8. client nightware-grafana for Grafana at /grafana (confidential, code +
+#      PKCE, NIGHTWARE_GRAFANA_CLIENT_SECRET, the same step-up flow and minimum
+#      acr as the console) with the realm roles as a `roles` claim in its ID
+#      token and userinfo, which Grafana maps: nightware-global-admin -> Admin,
+#      anyone else refused. Skipped when the secret is unset.
 # The step-4 flow (and its migration from the OTP-only flow) is verified on
 # Keycloak 26.8.2: no factor -> OTP set-up; OTP, passkey, or both (passkey first,
 # "Try another way" to OTP) -> acr mfa. UNVERIFIED against a live Keycloak: the
@@ -272,4 +277,48 @@ for who in $BOOTSTRAP; do
     kcj -X POST "${API}/users/${uid}/role-mappings/realm" -d "[${role}]" >/dev/null
   fi
 done
+
+# ----------------------------------------------------------- 8. Grafana
+# Telemetry at /grafana (docker-compose.yml's grafana service). Its realm-role
+# mapper puts `roles` where Grafana reads it (ID token, userinfo); the realm's
+# own `roles` scope only fills the access token's realm_access.
+if [[ -z "${NIGHTWARE_GRAFANA_CLIENT_SECRET:-}" ]]; then
+  warn "NIGHTWARE_GRAFANA_CLIENT_SECRET is not set; no Grafana sign-in (run scripts/init-env.sh)"
+else
+  export NIGHTWARE_GRAFANA_CLIENT_SECRET
+  GRAFANA_URL="${PUBLIC_URL}/grafana"
+  grafana_rep=$(jq -cn --arg url "$GRAFANA_URL" --arg acr "$REQUIRED_ACR" --arg flow "$FLOW_ID" '{
+      clientId: "nightware-grafana", name: "Grafana",
+      description: "Grafana (telemetry): sign-in for the console'"'"'s global administrators.",
+      enabled: true, publicClient: false, secret: $ENV.NIGHTWARE_GRAFANA_CLIENT_SECRET, clientAuthenticatorType: "client-secret", protocol: "openid-connect",
+      standardFlowEnabled: true, implicitFlowEnabled: false, directAccessGrantsEnabled: false, serviceAccountsEnabled: false,
+      redirectUris: [($url + "/login/generic_oauth")], webOrigins: ["-"],
+      attributes: ({"pkce.code.challenge.method": "S256", "post.logout.redirect.uris": ($url + "/*")}
+                   + (if $acr == "" then {} else {"minimum.acr.value": $acr} end)),
+      authenticationFlowBindingOverrides: (if $flow == "" then {} else {browser: $flow} end),
+      defaultClientScopes: ["acr", "basic", "profile", "email"],
+      optionalClientScopes: [],
+      protocolMappers: [{name: "realm roles", protocol: "openid-connect", protocolMapper: "oidc-usermodel-realm-role-mapper",
+        config: {"claim.name": "roles", "multivalued": "true", "jsonType.label": "String",
+                 "id.token.claim": "true", "userinfo.token.claim": "true", "access.token.claim": "false", "introspection.token.claim": "false"}}]}')
+  GRAFANA_UUID=$(kc "${API}/clients?clientId=nightware-grafana" | jq -r '.[0].id // empty')
+  if [[ -z "$GRAFANA_UUID" ]]; then
+    log "Keycloak (console): creating client nightware-grafana"
+    kcj -X POST "${API}/clients" --data-binary @- <<<"$grafana_rep" >/dev/null || warn "could not create nightware-grafana"
+  else
+    current=$(kc "${API}/clients/${GRAFANA_UUID}")
+    merged=$(jq --argjson want "$grafana_rep" '. + ($want | del(.attributes, .protocolMappers)) | .attributes = ((.attributes // {}) + $want.attributes)
+      | if ($want.attributes | has("minimum.acr.value")) then . else .attributes |= del(."minimum.acr.value") end' <<<"$current")
+    if [[ "$(jq -S 'del(.secret)' <<<"$current")" != "$(jq -S 'del(.secret)' <<<"$merged")" ]] \
+       || [[ "$(kc "${API}/clients/${GRAFANA_UUID}/client-secret" | jq -r .value)" != "$NIGHTWARE_GRAFANA_CLIENT_SECRET" ]]; then
+      log "Keycloak (console): updating client nightware-grafana"
+      kcj -X PUT "${API}/clients/${GRAFANA_UUID}" --data-binary @- <<<"$merged" >/dev/null
+    fi
+    # The roles mapper, should an earlier version have created the client without it.
+    if ! kc "${API}/clients/${GRAFANA_UUID}/protocol-mappers/models" | jq -e '.[] | select(.name=="realm roles")' >/dev/null; then
+      log "Keycloak (console): nightware-grafana gets the realm roles claim"
+      kcj -X POST "${API}/clients/${GRAFANA_UUID}/protocol-mappers/models" --data-binary @- <<<"$(jq -c '.protocolMappers[0]' <<<"$grafana_rep")" >/dev/null
+    fi
+  fi
+fi
 log "Keycloak (console): configured (${CONSOLE_URL})"

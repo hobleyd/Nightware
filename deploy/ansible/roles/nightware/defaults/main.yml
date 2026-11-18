@@ -1,0 +1,60 @@
+---
+# The whole stack (deploy/docker-compose.yml) on one Docker host: Caddy,
+# Keycloak, Stalwart, Nextcloud, Collabora, the façade, the admin console and
+# Grafana. Variables without a default are required; put the secrets in an
+# ansible-vault file (see ../../vars.example.yml).
+
+# Where the repository is checked out, and which ref.
+nightware_repo: https://github.com/hobleyd/Nightware.git
+nightware_version: main
+nightware_dir: /opt/nightware
+
+# The one public host every service is a path on, and the mail domain.
+# nightware_public_host: nightware.example.com
+# nightware_mail_domain: example.com
+
+# Caddy's certificates: an ACME account e-mail (Let's Encrypt), or
+# "/certs/fullchain.crt /certs/privkey.key" for files in deploy/.certs.
+# nightware_tls: ops@example.com
+nightware_https_port: 443
+# Interface Caddy and Stalwart's mail ports listen on.
+nightware_bind_address: 0.0.0.0
+
+# Who may reach /console and /grafana (space-separated CIDRs). Both still need a
+# Keycloak sign-in with MFA; narrow this to a management network or VPN.
+nightware_admin_allowed_cidrs: "0.0.0.0/0 ::/0"
+
+# NightMail's web build origin (CORS); empty if you don't serve it.
+nightware_web_origin: ""
+
+# The default entity (organization) for nightware_mail_domain.
+nightware_default_entity_name: Nightware
+
+# People created in Keycloak when missing, with nightware_user_initial_password
+# (temporary: Keycloak makes them change it). Each gets a Stalwart mailbox for
+# the local part of their email. Example:
+#   - { username: jo, email: jo@example.com, first_name: Jo, last_name: Bloggs, admin: true }
+# admin: true makes them a global administrator of the console (and of Grafana).
+nightware_users: []
+
+# Traces, metrics and logs from the façade go to the grafana service. Set to
+# another OTLP gRPC endpoint to export elsewhere, or "" to turn export off.
+nightware_otlp_endpoint: http://grafana:4317
+
+# Secrets, all required (openssl rand -hex 24; hex only, see
+# deploy/scripts/init-env.sh). nightware_delta_link_key needs 32+ bytes
+# (openssl rand -hex 32) and must never change casually: rotating it
+# invalidates every client's delta links (docs/operations/deployment.md).
+# nightware_keycloak_admin_password:
+# nightware_keycloak_db_password:
+# nightware_api_client_secret:
+# nightware_nextcloud_oidc_client_secret:
+# nightware_stalwart_admin_password:
+# nightware_nextcloud_admin_password:
+# nightware_nextcloud_db_password:
+# nightware_delta_link_key:
+# nightware_admin_client_secret:
+# nightware_nextcloud_provisioning_password:
+# nightware_grafana_client_secret:
+# nightware_grafana_admin_password:
+# nightware_user_initial_password:

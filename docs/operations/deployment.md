@@ -18,6 +18,8 @@ is a path on it:
 | `/cloud/` | Nextcloud |
 | `/office/` | Collabora (Nextcloud Office) |
 | `/graph/`, `/.well-known/nightware` | Nightware (users type the host name into NightMail) |
+| `/console/` | The admin console (from `ADMIN_ALLOWED_CIDRS`) |
+| `/grafana/` | Grafana: the façade's traces, metrics and logs (from `ADMIN_ALLOWED_CIDRS`; global admins, through Keycloak) |
 
 The mail domain (`MAIL_DOMAIN`) is separate: addresses are `user@<MAIL_DOMAIN>` whatever the host is
 called, and Stalwart's own SMTP/IMAP name is `mail.<MAIL_DOMAIN>`. Mail delivery additionally needs

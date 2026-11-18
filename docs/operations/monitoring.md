@@ -15,8 +15,28 @@ Anonymous, never rate-limited, never traced.
 
 Set `Telemetry:Otlp:Endpoint` (compose: `NIGHTWARE_OTLP_ENDPOINT`) to an OpenTelemetry Collector;
 traces, metrics and logs are then exported over OTLP (`Telemetry:Otlp:Protocol`: `Grpc` or
-`HttpProtobuf`). From the collector, send metrics to Prometheus/Mimir, traces to Tempo/Jaeger and
-logs to Loki — any OTLP-capable backend works. Off by default; stdout JSON logs are always on.
+`HttpProtobuf`). Off by default in the application; stdout JSON logs are always on.
+
+### Grafana (the compose stack)
+
+`deploy/docker-compose.yml` runs `grafana`, Grafana's open-source all-in-one OpenTelemetry image
+(`grafana/otel-lgtm`): an OpenTelemetry Collector on 4317 (gRPC) and 4318 (HTTP) in front of
+Prometheus (metrics), Tempo (traces) and Loki (logs), with Grafana and those three data sources
+already provisioned. The façade exports to `http://grafana:4317` unless `NIGHTWARE_OTLP_ENDPOINT`
+says otherwise (empty turns export off). No port is published; everything stays on the compose
+network. Data is in the `grafana-data` volume.
+
+Grafana is at `https://<PUBLIC_HOST>/grafana/`, reachable from `ADMIN_ALLOWED_CIDRS` like the
+console, and linked from the console dashboard's Systems panel (`Admin:GrafanaUrl`) for global
+admins. It signs in through Keycloak only (client `nightware-grafana`, the console's MFA), and only
+`nightware-global-admin` gets in, as a Grafana Admin. The local `admin` account
+(`GRAFANA_ADMIN_PASSWORD`) is break-glass, through the API; the login form is off.
+
+Where to look: **Explore → Tempo** for a trace (search by `service.name = nightware-api`, or a
+`graph.request_id`), **Explore → Loki** with `{service_name="nightware-api"}`, and **Explore →
+Prometheus** for the metrics below (dots become underscores, e.g.
+`http_server_request_duration_seconds_bucket`). Retention is the image's defaults; for longer or
+more durable storage, point the façade at your own Collector and backends instead.
 
 Every span and every log record carries `graph.request_id` (the `request-id` response header, also
 in every error's `innerError`) and `graph.client_request_id` (echoed from the client). When a user

@@ -1,0 +1,6 @@
+---
+# Copy to inventory.yml. One Docker host; the remote user must be in the docker group.
+nightware:
+  hosts:
+    nightware.example.com:
+      ansible_user: deploy

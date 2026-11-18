@@ -222,7 +222,7 @@ public sealed class AdminAuthenticationTests
     public void A_system_admin_console_link_must_be_an_absolute_web_address(string? url, bool ok)
     {
         var validator = new AdminAuthOptionsValidator(Environment(Environments.Development));
-        foreach (Action<AdminAuthOptions, string?> set in new Action<AdminAuthOptions, string?>[] { (o, u) => o.KeycloakAdminUrl = u, (o, u) => o.StalwartAdminUrl = u, (o, u) => o.NextcloudAdminUrl = u })
+        foreach (Action<AdminAuthOptions, string?> set in new Action<AdminAuthOptions, string?>[] { (o, u) => o.KeycloakAdminUrl = u, (o, u) => o.StalwartAdminUrl = u, (o, u) => o.NextcloudAdminUrl = u, (o, u) => o.GrafanaUrl = u })
         {
             AdminAuthOptions options = Options();
             set(options, url);

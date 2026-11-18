@@ -520,6 +520,19 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         (await GetAsync("/")).ShouldNotContain("<a class=\"chip");
 
     [Fact]
+    public async Task Global_admins_open_grafana_from_the_systems_panel()
+    {
+        _host.Settings["Admin:GrafanaUrl"] = "https://nightware.example/grafana/";
+
+        (await GetAsync("/")).ShouldContain("<li><a class=\"chip\" href=\"https://nightware.example/grafana/\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"Traces, metrics and logs (Grafana)\">Telemetry: Grafana</a></li>");
+        (await GetAsync("/", ConsoleHost.EntityAdmin)).ShouldNotContain("/grafana/");
+    }
+
+    [Fact]
+    public async Task Without_a_grafana_url_the_systems_panel_has_no_telemetry_link() =>
+        (await GetAsync("/")).ShouldNotContain("Telemetry: Grafana");
+
+    [Fact]
     public async Task The_entities_table_links_each_domain_to_its_dns_page_and_counts_users()
     {
         Members(new IdentityAccount("u-amy", "amy", "amy@acme.example", true), new IdentityAccount("u-bob", "bob", "bob@acme.example", true));

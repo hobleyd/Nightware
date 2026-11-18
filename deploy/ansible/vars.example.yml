@@ -1,0 +1,30 @@
+---
+# Copy to vars.yml, fill in, and encrypt it: ansible-vault encrypt vars.yml
+# Generate each secret with `openssl rand -hex 24` (hex only), the delta-link
+# key with `openssl rand -hex 32`. Every default is in
+# roles/nightware/defaults/main.yml.
+
+nightware_public_host: nightware.example.com
+nightware_mail_domain: example.com
+# An ACME account e-mail: Caddy gets Let's Encrypt certificates (80/443 must
+# reach the host).
+nightware_tls: ops@example.com
+# Narrow to your management network or VPN.
+nightware_admin_allowed_cidrs: "0.0.0.0/0 ::/0"
+
+nightware_users:
+  - { username: jo, email: jo@example.com, first_name: Jo, last_name: Bloggs, admin: true }
+
+nightware_keycloak_admin_password: CHANGE-ME
+nightware_keycloak_db_password: CHANGE-ME
+nightware_api_client_secret: CHANGE-ME
+nightware_nextcloud_oidc_client_secret: CHANGE-ME
+nightware_stalwart_admin_password: CHANGE-ME
+nightware_nextcloud_admin_password: CHANGE-ME
+nightware_nextcloud_db_password: CHANGE-ME
+nightware_delta_link_key: CHANGE-ME-64-HEX-CHARACTERS
+nightware_admin_client_secret: CHANGE-ME
+nightware_nextcloud_provisioning_password: CHANGE-ME
+nightware_grafana_client_secret: CHANGE-ME
+nightware_grafana_admin_password: CHANGE-ME
+nightware_user_initial_password: CHANGE-ME

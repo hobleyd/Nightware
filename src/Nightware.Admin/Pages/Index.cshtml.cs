@@ -42,6 +42,10 @@ public sealed class IndexModel(
                 _ => null,
             } is { } url && !string.IsNullOrWhiteSpace(url) ? url : null;
 
+    /// <summary>Grafana, the stack's telemetry, for a global administrator when it is configured; null otherwise.</summary>
+    public string? GrafanaUrl =>
+        Actor.IsGlobal && console.Value.GrafanaUrl is { } url && !string.IsNullOrWhiteSpace(url) ? url : null;
+
     public Attention Attention { get; private set; } = new([], [], [], new Dictionary<string, int>());
 
     public IReadOnlyList<BackendHealth> Health { get; private set; } = [];

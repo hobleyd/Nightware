@@ -57,6 +57,9 @@ public sealed class AdminAuthOptions
     /// <summary>Nextcloud's administration settings, linked from the dashboard for global administrators; unset hides the link.</summary>
     public string? NextcloudAdminUrl { get; set; }
 
+    /// <summary>Grafana (the stack's telemetry), linked from the dashboard for global administrators; unset hides the link.</summary>
+    public string? GrafanaUrl { get; set; }
+
     /// <summary>How long an administrator's scope, resolved from Keycloak, is reused.</summary>
     public TimeSpan ScopeCacheLifetime { get; set; } = TimeSpan.FromSeconds(60);
 }
@@ -97,7 +100,7 @@ internal sealed class AdminAuthOptionsValidator(IHostEnvironment environment) : 
             failures.Add("Admin:DestructiveActionMaxAge must be positive.");
         }
 
-        foreach ((string key, string? url) in new[] { ("KeycloakAdminUrl", options.KeycloakAdminUrl), ("StalwartAdminUrl", options.StalwartAdminUrl), ("NextcloudAdminUrl", options.NextcloudAdminUrl) })
+        foreach ((string key, string? url) in new[] { ("KeycloakAdminUrl", options.KeycloakAdminUrl), ("StalwartAdminUrl", options.StalwartAdminUrl), ("NextcloudAdminUrl", options.NextcloudAdminUrl), ("GrafanaUrl", options.GrafanaUrl) })
         {
             if (url is { Length: > 0 } && (!Uri.TryCreate(url, UriKind.Absolute, out Uri? parsed) || (parsed.Scheme != Uri.UriSchemeHttps && parsed.Scheme != Uri.UriSchemeHttp)))
             {

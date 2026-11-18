@@ -134,7 +134,7 @@ liveness healthcheck on `/healthz/live`. `/healthz` is readiness (every backend,
 | `NIGHTWARE_SSL_CERT_FILE` | `SSL_CERT_FILE` (trust for calls via the public URL) | `/certs/caddy-root.crt`; `/etc/ssl/certs/ca-certificates.crt` with a publicly trusted certificate |
 | `NIGHTMAIL_WEB_ORIGIN` | `Cors:AllowedOrigins:0` | `http://localhost:34572` |
 | `NIGHTWARE_RATE_LIMITING` | `RateLimiting:Enabled` | `true` |
-| `NIGHTWARE_OTLP_ENDPOINT` | `Telemetry:Otlp:Endpoint` | empty (no export) |
+| `NIGHTWARE_OTLP_ENDPOINT` | `Telemetry:Otlp:Endpoint` | `http://grafana:4317` (the `grafana` service); empty turns export off |
 
 Every other key, production deployment, monitoring, backups and the runbook are in
 [`docs/operations/`](../docs/operations/README.md). Building images fills Docker's build cache;
@@ -173,6 +173,8 @@ Admin consoles (credentials are in `.env`):
 | `nightware-dev` | confidential | **Dev only.** Password grant, so scripts and integration tests can get a NightMail-shaped user token (`aud: nightware-api`) without a browser. |
 | `stalwart` | audience only | Stalwart accepts only tokens with `aud: stalwart`. |
 | `nextcloud` | confidential | user_oidc's provider client, used for browser login. Nextcloud requires `aud` to contain `nextcloud` on bearer requests. |
+| `nightware-admin` | confidential | The admin console (see "Admin console"); created by `keycloak/configure-console.sh`. |
+| `nightware-grafana` | confidential | Grafana at `/grafana` (`NIGHTWARE_GRAFANA_CLIENT_SECRET`), created by `keycloak/configure-console.sh` with the console's step-up flow and minimum acr. A realm-role mapper puts `roles` in its ID token and userinfo; Grafana makes `nightware-global-admin` an Admin and refuses everyone else. |
 
 ### Token flow
 

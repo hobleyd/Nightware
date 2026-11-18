@@ -170,6 +170,10 @@
                 }
             </li>
         }
+        @if (Model.GrafanaUrl is { } grafana)
+        {
+            <li><a class="chip" href="@grafana" target="_blank" rel="noopener noreferrer" title="Traces, metrics and logs (Grafana)">Telemetry: Grafana</a></li>
+        }
     </ul>
 </aside>
 </div>
