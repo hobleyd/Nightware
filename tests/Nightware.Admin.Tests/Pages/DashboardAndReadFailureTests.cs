@@ -356,8 +356,10 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         global.ShouldNotContain("If this persists");
 
         string entityAdmin = await GetAsync("/users/u-eve", ConsoleHost.EntityAdmin);
-        entityAdmin.ShouldContain("Mail is not answering. Tell your Nightware operator; once it answers, Finish offboarding shuts it.");
+        entityAdmin.ShouldContain("<p><strong>Mail is not answering. Tell your Nightware operator; once it answers, Finish offboarding shuts it.</strong></p>");
+        entityAdmin.ShouldContain("<button type=\"submit\" class=\"secondary\">Finish offboarding</button>");
         entityAdmin.ShouldNotContain("run it again once the system is reachable");
+        entityAdmin.IndexOf("Tell your Nightware operator", StringComparison.Ordinal).ShouldBeLessThan(entityAdmin.IndexOf(">Finish offboarding</button>", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -370,7 +372,7 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         string html = await GetAsync("/", ConsoleHost.EntityAdmin);
 
         html.ShouldContain("Mail is not answering for eve. If this persists, tell your Nightware operator.");
-        html.ShouldContain("<span class=\"detail hint\">If this persists, tell your Nightware operator.</span>");
+        html.ShouldContain("Mail is not answering. Tell your Nightware operator; once it answers, Finish offboarding shuts it.");
         html.ShouldNotContain("answers its health check");
     }
 

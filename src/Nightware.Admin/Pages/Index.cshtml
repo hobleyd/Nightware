@@ -45,7 +45,9 @@
                             }
                             @if (!Model.Actor.IsGlobal && wrong.Any(l => l.State == LinkState.Error))
                             {
-                                <span class="detail hint">@Systems.TellOperator</span>
+                                <span class="detail hint">@(a.Status == Nightware.Application.Administration.Users.UserStatus.OffboardingIncomplete && wrong.FirstOrDefault(l => l.State == LinkState.Error) is { } failing
+                                    ? Systems.WaitForOperator(failing.Backend)
+                                    : Systems.TellOperator)</span>
                             }
                         </td>
                         <td class="actions">
