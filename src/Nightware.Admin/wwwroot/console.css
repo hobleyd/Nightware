@@ -142,8 +142,6 @@ button.secondary, .button.secondary { background: transparent; color: var(--acce
 button.danger, .button.danger { background: var(--bad); border-color: var(--bad); color: var(--on-bad); }
 button.danger.quiet { background: transparent; color: var(--bad); }
 button.link { background: none; border: none; color: var(--accent); padding: 0; }
-button.icon { border: none; padding: 2px 6px; font-weight: 700; line-height: 1; }
-td.remove-cell { width: 1%; text-align: right; }
 ul.plain { list-style: none; padding: 0; }
 
 @media (max-width: 640px) {

@@ -15,7 +15,7 @@
 <section class="panel">
     <h2>Mail domains</h2>
     <table>
-        <thead><tr><th>Domain</th><th>Mail server</th><th>Signing (DKIM)</th><th>SPF</th><th>DMARC</th><th><span class="visually-hidden">Actions</span></th>@if (Model.Actor.IsGlobal) { <th><span class="visually-hidden">Remove</span></th> }</tr></thead>
+        <thead><tr><th>Domain</th><th>Mail server</th><th>Signing (DKIM)</th><th>SPF</th><th>DMARC</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
         <tbody>
         @foreach (var d in Model.Entity.Domains)
         {
@@ -36,18 +36,6 @@
                         }
                     }
                 </td>
-                @if (Model.Actor.IsGlobal)
-                {
-                    <td class="remove-cell">
-                        @if (Model.AddressesOn(d.Domain) == 0)
-                        {
-                            <form method="post" asp-page-handler="RemoveDomain" class="inline" data-confirm="Remove @d.Domain.Name from @entity.Name? The mail server keeps the domain." onsubmit="return confirm(this.dataset.confirm)">
-                                <input type="hidden" name="domain" value="@d.Domain.Name"><input type="hidden" name="confirm" value="true">
-                                <button type="submit" class="icon danger quiet" title="Remove @d.Domain.Name" aria-label="Remove @d.Domain.Name">&#x2715;</button>
-                            </form>
-                        }
-                    </td>
-                }
             </tr>
         }
         </tbody>
@@ -63,6 +51,28 @@
             @* Adding the first domain is what a new entity is waiting for; after that it is a panel-local change. *@
             <button type="submit" class="@(Model.Entity.Domains.Count == 0 ? null : "secondary")">Add</button>
         </form>
+        @* Removal is confirmed like every other change to what an entity holds: a box naming the consequence. The
+           console runs no script, so a browser dialog would never appear. *@
+        var removableDomains = Model.Entity.Domains.Where(d => Model.AddressesOn(d.Domain) == 0).ToList();
+        @if (removableDomains.Count > 0)
+        {
+            <form method="post" asp-page-handler="RemoveDomain" class="remove">
+                <h3>Remove a domain</h3>
+                <p class="hint">Only domains no user's address is on are listed. The mail server keeps the domain.</p>
+                <div class="row">
+                    <label>Domain
+                        <select name="domain">
+                            @foreach (var d in removableDomains)
+                            {
+                                <option value="@d.Domain.Name">@d.Domain.Name</option>
+                            }
+                        </select>
+                    </label>
+                </div>
+                <label class="choice"><input type="checkbox" name="confirm" value="true" required> Remove it from @entity.Name; the mail server keeps it</label>
+                <button type="submit" class="secondary">Remove domain</button>
+            </form>
+        }
     }
 </section>
 

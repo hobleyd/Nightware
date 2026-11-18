@@ -145,8 +145,20 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
 
         string html = await GetAsync("/entities/" + ConsoleHost.Acme);
 
-        html.ShouldContain("aria-label=\"Remove spare.example\"");
-        html.ShouldNotContain("aria-label=\"Remove acme.example\"");
+        html.ShouldContain("<option value=\"spare.example\">");
+        html.ShouldNotContain("<option value=\"acme.example\">");
+        html.ShouldContain("name=\"confirm\" value=\"true\" required> Remove it from Acme Pty; the mail server keeps it");
+    }
+
+    [Fact]
+    public async Task Removing_a_domain_never_relies_on_a_script_or_a_hidden_confirmation()
+    {
+        _host.Entities.GetAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(new Entity(ConsoleHost.Acme, "acme", "Acme Pty", [ConsoleHost.Domain("acme.example"), ConsoleHost.Domain("spare.example")]));
+
+        string html = await GetAsync("/entities/" + ConsoleHost.Acme);
+
+        html.ShouldNotContain("onsubmit");
+        html.ShouldNotContain("type=\"hidden\" name=\"confirm\"");
     }
 
     [Fact]
