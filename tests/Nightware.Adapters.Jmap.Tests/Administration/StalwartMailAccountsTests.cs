@@ -351,6 +351,47 @@ public sealed class StalwartMailAccountsTests : IAsyncDisposable
         calls[1][1]!["update"]!["a3"]!["permissions"]!.ToJsonString().ShouldBe("""{"@type":"Inherit"}""");
     }
 
+    [Theory]
+    [InlineData(",\"roles\":{\"@type\":\"Admin\"},\"permissions\":{\"@type\":\"Inherit\"}", true)]
+    [InlineData(",\"roles\":{\"@type\":\"Admin\"},\"permissions\":{\"@type\":\"Merge\",\"enabledPermissions\":{},\"disabledPermissions\":{\"authenticate\":true}}", true)] // offboarded
+    [InlineData(",\"roles\":{\"@type\":\"Admin\"},\"permissions\":{\"@type\":\"Merge\",\"enabledPermissions\":{\"impersonate\":true}}", false)]
+    [InlineData(",\"roles\":{\"@type\":\"Custom\",\"roleIds\":{\"r1\":true}},\"permissions\":{\"@type\":\"Inherit\"}", false)]
+    [InlineData(",\"roles\":{\"@type\":\"User\"},\"permissions\":{\"@type\":\"Inherit\"}", false)]
+    [InlineData(",\"roles\":{\"@type\":\"Admin\"}", false)] // fails closed
+    public async Task Only_the_plain_administrator_role_reads_as_an_administrator(string extra, bool administrator)
+    {
+        StubAcme();
+        string account = "{\"id\":\"a9\",\"@type\":\"User\",\"name\":\"dan\",\"domainId\":\"d7\",\"emailAddress\":\"dan@acme.example\"" + extra + "}";
+        _host.Stub("x:Account/query", StalwartManagementTestHost.AccountPage(account));
+        StubOtherDomains();
+
+        MailAccount found = (await Accounts().FindByAddressAsync("dan@acme.example", Ct)).Value;
+
+        found.IsAdministrator.ShouldBe(administrator);
+        found.IsPrivileged.ShouldBe(extra.Contains("Admin", StringComparison.Ordinal) || extra.Contains("Custom", StringComparison.Ordinal) || extra.Contains("impersonate", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Sets_the_administrator_role_and_takes_it_away()
+    {
+        _host.Stub("x:Account/set", """[["x:Account/set",{"updated":{"a3":null}},"c0"]]""");
+
+        (await Accounts().SetAdministratorAsync("a3", true, Ct)).IsSuccess.ShouldBeTrue();
+        (await Accounts().SetAdministratorAsync("a3", false, Ct)).IsSuccess.ShouldBeTrue();
+
+        var calls = _host.Calls("x:Account/set");
+        calls[0][1]!["update"]!["a3"]!.ToJsonString().ShouldBe("""{"roles":{"@type":"Admin"}}""");
+        calls[1][1]!["update"]!["a3"]!.ToJsonString().ShouldBe("""{"roles":{"@type":"User"}}""");
+    }
+
+    [Fact]
+    public async Task A_refused_role_change_is_an_error()
+    {
+        _host.Stub("x:Account/set", """[["x:Account/set",{"notUpdated":{"a3":{"type":"forbidden","description":"You are not authorized to grant permissions: impersonate"}}},"c0"]]""");
+
+        (await Accounts().SetAdministratorAsync("a3", true, Ct)).IsSuccess.ShouldBeFalse();
+    }
+
     [Fact]
     public async Task An_offboarded_account_reads_as_disabled()
     {

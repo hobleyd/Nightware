@@ -129,4 +129,24 @@ public sealed class AdminAuthorizationTests
     [Fact]
     public void Nobody_manages_a_keycloak_administrator_through_the_console() =>
         AdminAuthorization.RequireMayManageUser(Global, ["e1"], new AdminScope(false, new HashSet<string>(), AdministersDirectory: true)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+
+    [Fact]
+    public void Where_global_admins_administer_the_servers_a_global_admin_manages_another_global_admin()
+    {
+        var globalAdmin = new AdminScope(true, new HashSet<string>(), AdministersDirectory: true);
+
+        AdminAuthorization.RequireMayManageUser(Global, [], globalAdmin, globalAdminsAdministerServers: true).IsSuccess.ShouldBeTrue();
+        AdminAuthorization.RequireMayManageUser(Global, [], globalAdmin).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+    }
+
+    [Fact]
+    public void Even_where_global_admins_administer_the_servers_other_keycloak_administrators_and_service_accounts_stay_off_limits()
+    {
+        AdminAuthorization.RequireMayManageUser(Global, ["e1"], new AdminScope(false, new HashSet<string>(), AdministersDirectory: true), globalAdminsAdministerServers: true)
+            .Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        AdminAuthorization.RequireMayManageUser(Global, [], new AdminScope(true, new HashSet<string>(), AdministersDirectory: true, IsServiceAccount: true), globalAdminsAdministerServers: true)
+            .Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        AdminAuthorization.RequireMayManageUser(EntityAdmin("e1"), ["e1"], new AdminScope(true, new HashSet<string>(), AdministersDirectory: true), globalAdminsAdministerServers: true)
+            .Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+    }
 }

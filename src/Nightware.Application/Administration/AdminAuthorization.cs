@@ -29,18 +29,21 @@ public static class AdminAuthorization
     }
 
     /// <summary>
-    /// Whether the actor may act on an existing user. Nobody may act on a Keycloak administrator or service
-    /// account through the console. Global admins may act on anyone else. An entity admin may
-    /// act only on a user whose every entity is one the actor administers, and never on a global admin or
-    /// an admin of an entity outside the actor's scope: otherwise resetting that user's password would hand
+    /// Whether the actor may act on an existing user. Nobody may act on a service account, or on a Keycloak
+    /// administrator, through the console, with one exception: where global admins administer the servers
+    /// (<paramref name="globalAdminsAdministerServers"/>), a global admin may act on another global admin, whose
+    /// Keycloak rights are the ones the actor holds already. Global admins may act on anyone else. An entity
+    /// admin may act only on a user whose every entity is one the actor administers, and never on a global admin
+    /// or an admin of an entity outside the actor's scope: otherwise resetting that user's password would hand
     /// the entity admin a wider scope than their own.
     /// </summary>
-    public static Result RequireMayManageUser(AdminActor actor, IReadOnlyList<string> targetEntityIds, AdminScope targetScope)
+    public static Result RequireMayManageUser(AdminActor actor, IReadOnlyList<string> targetEntityIds, AdminScope targetScope, bool globalAdminsAdministerServers = false)
     {
         ArgumentNullException.ThrowIfNull(actor);
         ArgumentNullException.ThrowIfNull(targetEntityIds);
         ArgumentNullException.ThrowIfNull(targetScope);
-        if (targetScope.AdministersDirectory)
+        if (targetScope.IsServiceAccount
+            || (targetScope.AdministersDirectory && !(globalAdminsAdministerServers && actor.IsGlobal && targetScope.IsGlobal)))
         {
             return Error.Forbidden("This account administers Keycloak; manage it in Keycloak itself.");
         }

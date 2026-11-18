@@ -195,7 +195,9 @@ fi
 # Our role adds the management permissions (account destroy only for "delete
 # mail", which the console's policy gates; domain and DKIM-key destroy for
 # removing a domain, which Stalwart refuses while any account is on it); no
-# impersonation.
+# impersonation. With ADMIN_GLOBAL_ADMINS_ADMINISTER_SERVERS (the default) the
+# account is an administrator instead, so the console can give global admins'
+# mailboxes the Admin role (ADR 0002 D6, amended).
 # The key is written to .env as STALWART_MANAGEMENT_API_KEY and re-minted when
 # it no longer authenticates. STALWART_MANAGEMENT_LOGIN (the recovery-admin
 # fallback) skips all of this.
@@ -226,6 +228,10 @@ if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" ]]; then
     echo "Stalwart: WARNING could not find or create the admin console role (User role: '${USER_ROLE}')" >&2
   else
     ROLES=$(jq -cn --arg r "$ROLE_ID" --arg u "$USER_ROLE" '{"@type":"Custom",roleIds:{($r):true,($u):true}}')
+    # Where global admins administer the servers, the console gives their mailboxes the Admin role and takes
+    # it away again, which Stalwart allows only an administrator (verified on 1.1.0: "You are not authorized
+    # to grant permissions" otherwise, either way). Its key stays usable from its own address only.
+    [[ "${ADMIN_GLOBAL_ADMINS_ADMINISTER_SERVERS:-true}" == true ]] && ROLES='{"@type":"Admin"}'
     MGMT_ID=$(call "$(jq -cn --arg n "$MGMT_USER" --arg d "$DOMAIN_ID" '[["x:Account/query",{"filter":{"name":$n,"domainId":$d}},"q"]]')" | jq -r '.methodResponses[0][1].ids[0] // empty')
     if [[ -z "$MGMT_ID" ]]; then
       log "Stalwart: creating the admin console account ${MGMT_USER}@${MAIL_DOMAIN}"

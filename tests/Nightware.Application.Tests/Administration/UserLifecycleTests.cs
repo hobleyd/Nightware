@@ -463,6 +463,33 @@ public sealed class UserLifecycleTests
     }
 
     [Fact]
+    public async Task Where_global_admins_administer_the_servers_a_global_admin_acts_on_another_and_their_mailbox_links()
+    {
+        _bed.Options.GlobalAdminsAdministerServers = true;
+        Carol(scope: new AdminScope(true, new HashSet<string>(), AdministersDirectory: true));
+        _bed.Mail.FindByAddressAsync("carol@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-carol", "carol@acme.example", true) { IsPrivileged = true, IsAdministrator = true });
+
+        UserDetail detail = (await new GetUser(_bed.UserAccess()).ExecuteAsync("u-carol", Ct)).Value;
+
+        detail.OffLimits.ShouldBeNull();
+        detail.For(BackendKind.Mail).State.ShouldBe(LinkState.Linked);
+        (await new ResetUserCredential(_bed.Actor, _bed.UserAccess(), _bed.Credentials(), _bed.Audit).ExecuteAsync("u-carol", CredentialDelivery.TemporaryPassword, Ct)).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task A_mail_server_administrator_who_is_not_a_global_admin_stays_off_limits()
+    {
+        _bed.Options.GlobalAdminsAdministerServers = true;
+        Carol();
+        _bed.Mail.FindByAddressAsync("carol@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-carol", "carol@acme.example", true) { IsPrivileged = true, IsAdministrator = true });
+
+        UserDetail detail = (await new GetUser(_bed.UserAccess()).ExecuteAsync("u-carol", Ct)).Value;
+
+        detail.OffLimits.ShouldBe("This account administers the mail or Nextcloud server; manage it there.");
+        detail.For(BackendKind.Mail).State.ShouldBe(LinkState.Conflict);
+    }
+
+    [Fact]
     public async Task A_global_admin_sees_a_keycloak_administrator_marked_off_limits_but_still_cannot_act_on_them()
     {
         Carol(scope: new AdminScope(true, new HashSet<string>(), AdministersDirectory: true));

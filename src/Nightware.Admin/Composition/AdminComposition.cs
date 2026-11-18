@@ -63,6 +63,7 @@ public static partial class AdminComposition
             {
                 DestructiveActionMaxAge = admin.DestructiveActionMaxAge,
                 EntityAdminsMayDeleteData = admin.EntityAdminsMayDeleteData,
+                GlobalAdminsAdministerServers = admin.GlobalAdminsAdministerServers,
                 ActionEmailLifespan = admin.ActionEmailLifespan,
                 AccessTokenLifespan = admin.AccessTokenLifespan,
                 PublicHost = admin.PublicHost,

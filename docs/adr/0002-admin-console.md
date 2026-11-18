@@ -495,7 +495,22 @@ Where the build refined the decisions above:
   administrator or service account (any effective `realm-management` role), a
   privileged Stalwart account (an `Admin`/`Custom` role or permissions of its
   own; fails closed), or a Nextcloud administrator or sub-administrator. They are
-  never linked, reset, offboarded or deleted. Reserved local parts
+  never linked, reset, offboarded or deleted. **Amended 2026-11-19**
+  (`Admin:GlobalAdminsAdministerServers`, on in compose): global admins also
+  administer the servers, so that one Keycloak sign-in opens Keycloak's realm
+  admin console and Stalwart's web admin with admin rights. Their role carries
+  Keycloak's `realm-admin` as a composite, and granting or revoking it in the
+  console gives or takes their mailbox's Stalwart `Admin` role (the console's
+  Stalwart account is an administrator for that: Stalwart refuses the change,
+  either way, to anyone else). A global admin may then manage another global
+  admin, whose server rights the actor holds already, so a password reset
+  hands over nothing new. Still off-limits: service accounts, Keycloak or
+  Stalwart administrators who are not global admins, any other Stalwart
+  privilege (a `Custom` role, permissions of its own) and Nextcloud
+  administrators; entity admins never act on a global admin. A revoke goes
+  to Keycloak first, so a mail server that refuses leaves the mailbox an
+  administrator, which the console reports and shows as a conflict until it
+  is taken away in Stalwart. Reserved local parts
   (`nightware-admin`, `noreply`, `postmaster`, …) are never assigned, and an
   alias can't be another Keycloak user's address.
 - **Offboarding (D10)** also blocks every sign-in to the mailbox: app passwords

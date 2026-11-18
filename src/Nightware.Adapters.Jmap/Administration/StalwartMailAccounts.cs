@@ -116,6 +116,18 @@ internal sealed partial class StalwartMailAccounts(
         return response.Bind(r => r.Get(set)).Match(r => r.Updated(accountId), static e => Result.Failure(e));
     }
 
+    public async Task<Result> SetAdministratorAsync(string accountId, bool administrator, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(accountId);
+        var request = new JmapRequestBuilder();
+        var set = request.Add(StalwartMethods.AccountSet, new StalwartSetRequest
+        {
+            Update = new Dictionary<string, JsonObject> { [accountId] = new JsonObject { ["roles"] = new JsonObject { ["@type"] = administrator ? "Admin" : "User" } } },
+        });
+        Result<JmapResponse> response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        return response.Bind(r => r.Get(set)).Match(r => r.Updated(accountId), static e => Result.Failure(e));
+    }
+
     public async Task<Result> SetAliasesAsync(string accountId, IReadOnlyList<MailAddress> aliases, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(accountId);
@@ -276,6 +288,7 @@ internal sealed partial class StalwartMailAccounts(
         return new MailAccount(account.Id, primary, IsIndividual: string.Equals(account.Type, "User", StringComparison.Ordinal))
         {
             IsPrivileged = account.IsPrivileged,
+            IsAdministrator = account.IsAdministrator,
             Enabled = account.IsEnabled,
             Aliases = [.. aliases.Where(a => names.ContainsKey(a.DomainId)).Select(a => $"{a.Name}@{names[a.DomainId]}")],
         };

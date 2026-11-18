@@ -374,7 +374,7 @@ public sealed class EntityAndAdminTests
     public async Task Global_admin_role_is_global_only_never_self_and_requires_a_second_factor()
     {
         _bed.AddUser("u-dan", "dan", "dan@acme.example");
-        var set = new SetGlobalAdmin(_bed.Actor, _bed.Identities, _bed.Audit, _bed.Options, _bed.Time);
+        var set = new SetGlobalAdmin(_bed.Actor, _bed.Identities, _bed.Mail, _bed.Audit, _bed.Options, _bed.Time);
 
         (await set.ExecuteAsync("u-dan", true, Ct)).IsSuccess.ShouldBeTrue();
         await _bed.Identities.Received(1).AddRequiredActionAsync("u-dan", RequiredAction.ConfigureTotp, Arg.Any<CancellationToken>());
@@ -385,6 +385,59 @@ public sealed class EntityAndAdminTests
         _bed.ActAsEntityAdmin();
         (await set.ExecuteAsync("u-dan", true, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         (await new ListGlobalAdmins(_bed.Actor, _bed.Identities).ExecuteAsync(Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+    }
+
+    [Fact]
+    public async Task Where_global_admins_administer_the_servers_their_mailbox_follows_the_role()
+    {
+        _bed.Options.GlobalAdminsAdministerServers = true;
+        _bed.AddUser("u-dan", "dan", "dan@acme.example");
+        _bed.AddMailbox("dan@acme.example", "m-dan");
+        _bed.Mail.SetAdministratorAsync(default!, default, Ct).ReturnsForAnyArgs(Result.Success());
+        var set = new SetGlobalAdmin(_bed.Actor, _bed.Identities, _bed.Mail, _bed.Audit, _bed.Options, _bed.Time);
+
+        (await set.ExecuteAsync("u-dan", true, Ct)).IsSuccess.ShouldBeTrue();
+        await _bed.Mail.Received(1).SetAdministratorAsync("m-dan", true, Arg.Any<CancellationToken>());
+
+        _bed.Mail.FindByAddressAsync("dan@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-dan", "dan@acme.example", true) { IsPrivileged = true, IsAdministrator = true });
+        (await set.ExecuteAsync("u-dan", false, Ct)).IsSuccess.ShouldBeTrue();
+        await _bed.Mail.Received(1).SetAdministratorAsync("m-dan", false, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_revoke_the_mail_server_refuses_still_revokes_keycloak_and_says_what_is_left()
+    {
+        _bed.Options.GlobalAdminsAdministerServers = true;
+        _bed.AddUser("u-dan", "dan", "dan@acme.example");
+        _bed.Mail.FindByAddressAsync("dan@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-dan", "dan@acme.example", true) { IsPrivileged = true, IsAdministrator = true });
+        _bed.Mail.SetAdministratorAsync(default!, default, Ct).ReturnsForAnyArgs(Error.Forbidden("not authorized"));
+        var set = new SetGlobalAdmin(_bed.Actor, _bed.Identities, _bed.Mail, _bed.Audit, _bed.Options, _bed.Time);
+
+        Error partly = (await set.ExecuteAsync("u-dan", false, Ct)).Error!;
+
+        partly.Kind.ShouldBe(ErrorKind.Conflict);
+        partly.Message.ShouldContain("still a mail-server administrator");
+        await _bed.Identities.Received(1).SetGlobalAdminAsync("u-dan", false, Arg.Any<CancellationToken>());
+        _bed.Audit.Events.Single().Succeeded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task The_mailbox_role_is_left_alone_without_a_mailbox_with_other_rights_or_with_the_setting_off()
+    {
+        var set = new SetGlobalAdmin(_bed.Actor, _bed.Identities, _bed.Mail, _bed.Audit, _bed.Options, _bed.Time);
+        _bed.AddUser("u-dan", "dan", "dan@acme.example");
+        _bed.AddMailbox("dan@acme.example", "m-dan");
+        (await set.ExecuteAsync("u-dan", true, Ct)).IsSuccess.ShouldBeTrue();
+
+        _bed.Options.GlobalAdminsAdministerServers = true;
+        _bed.AddUser("u-fay", "fay", "fay@acme.example");
+        (await set.ExecuteAsync("u-fay", true, Ct)).IsSuccess.ShouldBeTrue();
+
+        _bed.AddUser("u-gus", "gus", "gus@acme.example");
+        _bed.Mail.FindByAddressAsync("gus@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-gus", "gus@acme.example", true) { IsPrivileged = true });
+        (await set.ExecuteAsync("u-gus", true, Ct)).Error!.Message.ShouldContain("holds other mail-server rights");
+
+        await _bed.Mail.DidNotReceiveWithAnyArgs().SetAdministratorAsync(default!, default, Ct);
     }
 
     [Fact]
@@ -408,7 +461,7 @@ public sealed class EntityAndAdminTests
     public async Task An_offboarded_user_cannot_be_granted_global_admin_but_can_lose_it()
     {
         _bed.AddUser("u-eve", "eve", "eve@acme.example", enabled: false);
-        var set = new SetGlobalAdmin(_bed.Actor, _bed.Identities, _bed.Audit, _bed.Options, _bed.Time);
+        var set = new SetGlobalAdmin(_bed.Actor, _bed.Identities, _bed.Mail, _bed.Audit, _bed.Options, _bed.Time);
 
         Error refused = (await set.ExecuteAsync("u-eve", true, Ct)).Error!;
         refused.Kind.ShouldBe(ErrorKind.Conflict);
@@ -422,7 +475,7 @@ public sealed class EntityAndAdminTests
     public async Task Granting_global_admin_needs_a_fresh_sign_in_but_revoking_does_not()
     {
         _bed.AddUser("u-dan", "dan", "dan@acme.example");
-        var set = new SetGlobalAdmin(_bed.Actor, _bed.Identities, _bed.Audit, _bed.Options, _bed.Time);
+        var set = new SetGlobalAdmin(_bed.Actor, _bed.Identities, _bed.Mail, _bed.Audit, _bed.Options, _bed.Time);
         _bed.SignedInAgo(TimeSpan.FromMinutes(10));
 
         (await set.ExecuteAsync("u-dan", true, Ct)).Error!.Code.ShouldBe("reauthenticationRequired");

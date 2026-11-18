@@ -87,6 +87,7 @@ public sealed class ProvisioningPlanner(
 
         (PlannedStep identityStep, IdentityAccount? existing) =
             LinkStateEvaluator.IdentityStep(request.EntityId, requestedUsername, username, byEmail, byUsername, memberships);
+        bool targetIsGlobal = false;
         if (existing is not null)
         {
             // Linking can issue a password, so the actor may link only someone they could manage once
@@ -99,7 +100,8 @@ public sealed class ProvisioningPlanner(
             }
 
             IReadOnlyList<string> joined = memberships.Count == 0 ? [request.EntityId] : memberships;
-            if (!AdminAuthorization.RequireMayManageUser(actor.Current, joined, scope.Value).IsSuccess)
+            targetIsGlobal = scope.Value.IsGlobal;
+            if (!AdminAuthorization.RequireMayManageUser(actor.Current, joined, scope.Value, options.GlobalAdminsAdministerServers).IsSuccess)
             {
                 identityStep = new PlannedStep(BackendKind.Identity, PlannedAction.Conflict, scope.Value.AdministersDirectory
                     ? $"Keycloak user {existing.Username} administers Keycloak; the console does not manage such accounts."
@@ -108,7 +110,8 @@ public sealed class ProvisioningPlanner(
             }
         }
 
-        BackendLink mailLink = LinkStateEvaluator.Mail(address.Value, await mail.FindByAddressAsync(address.Value, cancellationToken).ConfigureAwait(false));
+        BackendLink mailLink = LinkStateEvaluator.Mail(address.Value, await mail.FindByAddressAsync(address.Value, cancellationToken).ConfigureAwait(false),
+            options.GlobalAdminsAdministerServers && existing is not null && targetIsGlobal);
         PlannedStep mailStep = LinkStateEvaluator.Step(mailLink, $"Create mailbox {address}.");
         if (mailStep.Action != PlannedAction.Conflict)
         {

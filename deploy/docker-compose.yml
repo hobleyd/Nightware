@@ -351,10 +351,14 @@ services:
       Admin__ClientSecret: ${NIGHTWARE_ADMIN_CLIENT_SECRET:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
       Admin__AcceptedAcrValues__0: ${ADMIN_REQUIRED_ACR-mfa}
       Admin__EntityAdminsMayDeleteData: ${ADMIN_ENTITY_ADMINS_MAY_DELETE_DATA:-false}
+      # Global admins also administer Keycloak's realm and Stalwart (ADR 0002 D6, amended); the configure
+      # scripts read the same variable.
+      Admin__GlobalAdminsAdministerServers: ${ADMIN_GLOBAL_ADMINS_ADMINISTER_SERVERS:-true}
       # Its public addresses (Cloudflare zone, else public DNS) go into the SPF record the DNS page suggests.
       Admin__PublicHost: ${PUBLIC_HOST:-nightware.localhost}
       # Each system's own admin console, linked from the dashboard for global admins.
-      Admin__KeycloakAdminUrl: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/auth/admin/master/console/#/nightware
+      # Keycloak's: the realm's own admin console, which signs in through the realm (no second sign-in).
+      Admin__KeycloakAdminUrl: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/auth/admin/nightware/console/
       Admin__StalwartAdminUrl: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/admin
       Admin__NextcloudAdminUrl: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/cloud/settings/admin
       # Telemetry (the grafana service), linked from the dashboard's Systems panel for global admins.

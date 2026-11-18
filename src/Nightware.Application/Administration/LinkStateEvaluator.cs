@@ -19,7 +19,11 @@ public static class LinkStateEvaluator
     }
 
     /// <param name="found">The mail server's answer for <paramref name="address"/>.</param>
-    public static BackendLink Mail(string address, Result<MailAccount> found)
+    /// <param name="administratorExpected">
+    /// The address is a global administrator's whose mailbox the console makes a mail-server administrator
+    /// (<see cref="AdministrationOptions.GlobalAdminsAdministerServers"/>): that role, and only that, is theirs to hold.
+    /// </param>
+    public static BackendLink Mail(string address, Result<MailAccount> found, bool administratorExpected = false)
     {
         if (!found.IsSuccess)
         {
@@ -29,9 +33,11 @@ public static class LinkStateEvaluator
         }
 
         MailAccount account = found.Value;
-        if (account.IsPrivileged)
+        if (account.IsPrivileged && !(administratorExpected && account.IsAdministrator))
         {
-            return new BackendLink(BackendKind.Mail, LinkState.Conflict, $"{address} is a privileged mail-server account; the console never links or deletes it.", account.Id);
+            return new BackendLink(BackendKind.Mail, LinkState.Conflict, account.IsAdministrator
+                ? $"{address} is a mail-server administrator but not a global administrator; take the role away in the mail server."
+                : $"{address} is a privileged mail-server account; the console never links or deletes it.", account.Id);
         }
 
         if (!account.IsIndividual)
@@ -45,7 +51,7 @@ public static class LinkStateEvaluator
         }
 
         return account.Enabled
-            ? new BackendLink(BackendKind.Mail, LinkState.Linked, $"Mailbox {account.Address}", account.Id)
+            ? new BackendLink(BackendKind.Mail, LinkState.Linked, account.IsAdministrator ? $"Mailbox {account.Address} (mail-server administrator)" : $"Mailbox {account.Address}", account.Id)
             : new BackendLink(BackendKind.Mail, LinkState.Disabled, $"Mailbox {account.Address}: sign-in blocked, mail still delivered.", account.Id);
     }
 

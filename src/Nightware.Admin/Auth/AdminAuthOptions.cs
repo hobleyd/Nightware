@@ -36,6 +36,13 @@ public sealed class AdminAuthOptions
     /// <summary>Lets entity admins delete data of their own entity's disabled users (ADR 0002 OQ2b).</summary>
     public bool EntityAdminsMayDeleteData { get; set; }
 
+    /// <summary>
+    /// Global admins also administer Keycloak's realm and the mail server (ADR 0002 D6, amended); see
+    /// <c>AdministrationOptions.GlobalAdminsAdministerServers</c>. Needs the deployment's side too
+    /// (<c>ADMIN_GLOBAL_ADMINS_ADMINISTER_SERVERS</c> for the configure scripts).
+    /// </summary>
+    public bool GlobalAdminsAdministerServers { get; set; }
+
     /// <summary>How long a set-password e-mail link stays valid.</summary>
     public TimeSpan ActionEmailLifespan { get; set; } = TimeSpan.FromDays(3);
 

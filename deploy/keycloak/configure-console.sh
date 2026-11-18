@@ -27,6 +27,10 @@
 #      anyone else refused. Skipped when the secret is unset.
 #   9. a client for Stalwart's web admin, named ${PUBLIC_URL}/admin/oauth-client.json
 #      (public, PKCE, aud stalwart, the same step-up flow and minimum acr)
+#  10. Keycloak's own admin console for this realm (/auth/admin/nightware/console/):
+#      its security-admin-console client on the same step-up flow and minimum
+#      acr, and nightware-global-admin a composite of realm-management's
+#      realm-admin (ADMIN_GLOBAL_ADMINS_ADMINISTER_SERVERS=false takes that away again)
 # The step-4 flow (and its migration from the OTP-only flow) is verified on
 # Keycloak 26.8.2: no factor -> OTP set-up; OTP, passkey, or both (passkey first,
 # "Try another way" to OTP) -> acr mfa. UNVERIFIED against a live Keycloak: the
@@ -383,5 +387,42 @@ upsert_client "$STALWART_WEBUI_CLIENT" "$(jq -cn --arg id "$STALWART_WEBUI_CLIEN
     optionalClientScopes: [],
     protocolMappers: [{name: "stalwart audience", protocol: "openid-connect", protocolMapper: "oidc-audience-mapper",
       config: {"included.client.audience": "stalwart", "id.token.claim": "false", "access.token.claim": "true", "introspection.token.claim": "true"}}]}')"
+
+# ------------------------------------- 10. Keycloak's admin console (realm)
+# The realm's own admin console signs in through this realm, so the session
+# the console, Grafana and Stalwart's web admin share opens it too; the master
+# realm's console can't. Its built-in client gets the console's step-up flow
+# and minimum acr, and global administrators administer the realm through
+# realm-admin, held as a composite of their role so that whoever the console
+# makes a global admin gets it, and loses it with the role. The console
+# (Admin:GlobalAdminsAdministerServers, the same switch) then lets one global
+# admin manage another, Keycloak administrators though they are (ADR 0002 D6).
+SAC_UUID=$(kc "${API}/clients?clientId=security-admin-console" | jq -r '.[0].id // empty')
+if [[ -z "$SAC_UUID" ]]; then
+  warn "no security-admin-console client; Keycloak's admin console for the realm keeps its own sign-in"
+else
+  current=$(kc "${API}/clients/${SAC_UUID}")
+  merged=$(jq --arg acr "$REQUIRED_ACR" --arg flow "$FLOW_ID" '
+    .authenticationFlowBindingOverrides = (if $flow == "" then {} else {browser: $flow} end)
+    | .attributes = ((.attributes // {}) | if $acr == "" then del(."minimum.acr.value") else . + {"minimum.acr.value": $acr} end)' <<<"$current")
+  if [[ "$(jq -S . <<<"$current")" != "$(jq -S . <<<"$merged")" ]]; then
+    log "Keycloak (console): Keycloak's admin console for the realm signs in with the console's MFA"
+    kcj -X PUT "${API}/clients/${SAC_UUID}" --data-binary @- <<<"$merged" >/dev/null \
+      || warn "could not bind security-admin-console to ${FLOW}"
+  fi
+fi
+REALM_ADMIN=$(kc "${API}/clients/${RM}/roles/realm-admin" 2>/dev/null || true)
+held=$(kc "${API}/roles/nightware-global-admin/composites/clients/${RM}" | jq -r '.[].name')
+if [[ -z "$REALM_ADMIN" ]]; then
+  warn "realm-management has no realm-admin role; global admins cannot administer the realm in Keycloak"
+elif [[ "${ADMIN_GLOBAL_ADMINS_ADMINISTER_SERVERS:-true}" == true ]]; then
+  if ! grep -qx realm-admin <<<"$held"; then
+    log "Keycloak (console): global administrators administer the realm in Keycloak (realm-admin)"
+    kcj -X POST "${API}/roles/nightware-global-admin/composites" -d "[${REALM_ADMIN}]" >/dev/null
+  fi
+elif grep -qx realm-admin <<<"$held"; then
+  log "Keycloak (console): global administrators no longer administer the realm in Keycloak"
+  kcj -X DELETE "${API}/roles/nightware-global-admin/composites" -d "[${REALM_ADMIN}]" >/dev/null
+fi
 
 log "Keycloak (console): configured (${CONSOLE_URL})"

@@ -100,6 +100,14 @@ internal sealed record StalwartAccount
         !string.Equals(TypeOf(Roles), "User", StringComparison.Ordinal)
         || !(string.Equals(TypeOf(Permissions), "Inherit", StringComparison.Ordinal) || IsSignInBlock(Permissions));
 
+    /// <summary>
+    /// The <c>Admin</c> role and no permissions of its own beyond the console's sign-in block: the role the console
+    /// gives a global administrator's mailbox.
+    /// </summary>
+    public bool IsAdministrator =>
+        string.Equals(TypeOf(Roles), "Admin", StringComparison.Ordinal)
+        && (string.Equals(TypeOf(Permissions), "Inherit", StringComparison.Ordinal) || IsSignInBlock(Permissions));
+
     /// <summary>False when the console has blocked sign-in (offboarding): permissions merge away <c>authenticate</c>.</summary>
     public bool IsEnabled => !IsSignInBlock(Permissions);
 

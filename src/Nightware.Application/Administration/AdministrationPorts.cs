@@ -118,9 +118,17 @@ public sealed record MailAccount(string Id, string Address, bool IsIndividual)
 
     /// <summary>
     /// Holds more than an ordinary mailbox's rights (an administrator, or the console's own principal). Never
-    /// linked to a person or deleted by the console: whoever signed in as that address would gain them.
+    /// linked to a person or deleted by the console: whoever signed in as that address would gain them, unless
+    /// it is a global administrator's mailbox holding exactly <see cref="IsAdministrator"/>
+    /// (<see cref="AdministrationOptions.GlobalAdminsAdministerServers"/>).
     /// </summary>
     public bool IsPrivileged { get; init; }
+
+    /// <summary>
+    /// Holds the mail server's administrator role and nothing else beyond an ordinary mailbox: the role the
+    /// console gives a global administrator's mailbox. Implies <see cref="IsPrivileged"/>.
+    /// </summary>
+    public bool IsAdministrator { get; init; }
 
     /// <summary>False when sign-in to the mail server is blocked (an offboarded user); mail is still delivered.</summary>
     public bool Enabled { get; init; } = true;
@@ -138,6 +146,12 @@ public interface IMailAccounts
 
     /// <summary>Blocks or restores every way of signing in to the mailbox (app passwords included). Delivery continues.</summary>
     Task<Result> SetEnabledAsync(string accountId, bool enabled, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gives the mailbox the mail server's administrator role, or returns it to an ordinary user's. Forbidden unless
+    /// the console's own principal is a mail-server administrator.
+    /// </summary>
+    Task<Result> SetAdministratorAsync(string accountId, bool administrator, CancellationToken cancellationToken);
 
     /// <summary>Bytes stored.</summary>
     Task<Result<long>> GetUsageAsync(string accountId, CancellationToken cancellationToken);
@@ -269,6 +283,15 @@ public sealed class AdministrationOptions
 
     /// <summary>Lets entity admins delete data of their own entity's disabled users (default off, ADR 0002 OQ2b).</summary>
     public bool EntityAdminsMayDeleteData { get; set; }
+
+    /// <summary>
+    /// Global administrators also administer Keycloak's realm and the mail server (ADR 0002 D6, amended): their
+    /// role carries Keycloak's <c>realm-admin</c> (keycloak/configure-console.sh), granting or revoking it sets
+    /// their mailbox's administrator role, and a global admin may manage another global admin although that
+    /// account administers those servers, since the actor holds the same rights already. Off by default: the
+    /// console's mail principal must itself be a mail-server administrator to grant the role.
+    /// </summary>
+    public bool GlobalAdminsAdministerServers { get; set; }
 
     /// <summary><c>acr</c> values that count as strong authentication; empty accepts any (non-production only).</summary>
     public IList<string> AcceptedAcrValues { get; } = [];

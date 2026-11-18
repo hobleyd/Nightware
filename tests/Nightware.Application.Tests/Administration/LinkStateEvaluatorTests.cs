@@ -90,6 +90,22 @@ public sealed class LinkStateEvaluatorTests
         LinkStateEvaluator.Mail(Address, new MailAccount("m", Address, true) { IsPrivileged = true }).State.ShouldBe(LinkState.Conflict);
 
     [Fact]
+    public void A_global_admins_administrator_mailbox_is_linked_and_anyone_elses_is_a_conflict()
+    {
+        var administrator = new MailAccount("m", Address, true) { IsPrivileged = true, IsAdministrator = true };
+
+        LinkStateEvaluator.Mail(Address, administrator, administratorExpected: true)
+            .ShouldBe(new BackendLink(BackendKind.Mail, LinkState.Linked, $"Mailbox {Address} (mail-server administrator)", "m"));
+        BackendLink stranger = LinkStateEvaluator.Mail(Address, administrator);
+        stranger.State.ShouldBe(LinkState.Conflict);
+        stranger.Detail!.ShouldContain("not a global administrator");
+    }
+
+    [Fact]
+    public void Other_mail_server_rights_are_a_conflict_even_for_a_global_admin() =>
+        LinkStateEvaluator.Mail(Address, new MailAccount("m", Address, true) { IsPrivileged = true }, administratorExpected: true).State.ShouldBe(LinkState.Conflict);
+
+    [Fact]
     public void A_mailbox_with_sign_in_blocked_is_disabled_not_missing() =>
         LinkStateEvaluator.Mail(Address, new MailAccount("m", Address, true) { Enabled = false }).State.ShouldBe(LinkState.Disabled);
 }

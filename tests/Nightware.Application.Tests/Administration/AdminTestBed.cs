@@ -141,7 +141,7 @@ internal sealed class AdminTestBed
         return account;
     }
 
-    public UserAccess UserAccess() => new(Actor, Identities, Entities, Scopes, Mail, Groupware);
+    public UserAccess UserAccess() => new(Actor, Identities, Entities, Scopes, Mail, Groupware, Options);
 
     public ProvisioningPlanner Planner() => new(Actor, Entities, Identities, Scopes, Mail, Groupware, Options);
 

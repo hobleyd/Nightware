@@ -151,6 +151,7 @@ public sealed class KeycloakAdminScopeSourceTests : IDisposable
         AdminScope scope = (await host.Scoped<IAdminScopeSource>().ResolveAsync(UserId, Ct)).Value;
 
         scope.AdministersDirectory.ShouldBeTrue();
+        scope.IsServiceAccount.ShouldBeFalse();
         _keycloak.Admin("GET", "/clients").Single().Query!["clientId"].ShouldBe(["realm-management"]);
     }
 
@@ -162,7 +163,9 @@ public sealed class KeycloakAdminScopeSourceTests : IDisposable
         _keycloak.GivenAdmin($"/users/{UserId}", 200, $$"""{"id":"{{UserId}}","username":"service-account-x","enabled":true,"serviceAccountClientId":"x"}""", priority: 1);
         await using AdapterHost host = Host();
 
-        (await host.Scoped<IAdminScopeSource>().ResolveAsync(UserId, Ct)).Value.AdministersDirectory.ShouldBeTrue();
+        AdminScope scope = (await host.Scoped<IAdminScopeSource>().ResolveAsync(UserId, Ct)).Value;
+        scope.AdministersDirectory.ShouldBeTrue();
+        scope.IsServiceAccount.ShouldBeTrue();
     }
 
     [Fact]

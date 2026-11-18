@@ -26,7 +26,8 @@ public sealed class UserAccess(
     IEntityRegistry entities,
     IAdminScopeSource scopes,
     IMailAccounts mail,
-    IGroupwareAccounts groupware)
+    IGroupwareAccounts groupware,
+    AdministrationOptions options)
 {
     public async Task<Result<ManagedUser>> LoadAsync(string userId, CancellationToken cancellationToken)
     {
@@ -77,7 +78,7 @@ public sealed class UserAccess(
         // Only a view by a global admin gets past a refusal, and then only to read.
         bool showOnly = view && actor.Current.IsGlobal;
         string? offLimits = null;
-        Result allowed = AdminAuthorization.RequireMayManageUser(actor.Current, memberships.Value, scope.Value);
+        Result allowed = AdminAuthorization.RequireMayManageUser(actor.Current, memberships.Value, scope.Value, options.GlobalAdminsAdministerServers);
         if (!allowed.IsSuccess && showOnly)
         {
             offLimits = allowed.Error.Message;
@@ -89,11 +90,14 @@ public sealed class UserAccess(
         }
 
         // Administrators of the mail or groupware server are as off-limits as Keycloak's own: resetting their
-        // password would hand the actor that server's administration.
+        // password would hand the actor that server's administration. A global admin's mailbox, holding the
+        // administrator role their role brings, is not, to another global admin, who holds that role already.
         Task<Result<MailAccount>> mailbox = mail.FindByAddressAsync(identity.Value.Email, cancellationToken);
         Task<Result<GroupwareAccount>> cloud = groupware.FindAsync(identity.Value.Username, cancellationToken);
         await Task.WhenAll(mailbox, cloud).ConfigureAwait(false);
-        if ((await mailbox.ConfigureAwait(false)) is { IsSuccess: true, Value.IsPrivileged: true }
+        bool ownAdministratorRole = options.GlobalAdminsAdministerServers && actor.Current.IsGlobal && scope.Value.IsGlobal;
+        if ((await mailbox.ConfigureAwait(false)) is { IsSuccess: true, Value.IsPrivileged: true } privileged
+                && !(ownAdministratorRole && privileged.Value.IsAdministrator)
             || (await cloud.ConfigureAwait(false)) is { IsSuccess: true, Value.IsAdministrator: true })
         {
             const string ServerAdministrator = "This account administers the mail or Nextcloud server; manage it there.";
@@ -126,7 +130,7 @@ public sealed class UserAccess(
         Task<Result<GroupwareAccount>> cloud = groupware.FindAsync(identity.Username, cancellationToken);
         await Task.WhenAll(mailbox, cloud).ConfigureAwait(false);
 
-        BackendLink mailLink = LinkStateEvaluator.Mail(identity.Email, await mailbox.ConfigureAwait(false));
+        BackendLink mailLink = LinkStateEvaluator.Mail(identity.Email, await mailbox.ConfigureAwait(false), options.GlobalAdminsAdministerServers && user.IsGlobalAdmin);
         if (mailLink.State == LinkState.Missing && identity.MailDeletedAt is { } mailDeleted)
         {
             mailLink = mailLink with { Detail = $"Mail deleted on {mailDeleted:yyyy-MM-dd HH:mm} UTC." };

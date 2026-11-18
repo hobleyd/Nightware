@@ -24,4 +24,5 @@ public sealed record AdminActor(
 /// account: resetting its password would hand over more than the console itself may do.
 /// </param>
 /// <param name="AccountEnabled">False for an offboarded user: they hold no console rights, whatever their roles.</param>
-public sealed record AdminScope(bool IsGlobal, IReadOnlySet<string> EntityIds, bool AdministersDirectory = false, bool AccountEnabled = true);
+/// <param name="IsServiceAccount">A client's service account, never a person: off-limits whatever its roles.</param>
+public sealed record AdminScope(bool IsGlobal, IReadOnlySet<string> EntityIds, bool AdministersDirectory = false, bool AccountEnabled = true, bool IsServiceAccount = false);
