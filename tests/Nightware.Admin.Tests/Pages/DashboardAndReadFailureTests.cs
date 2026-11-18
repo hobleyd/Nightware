@@ -444,4 +444,23 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
     [Fact]
     public async Task Without_configured_admin_consoles_the_dashboard_links_none() =>
         (await GetAsync("/")).ShouldNotContain("Their own admin consoles");
+
+    [Fact]
+    public async Task The_entities_table_links_each_domain_to_its_dns_page_and_counts_users()
+    {
+        Members(new IdentityAccount("u-amy", "amy", "amy@acme.example", true), new IdentityAccount("u-bob", "bob", "bob@acme.example", true));
+
+        string html = await GetAsync("/");
+
+        html.ShouldContain($"<a title=\"DNS, SPF and DMARC for acme.example\" href=\"{DnsUrl}\">acme.example</a>");
+        html.ShouldContain("<td data-label=\"Users\">2</td>");
+    }
+
+    [Fact]
+    public async Task An_entity_whose_users_cannot_be_read_shows_no_count()
+    {
+        _host.Entities.ListMembersAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("Keycloak is down."));
+
+        (await GetAsync("/")).ShouldContain("<td data-label=\"Users\"><span title=\"Could not be read\">—</span></td>");
+    }
 }

@@ -153,13 +153,17 @@
     else
     {
         <table>
-            <thead><tr><th>Entity</th><th>Domains</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+            <thead><tr><th>Entity</th><th>Domains</th><th>Users</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
             <tbody>
             @foreach (var e in Model.Entities)
             {
                 <tr>
                     <td><a asp-page="/Entities/Detail" asp-route-id="@e.Id">@e.Name</a></td>
-                    <td data-label="Domains">@string.Join(", ", e.Domains.Select(d => d.Name))</td>
+                    <td data-label="Domains">@for (var i = 0; i < e.Domains.Count; i++)
+                    {
+                        var d = e.Domains[i];<a asp-page="/Entities/Dns" asp-route-id="@e.Id" asp-route-domain="@d.Name" title="@(Model.Actor.IsGlobal ? "DNS, SPF and DMARC" : "DNS records") for @d.Name">@d.Name</a>@(i < e.Domains.Count - 1 ? ", " : "")
+                    }</td>
+                    <td data-label="Users">@if (Model.Attention.UserCounts.TryGetValue(e.Id, out var count)) {@count} else {<span title="Could not be read">—</span>}</td>
                     <td><a asp-page="/Users/Index" asp-route-entity="@e.Id">Users</a> · <a asp-page="/Users/New" asp-route-entity="@e.Id">Add or link a user</a></td>
                 </tr>
             }

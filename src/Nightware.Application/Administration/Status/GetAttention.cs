@@ -20,7 +20,8 @@ public sealed record DomainNeedingAttention(DomainStatus Domain, Entity Entity, 
 /// What needs an admin across their entities. <see cref="NotChecked"/> names the entities that were too large
 /// to read in full or could not be read, so an empty list is never mistaken for "all clear".
 /// </summary>
-public sealed record Attention(IReadOnlyList<UserNeedingAttention> Users, IReadOnlyList<DomainNeedingAttention> Domains, IReadOnlyList<Entity> NotChecked)
+/// <param name="UserCounts">Each entity's number of users, by entity id; absent for an entity whose users could not be read.</param>
+public sealed record Attention(IReadOnlyList<UserNeedingAttention> Users, IReadOnlyList<DomainNeedingAttention> Domains, IReadOnlyList<Entity> NotChecked, IReadOnlyDictionary<string, int> UserCounts)
 {
     public bool IsClear => Users.Count == 0 && Domains.Count == 0 && NotChecked.Count == 0;
 }
@@ -43,6 +44,7 @@ public sealed class GetAttention(ListEntities entities, GetEntity getEntity, Lis
         var users = new List<UserNeedingAttention>();
         var domains = new List<DomainNeedingAttention>();
         var notChecked = new List<Entity>();
+        var userCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (Entity entity in manageable.Value)
         {
             Result<EntityDetail> detail = await getEntity.ExecuteAsync(entity.Id, cancellationToken).ConfigureAwait(false);
@@ -50,6 +52,11 @@ public sealed class GetAttention(ListEntities entities, GetEntity getEntity, Lis
             if (!detail.IsSuccess || !members.IsSuccess || members.Value.Count > ListUsers.LinkedListLimit)
             {
                 notChecked.Add(entity);
+            }
+
+            if (members.IsSuccess)
+            {
+                userCounts[entity.Id] = members.Value.Count;
             }
 
             if (detail.IsSuccess)
@@ -72,7 +79,7 @@ public sealed class GetAttention(ListEntities entities, GetEntity getEntity, Lis
         users.Sort(static (a, b) => Rank(a.Status).CompareTo(Rank(b.Status)) is var byRank and not 0
             ? byRank
             : string.Compare(a.User.User.Identity.DisplayName, b.User.User.Identity.DisplayName, StringComparison.OrdinalIgnoreCase));
-        return new Attention(users, domains, notChecked);
+        return new Attention(users, domains, notChecked, userCounts);
     }
 
     private static int Rank(UserStatus status) => status switch

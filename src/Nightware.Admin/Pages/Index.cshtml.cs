@@ -43,7 +43,7 @@ public sealed class IndexModel(
                 .Where(static l => !string.IsNullOrWhiteSpace(l.Item2))
                 .Select(static l => (l.Item1, l.Item2!))];
 
-    public Attention Attention { get; private set; } = new([], [], []);
+    public Attention Attention { get; private set; } = new([], [], [], new Dictionary<string, int>());
 
     public IReadOnlyList<BackendHealth> Health { get; private set; } = [];
 

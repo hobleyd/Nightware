@@ -43,6 +43,7 @@ public sealed class AttentionTests
             [("bob", UserStatus.OffboardingIncomplete), ("amy", UserStatus.NeedsRepair)]);
         found.Domains.ShouldBeEmpty();
         found.IsClear.ShouldBeFalse();
+        found.UserCounts[AdminTestBed.Acme].ShouldBe(3);
     }
 
     [Fact]
@@ -84,5 +85,6 @@ public sealed class AttentionTests
 
         found.NotChecked.Single().Id.ShouldBe(AdminTestBed.Acme);
         found.IsClear.ShouldBeFalse();
+        found.UserCounts.ShouldNotContainKey(AdminTestBed.Acme);
     }
 }
