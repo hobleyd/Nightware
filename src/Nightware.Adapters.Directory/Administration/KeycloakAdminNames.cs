@@ -39,6 +39,9 @@ internal static class KeycloakAdminNames
     /// </summary>
     public const string DnsTokenAttribute = "nightware_dns_token:cloudflare";
 
+    /// <summary>Keycloak's credential type for a passkey or security key used as a second factor.</summary>
+    public const string PasskeyCredentialType = "webauthn";
+
     public static string Alias(RequiredAction action) => action switch
     {
         RequiredAction.UpdatePassword => "UPDATE_PASSWORD",

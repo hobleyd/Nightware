@@ -3,12 +3,15 @@
 # a live realm (nothing here needs a fresh volume or a realm re-import):
 #   1. realm: Organizations on (with their identity-first login step off, so
 #      NightMail's sign-in page is unchanged), admin events kept,
-#      acr.loa.map {pwd:1, mfa:2}, SMTP through Stalwart when the realm has none
+#      acr.loa.map {pwd:1, mfa:2}, SMTP through Stalwart when the realm has none,
+#      passkeys named "Nightware" and their registration action enabled
 #   2. realm roles nightware-global-admin and nightware-entity-admin
 #   3. user profile: nightware_aliases (multivalued), the two deletion
 #      markers and nightware_access_history (multivalued), admin-editable only
-#   4. a step-up browser flow (password = level 1, + OTP = level 2) bound to the
-#      console's client only; NightMail's sign-in is not touched
+#   4. a step-up browser flow (password = level 1, + passkey or OTP = level 2)
+#      bound to the console's client only; NightMail's sign-in is not touched.
+#      It replaces the OTP-only flow nightware-console-browser, which is deleted
+#      once the client is bound to the new one
 #   5. client nightware-admin (confidential, code + PKCE, own secret, minimum
 #      acr "mfa" unless ADMIN_REQUIRED_ACR is empty) and its service account's
 #      realm-management roles
@@ -16,10 +19,12 @@
 #      MAIL_DOMAIN, its users with an @MAIL_DOMAIN address as unmanaged members
 #   7. global admins named in ADMIN_BOOTSTRAP_USERS (usernames or addresses;
 #      alice on a seeded dev stack)
-# UNVERIFIED against a live Keycloak (phase 8 step 0): the flow-building calls in
-# step 4 and the organization realm-management role names in step 5. Each step
-# reports what it could not do and carries on; the console fails closed (no MFA
-# acr, no sign-in) rather than open.
+# The step-4 flow (and its migration from the OTP-only flow) is verified on
+# Keycloak 26.8.2: no factor -> OTP set-up; OTP, passkey, or both (passkey first,
+# "Try another way" to OTP) -> acr mfa. UNVERIFIED against a live Keycloak: the
+# organization realm-management role names in step 5. Each step reports what it
+# could not do and carries on; the console fails closed (no MFA acr, no sign-in)
+# rather than open.
 source "$(dirname "$0")/../scripts/lib.sh"
 
 log "Keycloak (console): waiting for realm"
@@ -42,11 +47,12 @@ want=$(jq --arg host stalwart --arg from "noreply@${MAIL_DOMAIN}" '
   | .adminEventsEnabled = true
   | .adminEventsDetailsEnabled = true
   | .attributes = ((.attributes // {}) + {"acr.loa.map": "{\"pwd\":1,\"mfa\":2}", "adminEventsExpiration": "7776000"})
+  | if (.webAuthnPolicyRpEntityName // "keycloak") == "keycloak" then .webAuthnPolicyRpEntityName = "Nightware" else . end
   | if ((.smtpServer // {}) | has("host")) then . else
       .smtpServer = {host: $host, port: "25", from: $from, fromDisplayName: "Nightware", auth: "false", ssl: "false", starttls: "false"}
     end' <<<"$realm")
 if [[ "$(jq -S . <<<"$realm")" != "$(jq -S . <<<"$want")" ]]; then
-  log "Keycloak (console): realm -> organizations on, admin events kept 90 days, acr.loa.map, SMTP if unset"
+  log "Keycloak (console): realm -> organizations on, admin events kept 90 days, acr.loa.map, SMTP if unset, passkeys named Nightware"
   kcj -X PUT "${API}" --data-binary @- <<<"$want" >/dev/null
 fi
 
@@ -61,6 +67,20 @@ if [[ -n "$org_step" ]]; then
   log "Keycloak (console): disabling the organization identity-first step in the '${BROWSER_FLOW}' flow"
   kcj -X PUT "${API}/authentication/flows/$(jq -rn --arg a "$BROWSER_FLOW" '$a|@uri')/executions" \
     --data-binary @- <<<"$(jq -c '.requirement="DISABLED"' <<<"$org_step")" >/dev/null
+fi
+
+# Passkeys: the console's "Add a passkey" asks Keycloak for this action (kc_action).
+passkey_action() { kc "${API}/authentication/required-actions/webauthn-register" 2>/dev/null || true; }
+action=$(passkey_action)
+if [[ -z "$action" ]]; then
+  log "Keycloak (console): registering the passkey set-up action"
+  kcj -X POST "${API}/authentication/register-required-action" -d '{"providerId":"webauthn-register","name":"Webauthn Register"}' >/dev/null \
+    || warn "could not register webauthn-register; administrators cannot add passkeys"
+  action=$(passkey_action)
+fi
+if [[ -n "$action" && "$(jq -r .enabled <<<"$action")" != true ]]; then
+  log "Keycloak (console): enabling the passkey set-up action"
+  kcj -X PUT "${API}/authentication/required-actions/webauthn-register" --data-binary @- <<<"$(jq -c '.enabled=true' <<<"$action")" >/dev/null
 fi
 
 # ------------------------------------------------------------------ 2. roles
@@ -89,9 +109,15 @@ if [[ "$(jq -S . <<<"$profile")" != "$(jq -S . <<<"$updated")" ]]; then
 fi
 
 # ------------------------------------------------------- 4. step-up flow
-# Keycloak's documented step-up pattern: Cookie | (level 1: password; level 2: OTP).
-# A user with no OTP yet is asked to set one up at the OTP step.
-FLOW=nightware-console-browser
+# Keycloak's documented step-up pattern: Cookie | (level 1: password; level 2: second factor).
+# Level 2 is a passkey or OTP, whichever the user has; Keycloak offers the one
+# whose credential they ranked first and "Try another way" for the other. A user
+# with neither is asked to set up OTP (the set-up subflow runs only when the
+# second-factor subflow did not).
+FLOW=nightware-console-mfa
+OLD_FLOW=nightware-console-browser  # OTP only; replaced by FLOW
+SECOND="${FLOW} second factor"
+SETUP="${FLOW} second factor setup"
 flow_id() { kc "${API}/authentication/flows" | jq -r --arg a "$1" '.[] | select(.alias==$a) | .id'; }
 executions() { kc "${API}/authentication/flows/$(jq -rn --arg a "$1" '$a|@uri')/executions"; }
 set_requirement() { # flow, displayName or flow alias, requirement
@@ -100,33 +126,43 @@ set_requirement() { # flow, displayName or flow alias, requirement
   kcj -X PUT "${API}/authentication/flows/$(jq -rn --arg a "$1" '$a|@uri')/executions" \
     --data-binary @- <<<"$(jq -c --arg r "$3" '.requirement=$r' <<<"$rep")" >/dev/null
 }
-add_execution() { kcj -X POST "${API}/authentication/flows/$(jq -rn --arg a "$1" '$a|@uri')/executions/execution" -d "{\"provider\":\"$2\"}" >/dev/null; }
-add_subflow() { kcj -X POST "${API}/authentication/flows/$(jq -rn --arg a "$1" '$a|@uri')/executions/flow" \
-  -d "$(jq -cn --arg a "$2" '{alias:$a, type:"basic-flow", provider:"registration-page-form", description:"Nightware admin console"}')" >/dev/null; }
-loa_condition() { # subflow, level, max-age seconds
-  local id; id=$(executions "$1" | jq -r 'map(select(.providerId=="conditional-level-of-authentication")) | first | .id // empty')
+add_execution() { # flow, provider, requirement
+  kcj -X POST "${API}/authentication/flows/$(jq -rn --arg a "$1" '$a|@uri')/executions/execution" -d "{\"provider\":\"$2\"}" >/dev/null \
+    && set_requirement "$1" "$(executions "$1" | jq -r --arg p "$2" 'map(select(.level==0 and .providerId==$p)) | last | .displayName')" "$3"
+}
+add_subflow() { # parent, alias, requirement
+  kcj -X POST "${API}/authentication/flows/$(jq -rn --arg a "$1" '$a|@uri')/executions/flow" \
+    -d "$(jq -cn --arg a "$2" '{alias:$a, type:"basic-flow", provider:"registration-page-form", description:"Nightware admin console"}')" >/dev/null \
+    && set_requirement "$1" "$2" "$3"
+}
+condition_config() { # flow, condition provider, config
+  local id; id=$(executions "$1" | jq -r --arg p "$2" 'map(select(.level==0 and .providerId==$p)) | first | .id // empty')
   [[ -n "$id" ]] && kcj -X POST "${API}/authentication/executions/${id}/config" \
-    -d "$(jq -cn --arg a "$1-loa" --arg l "$2" --arg m "$3" '{alias:$a, config:{"loa-condition-level":$l, "loa-max-age":$m}}')" >/dev/null
+    -d "$(jq -cn --arg a "$1-condition" --argjson c "$3" '{alias:$a, config:$c}')" >/dev/null
+}
+loa_condition() { # subflow, level, max-age seconds
+  add_execution "$1" conditional-level-of-authentication REQUIRED \
+    && condition_config "$1" conditional-level-of-authentication "$(jq -cn --arg l "$2" --arg m "$3" '{"loa-condition-level":$l, "loa-max-age":$m}')"
 }
 if [[ -z "$(flow_id "$FLOW")" ]]; then
   log "Keycloak (console): building the step-up browser flow ${FLOW}"
-  if kcj -X POST "${API}/authentication/flows" \
-       -d "$(jq -cn --arg a "$FLOW" '{alias:$a, providerId:"basic-flow", topLevel:true, builtIn:false, description:"Nightware admin console: password, then OTP for acr mfa"}')" >/dev/null \
-     && add_execution "$FLOW" auth-cookie && set_requirement "$FLOW" Cookie ALTERNATIVE \
-     && add_subflow "$FLOW" "${FLOW} forms" && set_requirement "$FLOW" "${FLOW} forms" ALTERNATIVE \
-     && add_subflow "${FLOW} forms" "${FLOW} level 1" && set_requirement "${FLOW} forms" "${FLOW} level 1" CONDITIONAL \
-     && add_execution "${FLOW} level 1" conditional-level-of-authentication && loa_condition "${FLOW} level 1" 1 28800 \
-     && add_execution "${FLOW} level 1" auth-username-password-form \
-     && add_subflow "${FLOW} forms" "${FLOW} level 2" && set_requirement "${FLOW} forms" "${FLOW} level 2" CONDITIONAL \
-     && add_execution "${FLOW} level 2" conditional-level-of-authentication && loa_condition "${FLOW} level 2" 2 300 \
-     && add_execution "${FLOW} level 2" auth-otp-form; then
-    for sub in "${FLOW} level 1" "${FLOW} level 2"; do
-      executions "$sub" | jq -c '.[] | select(.level==0)' | while read -r rep; do
-        kcj -X PUT "${API}/authentication/flows/$(jq -rn --arg a "$sub" '$a|@uri')/executions" \
-          --data-binary @- <<<"$(jq -c '.requirement="REQUIRED"' <<<"$rep")" >/dev/null
-      done
-    done
-  else
+  if ! { kcj -X POST "${API}/authentication/flows" \
+       -d "$(jq -cn --arg a "$FLOW" '{alias:$a, providerId:"basic-flow", topLevel:true, builtIn:false, description:"Nightware admin console: password, then a passkey or OTP for acr mfa"}')" >/dev/null \
+     && add_execution "$FLOW" auth-cookie ALTERNATIVE \
+     && add_subflow "$FLOW" "${FLOW} forms" ALTERNATIVE \
+     && add_subflow "${FLOW} forms" "${FLOW} level 1" CONDITIONAL \
+     && loa_condition "${FLOW} level 1" 1 28800 \
+     && add_execution "${FLOW} level 1" auth-username-password-form REQUIRED \
+     && add_subflow "${FLOW} forms" "${FLOW} level 2" CONDITIONAL \
+     && loa_condition "${FLOW} level 2" 2 300 \
+     && add_subflow "${FLOW} level 2" "$SECOND" CONDITIONAL \
+     && add_execution "$SECOND" conditional-user-configured REQUIRED \
+     && add_execution "$SECOND" webauthn-authenticator ALTERNATIVE \
+     && add_execution "$SECOND" auth-otp-form ALTERNATIVE \
+     && add_subflow "${FLOW} level 2" "$SETUP" CONDITIONAL \
+     && add_execution "$SETUP" conditional-sub-flow-executed REQUIRED \
+     && condition_config "$SETUP" conditional-sub-flow-executed "$(jq -cn --arg f "$SECOND" '{flow_to_check:$f, check_result:"not-executed"}')" \
+     && add_execution "$SETUP" auth-otp-form REQUIRED; }; then
     warn "could not build ${FLOW}; the console will refuse sign-ins until MFA works (or ADMIN_REQUIRED_ACR is empty)"
   fi
 fi
@@ -162,6 +198,14 @@ else
     log "Keycloak (console): updating client ${CLIENT_ID}"
     kcj -X PUT "${API}/clients/${CLIENT_UUID}" --data-binary @- <<<"$merged" >/dev/null
   fi
+fi
+
+# The OTP-only flow goes once nothing is bound to it (the client was rebound above).
+OLD_FLOW_ID=$(flow_id "$OLD_FLOW")
+if [[ -n "$OLD_FLOW_ID" && -n "$FLOW_ID" ]] \
+   && [[ "$(kc "${API}/clients/${CLIENT_UUID}" | jq -r '.authenticationFlowBindingOverrides.browser // empty')" == "$FLOW_ID" ]]; then
+  log "Keycloak (console): deleting the OTP-only flow ${OLD_FLOW}"
+  kc -X DELETE "${API}/authentication/flows/${OLD_FLOW_ID}" >/dev/null || warn "could not delete ${OLD_FLOW}"
 fi
 
 # Its service account: users (lookup, create, enable, role mapping), the realm's

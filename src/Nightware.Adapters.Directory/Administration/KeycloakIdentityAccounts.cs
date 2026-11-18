@@ -164,6 +164,28 @@ internal sealed class KeycloakIdentityAccounts(IKeycloakAdminClient keycloak, IO
         return updated.ToResult();
     }
 
+    public async Task<Result> PreferNewestPasskeyAsync(string userId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        Result<IReadOnlyList<KeycloakCredential>> credentials = await keycloak.ListUserCredentialsAsync(userId, cancellationToken).ConfigureAwait(false);
+        if (!credentials.IsSuccess)
+        {
+            return credentials.Error;
+        }
+
+        KeycloakCredential? newest = credentials.Value
+            .Where(static c => string.Equals(c.Type, KeycloakAdminNames.PasskeyCredentialType, StringComparison.Ordinal))
+            .MaxBy(static c => c.CreatedDate ?? 0);
+        if (newest is null)
+        {
+            return Error.NotFound("The user has no passkey.");
+        }
+
+        return ReferenceEquals(newest, credentials.Value[0])
+            ? Result.Success()
+            : await keycloak.MoveCredentialToFirstAsync(userId, newest.Id, cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>Users with the global-admin role mapped <b>directly</b> (the console only ever maps it directly).</summary>
     public async Task<Result<IReadOnlyList<IdentityAccount>>> ListGlobalAdminsAsync(CancellationToken cancellationToken)
     {

@@ -186,6 +186,37 @@ public sealed class KeycloakIdentityAccountsTests : IDisposable
     }
 
     [Fact]
+    public async Task Ranks_the_newest_passkey_first()
+    {
+        _keycloak.GivenAdmin($"{UserPath}/credentials", 200,
+            """[{"id":"c-pw","type":"password","createdDate":1},{"id":"c-otp","type":"otp","createdDate":2},{"id":"c-old-key","type":"webauthn","createdDate":3},{"id":"c-new-key","type":"webauthn","createdDate":4}]""");
+        _keycloak.GivenAdmin($"{UserPath}/credentials/c-new-key/moveToFirst", 204, method: "POST");
+        await using AdapterHost host = Host();
+
+        (await host.Scoped<IIdentityAccounts>().PreferNewestPasskeyAsync(UserId, Ct)).IsSuccess.ShouldBeTrue();
+        _keycloak.Admin("POST", $"{UserPath}/credentials/c-new-key/moveToFirst").Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task A_passkey_already_first_is_left_alone()
+    {
+        _keycloak.GivenAdmin($"{UserPath}/credentials", 200, """[{"id":"c-key","type":"webauthn","createdDate":3},{"id":"c-otp","type":"otp","createdDate":2}]""");
+        await using AdapterHost host = Host();
+
+        (await host.Scoped<IIdentityAccounts>().PreferNewestPasskeyAsync(UserId, Ct)).IsSuccess.ShouldBeTrue();
+        _keycloak.Admin("POST", $"{UserPath}/credentials/c-key/moveToFirst").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Preferring_a_passkey_without_one_is_not_found()
+    {
+        _keycloak.GivenAdmin($"{UserPath}/credentials", 200, """[{"id":"c-otp","type":"otp","createdDate":2},{"id":"c-pw","type":"password","createdDate":1}]""");
+        await using AdapterHost host = Host();
+
+        (await host.Scoped<IIdentityAccounts>().PreferNewestPasskeyAsync(UserId, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
     public async Task Sends_the_action_email_naming_the_consoles_own_client()
     {
         _keycloak.GivenAdmin($"{UserPath}/execute-actions-email", 204, method: "PUT");

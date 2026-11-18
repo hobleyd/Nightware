@@ -279,9 +279,12 @@ output: anything they cannot do is printed as a WARNING.
 - **Who can sign in.** Global administrators (realm role
   `nightware-global-admin`; the first ones from `ADMIN_BOOTSTRAP_USERS`, alice
   on a seeded dev stack) and entity administrators (members of an entity's
-  `admins` organization group). Sign-in needs an authenticator app: the console
-  has its own step-up flow (password, then OTP for `acr=mfa`), and the first
-  sign-in asks to set one up. `ADMIN_REQUIRED_ACR=` (empty) turns MFA off for a
+  `admins` organization group). Sign-in needs a second factor: the console has
+  its own step-up flow (password, then a passkey or OTP for `acr=mfa`), and a
+  first sign-in with neither asks to set up an authenticator app. "Add a
+  passkey" in the console's header registers one (Face ID, Touch ID, Windows
+  Hello, a security key) and makes it the default; the code stays the
+  fallback. `ADMIN_REQUIRED_ACR=` (empty) turns MFA off for a
   loopback dev stack only; Production refuses to start without it.
 - **NightMail's sign-in is unchanged.** Turning Organizations on would make
   Keycloak's login page identity-first (username, then password on a second

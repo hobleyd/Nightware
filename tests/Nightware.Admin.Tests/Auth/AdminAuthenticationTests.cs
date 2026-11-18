@@ -127,9 +127,11 @@ public sealed class AdminAuthenticationTests
 
     [Theory]
     [InlineData(AdminAuthentication.UpdatePasswordAction, AdminAuthentication.UpdatePasswordAction)]
+    [InlineData(AdminAuthentication.RegisterPasskeyAction, AdminAuthentication.RegisterPasskeyAction)]
     [InlineData("delete_account", null)]
+    [InlineData("CONFIGURE_TOTP", null)]
     [InlineData(null, null)]
-    public async Task Only_the_change_password_action_is_sent_to_keycloak(string? requested, string? sent)
+    public async Task Only_the_change_password_and_add_passkey_actions_are_sent_to_keycloak(string? requested, string? sent)
     {
         var oidc = new OpenIdConnectOptions();
         AdminAuthentication.ConfigureOidc(oidc, Options("mfa"));

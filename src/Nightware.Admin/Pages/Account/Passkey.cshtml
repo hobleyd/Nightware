@@ -1,0 +1,28 @@
+@page "/account/passkey"
+@model Nightware.Admin.Pages.Account.PasskeyModel
+@{ ViewData["Title"] = "Add a passkey"; }
+<h1>Add a passkey</h1>
+@switch (Model.Status)
+{
+    case "success" when Model.Preferred:
+        <p class="notice" role="status">Your passkey has been added. From your next sign-in, Keycloak asks for it after your password; "Try another way" still offers your authenticator code.</p>
+        <p><a asp-page="/Index">Back to the console</a></p>
+        break;
+    case "success":
+        <p class="notice" role="status">Your passkey has been added, but Keycloak may still ask for your authenticator code first: choose "Try another way" to use the passkey.</p>
+        <p><a asp-page="/Index">Back to the console</a></p>
+        break;
+    case "cancelled":
+        <p class="warning" role="status">You cancelled; no passkey was added.</p>
+        break;
+    case "error":
+        <p class="warning" role="alert">Keycloak did not add a passkey. Try again; your authenticator app still works.</p>
+        break;
+}
+@if (Model.Status != "success")
+{
+    <p>A passkey (Face ID, Touch ID, Windows Hello or a security key) replaces typing an authenticator code when you sign in. Keycloak asks you to sign in again first if your last sign-in was more than a few minutes ago, then to create the passkey, and brings you back here. Your authenticator app keeps working as the fallback.</p>
+    <form method="post">
+        <button type="submit">Add a passkey</button>
+    </form>
+}

@@ -4,7 +4,7 @@
 <h1>Access denied</h1>
 @if (Model.Reason == "signin")
 {
-    <p>The sign-in was not accepted. The console requires multi-factor authentication; set up an authenticator app in Keycloak and try again.</p>
+    <p>The sign-in was not accepted. The console requires multi-factor authentication: an authenticator code, or a passkey you have added. Sign in again and set up an authenticator app if Keycloak asks.</p>
 }
 else
 {

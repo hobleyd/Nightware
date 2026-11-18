@@ -91,6 +91,12 @@ public interface IIdentityAccounts
     /// <summary>Idempotent.</summary>
     Task<Result> AddRequiredActionAsync(string userId, RequiredAction action, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Ranks the user's newest passkey first among their credentials, so the second sign-in step asks for it
+    /// rather than an authenticator code. NotFound when they have no passkey. Idempotent.
+    /// </summary>
+    Task<Result> PreferNewestPasskeyAsync(string userId, CancellationToken cancellationToken);
+
     Task<Result<IReadOnlyList<IdentityAccount>>> ListGlobalAdminsAsync(CancellationToken cancellationToken);
 
     Task<Result<bool>> IsGlobalAdminAsync(string userId, CancellationToken cancellationToken);

@@ -60,6 +60,12 @@ internal sealed partial class KeycloakAdminClient
             });
     }
 
+    public Task<Result<IReadOnlyList<KeycloakCredential>>> ListUserCredentialsAsync(string userId, CancellationToken cancellationToken) =>
+        GetListAsync<KeycloakCredential>($"users/{Segment(userId)}/credentials", cancellationToken);
+
+    public Task<Result> MoveCredentialToFirstAsync(string userId, string credentialId, CancellationToken cancellationToken) =>
+        WriteAsync(HttpMethod.Post, $"users/{Segment(userId)}/credentials/{Segment(credentialId)}/moveToFirst", static () => null, cancellationToken);
+
     public Task<Result<KeycloakRole>> GetRealmRoleAsync(string name, CancellationToken cancellationToken)
     {
         string path = $"roles/{Segment(name)}";

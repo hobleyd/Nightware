@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 using Nightware.Admin.Auth;
+using Nightware.Application.Administration.Admins;
 
 namespace Nightware.Admin.Pages.Account;
 
@@ -46,6 +47,35 @@ public sealed class PasswordModel : PageModel
     {
         var properties = new AuthenticationProperties { RedirectUri = Url.Page("/Account/Password") };
         properties.Items[AdminAuthentication.RequiredActionItem] = AdminAuthentication.UpdatePasswordAction;
+        return Challenge(properties, OpenIdConnectDefaults.AuthenticationScheme);
+    }
+}
+
+/// <summary>
+/// Adds a passkey through Keycloak's <c>webauthn-register</c> action, then ranks it first so the next sign-in asks
+/// for it. Re-ranking on a "success" answer someone typed into the address bar is harmless: it only ever touches
+/// the signed-in administrator's own credentials.
+/// </summary>
+public sealed class PasskeyModel(PreferOwnPasskey prefer) : PageModel
+{
+    public string? Status { get; private set; }
+
+    /// <summary>Whether the new passkey is now the default second factor.</summary>
+    public bool Preferred { get; private set; }
+
+    public async Task OnGetAsync(string? status, CancellationToken cancellationToken)
+    {
+        Status = status is "success" or "cancelled" or "error" ? status : null;
+        if (Status == "success")
+        {
+            Preferred = (await prefer.ExecuteAsync(cancellationToken)).IsSuccess;
+        }
+    }
+
+    public IActionResult OnPost()
+    {
+        var properties = new AuthenticationProperties { RedirectUri = Url.Page("/Account/Passkey") };
+        properties.Items[AdminAuthentication.RequiredActionItem] = AdminAuthentication.RegisterPasskeyAction;
         return Challenge(properties, OpenIdConnectDefaults.AuthenticationScheme);
     }
 }

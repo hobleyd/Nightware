@@ -46,6 +46,7 @@ public static class AdministrationServiceCollectionExtensions
 
         services.TryAddScoped<ListGlobalAdmins>();
         services.TryAddScoped<SetGlobalAdmin>();
+        services.TryAddScoped<PreferOwnPasskey>();
 
         services.TryAddScoped<ListUsers>();
         services.TryAddScoped<GetUser>();

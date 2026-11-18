@@ -77,6 +77,15 @@ public interface IKeycloakAdminClient
     /// </summary>
     Task<Result> ResetPasswordAsync(string id, string password, bool temporary, CancellationToken cancellationToken);
 
+    /// <summary><c>GET /users/{id}/credentials</c> — the user's credentials, in the order Keycloak ranks them at sign-in.</summary>
+    Task<Result<IReadOnlyList<KeycloakCredential>>> ListUserCredentialsAsync(string userId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// <c>POST /users/{id}/credentials/{credentialId}/moveToFirst</c> — ranks the credential first, so a sign-in step
+    /// that accepts several kinds offers this one by default.
+    /// </summary>
+    Task<Result> MoveCredentialToFirstAsync(string userId, string credentialId, CancellationToken cancellationToken);
+
     /// <summary><c>GET /roles/{name}</c> — a realm role; NotFound when the realm has none of that name.</summary>
     Task<Result<KeycloakRole>> GetRealmRoleAsync(string name, CancellationToken cancellationToken);
 

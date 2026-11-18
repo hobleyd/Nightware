@@ -71,6 +71,28 @@ public sealed class KeycloakAdminClientUserLifecycleTests : IDisposable
     }
 
     [Fact]
+    public async Task Lists_a_users_credentials_in_keycloaks_order()
+    {
+        _keycloak.GivenAdmin($"/users/{UserId}/credentials", 200,
+            """[{"id":"c-pw","type":"password","createdDate":1700000000000},{"id":"c-otp","type":"otp","createdDate":1700000100000,"credentialData":"{}"}]""");
+        await using AdapterHost host = Host();
+
+        IReadOnlyList<KeycloakCredential> credentials = (await host.Get<IKeycloakAdminClient>().ListUserCredentialsAsync(UserId, Ct)).Value;
+
+        credentials.Select(c => (c.Id, c.Type, c.CreatedDate)).ShouldBe([("c-pw", "password", 1700000000000L), ("c-otp", "otp", 1700000100000L)]);
+    }
+
+    [Fact]
+    public async Task Moves_a_credential_to_first()
+    {
+        _keycloak.GivenAdmin($"/users/{UserId}/credentials/c-key/moveToFirst", 204, method: "POST");
+        await using AdapterHost host = Host();
+
+        (await host.Get<IKeycloakAdminClient>().MoveCredentialToFirstAsync(UserId, "c-key", Ct)).IsSuccess.ShouldBeTrue();
+        _keycloak.Admin("POST", $"/users/{UserId}/credentials/c-key/moveToFirst").Count.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task Sends_the_execute_actions_email_with_client_and_lifespan_in_seconds()
     {
         _keycloak.GivenAdmin($"/users/{UserId}/execute-actions-email", 204, method: "PUT");

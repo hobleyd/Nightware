@@ -40,6 +40,7 @@
         <form method="post" asp-page="/Account/SignOut" class="signout">
             <span class="who">@User.Identity!.Name@(actor?.IsGlobal == true ? " · global admin" : actor?.IsAdmin == true ? " · entity admin" : "")</span>
             <a asp-page="/Account/Password">Change password</a>
+            <a asp-page="/Account/Passkey">Add a passkey</a>
             <button type="submit" class="link">Sign out</button>
         </form>
     }

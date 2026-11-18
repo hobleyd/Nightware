@@ -191,7 +191,7 @@ else if (u.IsGlobalAdmin && Model.Actor.IsGlobal)
                     else
                     {
                         <form method="post" asp-page-handler="GlobalAdmin">
-                            <p class="hint">A global administrator manages every entity, creates entities and domains, and may delete a disabled user's data. Granting it asks you to sign in again; they must set up an authenticator app.</p>
+                            <p class="hint">A global administrator manages every entity, creates entities and domains, and may delete a disabled user's data. Granting it asks you to sign in again; they must set up an authenticator app, and can then add a passkey.</p>
                             <label class="choice"><input type="checkbox" name="confirm" value="true" required> Give @id.DisplayName global administrator rights</label>
                             <button type="submit" name="grant" value="true" class="secondary">Make global administrator</button>
                         </form>

@@ -226,7 +226,8 @@ entity gets `403` from the use case. Endpoint tests assert that.
   rebuild or restart doesn't sign everyone out; sessions still end at the
   idle and absolute limits, and deleting the keys signs everyone out.
 - **MFA/step-up.** The realm gets `acr.loa.map = {"pwd": 1, "mfa": 2}` and a
-  browser flow with a Conditional-LoA subflow (level 2 → OTP form). The
+  browser flow with a Conditional-LoA subflow (level 2 → a passkey or OTP,
+  whichever the user has; neither → OTP set-up). The
   `nightware-admin` client sets "Minimum ACR value" = `mfa` (26.1+), so
   Keycloak refuses to issue it a token below level 2. The console additionally
   **checks `acr` itself** (`Admin:AcceptedAcrValues`, default `["mfa"]`) and
@@ -235,7 +236,12 @@ entity gets `403` from the use case. Endpoint tests assert that.
   `Admin:AcceptedAcrValues` may be emptied only outside Production (dev stack
   and integration tests, where test users have no OTP); Production refuses to
   start without it, the way `SigningKeyValidator` refuses a weak delta key.
-  Granting any admin role adds `CONFIGURE_TOTP` as a required action.
+  Granting any admin role adds `CONFIGURE_TOTP` as a required action, so an
+  authenticator app is every admin's baseline. An admin may then add a passkey
+  (`/account/passkey`, `kc_action=webauthn-register`); the console ranks it
+  first among their credentials, because Keycloak offers the alternative
+  matching the user's first-ranked credential, so their sign-in asks for the
+  passkey and "Try another way" offers the code.
 - Security headers come from the shared `SecurityHeadersMiddleware` with the
   page CSP above, `Referrer-Policy: no-referrer`, `Cache-Control: no-store`,
   HSTS; forwarded headers trusted from `DOCKER_SUBNET` only.

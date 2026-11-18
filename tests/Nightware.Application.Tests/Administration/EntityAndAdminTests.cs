@@ -323,6 +323,23 @@ public sealed class EntityAndAdminTests
     }
 
     [Fact]
+    public async Task An_admin_prefers_only_their_own_passkey()
+    {
+        _bed.Identities.PreferNewestPasskeyAsync(default!, Ct).ReturnsForAnyArgs(Result.Success());
+        var prefer = new PreferOwnPasskey(_bed.Actor, _bed.Identities);
+
+        (await prefer.ExecuteAsync(Ct)).IsSuccess.ShouldBeTrue();
+        _bed.ActAsEntityAdmin();
+        (await prefer.ExecuteAsync(Ct)).IsSuccess.ShouldBeTrue();
+        _bed.ActAsNobody();
+        (await prefer.ExecuteAsync(Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+
+        await _bed.Identities.Received(1).PreferNewestPasskeyAsync("u-admin", Arg.Any<CancellationToken>());
+        await _bed.Identities.Received(1).PreferNewestPasskeyAsync("u-eadmin", Arg.Any<CancellationToken>());
+        await _bed.Identities.DidNotReceive().PreferNewestPasskeyAsync("u-nobody", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task An_offboarded_user_cannot_be_granted_global_admin_but_can_lose_it()
     {
         _bed.AddUser("u-eve", "eve", "eve@acme.example", enabled: false);

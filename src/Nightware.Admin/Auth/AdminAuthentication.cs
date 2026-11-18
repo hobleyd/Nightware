@@ -46,6 +46,9 @@ public static class AdminAuthentication
     /// <summary>Keycloak's change-password action.</summary>
     public const string UpdatePasswordAction = "UPDATE_PASSWORD";
 
+    /// <summary>Keycloak's add-a-passkey action (a passkey or security key as the second factor).</summary>
+    public const string RegisterPasskeyAction = "webauthn-register";
+
     /// <summary>The query parameter that carries Keycloak's answer to a required action back to the console page.</summary>
     public const string ActionStatusParameter = "status";
 
@@ -141,7 +144,7 @@ public static class AdminAuthentication
                 context.Properties.Items[ForceReauthenticationItem] = time.GetUtcNow().ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
             }
 
-            if (context.Properties.Items.TryGetValue(RequiredActionItem, out string? action) && action == UpdatePasswordAction)
+            if (context.Properties.Items.TryGetValue(RequiredActionItem, out string? action) && action is UpdatePasswordAction or RegisterPasskeyAction)
             {
                 context.ProtocolMessage.SetParameter("kc_action", action);
             }
