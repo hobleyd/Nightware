@@ -17,7 +17,7 @@
                 @* A weak SPF or DMARC record says so where it is read: a state chip per weakness, its reason, and the way to fix it. *@
                 @foreach (var w in weaknesses)
                 {
-                    <p class="weakness"><span class="chip @(w.Severity == Nightware.Domain.Administration.WeaknessSeverity.Unsafe ? "error" : "missing")">@(w.Severity == Nightware.Domain.Administration.WeaknessSeverity.Unsafe ? "Unsafe" : "Weak")</span> @w.Message</p>
+                    <p class="weakness"><span class="chip @Systems.WeaknessClass(w.Severity)">@Systems.WeaknessLabel(w.Severity)</span> @w.Message</p>
                 }
                 @if (weaknesses.Count > 0 && ViewData["EditUrl"] is string editUrl)
                 {
