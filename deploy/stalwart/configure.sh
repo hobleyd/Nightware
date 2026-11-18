@@ -10,7 +10,7 @@
 #      recipients, so mail to a never-signed-in user would bounce)
 #   3. create/update the Keycloak OIDC directory, make it the default directory
 #   4. trusted compose network, inbound throttle scope, JMAP concurrent
-#      requests per account (default 32)
+#      requests per account (default 32), public DNSSEC-validating resolver
 #   5. ReloadSettings
 #
 # Authenticates as the recovery administrator (STALWART_RECOVERY_ADMIN).
@@ -131,6 +131,26 @@ if [[ "$current" != "$JMAP_CONCURRENCY" ]]; then
   call "$(jq -cn --argjson n "$JMAP_CONCURRENCY" '[["x:Jmap/set",{"update":{"singleton":{maxConcurrentRequests:$n}}},"c"]]')" \
     | jq -e '.methodResponses[0][1].updated | has("singleton")' >/dev/null
   RESTART_STALWART=1
+fi
+
+# ------------------------------------------------ 4c'. DNS resolver
+# Stalwart validates DNSSEC on outbound MX lookups. The "System" resolver is the
+# host's: on a LAN whose DNS server holds its own unsigned copy of a public zone
+# (split horizon), that server answers the zone's DS query without a denial
+# proof, so a domain that is merely unsigned in public DNS validates as bogus
+# and mail to it is deferred ("DNSSEC validation failed"; seen for sharpblue.org
+# behind 192.168.18.72). An MTA delivers to the internet, so it resolves through
+# a public validating resolver, over TLS (port 853). Verified on 1.1.0: types
+# System, Cloudflare, Quad9, Google, Custom (servers); Cloudflare + useTls
+# reloads without the "cannot validate DNSSEC" warning. STALWART_DNS_RESOLVER=System
+# keeps the host's resolver.
+DNS_RESOLVER="${STALWART_DNS_RESOLVER:-Cloudflare}"
+resolver=$(call '[["x:DnsResolver/get",{"ids":["singleton"]},"g"]]' | jq -c '.methodResponses[0][1].list[0] | {type:."@type", tls:(.useTls // false)}')
+want=$(jq -cn --arg t "$DNS_RESOLVER" '{type:$t, tls:($t != "System")}')
+if [[ "$resolver" != "$want" ]]; then
+  log "Stalwart: DNS resolver ${resolver} -> ${want}"
+  call "$(jq -cn --arg t "$DNS_RESOLVER" '[["x:DnsResolver/set",{"update":{"singleton":(if $t == "System" then {"@type":$t} else {"@type":$t,useTls:true} end)}},"c"]]')" \
+    | jq -e '.methodResponses[0][1].updated | has("singleton")' >/dev/null
 fi
 
 # ------------------------------------------------ 4d. admin console principal
