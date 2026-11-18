@@ -93,6 +93,10 @@ public sealed class DnsModel(
     /// <summary>Why the Cloudflare zone could not be compared, shown in place of the preview.</summary>
     public Error? PublicationUnread { get; private set; }
 
+    /// <summary>The box confirming a plan that removes another server's MX, moving all of the domain's mail here.</summary>
+    [BindProperty]
+    public bool ConfirmMailMove { get; set; }
+
     /// <summary>The plan the administrator saw; publishing applies only that plan.</summary>
     [BindProperty]
     public string? PlanFingerprint { get; set; }
@@ -119,6 +123,15 @@ public sealed class DnsModel(
 
     public async Task<IActionResult> OnPostPublishAsync(CancellationToken cancellationToken)
     {
+        // Removing another server's MX sends all of the domain's mail here and none there: confirmed like any change
+        // to where mail goes. The plan is read again, as the publish itself does.
+        if (!ConfirmMailMove && await planPublication.ExecuteAsync(Id, Domain, cancellationToken) is { IsSuccess: true } preview
+            && preview.Value.Plan.MailServersRemoved.Count > 0)
+        {
+            ModelState.AddModelError(string.Empty, $"Tick the box to confirm that all mail for {Domain} should come here.");
+            return await RenderAsync(cancellationToken);
+        }
+
         Result<DnsPublication> published = await publish.ExecuteAsync(Id, Domain, PlanFingerprint, cancellationToken);
         if (!published.IsSuccess)
         {

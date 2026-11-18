@@ -87,12 +87,34 @@ public sealed class DnsPublicationTests
     }
 
     [Fact]
-    public void Another_providers_mx_stays_with_a_warning()
+    public void Another_servers_mx_is_removed_so_all_the_domains_mail_comes_here()
     {
         DnsPublicationPlan plan = DnsPublicationPlanner.Plan(Zone, [R("acme.example", "MX", "10 mail.acme.example")], [Z("g", "acme.example", "MX", "1 smtp.google.com")]);
 
+        plan.Changes.Select(static c => c.Kind).ShouldBe([DnsChangeKind.Create, DnsChangeKind.Remove]);
+        DnsChange removed = plan.Changes[1];
+        removed.Current!.Id.ShouldBe("g");
+        removed.Note!.ShouldContain("smtp.google.com");
+        plan.MailServersRemoved.ShouldBe(["smtp.google.com"]);
+        plan.Warnings.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void An_mx_at_a_name_the_domain_publishes_no_mx_for_is_left_alone()
+    {
+        DnsPublicationPlan plan = DnsPublicationPlanner.Plan(Zone, [R("acme.example", "MX", "10 mail.acme.example")], [Z("s", "shop.acme.example", "MX", "1 smtp.google.com")]);
+
         plan.Changes.ShouldHaveSingleItem().Kind.ShouldBe(DnsChangeKind.Create);
-        plan.Warnings.ShouldHaveSingleItem().ShouldContain("1 smtp.google.com");
+        plan.MailServersRemoved.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void The_domains_own_mx_with_another_priority_is_corrected_not_removed()
+    {
+        DnsPublicationPlan plan = DnsPublicationPlanner.Plan(Zone, [R("acme.example", "MX", "10 mail.acme.example")], [Z("m", "acme.example", "MX", "20 mail.acme.example")]);
+
+        plan.MailServersRemoved.ShouldBeEmpty();
+        plan.Changes.ShouldHaveSingleItem().Kind.ShouldBe(DnsChangeKind.Update);
     }
 
     [Fact]

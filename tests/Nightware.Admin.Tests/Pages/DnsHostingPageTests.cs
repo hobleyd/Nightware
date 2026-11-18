@@ -251,4 +251,25 @@ public sealed partial class DnsHostingPageTests : IDisposable
         html.ShouldContain("<h2>3. Publish to Cloudflare</h2>");
         html.ShouldNotContain("to publish by hand</summary>");
     }
+
+    [Fact]
+    public async Task Removing_another_servers_mx_is_shown_and_needs_the_box_before_publishing()
+    {
+        GivenConnected();
+        _host.MailDomains.GetDnsRecordsAsync(default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<DnsRecord>>.Success([new DnsRecord("acme.example", "MX", 3600, "10 mail.acme.example")]));
+        _host.DnsHosting.ListRecordsAsync(default!, default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<ZoneRecord>>.Success(
+            [new ZoneRecord("r-old", new DnsRecord("acme.example", "MX", 300, "1 mail.oldhost.example"))]));
+
+        string html = await GetAsync(DnsUrl);
+        html.ShouldContain("Another mail server (mail.oldhost.example)");
+        html.ShouldContain("name=\"ConfirmMailMove\" value=\"true\" required> All mail for acme.example comes here: mail.oldhost.example stops receiving it");
+
+        string fingerprint = Fingerprint().Match(html).Groups[1].Value;
+        string refused = await (await PostAsync(DnsUrl, "Publish", new() { ["PlanFingerprint"] = fingerprint })).Content.ReadAsStringAsync(Ct);
+        refused.ShouldContain("Tick the box to confirm that all mail for acme.example should come here.");
+        await _host.DnsHosting.DidNotReceiveWithAnyArgs().ApplyAsync(default!, default!, default!, Ct);
+
+        (await PostAsync(DnsUrl, "Publish", new() { ["PlanFingerprint"] = fingerprint, ["ConfirmMailMove"] = "true" })).StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        await _host.DnsHosting.Received(1).ApplyAsync(Arg.Any<DnsProviderToken>(), Arg.Any<DnsZone>(), Arg.Is<DnsChange>(c => c.Kind == DnsChangeKind.Remove && c.Current!.Id == "r-old"), Arg.Any<CancellationToken>());
+    }
 }

@@ -56,7 +56,10 @@ public enum DnsChangeKind
     Create,
     Update,
 
-    /// <summary>A second record of a kind there must be one of (SPF, DMARC, DKIM at one selector), removed beside the one updated.</summary>
+    /// <summary>
+    /// A record removed from the zone: a second record of a kind there must be one of (SPF, DMARC, DKIM at one
+    /// selector), or another server's MX at a name the domain publishes MX for, which would keep receiving its mail.
+    /// </summary>
     Remove,
 
     /// <summary>Not published, with the reason in <see cref="DnsChange.Note"/>.</summary>
@@ -82,6 +85,11 @@ public sealed record DnsPublicationPlan(DnsZone Zone, IReadOnlyList<DnsChange> C
 
     public int Count(DnsChangeKind kind) => Changes.Count(c => c.Kind == kind);
 
+    /// <summary>The other mail servers this plan stops sending the domain's mail to (their MX records are removed).</summary>
+    public IReadOnlyList<string> MailServersRemoved =>
+        [.. Changes.Where(static c => c.Kind == DnsChangeKind.Remove && c.Current is { Record.Type: var t } && t.Trim().Equals("MX", StringComparison.OrdinalIgnoreCase))
+            .Select(static c => c.Current!.Record.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries)[^1].TrimEnd('.'))];
+
     public string Fingerprint
     {
         get
@@ -100,8 +108,9 @@ public sealed record DnsPublicationPlan(DnsZone Zone, IReadOnlyList<DnsChange> C
 }
 
 /// <summary>
-/// Plans publishing a domain's records into its zone, adding and correcting, never deleting what the domain does
-/// not need. One-of-a-kind records (a CNAME; a TXT whose <c>v=</c> tag makes it SPF, DMARC, DKIM, MTA-STS or
+/// Plans publishing a domain's records into its zone, adding and correcting, and deleting only what would work
+/// against what is published: another server's MX at a name the domain publishes MX for (it would keep receiving
+/// some of the domain's mail) and a duplicate of a one-of-a-kind record. One-of-a-kind records (a CNAME; a TXT whose <c>v=</c> tag makes it SPF, DMARC, DKIM, MTA-STS or
 /// TLS-RPT) replace the zone's record of that kind at the name, and a duplicate of the kind is removed (two SPF
 /// records fail evaluation). Other types are sets: a missing value is added, others are left (MX and SRV by host
 /// keep their entry and correct its priority). CAA is added only where the name already has CAA records: a first
@@ -123,7 +132,8 @@ public static class DnsPublicationPlanner
             changes.AddRange(PlanOne(zoneName, Canonical(record), existing, claimed));
         }
 
-        return new DnsPublicationPlan(zone, changes, Warnings(desired, existing));
+        changes.AddRange(ForeignMx(desired, existing, claimed));
+        return new DnsPublicationPlan(zone, changes, []);
     }
 
     /// <summary>
@@ -231,21 +241,22 @@ public static class DnsPublicationPlanner
         return new DnsChange(DnsChangeKind.Update, wanted, current, sameValue ? "Served through Cloudflare's proxy; mail needs plain DNS." : null);
     }
 
-    /// <summary>MX records at a name the domain publishes MX for, pointing at hosts it does not: they keep receiving mail.</summary>
-    private static List<string> Warnings(IReadOnlyList<DnsRecord> desired, IReadOnlyList<ZoneRecord> existing)
+    /// <summary>
+    /// MX records at a name the domain publishes MX for, pointing at hosts it does not: removed, since they would
+    /// keep receiving some of the domain's mail. The page asks before publishing such a plan.
+    /// </summary>
+    private static IEnumerable<DnsChange> ForeignMx(IReadOnlyList<DnsRecord> desired, IReadOnlyList<ZoneRecord> existing, HashSet<string> claimed)
     {
         List<DnsRecord> wantedMx = [.. desired.Select(Canonical).Where(static r => r.Type == "MX")];
-        var warnings = new List<string>();
-        foreach (ZoneRecord record in existing.Where(static r => Type(r) == "MX"))
+        foreach (ZoneRecord record in existing.Where(r => Type(r) == "MX" && !claimed.Contains(r.Id)))
         {
             DnsRecord mx = Canonical(record.Record);
             if (wantedMx.Any(w => w.Name == mx.Name) && !wantedMx.Any(w => w.Name == mx.Name && HostKey(w) == HostKey(mx)))
             {
-                warnings.Add($"The zone also has MX {mx.Value} for {mx.Name}. It stays, and that server will still receive some of the domain's mail; remove it at Cloudflare once mail should only come here.");
+                claimed.Add(record.Id);
+                yield return new DnsChange(DnsChangeKind.Remove, null, record, $"Another mail server ({HostKey(mx)}); it would keep receiving some of {mx.Name}'s mail.");
             }
         }
-
-        return warnings;
     }
 
     private static string Type(ZoneRecord record) => record.Record.Type.Trim().ToUpperInvariant();

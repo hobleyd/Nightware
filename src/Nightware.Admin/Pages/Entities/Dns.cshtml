@@ -105,7 +105,11 @@ else if (!viaCloudflare)
                 var writes = plan.Changes.Count(c => c.IsWrite);
                 <form method="post" asp-page-handler="Publish">
                     <input type="hidden" asp-for="PlanFingerprint">
-                    <button type="submit">Publish @writes @(writes == 1 ? "change" : "changes")</button><span class="hint">Adds and corrects these records. Nothing else in the zone is removed.</span>
+                    @if (plan.MailServersRemoved is { Count: > 0 } others)
+                    {
+                        <label class="choice"><input type="checkbox" name="ConfirmMailMove" value="true" required> All mail for @Model.Domain comes here: @string.Join(" and ", others) @(others.Count == 1 ? "stops" : "stop") receiving it</label>
+                    }
+                    <button type="submit">Publish @writes @(writes == 1 ? "change" : "changes")</button><span class="hint">@(plan.Count(DnsChangeKind.Remove) > 0 ? "Makes exactly the changes listed. Nothing else in the zone is touched." : "Adds and corrects these records. Nothing else in the zone is removed.")</span>
                 </form>
             }
             <details class="records">

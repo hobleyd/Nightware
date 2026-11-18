@@ -41,7 +41,7 @@ public static class Systems
     {
         DnsChangeKind.Create => "Add",
         DnsChangeKind.Update => "Correct",
-        DnsChangeKind.Remove => "Remove duplicate",
+        DnsChangeKind.Remove => "Remove",
         DnsChangeKind.Skip => "Not published",
         _ => "Published",
     };
