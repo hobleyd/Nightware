@@ -89,8 +89,9 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; }
 .frame:has(> main.wide) { max-width: none; }
 .frame:has(.dashboard) { max-width: calc(16px + 11rem + 1080px + 17rem); }
 .frame > main { max-width: none; margin: 0; }
-/* main's 16px padding plus a panel's 16px top margin, so the menu is level with the page's first panel. */
-.side { margin: 32px 0 16px 16px; padding: 8px; }
+/* main's 16px padding plus a panel's 16px top margin, so the menu is level with the page's first panel.
+   .side.panel outranks .panel's own margin, which comes later. */
+.side.panel { margin: 32px 0 16px 16px; padding: 8px; }
 /* The menu is also the breadcrumb: entities under Entities, and the way down to this page under its entity or section. */
 .side ul { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .side ul ul { margin-top: 2px; padding-left: 10px; font-size: 0.95em; }
@@ -103,7 +104,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; }
 .side a[aria-current="page"] { background: var(--chip-bg); color: var(--text); font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
 @media (max-width: 900px) {
   .frame { display: block; }
-  .side { margin: 16px 16px 0; }
+  .side.panel { margin: 16px 16px 0; }
   /* On a phone the menu sits above the page: of the entities, only the way down to this page stays. */
   .side ul ul > li:not(:has(.trail, [aria-current])) { display: none; }
 }
