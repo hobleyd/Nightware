@@ -35,14 +35,15 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         _host.Entities.ListMembersAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success(members));
 
     [Fact]
-    public async Task The_sections_sit_in_a_left_menu_and_the_dashboard_is_named_in_the_top_bar()
+    public async Task The_dashboard_and_sections_sit_in_a_left_menu()
     {
         string html = await GetAsync("/");
 
         string top = Regex.Match(html, "<header class=\"top\">(.*?)</header>", RegexOptions.Singleline).Groups[1].Value;
-        top.ShouldContain("<a aria-current=\"page\" href=\"/\">Dashboard</a>");
+        top.ShouldNotContain(">Dashboard</a>");
         top.ShouldNotContain(">Entities</a>");
         string side = Regex.Match(html, "<nav class=\"side panel\"[^>]*>(.*?)</nav>", RegexOptions.Singleline).Groups[1].Value;
+        side.ShouldContain("<a aria-current=\"page\" href=\"/\">Dashboard</a>");
         side.ShouldContain(">Entities</a>");
         side.ShouldContain(">Global admins</a>");
         html.ShouldContain("<h1 class=\"visually-hidden\">Dashboard</h1>");

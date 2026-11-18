@@ -25,9 +25,6 @@
     <a class="brand" asp-page="/Index"><img src="~/img/mark.png" width="28" height="28" alt="">Nightware console</a>
     @if (sections)
     {
-        <nav>
-            <a asp-page="/Index" aria-current="@(page == "/Index" ? "page" : null)">Dashboard</a>
-        </nav>
         <form method="get" asp-page="/Users/Find" class="find" role="search">
             <label><span class="visually-hidden">Find a user</span><input type="search" name="q" placeholder="Find a user" autocomplete="off" required></label>
         </form>
@@ -52,6 +49,7 @@
 @if (sections)
 {
     <nav class="side panel" aria-label="Sections">
+        <a asp-page="/Index" aria-current="@(page == "/Index" ? "page" : null)">Dashboard</a>
         <a asp-page="/Entities/Index" aria-current="@(inEntities ? "page" : null)">Entities</a>
         @if (actor!.IsGlobal)
         {
