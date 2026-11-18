@@ -60,7 +60,7 @@
                                     <form method="post" asp-page-handler="RepairUser" class="inline"><input type="hidden" name="userId" value="@identity.Id"><button type="submit" class="secondary">Repair</button></form>
                                     break;
                                 default:
-                                    <a asp-page="/Users/Detail" asp-route-id="@identity.Id">Decide on their page</a>
+                                    <a class="button secondary" asp-page="/Users/Detail" asp-route-id="@identity.Id">Resolve on their page</a>
                                     break;
                             }
                         </td>

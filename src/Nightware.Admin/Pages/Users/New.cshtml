@@ -37,7 +37,7 @@
 else
 {
     <form method="post" class="panel">
-        <h2>1. Who</h2>
+        <h2>Step 1 of 2: Who</h2>
         <div class="row">
             <label>First name <input asp-for="Form.FirstName" autocomplete="off"></label>
             <label>Last name <input asp-for="Form.LastName" autocomplete="off"></label>
@@ -65,7 +65,7 @@ else
 
         @if (Model.Plan is { } plan)
         {
-            <h2>2. What will happen</h2>
+            <h2>Step 2 of 2: What will happen</h2>
             <input type="hidden" name="Form.CheckedDetails" value="@Model.CurrentDetails">
             <partial name="_Plan" model="plan" />
             @if (plan.HasConflict)

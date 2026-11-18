@@ -103,7 +103,7 @@ public static class Systems
             AccessEventKind.MailDeleted => "Mail deleted",
             _ => "Files & calendar data deleted",
         };
-        string systems = string.Join(", ", entry.Systems.Select(static s => $"{ShortName(s.Backend)} {AfterWord(s.State)}"));
+        string systems = string.Join(", ", entry.Systems.Select(static s => $"{ShortName(s.Backend)}: {AfterWord(s.State)}"));
         return systems.Length == 0 ? $"{what} by {entry.By}" : $"{what} by {entry.By}: {systems}";
     }
 

@@ -60,7 +60,7 @@ public sealed class SystemsTests
         var offboarded = new AccessEvent(at, AccessEventKind.Offboarded, "ops", [new SystemState(BackendKind.Identity, LinkState.Disabled), new SystemState(BackendKind.Mail, LinkState.Error), new SystemState(BackendKind.Groupware, LinkState.Missing)]);
 
         Systems.When(at).ShouldBe("18 Nov 2026, 09:12 UTC");
-        Systems.HistoryLine(offboarded).ShouldBe("Offboarded by ops: Sign-in shut, Mail failed, Files & calendar none");
+        Systems.HistoryLine(offboarded).ShouldBe("Offboarded by ops: Sign-in: shut, Mail: failed, Files & calendar: none");
         Systems.HistoryLine(new AccessEvent(at, AccessEventKind.Reinstated, "ops", [])).ShouldBe("Reinstated by ops");
     }
 
