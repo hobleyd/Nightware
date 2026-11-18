@@ -10,7 +10,8 @@
 #      recipients, so mail to a never-signed-in user would bounce)
 #   3. create/update the Keycloak OIDC directory, make it the default directory
 #   4. trusted compose network, inbound throttle scope, JMAP concurrent
-#      requests per account (default 32), public DNSSEC-validating resolver
+#      requests per account (default 32), public DNSSEC-validating resolver,
+#      TLS certificate from files (STALWART_TLS_CERT/KEY)
 #   5. ReloadSettings
 #
 # Authenticates as the recovery administrator (STALWART_RECOVERY_ADMIN).
@@ -153,6 +154,31 @@ if [[ "$resolver" != "$want" ]]; then
     | jq -e '.methodResponses[0][1].updated | has("singleton")' >/dev/null
 fi
 
+# ------------------------------------------------ 4c''. TLS certificate
+# Without one Stalwart answers STARTTLS with a self-signed certificate, so
+# senders that check (MTA-STS, DANE, strict TLS policies) refuse it. A host
+# that already has a certificate covering mail.${MAIL_DOMAIN} (the docker
+# host's wildcard) mounts it into the container and names the paths there:
+# STALWART_TLS_CERT (full chain) and STALWART_TLS_KEY. Stalwart reads them as
+# files ("@type":"File", filePath), so renewals need no API call, but it loads
+# certificates only at startup (verified on 1.1.0: ReloadSettings keeps the
+# old one), so whatever renews the files restarts Stalwart, as a new
+# certificate object here does. Unset (the dev stack) leaves Stalwart's own.
+if [[ -n "${STALWART_TLS_CERT:-}" && -n "${STALWART_TLS_KEY:-}" ]]; then
+  have=$(call '[["x:Certificate/query",{},"q"],["x:Certificate/get",{"#ids":{"resultOf":"q","name":"x:Certificate/query","path":"/ids"},"properties":["certificate"]},"g"]]' \
+    | jq -r --arg p "$STALWART_TLS_CERT" '.methodResponses[1][1].list[]? | select(.certificate.filePath == $p) | .id' | head -n1)
+  if [[ -n "$have" ]]; then
+    log "Stalwart: TLS certificate ${STALWART_TLS_CERT} in place (${have})"
+  else
+    log "Stalwart: adding TLS certificate ${STALWART_TLS_CERT}"
+    call "$(jq -cn --arg c "$STALWART_TLS_CERT" --arg k "$STALWART_TLS_KEY" '[["x:Certificate/set",{"create":{"t":{
+        certificate:{"@type":"File",filePath:$c}, privateKey:{"@type":"File",filePath:$k}}}},"c"]]')" \
+      | jq -e '.methodResponses[0][1].created.t.id' >/dev/null \
+      || { echo "Stalwart: WARNING could not add the TLS certificate (is it mounted and readable by uid 2000?)" >&2; }
+    RESTART_STALWART=1
+  fi
+fi
+
 # ------------------------------------------------ 4d. admin console principal
 # The admin console (ADR 0002 D8) manages accounts and domains as its own
 # internal account, never as the recovery admin. Verified on Stalwart 1.1.0:
@@ -245,7 +271,7 @@ fi
 call '[["x:Action/set",{"create":{"r":{"@type":"ReloadSettings"}}},"c"]]' \
   | jq -e '.methodResponses[0][1].created' >/dev/null
 if (( RESTART_STALWART )); then
-  log "Stalwart: restarting to apply the JMAP request limits"
+  log "Stalwart: restarting to apply the JMAP request limits or TLS certificate"
   dc restart stalwart >/dev/null
   wait_for "stalwart restart" ccurl -f "${MAIL_ALIAS_URL}/healthz/live"
 fi
