@@ -33,7 +33,13 @@ internal interface ICloudflareClient
 internal sealed partial class CloudflareClient(HttpClient http, IOptions<CloudflareOptions> options, ILogger<CloudflareClient> logger) : ICloudflareClient
 {
     /// <summary>Cloudflare error codes for a token that is invalid, expired or lacks the permission.</summary>
-    private static readonly HashSet<int> TokenRefusals = [1000, 6003, 6111, 9103, 9106, 9109, 10000];
+    private static readonly HashSet<int> TokenRefusals = [1000, 9103, 9106, 9109, 10000];
+
+    /// <summary>
+    /// "Invalid request headers" / "Invalid format for Authorization header": Cloudflare's answer when the bearer value is
+    /// not shaped like an API token at all, as with the 37-hex Global API Key or a 32-hex token, zone or account id.
+    /// </summary>
+    private static readonly HashSet<int> NotATokenCodes = [6003, 6111];
 
     public async Task<Result<CloudflareResponse>> SendAsync(HttpMethod method, string path, DnsProviderToken token, JsonObject? body, CancellationToken cancellationToken)
     {
@@ -85,6 +91,14 @@ internal sealed partial class CloudflareClient(HttpClient http, IOptions<Cloudfl
     {
         List<(int Code, string Message)> errors = Errors(envelope);
         string said = errors.Count == 0 ? $"HTTP {(int)response.StatusCode}" : string.Join("; ", errors.Select(static e => e.Message));
+        if (errors.Any(static e => NotATokenCodes.Contains(e.Code)))
+        {
+            return Error.Validation(
+                "Cloudflare did not recognise that as an API token. It looks like the Global API Key or a token, zone or account ID. "
+                + "Create an API token under My Profile → API Tokens with Zone / DNS / Edit on the domain's zone, and paste the secret Cloudflare shows once when it is created.",
+                "dnsToken");
+        }
+
         if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden || errors.Any(static e => TokenRefusals.Contains(e.Code)))
         {
             return Error.Validation($"Cloudflare refused the token ({said}). Check that it is current and has the Zone / DNS / Edit permission on the domain's zone.", "dnsToken");

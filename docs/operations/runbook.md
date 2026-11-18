@@ -223,6 +223,11 @@ full-access credential; see deploy/README.md "Admin console".
 - *"Cloudflare refused the token"*: it was revoked, expired, or lacks
   Zone / DNS / Edit on the zone. Create a new one and replace it on the entity's
   page.
+- *"did not recognise that as an API token"*: what was pasted is the Global API
+  Key (37 hex characters) or a token, zone or account ID (32 hex characters).
+  Cloudflare answers these with `6003 Invalid request headers`. Create an API
+  token (My Profile → API Tokens → *Edit zone DNS* template, limited to the zone)
+  and paste the secret it shows once.
 - *"can no longer be read"*: the `admin-keys` volume was lost or replaced, so
   the sealed token can't be opened. Enter the token again on the entity's page.
 - *"does not trust Cloudflare's certificate"*: set

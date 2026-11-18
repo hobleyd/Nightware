@@ -47,7 +47,6 @@ public sealed class CloudflareDnsHostingTests : IDisposable
     [Theory]
     [InlineData(401, 0)]
     [InlineData(403, 9109)]
-    [InlineData(400, 6003)]
     public async Task A_refused_token_is_a_validation_error_on_the_token_and_never_logged(int status, int code)
     {
         _host.Stub("GET", "zones", CloudflareTestHost.Failure(code, "Invalid access token"), status);
@@ -60,6 +59,23 @@ public sealed class CloudflareDnsHostingTests : IDisposable
         error.Message.ShouldNotContain(CloudflareTestHost.TokenValue);
         _host.Logs.Lines.ShouldNotBeEmpty();
         _host.Logs.Lines.ShouldAllBe(l => !l.Contains(CloudflareTestHost.TokenValue));
+    }
+
+    [Fact]
+    public async Task A_value_that_is_not_shaped_like_a_token_is_called_out_as_the_global_key_or_an_id()
+    {
+        // What Cloudflare actually answers for a bearer of 37 or 32 hex characters (Global API Key, token/zone/account id).
+        _host.Stub("GET", "zones", """
+            {"success":false,"errors":[{"code":6003,"message":"Invalid request headers","error_chain":[{"code":6111,"message":"Invalid format for Authorization header"}]}],"messages":[],"result":null}
+            """, 400);
+
+        Error error = (await Hosting().FindZoneAsync(CloudflareTestHost.Token, Domain("acme.example"), Ct)).Error!;
+
+        error.Kind.ShouldBe(ErrorKind.Validation);
+        error.Target.ShouldBe("dnsToken");
+        error.Message.ShouldContain("Global API Key");
+        error.Message.ShouldContain("API Tokens");
+        error.Message.ShouldNotContain(CloudflareTestHost.TokenValue);
     }
 
     [Fact]
