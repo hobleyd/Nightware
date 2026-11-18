@@ -163,10 +163,14 @@ if [[ -z "$(flow_id "$FLOW")" ]]; then
      && add_execution "$SETUP" conditional-sub-flow-executed REQUIRED \
      && condition_config "$SETUP" conditional-sub-flow-executed "$(jq -cn --arg f "$SECOND" '{flow_to_check:$f, check_result:"not-executed"}')" \
      && add_execution "$SETUP" auth-otp-form REQUIRED; }; then
-    warn "could not build ${FLOW}; the console will refuse sign-ins until MFA works (or ADMIN_REQUIRED_ACR is empty)"
+    # A half-built flow must not be bound: drop it and keep the OTP-only flow (if any) in use.
+    warn "could not build ${FLOW}; keeping ${OLD_FLOW} (with neither, the console refuses sign-ins until MFA works)"
+    partial=$(flow_id "$FLOW")
+    [[ -z "$partial" ]] || kc -X DELETE "${API}/authentication/flows/${partial}" >/dev/null || warn "could not delete the half-built ${FLOW}"
   fi
 fi
 FLOW_ID=$(flow_id "$FLOW")
+[[ -n "$FLOW_ID" ]] || FLOW_ID=$(flow_id "$OLD_FLOW")
 
 # --------------------------------------------------------------- 5. client
 : "${NIGHTWARE_ADMIN_CLIENT_SECRET:?run scripts/init-env.sh}"
@@ -202,7 +206,7 @@ fi
 
 # The OTP-only flow goes once nothing is bound to it (the client was rebound above).
 OLD_FLOW_ID=$(flow_id "$OLD_FLOW")
-if [[ -n "$OLD_FLOW_ID" && -n "$FLOW_ID" ]] \
+if [[ -n "$OLD_FLOW_ID" && -n "$FLOW_ID" && "$OLD_FLOW_ID" != "$FLOW_ID" ]] \
    && [[ "$(kc "${API}/clients/${CLIENT_UUID}" | jq -r '.authenticationFlowBindingOverrides.browser // empty')" == "$FLOW_ID" ]]; then
   log "Keycloak (console): deleting the OTP-only flow ${OLD_FLOW}"
   kc -X DELETE "${API}/authentication/flows/${OLD_FLOW_ID}" >/dev/null || warn "could not delete ${OLD_FLOW}"
