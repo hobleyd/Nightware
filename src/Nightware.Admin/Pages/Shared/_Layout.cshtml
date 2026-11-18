@@ -44,7 +44,7 @@
         </form>
     }
 </header>
-<main id="main">
+<main id="main" class="@(ViewData["Wide"] is true ? "wide" : null)">
     @{ var body = RenderBody(); }
     @* Pages place their messages under their heading; the body renders first, so this only catches pages that do not. *@
     @if (Context.Items["messages-shown"] is not true)

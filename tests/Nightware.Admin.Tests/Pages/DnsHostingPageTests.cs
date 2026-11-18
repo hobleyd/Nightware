@@ -228,4 +228,27 @@ public sealed partial class DnsHostingPageTests : IDisposable
 
     [GeneratedRegex("name=\"PlanFingerprint\" value=\"([0-9a-f]{32})\"")]
     private static partial Regex Fingerprint();
+
+    [Fact]
+    public async Task With_cloudflare_connected_publishing_there_is_step_two_and_the_full_list_folds_under_it()
+    {
+        GivenConnected();
+
+        string html = await GetAsync(DnsUrl);
+
+        html.ShouldContain("<h2>2. Publish to Cloudflare</h2>");
+        html.ShouldNotContain("Publish these records</h2>");
+        html.ShouldContain("<summary>All 3 records, to publish by hand</summary>");
+        html.ShouldContain("<main id=\"main\" class=\"wide\">");
+    }
+
+    [Fact]
+    public async Task Without_cloudflare_the_records_stay_step_two()
+    {
+        string html = await GetAsync(DnsUrl);
+
+        html.ShouldContain("<h2>2. Publish these records</h2>");
+        html.ShouldContain("<h2>3. Publish to Cloudflare</h2>");
+        html.ShouldNotContain("to publish by hand</summary>");
+    }
 }

@@ -2,6 +2,8 @@
 @model Nightware.Admin.Pages.Entities.DnsModel
 @{
     ViewData["Title"] = "DNS records for " + Model.Domain;
+    // Record values are long: this page uses the window's width rather than the reading column.
+    ViewData["Wide"] = true;
     // Kept when the records cannot be read: the entity's name is known if only the mail server failed.
     ViewData["Crumbs"] = new (string, string?)[]
     {
@@ -37,6 +39,9 @@
     <partial name="_MailPolicy" model="Model" />
 }
 
+@* With Cloudflare connected and readable, publishing there is the step; the full list folds under it for anyone
+   publishing elsewhere, since Cloudflare's table shows only what would change. *@
+@{ var viaCloudflare = Model.Actor.IsGlobal && Model.Publication is not null; }
 @if (Model.Records.Count == 0)
 {
     @if (!Model.Repairable)
@@ -44,32 +49,19 @@
         <p>The mail server serves @Model.Domain with its signing keys but returned no records for it. Repair would not change that. @(Model.Actor.IsGlobal ? "Check the domain in the mail server's own settings." : "Tell your Nightware operator.")</p>
     }
 }
-else
+else if (!viaCloudflare)
 {
     <section class="panel">
     <h2>@(Model.Actor.IsGlobal ? "2. Publish these records" : "Publish these records")</h2>
     <p class="hint">Publish these at your DNS provider so mail for @Model.Domain is delivered here and your outgoing mail passes SPF, DKIM and DMARC checks. Select a value to copy it.</p>
-    <table class="dns">
-        <thead><tr><th>Type</th><th>Name</th><th>TTL</th><th>Value</th></tr></thead>
-        <tbody>
-        @foreach (var r in Model.Records.OrderBy(r => r.Type, StringComparer.Ordinal).ThenBy(r => r.Name, StringComparer.Ordinal))
-        {
-            <tr>
-                <td data-label="Type">@r.Type</td>
-                <td data-label="Name"><input readonly value="@r.Name" aria-label="@($"{r.Type} record name")"></td>
-                <td data-label="TTL">@r.Ttl</td>
-                <td data-label="Value"><textarea readonly rows="@(r.Value.Length > 60 ? 3 : 1)" aria-label="@($"{r.Type} record value at {r.Name}")">@r.Value</textarea></td>
-            </tr>
-        }
-        </tbody>
-    </table>
+    <partial name="_DnsRecords" model="Model.Records" />
     </section>
 }
 
 @if (Model.Actor.IsGlobal && Model.Records.Count > 0)
 {
     <section class="panel">
-        <h2>3. Publish to Cloudflare</h2>
+        <h2>@(viaCloudflare ? "2." : "3.") Publish to Cloudflare</h2>
         @if (!Model.Entity.Entity.HasDnsToken)
         {
             <p class="hint">Connect @Model.Entity.Entity.Name's Cloudflare account on <a asp-page="/Entities/Detail" asp-route-id="@Model.Id">the entity's page</a> to publish these records from here.</p>
@@ -86,7 +78,8 @@ else
             <p>Zone @plan.Zone.Name. @(published == 1 ? "1 record is" : $"{published} records are") already published as needed.@(plan.HasWork ? "" : " Cloudflare has every record " + Model.Domain + " needs.")</p>
             @if (shown.Count > 0)
             {
-                <table class="dns">
+                <table class="dns changes">
+                    <colgroup><col class="change"><col class="type"><col class="name"><col class="value"><col class="value"></colgroup>
                     <thead><tr><th>Change</th><th>Type</th><th>Name</th><th>Value</th><th>In Cloudflare now</th></tr></thead>
                     <tbody>
                     @foreach (var c in shown)
@@ -96,8 +89,8 @@ else
                             <td data-label="Change">@Systems.DnsChangeLabel(c.Kind)@if (c.Note is not null) { <span class="hint detail">@c.Note</span> }</td>
                             <td data-label="Type">@record.Type</td>
                             <td data-label="Name">@record.Name</td>
-                            <td data-label="Value">@if (c.Desired is not null) { <textarea readonly rows="@(c.Desired.Value.Length > 60 ? 3 : 1)" aria-label="@($"{record.Type} value to publish at {record.Name}")">@c.Desired.Value</textarea> } else { <text>—</text> }</td>
-                            <td data-label="In Cloudflare now">@if (c.Current is not null) { <textarea readonly rows="@(c.Current.Record.Value.Length > 60 ? 3 : 1)" aria-label="@($"{record.Type} value in Cloudflare now at {record.Name}")">@c.Current.Record.Value</textarea> } else { <text>—</text> }</td>
+                            <td data-label="Value">@if (c.Desired is not null) { <textarea readonly rows="@Systems.ValueRows(c.Desired.Value)" aria-label="@($"{record.Type} value to publish at {record.Name}")">@c.Desired.Value</textarea> } else { <text>—</text> }</td>
+                            <td data-label="In Cloudflare now">@if (c.Current is not null) { <textarea readonly rows="@Systems.ValueRows(c.Current.Record.Value)" aria-label="@($"{record.Type} value in Cloudflare now at {record.Name}")">@c.Current.Record.Value</textarea> } else { <text>—</text> }</td>
                         </tr>
                     }
                     </tbody>
@@ -115,6 +108,10 @@ else
                     <button type="submit">Publish @writes @(writes == 1 ? "change" : "changes")</button><span class="hint">Adds and corrects these records. Nothing else in the zone is removed.</span>
                 </form>
             }
+            <details class="records">
+                <summary>All @Model.Records.Count records, to publish by hand</summary>
+                <partial name="_DnsRecords" model="Model.Records" />
+            </details>
         }
     </section>
 }

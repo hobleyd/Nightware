@@ -63,4 +63,12 @@ public sealed class SystemsTests
         Systems.HistoryLine(offboarded).ShouldBe("Offboarded by ops: Sign-in shut, Mail failed, Files & calendar none");
         Systems.HistoryLine(new AccessEvent(at, AccessEventKind.Reinstated, "ops", [])).ShouldBe("Reinstated by ops");
     }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(44, 1)]
+    [InlineData(130, 3)]
+    [InlineData(2000, 6)]
+    public void A_record_value_gets_rows_to_show_it_whole_up_to_six(int length, int rows) =>
+        Systems.ValueRows(new string('x', length)).ShouldBe(rows);
 }

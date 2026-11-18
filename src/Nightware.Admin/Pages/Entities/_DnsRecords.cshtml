@@ -1,0 +1,17 @@
+@model IReadOnlyList<DnsRecord>
+@* Every record the domain needs, read-only and selectable for copying to any DNS provider. *@
+<table class="dns">
+    <colgroup><col class="type"><col class="name"><col class="ttl"><col class="value"></colgroup>
+    <thead><tr><th>Type</th><th>Name</th><th>TTL</th><th>Value</th></tr></thead>
+    <tbody>
+    @foreach (var r in Model.OrderBy(r => r.Type, StringComparer.Ordinal).ThenBy(r => r.Name, StringComparer.Ordinal))
+    {
+        <tr>
+            <td data-label="Type">@r.Type</td>
+            <td data-label="Name"><input readonly value="@r.Name" aria-label="@($"{r.Type} record name")"></td>
+            <td data-label="TTL">@r.Ttl</td>
+            <td data-label="Value"><textarea readonly rows="@Systems.ValueRows(r.Value)" aria-label="@($"{r.Type} record value at {r.Name}")">@r.Value</textarea></td>
+        </tr>
+    }
+    </tbody>
+</table>

@@ -47,6 +47,7 @@ a { color: var(--accent); text-underline-offset: 0.15em; }
 ::selection { background: var(--selection); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 main { max-width: 1080px; margin: 0 auto; padding: 16px; }
+main.wide { max-width: none; }
 h1 small { color: var(--muted); font-weight: normal; font-size: 0.6em; margin-left: 0.5em; }
 p, li { text-wrap: pretty; }
 code { font-family: ui-monospace, Menlo, Consolas, monospace; }
@@ -102,6 +103,14 @@ tr.disabled td { color: var(--muted); }
 .actions { white-space: nowrap; }
 .actions a + form.inline { margin-left: 8px; }
 .plan tr.conflict td { color: var(--bad); }
+/* Fixed columns so the value columns, not the names, get the width. */
+table.dns { table-layout: fixed; }
+table.dns col.type, table.dns col.ttl { width: 4.5em; }
+table.dns col.change { width: 7em; }
+table.dns col.name { width: 28%; }
+table.dns.changes col.name { width: 22%; }
+details.records { margin-top: 16px; }
+details.records > summary { cursor: pointer; color: var(--accent); }
 /* Above the generic input rule, so read-only names match their values instead of looking editable. */
 table.dns input[readonly], .dns textarea { width: 100%; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em; border: 1px solid var(--control-line); background: var(--bg); color: var(--text); resize: vertical; }
 textarea.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em; resize: vertical; }

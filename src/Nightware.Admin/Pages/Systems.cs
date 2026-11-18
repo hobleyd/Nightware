@@ -118,6 +118,12 @@ public static class Systems
         _ => "in conflict",
     };
 
+    /// <summary>
+    /// Rows for a read-only record value: enough to show it whole even in the narrower change table (about 45
+    /// characters a line), at most six; a spare line is better than a hidden part of a key.
+    /// </summary>
+    public static int ValueRows(string value) => Math.Clamp(((value?.Length ?? 0) / 45) + 1, 1, 6);
+
     /// <summary>A user's one-line status, the same on every page.</summary>
     public static string StatusLabel(UserStatus status) => status switch
     {
