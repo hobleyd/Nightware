@@ -33,7 +33,9 @@ public sealed class RequestBudgetTests
 
     private static async Task<IResult> Slow(CancellationToken cancellationToken)
     {
-        await Task.Delay(TimeSpan.FromMilliseconds(600), cancellationToken);
+        // Far past the 0.2 s default budget: under CI load the budget timer's callback can run late,
+        // and with a narrow margin the delay finished first and the request came back 200.
+        await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
         return Results.Ok(new { done = true });
     }
 
