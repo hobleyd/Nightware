@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.RegularExpressions;
 
+using Nightware.Admin.Hosting;
 using Nightware.Admin.Tests.Support;
 using Nightware.Application.Administration;
 using Nightware.Domain.Administration;
@@ -508,9 +509,9 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
 
         string html = await GetAsync("/");
 
-        html.ShouldContain("<a class=\"chip linked\" href=\"https://vpn.example/auth/admin/master/console/#/nightware\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"Sign-in (Keycloak) admin console\">Sign-in: OK</a>");
-        html.ShouldContain("<a class=\"chip linked\" href=\"https://cloud.example/settings/admin\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"Files &amp; calendar (Nextcloud) admin console\">Files &amp; calendar: OK</a>");
-        html.ShouldContain("<span class=\"chip linked\">Mail: OK</span>");
+        html.ShouldContain("<a class=\"chip linked\" href=\"https://vpn.example/auth/admin/master/console/#/nightware\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"Sign-in (Keycloak) admin console\">Keycloak: OK</a>");
+        html.ShouldContain("<a class=\"chip linked\" href=\"https://cloud.example/settings/admin\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"Files &amp; calendar (Nextcloud) admin console\">Nextcloud: OK</a>");
+        html.ShouldContain("<span class=\"chip linked\">Stalwart: OK</span>");
         html.ShouldNotContain("signs in with its own administrator account");
         (await GetAsync("/", ConsoleHost.EntityAdmin)).ShouldNotContain("https://vpn.example");
     }
@@ -524,13 +525,29 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
     {
         _host.Settings["Admin:GrafanaUrl"] = "https://nightware.example/grafana/";
 
-        (await GetAsync("/")).ShouldContain("<li><a class=\"chip\" href=\"https://nightware.example/grafana/\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"Traces, metrics and logs (Grafana)\">Telemetry: Grafana</a></li>");
+        (await GetAsync("/")).ShouldContain("<a class=\"chip linked\" href=\"https://nightware.example/grafana/\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"Traces, metrics and logs (Grafana)\">Grafana: OK</a>");
         (await GetAsync("/", ConsoleHost.EntityAdmin)).ShouldNotContain("/grafana/");
     }
 
     [Fact]
-    public async Task Without_a_grafana_url_the_systems_panel_has_no_telemetry_link() =>
-        (await GetAsync("/")).ShouldNotContain("Telemetry: Grafana");
+    public async Task An_unreachable_grafana_is_red_with_the_reason()
+    {
+        _host.Settings["Admin:GrafanaUrl"] = "https://nightware.example/grafana/";
+        _host.Grafana.CheckAsync(Arg.Any<CancellationToken>()).Returns(new GrafanaHealth(false, "It did not answer its health check."));
+
+        string html = await GetAsync("/");
+
+        html.ShouldContain("title=\"Traces, metrics and logs (Grafana)\">Grafana: Unreachable</a>");
+        html.ShouldContain("<a class=\"chip error\" href=\"https://nightware.example/grafana/\"");
+        html.ShouldContain("<p class=\"hint detail\">Grafana: It did not answer its health check.</p>");
+    }
+
+    [Fact]
+    public async Task Without_a_grafana_url_the_systems_panel_has_no_grafana_status()
+    {
+        (await GetAsync("/")).ShouldNotContain("Grafana:");
+        await _host.Grafana.DidNotReceiveWithAnyArgs().CheckAsync(TestContext.Current.CancellationToken);
+    }
 
     [Fact]
     public async Task The_entities_table_links_each_domain_to_its_dns_page_and_counts_users()

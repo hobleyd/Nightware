@@ -102,6 +102,7 @@ public static partial class AdminComposition
         services.TryAddSingleton<ISecretSealer, DataProtectionSecretSealer>();
         services.AddAdministrationUseCases();
         services.AddConsoleBackends(configuration);
+        services.AddHttpClient<IGrafanaStatus, GrafanaStatus>(static http => http.Timeout = GrafanaStatus.Timeout);
         return services;
     }
 

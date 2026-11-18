@@ -25,6 +25,14 @@ public static class Systems
         _ => "Files & calendar",
     };
 
+    /// <summary>The product alone, for the dashboard's Systems panel, which the operator reads: "Stalwart".</summary>
+    public static string Product(BackendKind backend) => backend switch
+    {
+        BackendKind.Identity => "Keycloak",
+        BackendKind.Mail => "Stalwart",
+        _ => "Nextcloud",
+    };
+
     /// <summary>
     /// A link state in words, not the enum's. "Failed" claims only that the system gave no usable answer for this
     /// account (down, or refusing it); "Unreachable" is kept for the health check, which tests the system itself.

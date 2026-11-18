@@ -15,6 +15,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 
 using Nightware.Admin.Auth;
+using Nightware.Admin.Hosting;
 using Nightware.Application.Administration;
 using Nightware.Domain.Administration;
 using Nightware.Domain.Kernel;
@@ -79,6 +80,8 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
             Statuses.Add(status);
         }
 
+        Grafana.CheckAsync(Arg.Any<CancellationToken>()).Returns(new GrafanaHealth(true));
+
         ClientOptions.BaseAddress = new Uri("https://localhost");
         ClientOptions.AllowAutoRedirect = false;
     }
@@ -88,6 +91,8 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
     public static Entity OtherEntity { get; } = new(Other, "other", "Other Co", [Domain("other.example")]);
 
     public IEntityRegistry Entities { get; } = Substitute.For<IEntityRegistry>();
+
+    public IGrafanaStatus Grafana { get; } = Substitute.For<IGrafanaStatus>();
 
     public IIdentityAccounts Identities { get; } = Substitute.For<IIdentityAccounts>();
 
@@ -200,6 +205,8 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Time);
             services.AddSingleton(Entities).AddSingleton(Identities).AddSingleton(Scopes).AddSingleton(Mail).AddSingleton(MailDomains).AddSingleton(Groupware).AddSingleton(DnsHosting).AddSingleton(PublicDns);
+            services.RemoveAll<IGrafanaStatus>();
+            services.AddSingleton(Grafana);
             services.RemoveAll<IBackendStatus>();
             foreach (IBackendStatus status in Statuses)
             {

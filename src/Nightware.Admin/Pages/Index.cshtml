@@ -145,7 +145,7 @@
     <ul class="plain">
         @foreach (var h in Model.Health)
         {
-            var name = Systems.ShortName(h.Backend);
+            var name = Systems.Product(h.Backend);
             var failed = h.Healthy ? Model.FailedFor(h.Backend) : [];
             var chip = !h.Healthy ? "error" : failed.Count > 0 ? "missing" : "linked";
             var label = $"{name}: {(!h.Healthy ? "Unreachable" : failed.Count > 0 ? $"Reachable, failed for {failed.Count}" : "OK")}";
@@ -170,9 +170,15 @@
                 }
             </li>
         }
-        @if (Model.GrafanaUrl is { } grafana)
+        @if (Model.GrafanaUrl is { } grafana && Model.Grafana is { } g)
         {
-            <li><a class="chip" href="@grafana" target="_blank" rel="noopener noreferrer" title="Traces, metrics and logs (Grafana)">Telemetry: Grafana</a></li>
+            <li>
+                <a class="chip @(g.Healthy ? "linked" : "error")" href="@grafana" target="_blank" rel="noopener noreferrer" title="Traces, metrics and logs (Grafana)">Grafana: @(g.Healthy ? "OK" : "Unreachable")</a>
+                @if (!g.Healthy && !string.IsNullOrEmpty(g.Detail))
+                {
+                    <p class="hint detail">Grafana: @g.Detail</p>
+                }
+            </li>
         }
     </ul>
 </aside>

@@ -60,6 +60,12 @@ public sealed class AdminAuthOptions
     /// <summary>Grafana (the stack's telemetry), linked from the dashboard for global administrators; unset hides the link.</summary>
     public string? GrafanaUrl { get; set; }
 
+    /// <summary>
+    /// Grafana's <c>/api/health</c>, over the internal network (<c>http://grafana:3000/grafana/api/health</c>), for
+    /// the dashboard's status; unset, the console asks <see cref="GrafanaUrl"/>'s <c>api/health</c>.
+    /// </summary>
+    public string? GrafanaHealthUrl { get; set; }
+
     /// <summary>How long an administrator's scope, resolved from Keycloak, is reused.</summary>
     public TimeSpan ScopeCacheLifetime { get; set; } = TimeSpan.FromSeconds(60);
 }
@@ -100,7 +106,7 @@ internal sealed class AdminAuthOptionsValidator(IHostEnvironment environment) : 
             failures.Add("Admin:DestructiveActionMaxAge must be positive.");
         }
 
-        foreach ((string key, string? url) in new[] { ("KeycloakAdminUrl", options.KeycloakAdminUrl), ("StalwartAdminUrl", options.StalwartAdminUrl), ("NextcloudAdminUrl", options.NextcloudAdminUrl), ("GrafanaUrl", options.GrafanaUrl) })
+        foreach ((string key, string? url) in new[] { ("KeycloakAdminUrl", options.KeycloakAdminUrl), ("StalwartAdminUrl", options.StalwartAdminUrl), ("NextcloudAdminUrl", options.NextcloudAdminUrl), ("GrafanaUrl", options.GrafanaUrl), ("GrafanaHealthUrl", options.GrafanaHealthUrl) })
         {
             if (url is { Length: > 0 } && (!Uri.TryCreate(url, UriKind.Absolute, out Uri? parsed) || (parsed.Scheme != Uri.UriSchemeHttps && parsed.Scheme != Uri.UriSchemeHttp)))
             {

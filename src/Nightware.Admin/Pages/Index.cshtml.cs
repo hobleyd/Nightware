@@ -4,6 +4,7 @@ using Nightware.Application.Administration;
 using Nightware.Application.Administration.Entities;
 using Nightware.Application.Administration.Status;
 using Nightware.Application.Administration.Users;
+using Nightware.Admin.Hosting;
 using Nightware.Admin.Pages.Users;
 using Nightware.Domain.Administration;
 using Nightware.Domain.Kernel;
@@ -25,6 +26,7 @@ public sealed class IndexModel(
     RepairUser repair,
     AddEntityDomain repairDomain,
     AdministrationOptions options,
+    IGrafanaStatus grafana,
     Microsoft.Extensions.Options.IOptions<Nightware.Admin.Auth.AdminAuthOptions> console) : ConsolePageModel(actor)
 {
     /// <summary>
@@ -45,6 +47,9 @@ public sealed class IndexModel(
     /// <summary>Grafana, the stack's telemetry, for a global administrator when it is configured; null otherwise.</summary>
     public string? GrafanaUrl =>
         Actor.IsGlobal && console.Value.GrafanaUrl is { } url && !string.IsNullOrWhiteSpace(url) ? url : null;
+
+    /// <summary>Grafana's health, checked only when <see cref="GrafanaUrl"/> is shown; null otherwise.</summary>
+    public GrafanaHealth? Grafana { get; private set; }
 
     public Attention Attention { get; private set; } = new([], [], [], new Dictionary<string, int>());
 
@@ -110,6 +115,7 @@ public sealed class IndexModel(
         Attention = work;
         Health = health;
         Entities = list;
+        Grafana = GrafanaUrl is null ? null : await grafana.CheckAsync(cancellationToken);
         return Page();
     }
 }
