@@ -71,9 +71,10 @@ public sealed class MailPolicyPageTests : IDisposable
 
         html.ShouldContain("<h2>Decide SPF and DMARC</h2>");
         html.ShouldContain("handler=MailPolicy");
-        html.ShouldContain("Now: the mail server's record <code>v=spf1 mx ra=postmaster -all</code>");
-        html.ShouldContain("Now: the mail server's record <code>v=DMARC1; p=reject</code>");
-        html.ShouldContain("It is strict: mail that fails the checks is refused.");
+        html.ShouldContain("Now: the mail server&#x27;s record <code>v=spf1 mx ra=postmaster -all</code>");
+        html.ShouldContain("Now: the mail server&#x27;s record <code>v=DMARC1; p=reject</code>");
+        html.ShouldNotContain("It is strict");
+        html.ShouldContain("<span class=\"chip missing\">Weak</span> No rua= address");
         html.ShouldNotContain("placeholder=\"v=");
         html.ShouldNotContain("handler=DefaultMailPolicy");
     }
@@ -85,14 +86,14 @@ public sealed class MailPolicyPageTests : IDisposable
 
         string html = await GetAsync(DnsUrl);
 
-        html.ShouldContain("Now: this domain's own record, below.");
+        html.ShouldContain("Now: this domain&#x27;s own record <code>");
         html.ShouldNotContain("It is strict");
     }
 
     [Fact]
     public async Task The_records_sit_in_their_own_panel()
     {
-        (await GetAsync(DnsUrl)).ShouldContain("<h2>Records for acme.example</h2>");
+        (await GetAsync(DnsUrl)).ShouldContain("<h2>In use now (before you save)</h2>");
     }
 
     [Fact]
@@ -100,7 +101,7 @@ public sealed class MailPolicyPageTests : IDisposable
     {
         string undecided = await GetAsync(DnsUrl);
         undecided.ShouldContain("<h2>Decide SPF and DMARC</h2>");
-        undecided.IndexOf("Decide SPF and DMARC", StringComparison.Ordinal).ShouldBeLessThan(undecided.IndexOf("Records for acme.example", StringComparison.Ordinal));
+        undecided.IndexOf("Decide SPF and DMARC", StringComparison.Ordinal).ShouldBeLessThan(undecided.IndexOf("In use now (before you save)", StringComparison.Ordinal));
 
         GivenChosen(new DomainMailPolicy(SpfRecord.Parse("v=spf1 mx -all").Value, DmarcRecord.Parse("v=DMARC1; p=reject; rua=mailto:postmaster@acme.example").Value));
         string decided = await GetAsync(DnsUrl);
@@ -257,12 +258,24 @@ public sealed class MailPolicyPageTests : IDisposable
     }
 
     [Fact]
-    public async Task The_save_is_secondary_and_each_field_is_described_by_what_is_live()
+    public async Task When_deciding_is_the_only_step_save_leads_and_each_field_is_described_by_what_is_live()
     {
         string html = await GetAsync(DnsUrl);
 
-        html.ShouldContain("<button type=\"submit\" class=\"secondary\">Save</button>");
+        html.ShouldContain("<button type=\"submit\">Save</button>");
         html.ShouldContain("aria-describedby=\"spf-now");
         html.ShouldContain("aria-describedby=\"dmarc-now");
+    }
+
+    [Fact]
+    public async Task What_is_in_use_now_carries_the_same_weakness_chips_as_the_records()
+    {
+        GivenChosen(new DomainMailPolicy(null, DmarcRecord.Parse("v=DMARC1; p=none").Value));
+
+        string html = await GetAsync(DnsUrl);
+
+        html.ShouldContain("Now: this domain&#x27;s own record <code>v=DMARC1; p=none</code>");
+        html.ShouldNotContain("It is strict");
+        html.Split("Leave a field blank to keep the mail server").Length.ShouldBe(2);
     }
 }

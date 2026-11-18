@@ -1,0 +1,14 @@
+@model (bool MailServers, string? Value)
+@* What an SPF or DMARC record in use says now, and what it leaves open: the same chips as the records table. *@
+@{ var whose = Model.MailServers ? "the mail server's record" : "this domain's own record"; }
+<p class="now">@if (Model.Value is { } value) {<text>Now: @whose <code>@value</code></text>} else {<text>Now: @whose</text>}</p>
+@if (Model.Value is { } current)
+{
+    var weaknesses = current.StartsWith("v=spf1", StringComparison.OrdinalIgnoreCase)
+        ? Nightware.Domain.Administration.MailAuthenticationWeaknesses.Spf(current)
+        : Nightware.Domain.Administration.MailAuthenticationWeaknesses.Dmarc(current);
+    @foreach (var w in weaknesses)
+    {
+        <p class="weakness"><span class="chip @Systems.WeaknessClass(w.Severity)">@Systems.WeaknessLabel(w.Severity)</span> @w.Message</p>
+    }
+}

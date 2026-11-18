@@ -234,7 +234,7 @@ public sealed partial class DnsHostingPageTests : IDisposable
         GivenConnected();
         string pending = await GetAsync(DnsUrl);
         pending.ShouldContain("Publish to Cloudflare</h2>");
-        pending.ShouldContain("<h2>Records for acme.example</h2>");
+        pending.ShouldContain("<h2>In use now (before you save)</h2>");
         pending.ShouldContain("<main id=\"main\" class=\"wide\">");
 
         _host.DnsHosting.ListRecordsAsync(default!, default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<ZoneRecord>>.Success(
@@ -253,7 +253,7 @@ public sealed partial class DnsHostingPageTests : IDisposable
     {
         string html = await GetAsync(DnsUrl);
 
-        html.ShouldContain("<h2>Records for acme.example</h2>");
+        html.ShouldContain("<h2>In use now (before you save)</h2>");
         html.ShouldContain("Publish these at your DNS provider");
         html.ShouldNotContain("Publish to Cloudflare</h2>");
     }

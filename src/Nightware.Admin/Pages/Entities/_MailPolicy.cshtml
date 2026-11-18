@@ -30,9 +30,10 @@
     @if (Model.Actor.IsGlobal)
     {
         <form method="post" asp-page-handler="MailPolicy">
-            <p id="spf-now" class="now">Now: @if (Model.SpfDefaultInUse is { } spfNow) { <text>the mail server's record </text><code>@spfNow</code> } else { <text>this domain's own record, below.</text> }</p>
+            @* Each record reads as one row: what is in use now (with what it leaves open), the field, and any suggestion. *@
+            <div id="spf-now"><partial name="_RecordNow" model="(Model.Policy.Spf is null, Model.SpfInUse)" /></div>
             <label>SPF record
-                <textarea asp-for="Spf" rows="2" class="mono" aria-describedby="@(Model.SpfSuggested ? "spf-now spf-suggested spf-hint" : "spf-now spf-hint")"></textarea>
+                <textarea asp-for="Spf" rows="2" class="mono" aria-describedby="@(Model.SpfSuggested ? "spf-now spf-suggested blank-hint" : "spf-now blank-hint")"></textarea>
             </label>
             @if (Model.SpfSuggested && Model.Suggestion is { } s)
             {
@@ -54,21 +55,16 @@
                     }
                 </p>
             }
-            <p id="spf-hint" class="hint">Leave blank to use the mail server's record.</p>
-            <p id="dmarc-now" class="now">Now: @if (Model.DmarcDefaultInUse is { } dmarcNow) { <text>the mail server's record </text><code>@dmarcNow</code>@(Model.DmarcPolicyInUse == "reject" ? ". It is strict: mail that fails the checks is refused." : "") } else { <text>this domain's own record, below.</text>@(Model.DmarcPolicyInUse == "reject" ? " It is strict: mail that fails the checks is refused." : "") }</p>
+            <div id="dmarc-now"><partial name="_RecordNow" model="(Model.Policy.Dmarc is null, Model.DmarcInUse)" /></div>
             <label>DMARC record
-                <textarea asp-for="Dmarc" rows="2" class="mono" aria-describedby="@(Model.DmarcSuggested ? "dmarc-now dmarc-suggested dmarc-hint" : "dmarc-now dmarc-hint")"></textarea>
+                <textarea asp-for="Dmarc" rows="2" class="mono" aria-describedby="@(Model.DmarcSuggested ? "dmarc-now dmarc-suggested blank-hint" : "dmarc-now blank-hint")"></textarea>
             </label>
             @if (Model.DmarcSuggested)
             {
                 <p id="dmarc-suggested" class="suggested">Suggested, not in use until you save: mail that fails is refused, for subdomains too, and both checks must match the domain exactly. Reports go to postmaster@@@Model.Domain.</p>
             }
-            <p id="dmarc-hint" class="hint">Leave blank to use the mail server's record.</p>
-            @if (Model.SpfSuggested || Model.DmarcSuggested)
-            {
-                <p class="hint">Saving makes both fields this domain's own records, suggestions included. Clear a field to keep the mail server's record for it.</p>
-            }
-            <button type="submit" class="secondary">Save</button>
+            <p id="blank-hint" class="hint">Leave a field blank to keep the mail server's record. @(Model.SpfSuggested || Model.DmarcSuggested ? "Saving makes both fields this domain's own records, suggestions included." : "")</p>
+            <button type="submit" class="@(ViewData["PolicyPrimary"] is true ? null : "secondary")">Save</button>
         </form>
         @if (!Model.Policy.IsDefault)
         {

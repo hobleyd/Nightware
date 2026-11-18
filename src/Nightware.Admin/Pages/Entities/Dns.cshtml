@@ -42,6 +42,8 @@
     var showPublish = global && (plan?.HasWork == true || Model.PublicationUnread is not null);
     var numbered = showPolicy && showPublish;
     ViewData["PolicyStep"] = numbered ? "1. " : "";
+    // Deciding is the page's only step: its Save is the primary action.
+    ViewData["PolicyPrimary"] = showPolicy && !showPublish;
 }
 @if (showPolicy)
 {
@@ -106,7 +108,8 @@
 else
 {
     <section class="panel" id="records">
-        <h2>Records for @Model.Domain</h2>
+        @* While a decision is open above, these are what is published now, not what Save will make them. *@
+        <h2>@(showPolicy ? "In use now (before you save)" : $"Records for {Model.Domain}")</h2>
         @if (global && plan is { HasWork: false })
         {
             <p><span class="chip linked">Published</span> Cloudflare zone @plan.Zone.Name has every record @Model.Domain needs.</p>

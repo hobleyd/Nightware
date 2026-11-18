@@ -105,6 +105,9 @@ tr.disabled td { color: var(--muted); }
 .plan tr.conflict td { color: var(--bad); }
 /* Fixed columns so the value columns, not the names, get the width. */
 table.dns { table-layout: fixed; }
+table.dns textarea { field-sizing: content; }
+/* The SPF and DMARC fields grow with their record, so a long suggestion is never cut off on a phone. */
+#mail-policy textarea { field-sizing: content; min-height: 3.4em; }
 table.dns col.type, table.dns col.ttl { width: 4.5em; }
 table.dns col.change { width: 7em; }
 table.dns col.name { width: 28%; }

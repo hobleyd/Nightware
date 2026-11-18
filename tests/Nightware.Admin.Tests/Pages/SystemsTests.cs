@@ -66,10 +66,10 @@ public sealed class SystemsTests
 
     [Theory]
     [InlineData(0, 1)]
-    [InlineData(44, 1)]
-    [InlineData(130, 3)]
-    [InlineData(2000, 6)]
-    public void A_record_value_gets_rows_to_show_it_whole_up_to_six(int length, int rows) =>
+    [InlineData(34, 1)]
+    [InlineData(130, 4)]
+    [InlineData(2000, 8)]
+    public void A_record_value_gets_rows_to_show_it_whole_up_to_eight(int length, int rows) =>
         Systems.ValueRows(new string('x', length)).ShouldBe(rows);
 
     [Theory]
