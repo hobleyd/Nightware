@@ -56,6 +56,13 @@ public static class Systems
     public const string TellOperator = "If this persists, tell your Nightware operator.";
 
     /// <summary>
+    /// For an entity admin facing an offboarding a failed system left incomplete: who can fix it, and that the
+    /// button will finish the job once that is done, so the button is not pressed in a loop.
+    /// </summary>
+    public static string WaitForOperator(BackendKind backend) =>
+        $"{ShortName(backend)} is not answering. Tell your Nightware operator; once it answers, Finish offboarding shuts it.";
+
+    /// <summary>
     /// A user's link in words. For an offboarded user a missing account is no problem (nothing there can let them
     /// in), so it reads "None", muted, instead of the amber "Missing" that asks for a repair.
     /// </summary>

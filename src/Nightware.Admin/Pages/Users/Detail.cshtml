@@ -43,7 +43,8 @@
         }
         </tbody>
     </table>
-    @if (!Model.Actor.IsGlobal && Model.Subject.Links.Any(l => l.State == LinkState.Error))
+    @* An incomplete offboarding says it in the Access panel, beside the button. *@
+    @if (!Model.Actor.IsGlobal && !incomplete && Model.Subject.Links.Any(l => l.State == LinkState.Error))
     {
         <p class="hint">@Systems.TellOperator</p>
     }
@@ -89,7 +90,14 @@
                 <form method="post" asp-page-handler="Offboard">
                     <input type="hidden" name="confirm" value="true">
                     <button type="submit">Finish offboarding</button>
-                    <span class="hint">Safe to repeat; run it again once the system is reachable.</span>
+                    @if (!Model.Actor.IsGlobal && open.FirstOrDefault(l => l.State == LinkState.Error) is { } failing)
+                    {
+                        <p class="hint">@Systems.WaitForOperator(failing.Backend)</p>
+                    }
+                    else
+                    {
+                        <span class="hint">Safe to repeat; run it again once the system is reachable.</span>
+                    }
                 </form>
             }
             else

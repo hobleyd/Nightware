@@ -169,8 +169,7 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         string html = await GetAsync("/");
 
         html.ShouldContain("Reachable, failed for 1");
-        html.ShouldContain("Mail: Failed");
-        html.ShouldContain("<span class=\"hint\"> · Connection refused.</span>");
+        html.ShouldContain("Mail gave no answer for this account. <span class=\"hint\">Connection refused.</span>");
         html.ShouldNotContain("If this persists");
         html.ShouldNotContain(">Unreachable<");
         html.ShouldContain("answers its health check but failed to answer for eve");
@@ -343,7 +342,9 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         global.ShouldContain("it gave no answer, so it could not be shut.");
         global.ShouldNotContain("If this persists");
 
-        (await GetAsync("/users/u-eve", ConsoleHost.EntityAdmin)).ShouldContain("If this persists, tell your Nightware operator.");
+        string entityAdmin = await GetAsync("/users/u-eve", ConsoleHost.EntityAdmin);
+        entityAdmin.ShouldContain("Mail is not answering. Tell your Nightware operator; once it answers, Finish offboarding shuts it.");
+        entityAdmin.ShouldNotContain("run it again once the system is reachable");
     }
 
     [Fact]
@@ -356,6 +357,7 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         string html = await GetAsync("/", ConsoleHost.EntityAdmin);
 
         html.ShouldContain("Mail is not answering for eve. If this persists, tell your Nightware operator.");
+        html.ShouldContain("<span class=\"detail hint\">If this persists, tell your Nightware operator.</span>");
         html.ShouldNotContain("answers its health check");
     }
 

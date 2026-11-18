@@ -34,7 +34,18 @@
                             }
                             @foreach (var link in wrong)
                             {
-                                <span class="detail">@Systems.ShortName(link.Backend): @Systems.StateLabel(link.State)@if (link.State is LinkState.Error or LinkState.Conflict && !string.IsNullOrEmpty(link.Detail)) { <span class="hint"> · @link.Detail</span> }</span>
+                                @if (link.State == LinkState.Error)
+                                {
+                                    <span class="detail">@Systems.FailedSentence(link.Backend) <span class="hint">@link.Detail</span></span>
+                                }
+                                else
+                                {
+                                    <span class="detail">@Systems.ShortName(link.Backend): @Systems.StateLabel(link.State)@if (link.State == LinkState.Conflict && !string.IsNullOrEmpty(link.Detail)) { <span class="hint"> · @link.Detail</span> }</span>
+                                }
+                            }
+                            @if (!Model.Actor.IsGlobal && wrong.Any(l => l.State == LinkState.Error))
+                            {
+                                <span class="detail hint">@Systems.TellOperator</span>
                             }
                         </td>
                         <td class="actions">
