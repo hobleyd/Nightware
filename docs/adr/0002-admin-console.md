@@ -534,7 +534,11 @@ Where the build refined the decisions above:
   `v=DMARC1; p=quarantine; rua=mailto:postmaster@<domain>`
   (`DomainMailPolicy`). Global administrators edit them on the DNS page
   (`SetDomainMailPolicy`, audited `entity.domain.mail-policy`); removing a
-  domain drops its attributes. Nothing is checked against live DNS.
+  domain drops its attributes. Stalwart's zone names the MX host (e.g.
+  `mail.<domain>`) but not its address, so an MX host inside the domain with no
+  A/AAAA there gets one per server public address (`MailHostAddresses`, the
+  addresses the SPF suggestion uses); without it the domain receives no mail.
+  Nothing is checked against live DNS.
 - **Publishing DNS records to Cloudflare (per entity).** An entity may have a
   Cloudflare API token, set by a global administrator on the entity page
   (`SetEntityDnsToken`, audited `entity.dns-token.set`/`.removed`). The token
