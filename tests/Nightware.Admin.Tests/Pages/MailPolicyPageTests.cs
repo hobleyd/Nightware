@@ -51,6 +51,15 @@ public sealed class MailPolicyPageTests : IDisposable
     }
 
     [Fact]
+    public async Task The_entity_page_opens_a_domains_dns_page_from_its_name()
+    {
+        string html = await GetAsync($"/entities/{ConsoleHost.Acme}");
+
+        html.ShouldContain($"<td><a title=\"DNS, SPF and DMARC for acme.example\" href=\"/entities/{ConsoleHost.Acme}/dns/acme.example\">acme.example</a></td>");
+        html.ShouldNotContain(">DNS, SPF and DMARC</a>");
+    }
+
+    [Fact]
     public async Task The_entity_page_colours_the_domains_own_spf_and_dmarc_by_what_they_leave_open()
     {
         GivenChosen(new DomainMailPolicy(SpfRecord.Parse("v=spf1 mx -all").Value, DmarcRecord.Default(ConsoleHost.Domain("acme.example"))));

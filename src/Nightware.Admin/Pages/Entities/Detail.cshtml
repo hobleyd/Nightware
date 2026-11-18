@@ -20,14 +20,13 @@
         @foreach (var d in Model.Entity.Domains)
         {
             <tr>
-                <td>@d.Domain</td>
+                <td><a asp-page="/Entities/Dns" asp-route-id="@entity.Id" asp-route-domain="@d.Domain.Name" title="@(Model.Actor.IsGlobal ? "DNS, SPF and DMARC" : "DNS records") for @d.Domain">@d.Domain</a></td>
                 <td data-label="Mail server"><span class="chip @d.Mail.State.ToString().ToLowerInvariant()">@Systems.StateLabel(d.Mail.State)</span>@if (d.Mail.State != LinkState.Linked) { <span class="hint detail">@d.Mail.Detail</span> }</td>
                 <td data-label="Signing (DKIM)">@if (d.Mail.State != LinkState.Linked) { <text>—</text> } else { <span class="chip @(d.DkimPresent ? "linked" : "missing")">@(d.DkimPresent ? "Keys present" : "Missing")</span> }</td>
                 @{ var policy = entity.MailPolicyFor(d.Domain); }
                 <td data-label="SPF">@if (policy.Spf is null) { <text>Mail server's</text> } else { <partial name="_RecordStrength" model="MailAuthenticationWeaknesses.Spf(policy.Spf.Value)" /> }</td>
                 <td data-label="DMARC">@if (policy.Dmarc is null) { <text>Mail server's</text> } else { <partial name="_RecordStrength" model="MailAuthenticationWeaknesses.Dmarc(policy.Dmarc.Value)" /> }</td>
                 <td class="actions">
-                    <a asp-page="/Entities/Dns" asp-route-id="@entity.Id" asp-route-domain="@d.Domain.Name">@(Model.Actor.IsGlobal ? "DNS, SPF and DMARC" : "DNS records")</a>
                     @if (Model.Actor.IsGlobal)
                     {
                         @if (d.Mail.State != LinkState.Linked || !d.DkimPresent)
