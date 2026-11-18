@@ -121,7 +121,7 @@ public sealed class MailPolicyPageTests : IDisposable
         _host.Entities.SetMailPolicyAsync(default!, default!, default!, Ct).ReturnsForAnyArgs(ConsoleHost.AcmeEntity);
 
         using HttpResponseMessage response = await ConsoleHost.PostFormAsync(_host.ClientAs(ConsoleHost.GlobalAdmin), DnsUrl, DnsUrl + "?handler=MailPolicy",
-            new Dictionary<string, string> { ["Spf"] = "v=spf1 mx -all", ["Dmarc"] = "" });
+            new Dictionary<string, string> { ["Spf"] = "v=spf1 mx -all", ["Dmarc"] = "", ["ConfirmSpf"] = "true" });
 
         response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         response.Headers.Location!.OriginalString.ShouldEndWith(DnsUrl);
@@ -162,5 +162,41 @@ public sealed class MailPolicyPageTests : IDisposable
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         await _host.Entities.DidNotReceiveWithAnyArgs().SetMailPolicyAsync(default!, default!, default!, Ct);
+    }
+
+    [Fact]
+    public async Task Changing_spf_without_the_confirming_box_changes_nothing()
+    {
+        string html = await (await ConsoleHost.PostFormAsync(_host.ClientAs(ConsoleHost.GlobalAdmin), DnsUrl, DnsUrl + "?handler=MailPolicy",
+            new Dictionary<string, string> { ["Spf"] = "v=spf1 ip4:81.2.69.160 -all", ["Dmarc"] = "" })).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain("Tick the box to confirm the SPF record: it decides who may send mail for acme.example.");
+        html.ShouldContain(FormField("Spf", "v=spf1 ip4:81.2.69.160 -all"));
+        html.ShouldContain("name=\"ConfirmSpf\" value=\"true\" required");
+        await _host.Entities.DidNotReceiveWithAnyArgs().SetMailPolicyAsync(default!, default!, default!, Ct);
+    }
+
+    [Fact]
+    public async Task Saving_only_dmarc_beside_the_domains_own_spf_needs_no_box()
+    {
+        GivenChosen(new DomainMailPolicy(SpfRecord.Parse("v=spf1 mx -all").Value, null));
+        _host.Entities.SetMailPolicyAsync(default!, default!, default!, Ct).ReturnsForAnyArgs(ConsoleHost.AcmeEntity);
+
+        string page = await GetAsync(DnsUrl);
+        page.ShouldNotContain("name=\"ConfirmSpf\"");
+
+        using HttpResponseMessage response = await ConsoleHost.PostFormAsync(_host.ClientAs(ConsoleHost.GlobalAdmin), DnsUrl, DnsUrl + "?handler=MailPolicy",
+            new Dictionary<string, string> { ["Spf"] = "v=spf1 mx -all", ["Dmarc"] = "v=DMARC1; p=reject" });
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+    }
+
+    [Fact]
+    public async Task The_save_is_secondary_and_each_field_is_described_by_what_is_live()
+    {
+        string html = await GetAsync(DnsUrl);
+
+        html.ShouldContain("<button type=\"submit\" class=\"secondary\">Save</button>");
+        html.ShouldContain("aria-describedby=\"spf-now");
+        html.ShouldContain("aria-describedby=\"dmarc-now");
     }
 }

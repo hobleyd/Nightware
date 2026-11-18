@@ -51,6 +51,7 @@ public sealed class MailSuggestionPageTests : IDisposable
         html.ShouldContain("Suggested, not in use until you save: only this server&#x27;s public address may send");
         html.ShouldContain("The address comes from public DNS for mail.operator.example. Behind NAT");
         html.ShouldContain("Saving makes both fields this domain's own records, suggestions included.");
+        html.ShouldContain("Only 81.2.69.160 may send mail for acme.example; other senders are refused");
         html.ShouldContain("Now: the mail server's record <code>v=spf1 mx ra=postmaster -all</code>");
     }
 

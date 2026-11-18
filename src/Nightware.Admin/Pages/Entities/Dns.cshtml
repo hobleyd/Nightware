@@ -119,9 +119,9 @@ else
     @if (Model.Actor.IsGlobal)
     {
         <form method="post" asp-page-handler="MailPolicy">
-            <p class="now">Now: @if (Model.SpfDefaultInUse is { } spfNow) { <text>the mail server's record </text><code>@spfNow</code> } else { <text>this domain's own record, below.</text> }</p>
+            <p id="spf-now" class="now">Now: @if (Model.SpfDefaultInUse is { } spfNow) { <text>the mail server's record </text><code>@spfNow</code> } else { <text>this domain's own record, below.</text> }</p>
             <label>SPF record
-                <textarea asp-for="Spf" rows="2" class="mono" aria-describedby="@(Model.SpfSuggested ? "spf-suggested spf-hint" : "spf-hint")"></textarea>
+                <textarea asp-for="Spf" rows="2" class="mono" aria-describedby="@(Model.SpfSuggested ? "spf-now spf-suggested spf-hint" : "spf-now spf-hint")"></textarea>
             </label>
             @if (Model.SpfSuggested && Model.Suggestion is { } s)
             {
@@ -144,9 +144,9 @@ else
                 </p>
             }
             <p id="spf-hint" class="hint">For example <code>v=spf1 mx -all</code>; add <code>include:</code> for any other service that sends as @Model.Domain. Leave blank to use the mail server's record.</p>
-            <p class="now">Now: @if (Model.DmarcDefaultInUse is { } dmarcNow) { <text>the mail server's record </text><code>@dmarcNow</code>@(Model.DmarcPolicyInUse == "reject" ? ". It is strict: mail that fails the checks is refused." : "") } else { <text>this domain's own record, below.</text>@(Model.DmarcPolicyInUse == "reject" ? " It is strict: mail that fails the checks is refused." : "") }</p>
+            <p id="dmarc-now" class="now">Now: @if (Model.DmarcDefaultInUse is { } dmarcNow) { <text>the mail server's record </text><code>@dmarcNow</code>@(Model.DmarcPolicyInUse == "reject" ? ". It is strict: mail that fails the checks is refused." : "") } else { <text>this domain's own record, below.</text>@(Model.DmarcPolicyInUse == "reject" ? " It is strict: mail that fails the checks is refused." : "") }</p>
             <label>DMARC record
-                <textarea asp-for="Dmarc" rows="2" class="mono" aria-describedby="@(Model.DmarcSuggested ? "dmarc-suggested dmarc-hint" : "dmarc-hint")"></textarea>
+                <textarea asp-for="Dmarc" rows="2" class="mono" aria-describedby="@(Model.DmarcSuggested ? "dmarc-now dmarc-suggested dmarc-hint" : "dmarc-now dmarc-hint")"></textarea>
             </label>
             @if (Model.DmarcSuggested)
             {
@@ -157,7 +157,11 @@ else
             {
                 <p class="hint">Saving makes both fields this domain's own records, suggestions included. Clear a field to keep the mail server's record for it.</p>
             }
-            <button type="submit">Save</button>
+            @if (Model.SpfChanges)
+            {
+                <label class="choice"><input type="checkbox" name="ConfirmSpf" value="true" required> @Model.SpfConsequence</label>
+            }
+            <button type="submit" class="secondary">Save</button>
         </form>
         @if (!Model.Policy.IsDefault)
         {
