@@ -84,11 +84,11 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; }
 .skip:focus { top: 8px; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-/* An admin's sections sit in a narrow menu down the left; the page beside it keeps its own width. */
-.frame { display: grid; grid-template-columns: 11rem minmax(0, 1fr); align-items: start; max-width: calc(16px + 11rem + 1080px); margin: 0 auto; }
+/* An admin's sections sit in a narrow menu down the left; the page beside it keeps its own width. The frame is
+   the dashboard's width on every page, so the menu stays put; a narrower page leaves the space on its right. */
+.frame { display: grid; grid-template-columns: 11rem minmax(0, 1fr); align-items: start; max-width: calc(16px + 11rem + 1080px + 17rem); margin: 0 auto; }
 .frame:has(> main.wide) { max-width: none; }
-.frame:has(.dashboard) { max-width: calc(16px + 11rem + 1080px + 17rem); }
-.frame > main { max-width: none; margin: 0; }
+.frame > main { margin: 0; }
 /* main's 16px padding plus a panel's 16px top margin, so the menu is level with the page's first panel.
    .side.panel outranks .panel's own margin, which comes later. */
 .side.panel { margin: 32px 0 16px 16px; padding: 8px; }
