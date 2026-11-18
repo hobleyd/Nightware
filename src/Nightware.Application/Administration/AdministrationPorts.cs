@@ -100,6 +100,9 @@ public interface IIdentityAccounts
 
     /// <summary>Records (or with null clears) a deletion marker: <see cref="IdentityAccount.MailDeletedAt"/> or <see cref="IdentityAccount.GroupwareDeletedAt"/>.</summary>
     Task<Result> SetDeletionMarkerAsync(string userId, DeletionTarget target, DateTimeOffset? at, CancellationToken cancellationToken);
+
+    /// <summary>Puts <paramref name="added"/> first in the user's access history, keeping the last <see cref="AccessEvent.Keep"/>.</summary>
+    Task<Result> AddAccessEventAsync(string userId, AccessEvent added, CancellationToken cancellationToken);
 }
 
 /// <param name="IsIndividual">False for a group or mailing list that holds the address.</param>

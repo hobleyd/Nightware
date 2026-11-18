@@ -372,6 +372,33 @@ public sealed class KeycloakIdentityAccountsTests : IDisposable
     }
 
     [Fact]
+    public async Task An_access_event_goes_first_in_the_users_history_beside_their_other_attributes()
+    {
+        _keycloak.GivenAdmin(UserPath, 200, """{"id":"5d2c6a4e-2f0b-4a8e-9f3c-1b7e2d9a6c11","attributes":{"nightware_access_history":["2026-11-17T08:00:00Z|Offboarded|ops|Mail:Error"],"locale":["en"]}}""");
+        _keycloak.GivenAdmin(UserPath, 204, method: "PUT");
+        await using AdapterHost host = Host();
+        var added = new AccessEvent(new DateTimeOffset(2026, 11, 18, 9, 0, 0, TimeSpan.Zero), AccessEventKind.OffboardingFinished, "ops", [new SystemState(BackendKind.Mail, LinkState.Disabled)]);
+
+        (await host.Scoped<IIdentityAccounts>().AddAccessEventAsync(UserId, added, Ct)).IsSuccess.ShouldBeTrue();
+
+        JsonObject attributes = PutBody()["attributes"]!.AsObject();
+        attributes["nightware_access_history"]!.AsArray().Select(static v => v!.GetValue<string>()).ShouldBe(
+            ["2026-11-18T09:00:00Z|OffboardingFinished|ops|Mail:Disabled", "2026-11-17T08:00:00Z|Offboarded|ops|Mail:Error"]);
+        attributes["locale"].ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task The_history_reads_back_newest_first_skipping_lines_it_cannot_read()
+    {
+        _keycloak.GivenAdmin(UserPath, 200, """{"id":"5d2c6a4e-2f0b-4a8e-9f3c-1b7e2d9a6c11","username":"bob","email":"bob@x.example","attributes":{"nightware_access_history":["2026-11-17T08:00:00Z|Offboarded|ops|Mail:Error","garbage","2026-11-18T09:00:00Z|Reinstated|ops|"]}}""");
+        await using AdapterHost host = Host();
+
+        IdentityAccount bob = (await host.Scoped<IIdentityAccounts>().GetAsync(UserId, Ct)).Value;
+
+        bob.AccessHistory.Select(static e => e.Kind).ShouldBe([AccessEventKind.Reinstated, AccessEventKind.Offboarded]);
+    }
+
+    [Fact]
     public async Task A_failing_read_never_writes()
     {
         _keycloak.GivenAdmin(UserPath, 403);

@@ -401,4 +401,37 @@ public sealed class UserPagesTests : IDisposable
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         await _host.Mail.DidNotReceiveWithAnyArgs().DestroyAsync(default!, Ct);
     }
+
+    [Fact]
+    public async Task The_access_panel_shows_the_users_history_newest_first()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example", enabled: false);
+        _host.Identities.GetAsync("u-dan", Arg.Any<CancellationToken>()).Returns(new IdentityAccount("u-dan", "dan", "dan@acme.example", false)
+        {
+            AccessHistory =
+            [
+                new AccessEvent(new DateTimeOffset(2026, 11, 18, 9, 40, 0, TimeSpan.Zero), AccessEventKind.OffboardingFinished, "ops", [new SystemState(BackendKind.Mail, LinkState.Disabled)]),
+                new AccessEvent(new DateTimeOffset(2026, 11, 18, 9, 12, 0, TimeSpan.Zero), AccessEventKind.Offboarded, "ops", [new SystemState(BackendKind.Mail, LinkState.Error)]),
+            ],
+        });
+
+        string html = await (await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri("/users/u-dan", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain("<h3>History</h3>");
+        int finished = html.IndexOf("Offboarding run again by ops: Mail shut", StringComparison.Ordinal);
+        int first = html.IndexOf("Offboarded by ops: Mail failed", StringComparison.Ordinal);
+        finished.ShouldBeGreaterThan(0);
+        first.ShouldBeGreaterThan(finished);
+        html.ShouldContain("18 Nov 2026, 09:40 UTC");
+    }
+
+    [Fact]
+    public async Task A_user_with_no_history_shows_none()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+
+        string html = await (await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri("/users/u-dan", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldNotContain("<h3>History</h3>");
+    }
 }

@@ -148,6 +148,9 @@ ul.plain { list-style: none; padding: 0; }
 .undo, .remove, .block { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
 .undo h3, .remove h3, .block h3 { margin: 0 0 4px; font-size: 1em; }
 details.more > summary { cursor: pointer; }
+ol.history { margin: 4px 0 0; padding-left: 0; list-style: none; }
+ol.history li { margin: 4px 0; }
+ol.history time { color: var(--muted); font-variant-numeric: tabular-nums; }
 details.more > summary h2 { display: inline; margin: 0; }
 h1 .status { font-size: 0.45em; vertical-align: middle; margin-left: 0.5em; }
 .attention td .detail { display: block; }

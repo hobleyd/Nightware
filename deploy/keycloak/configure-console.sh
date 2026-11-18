@@ -5,8 +5,8 @@
 #      NightMail's sign-in page is unchanged), admin events kept,
 #      acr.loa.map {pwd:1, mfa:2}, SMTP through Stalwart when the realm has none
 #   2. realm roles nightware-global-admin and nightware-entity-admin
-#   3. user profile: nightware_aliases (multivalued) and the two deletion
-#      markers, admin-editable only
+#   3. user profile: nightware_aliases (multivalued), the two deletion
+#      markers and nightware_access_history (multivalued), admin-editable only
 #   4. a step-up browser flow (password = level 1, + OTP = level 2) bound to the
 #      console's client only; NightMail's sign-in is not touched
 #   5. client nightware-admin (confidential, code + PKCE, own secret, minimum
@@ -75,7 +75,8 @@ done
 CONSOLE_ATTRS='[
   {"name":"nightware_aliases","displayName":"Secondary addresses","multivalued":true,"validations":{"length":{"max":254}}},
   {"name":"nightware_mail_deleted_at","displayName":"Mail deleted at","multivalued":false},
-  {"name":"nightware_groupware_deleted_at","displayName":"Nextcloud data deleted at","multivalued":false}
+  {"name":"nightware_groupware_deleted_at","displayName":"Nextcloud data deleted at","multivalued":false},
+  {"name":"nightware_access_history","displayName":"Access history","multivalued":true,"validations":{"length":{"max":255}}}
 ]'
 profile=$(kc "${API}/users/profile")
 updated=$(jq --argjson want "$CONSOLE_ATTRS" '
@@ -83,7 +84,7 @@ updated=$(jq --argjson want "$CONSOLE_ATTRS" '
   | .attributes = $have + [ $want[] | select(.name as $n | ($have | map(.name) | index($n)) | not)
       | . + {permissions: {view: ["admin"], edit: ["admin"]}} ]' <<<"$profile")
 if [[ "$(jq -S . <<<"$profile")" != "$(jq -S . <<<"$updated")" ]]; then
-  log "Keycloak (console): declaring nightware_aliases and the deletion markers (admin-only)"
+  log "Keycloak (console): declaring nightware_aliases, the deletion markers and the access history (admin-only)"
   kcj -X PUT "${API}/users/profile" --data-binary @- <<<"$updated" >/dev/null
 fi
 

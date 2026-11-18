@@ -60,6 +60,7 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
         Identities.SetEnabledAsync(default!, default, default).ReturnsForAnyArgs(Result.Success());
         Identities.EndSessionsAsync(default!, default).ReturnsForAnyArgs(Result.Success());
         Identities.SetDeletionMarkerAsync(default!, default, default, default).ReturnsForAnyArgs(Result.Success());
+        Identities.AddAccessEventAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
 
         Mail.FindByAddressAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Error.NotFound("no mailbox"));
         Mail.CreateAsync(default!, default!, default).ReturnsForAnyArgs(c => c.Arg<MailAddress?>() is { } a ? Result<MailAccount>.Success(new MailAccount("m-new", a.Value, true)) : default);

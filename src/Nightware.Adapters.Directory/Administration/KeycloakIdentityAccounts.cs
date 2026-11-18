@@ -215,6 +215,20 @@ internal sealed class KeycloakIdentityAccounts(IKeycloakAdminClient keycloak, IO
         return SetAttributeAsync(userId, KeycloakAdminNames.MarkerAttribute(target), value, cancellationToken);
     }
 
+    public async Task<Result> AddAccessEventAsync(string userId, AccessEvent added, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        ArgumentNullException.ThrowIfNull(added);
+        Result<KeycloakUser> user = await keycloak.GetUserAsync(userId, cancellationToken).ConfigureAwait(false);
+        if (!user.IsSuccess)
+        {
+            return user.Error;
+        }
+
+        IReadOnlyList<string> existing = user.Value.Attributes is { } attributes && attributes.TryGetValue(KeycloakAdminNames.AccessHistoryAttribute, out IReadOnlyList<string>? values) ? values : [];
+        return await SetAttributeAsync(userId, KeycloakAdminNames.AccessHistoryAttribute, AccessEvent.Prepend(added, existing), cancellationToken).ConfigureAwait(false);
+    }
+
     internal static bool HasGlobalAdmin(IEnumerable<KeycloakRole> roles) =>
         roles.Any(static r => string.Equals(r.Name, KeycloakAdminNames.GlobalAdminRole, StringComparison.Ordinal));
 

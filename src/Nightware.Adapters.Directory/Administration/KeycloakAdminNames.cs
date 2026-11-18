@@ -24,6 +24,9 @@ internal static class KeycloakAdminNames
     /// <summary>User attribute: when the console deleted the user's Nextcloud data (ISO-8601 round-trip).</summary>
     public const string GroupwareDeletedAtAttribute = "nightware_groupware_deleted_at";
 
+    /// <summary>A user's access history, one <see cref="AccessEvent.Format"/> line per value, newest first.</summary>
+    public const string AccessHistoryAttribute = "nightware_access_history";
+
     /// <summary>Organization attribute <c>nightware_spf:&lt;domain&gt;</c>: the domain's chosen SPF record.</summary>
     public static string SpfAttribute(MailDomain domain) => "nightware_spf:" + domain.Name;
 

@@ -51,6 +51,9 @@ public sealed record IdentityAccount(string Id, string Username, string Email, b
     /// <summary>When the console deleted this user's Nextcloud data.</summary>
     public DateTimeOffset? GroupwareDeletedAt { get; init; }
 
+    /// <summary>What administrators did to this user's access, newest first (Keycloak attribute <c>nightware_access_history</c>).</summary>
+    public IReadOnlyList<AccessEvent> AccessHistory { get; init; } = [];
+
     public string DisplayName => string.Join(' ', new[] { FirstName, LastName }.Where(static n => !string.IsNullOrWhiteSpace(n))) is { Length: > 0 } name
         ? name
         : Username;

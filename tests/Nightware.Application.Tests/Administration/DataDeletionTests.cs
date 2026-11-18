@@ -31,9 +31,21 @@ public sealed class DataDeletionTests
 
     private static CancellationToken Ct => AdminTestBed.Ct;
 
-    private DeleteUserMail DeleteMail => new(_bed.Actor, _bed.DeletionGuard(), _bed.Mail, _bed.Identities, _bed.Time, _bed.Audit);
+    private DeleteUserMail DeleteMail => new(_bed.Actor, _bed.DeletionGuard(), _bed.Mail, _bed.Identities, _bed.Time, _bed.Audit, _bed.History());
 
-    private DeleteUserGroupwareData DeleteCloud => new(_bed.Actor, _bed.DeletionGuard(), _bed.Groupware, _bed.Identities, _bed.Time, _bed.Audit);
+    private DeleteUserGroupwareData DeleteCloud => new(_bed.Actor, _bed.DeletionGuard(), _bed.Groupware, _bed.Identities, _bed.Time, _bed.Audit, _bed.History());
+
+    [Fact]
+    public async Task A_deletion_is_written_to_the_users_history_with_the_account_gone()
+    {
+        AccessEvent? written = null;
+        _bed.Identities.AddAccessEventAsync("u-carol", Arg.Do<AccessEvent>(e => written = e), Arg.Any<CancellationToken>()).Returns(Result.Success());
+
+        (await DeleteMail.ExecuteAsync("u-carol", Address, Ct)).IsSuccess.ShouldBeTrue();
+
+        written!.Kind.ShouldBe(AccessEventKind.MailDeleted);
+        written.Systems.ShouldContain(new SystemState(BackendKind.Mail, LinkState.Missing));
+    }
 
     [Fact]
     public async Task A_global_admin_deletes_mail_and_only_mail()

@@ -120,6 +120,19 @@ else if (u.IsGlobalAdmin && Model.Actor.IsGlobal)
                 <button type="submit" class="secondary">Reinstate</button>
             </form>
         }
+        @* What was done and what each system said straight after, kept on the user in Keycloak. *@
+        @if (id.AccessHistory.Count > 0)
+        {
+            <div class="block">
+                <h3>History</h3>
+                <ol class="history">
+                    @foreach (var e in id.AccessHistory)
+                    {
+                        <li><time datetime="@e.At.UtcDateTime.ToString("o", System.Globalization.CultureInfo.InvariantCulture)">@Systems.When(e.At)</time> · @Systems.HistoryLine(e)</li>
+                    }
+                </ol>
+            </div>
+        }
     </section>
 }
 

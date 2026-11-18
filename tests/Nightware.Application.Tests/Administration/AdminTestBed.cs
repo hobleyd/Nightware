@@ -47,6 +47,7 @@ internal sealed class AdminTestBed
         Identities.AddRequiredActionAsync(default!, default, default).ReturnsForAnyArgs(Result.Success());
         Identities.SetGlobalAdminAsync(default!, default, default).ReturnsForAnyArgs(Result.Success());
         Identities.SetDeletionMarkerAsync(default!, default, default, default).ReturnsForAnyArgs(Result.Success());
+        Identities.AddAccessEventAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
 
         Mail.FindByAddressAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Error.NotFound("no mailbox"));
         Mail.CreateAsync(default!, default!, default).ReturnsForAnyArgs(c => c.Arg<MailAddress?>() is { } a ? Result<MailAccount>.Success(new MailAccount("m-new", a.Value, true)) : default);
@@ -152,6 +153,8 @@ internal sealed class AdminTestBed
     public PublicAddresses PublicAddresses() => new(new DnsTokenVault(Entities, Substitute.For<ISecretSealer>()), Substitute.For<IDnsHosting>(), PublicDns, Options);
 
     public DeletionGuard DeletionGuard() => new(Actor, UserAccess(), Options, Time);
+
+    public AccessHistoryRecorder History() => new(Actor, Identities, Time);
 
     private sealed class MutableActor : IAdminActor
     {

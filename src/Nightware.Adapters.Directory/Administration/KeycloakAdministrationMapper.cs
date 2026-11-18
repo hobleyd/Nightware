@@ -18,6 +18,7 @@ internal static class KeycloakAdministrationMapper
             Aliases = Values(user, KeycloakAdminNames.AliasesAttribute),
             MailDeletedAt = Marker(user.Attribute(KeycloakAdminNames.MailDeletedAtAttribute)),
             GroupwareDeletedAt = Marker(user.Attribute(KeycloakAdminNames.GroupwareDeletedAtAttribute)),
+            AccessHistory = History(Values(user, KeycloakAdminNames.AccessHistoryAttribute)),
         };
     }
 
@@ -74,4 +75,11 @@ internal static class KeycloakAdministrationMapper
         user.Attributes is not null && user.Attributes.TryGetValue(name, out IReadOnlyList<string>? values)
             ? [.. values.Where(static v => !string.IsNullOrWhiteSpace(v))]
             : [];
+
+    /// <summary>The readable history lines, newest first; the shared empty list when there are none.</summary>
+    private static AccessEvent[] History(IReadOnlyList<string> lines)
+    {
+        AccessEvent[] events = [.. lines.Select(AccessEvent.Parse).OfType<AccessEvent>().OrderByDescending(static e => e.At)];
+        return events.Length == 0 ? Array.Empty<AccessEvent>() : events;
+    }
 }

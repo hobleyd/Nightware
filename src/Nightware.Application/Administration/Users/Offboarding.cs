@@ -10,7 +10,7 @@ namespace Nightware.Application.Administration.Users;
 /// the console could not take or could not check is a failure, never a skip: the admin must be able to trust
 /// that a successful offboarding shut every way in. Running it again on a disabled user finishes the job.
 /// </summary>
-public sealed class OffboardUser(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IMailAccounts mail, IGroupwareAccounts groupware, IAuditLog audit)
+public sealed class OffboardUser(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IMailAccounts mail, IGroupwareAccounts groupware, IAuditLog audit, AccessHistoryRecorder history)
 {
     public async Task<Result<UserDetail>> ExecuteAsync(string userId, CancellationToken cancellationToken)
     {
@@ -52,8 +52,11 @@ public sealed class OffboardUser(IAdminActor actor, UserAccess users, IIdentityA
         }
 
         audit.Record(new AuditEvent("user.offboarded", actor.Current.UserId, failures.Count == 0) { TargetUserId = userId, EntityId = loaded.Value.User.EntityId });
+        Result<UserDetail> after = await users.LoadWithLinksAsync(userId, cancellationToken).ConfigureAwait(false);
+        AccessEventKind kind = loaded.Value.User.Identity.Enabled ? AccessEventKind.Offboarded : AccessEventKind.OffboardingFinished;
+        await history.RecordAsync(userId, kind, after.IsSuccess ? after.Value : null, cancellationToken).ConfigureAwait(false);
         return failures.Count == 0
-            ? await users.LoadWithLinksAsync(userId, cancellationToken).ConfigureAwait(false)
+            ? after
             : Error.BackendUnavailable($"Offboarding is incomplete. {string.Join(" ", failures)} Use Finish offboarding once it is reachable.");
     }
 
@@ -99,7 +102,7 @@ public sealed class OffboardUser(IAdminActor actor, UserAccess users, IIdentityA
 /// as a new, empty Nextcloud user. Reopening access is the security-critical direction, so it needs the same
 /// fresh, strong sign-in as granting global administrator rights.
 /// </summary>
-public sealed class ReinstateUser(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IMailAccounts mail, IGroupwareAccounts groupware, IAuditLog audit, AdministrationOptions options, TimeProvider time)
+public sealed class ReinstateUser(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IMailAccounts mail, IGroupwareAccounts groupware, IAuditLog audit, AdministrationOptions options, TimeProvider time, AccessHistoryRecorder history)
 {
     public async Task<Result<UserDetail>> ExecuteAsync(string userId, bool recreateMailbox, CancellationToken cancellationToken)
     {
@@ -163,6 +166,8 @@ public sealed class ReinstateUser(IAdminActor actor, UserAccess users, IIdentity
             EntityId = loaded.Value.User.EntityId,
             Details = new Dictionary<string, string?> { ["mailboxRecreated"] = recreated ? "true" : "false" },
         });
-        return result.IsSuccess ? await users.LoadWithLinksAsync(userId, cancellationToken).ConfigureAwait(false) : result.Error;
+        Result<UserDetail> after = await users.LoadWithLinksAsync(userId, cancellationToken).ConfigureAwait(false);
+        await history.RecordAsync(userId, AccessEventKind.Reinstated, after.IsSuccess ? after.Value : null, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? after : result.Error;
     }
 }

@@ -87,6 +87,37 @@ public static class Systems
         _ => $"{status.Domain} is served by the mail server, with DKIM keys.",
     };
 
+    /// <summary>A moment in a user's history, in UTC so every admin reads the same time: "18 Nov 2026, 09:12 UTC".</summary>
+    public static string When(DateTimeOffset at) =>
+        at.UtcDateTime.ToString("d MMM yyyy, HH:mm 'UTC'", System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>One history entry in words: "Offboarded by ops: Mail failed, Files &amp; calendar none".</summary>
+    public static string HistoryLine(AccessEvent entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        string what = entry.Kind switch
+        {
+            AccessEventKind.Offboarded => "Offboarded",
+            AccessEventKind.OffboardingFinished => "Offboarding run again",
+            AccessEventKind.Reinstated => "Reinstated",
+            AccessEventKind.MailDeleted => "Mail deleted",
+            _ => "Files & calendar data deleted",
+        };
+        string systems = string.Join(", ", entry.Systems.Select(static s => $"{ShortName(s.Backend)} {AfterWord(s.State)}"));
+        return systems.Length == 0 ? $"{what} by {entry.By}" : $"{what} by {entry.By}: {systems}";
+    }
+
+    /// <summary>What a system's state means straight after an access change.</summary>
+    private static string AfterWord(LinkState state) => state switch
+    {
+        LinkState.Disabled => "shut",
+        LinkState.Missing => "none",
+        LinkState.Error => "failed",
+        LinkState.Linked => "open",
+        LinkState.Pending => "pending first sign-in",
+        _ => "in conflict",
+    };
+
     /// <summary>A user's one-line status, the same on every page.</summary>
     public static string StatusLabel(UserStatus status) => status switch
     {

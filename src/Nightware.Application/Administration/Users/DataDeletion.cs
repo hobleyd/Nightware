@@ -101,7 +101,7 @@ public sealed class GetDeletionPreview(DeletionGuard guard, IMailAccounts mail)
 }
 
 /// <summary>Destroys a disabled user's mailbox and every message in it. Keycloak and Nextcloud are untouched.</summary>
-public sealed class DeleteUserMail(IAdminActor actor, DeletionGuard guard, IMailAccounts mail, IIdentityAccounts identities, TimeProvider time, IAuditLog audit)
+public sealed class DeleteUserMail(IAdminActor actor, DeletionGuard guard, IMailAccounts mail, IIdentityAccounts identities, TimeProvider time, IAuditLog audit, AccessHistoryRecorder history)
 {
     public async Task<Result<DeletionOutcome>> ExecuteAsync(string userId, string? typedAddress, CancellationToken cancellationToken)
     {
@@ -142,6 +142,7 @@ public sealed class DeleteUserMail(IAdminActor actor, DeletionGuard guard, IMail
 
         Result marked = await identities.SetDeletionMarkerAsync(userId, DeletionTarget.Mail, time.GetUtcNow(), cancellationToken).ConfigureAwait(false);
         Record(loaded.Value, true, absent ? "already absent" : marked.IsSuccess ? "deleted" : "deleted; marker not written", bytes);
+        await history.RecordAsync(userId, AccessEventKind.MailDeleted, AccessHistoryRecorder.WithGone(loaded.Value, BackendKind.Mail), cancellationToken).ConfigureAwait(false);
         return new DeletionOutcome(absent, absent ? null : bytes);
     }
 
@@ -161,7 +162,7 @@ public sealed class DeleteUserMail(IAdminActor actor, DeletionGuard guard, IMail
 }
 
 /// <summary>Deletes a disabled user's Nextcloud account and everything in it. Keycloak and the mailbox are untouched.</summary>
-public sealed class DeleteUserGroupwareData(IAdminActor actor, DeletionGuard guard, IGroupwareAccounts groupware, IIdentityAccounts identities, TimeProvider time, IAuditLog audit)
+public sealed class DeleteUserGroupwareData(IAdminActor actor, DeletionGuard guard, IGroupwareAccounts groupware, IIdentityAccounts identities, TimeProvider time, IAuditLog audit, AccessHistoryRecorder history)
 {
     public async Task<Result<DeletionOutcome>> ExecuteAsync(string userId, string? typedAddress, CancellationToken cancellationToken)
     {
@@ -200,6 +201,7 @@ public sealed class DeleteUserGroupwareData(IAdminActor actor, DeletionGuard gua
 
         Result marked = await identities.SetDeletionMarkerAsync(userId, DeletionTarget.GroupwareData, time.GetUtcNow(), cancellationToken).ConfigureAwait(false);
         Record(loaded.Value, true, absent ? "already absent" : marked.IsSuccess ? "deleted" : "deleted; marker not written");
+        await history.RecordAsync(userId, AccessEventKind.FilesDeleted, AccessHistoryRecorder.WithGone(loaded.Value, BackendKind.Groupware), cancellationToken).ConfigureAwait(false);
         return new DeletionOutcome(absent, null);
     }
 
