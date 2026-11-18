@@ -58,9 +58,24 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; }
 .top nav { display: flex; gap: 14px; }
 .top a, .top button.link { color: var(--night-link); }
 .top :focus-visible { outline-color: var(--night-link); }
-.top .signout { margin-left: auto; display: flex; gap: 10px; align-items: center; }
 .who { color: var(--muted); }
-.top .who { color: var(--night-muted); }
+/* The signed-in name opens the account menu; the caret turns over while it is open. */
+.top .account { margin-left: auto; }
+.top button.who { display: flex; gap: 6px; align-items: center; padding: 4px 8px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--night-text); anchor-name: --account; }
+.top button.who:hover, .top button.who:has(+ .menu:popover-open) { border-color: var(--night-muted); }
+.top button.who .role { color: var(--night-muted); }
+.top button.who .caret { width: 0.45em; height: 0.45em; margin: 0 2px 0.2em 2px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg); transition: transform 0.15s; }
+.top button.who:has(+ .menu:popover-open) .caret { transform: translateY(0.2em) rotate(-135deg); }
+.top .menu[popover] { margin: 0; inset: 52px 16px auto auto; min-width: 12rem; padding: 6px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); box-shadow: 0 6px 20px rgb(12 14 34 / 0.25); }
+@supports (position-anchor: --account) {
+  .top .menu[popover] { position-anchor: --account; inset: auto; top: anchor(bottom); right: anchor(right); margin-top: 6px; }
+}
+.top .menu:popover-open { display: flex; flex-direction: column; }
+.top .menu form { margin: 6px 0 0; padding-top: 6px; border-top: 1px solid var(--line); }
+.top .menu a, .top .menu button.link { display: block; width: 100%; padding: 8px 14px; color: var(--accent); text-align: left; text-decoration: none; font: inherit; border-radius: 0; }
+.top .menu a:hover, .top .menu button.link:hover { background: var(--bg); text-decoration: underline; }
+.top .menu :focus-visible { outline-color: var(--accent); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { .top button.who .caret { transition: none; } }
 .top nav a[aria-current="page"] { color: var(--night-text); text-decoration-thickness: 2px; }
 .top .find { margin: 0; }
 .top .find label { margin: 0; }

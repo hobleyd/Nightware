@@ -37,12 +37,18 @@
     }
     @if (signedIn)
     {
-        <form method="post" asp-page="/Account/SignOut" class="signout">
-            <span class="who">@User.Identity!.Name@(actor?.IsGlobal == true ? " · global admin" : actor?.IsAdmin == true ? " · entity admin" : "")</span>
-            <a asp-page="/Account/Password">Change password</a>
-            <a asp-page="/Account/Passkey">Add a passkey</a>
-            <button type="submit" class="link">Sign out</button>
-        </form>
+        @* The account menu opens through the browser's own popover: plain HTML, so the CSP that blocks
+           script does not block it, and a click outside or Escape closes it. *@
+        <div class="account">
+            <button type="button" class="who" popovertarget="account-menu">@User.Identity!.Name<span class="role">@(actor?.IsGlobal == true ? " · global admin" : actor?.IsAdmin == true ? " · entity admin" : "")</span><span class="caret" aria-hidden="true"></span></button>
+            <div id="account-menu" popover class="menu">
+                <a asp-page="/Account/Password">Change password</a>
+                <a asp-page="/Account/Passkey">Add a passkey</a>
+                <form method="post" asp-page="/Account/SignOut">
+                    <button type="submit" class="link">Sign out</button>
+                </form>
+            </div>
+        </div>
     }
 </header>
 <main id="main" class="@(ViewData["Wide"] is true ? "wide" : null)">
