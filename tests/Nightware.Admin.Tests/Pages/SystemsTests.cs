@@ -60,16 +60,16 @@ public sealed class SystemsTests
         var offboarded = new AccessEvent(at, AccessEventKind.Offboarded, "ops", [new SystemState(BackendKind.Identity, LinkState.Disabled), new SystemState(BackendKind.Mail, LinkState.Error), new SystemState(BackendKind.Groupware, LinkState.Missing)]);
 
         Systems.When(at).ShouldBe("18 Nov 2026, 09:12 UTC");
-        Systems.HistoryLine(offboarded).ShouldBe("Offboarded by ops: Sign-in shut, Mail failed, Files & calendar none");
+        Systems.HistoryLine(offboarded).ShouldBe("Offboarded by ops: Sign-in: shut, Mail: failed, Files & calendar: none");
         Systems.HistoryLine(new AccessEvent(at, AccessEventKind.Reinstated, "ops", [])).ShouldBe("Reinstated by ops");
     }
 
     [Theory]
     [InlineData(0, 1)]
-    [InlineData(44, 1)]
-    [InlineData(130, 3)]
-    [InlineData(2000, 6)]
-    public void A_record_value_gets_rows_to_show_it_whole_up_to_six(int length, int rows) =>
+    [InlineData(34, 1)]
+    [InlineData(130, 4)]
+    [InlineData(2000, 8)]
+    public void A_record_value_gets_rows_to_show_it_whole_up_to_eight(int length, int rows) =>
         Systems.ValueRows(new string('x', length)).ShouldBe(rows);
 
     [Theory]

@@ -50,9 +50,9 @@ public sealed class MailSuggestionPageTests : IDisposable
         html.ShouldContain(FormField("Dmarc", "v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s; rua=mailto:postmaster@acme.example"));
         html.ShouldContain("Suggested, not in use until you save: only this server&#x27;s public address may send");
         html.ShouldContain("The address comes from public DNS for mail.operator.example. Behind NAT");
-        html.ShouldContain("Saving makes both fields this domain's own records, suggestions included.");
+        html.ShouldContain("Saving makes both fields this domain&#x27;s own records, suggestions included.");
         html.ShouldNotContain("name=\"ConfirmSpf\"");
-        html.ShouldContain("Now: the mail server's record <code>v=spf1 mx ra=postmaster -all</code>");
+        html.ShouldContain("Now: the mail server&#x27;s record <code>v=spf1 mx ra=postmaster -all</code>");
     }
 
     [Fact]

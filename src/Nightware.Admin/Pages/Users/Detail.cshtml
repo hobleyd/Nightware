@@ -92,14 +92,17 @@ else if (u.IsGlobalAdmin && Model.Actor.IsGlobal)
                         <li>@Systems.Name(link.Backend): @if (link.State == LinkState.Error) { <text>it gave no answer, so it could not be shut.</text> <span class="hint detail">@link.Detail</span> } else { @link.Detail }</li>
                     }
                 </ul>
+                @* An entity admin cannot bring a failing system back: who to tell comes first, and the button that would
+                   only fail again steps back to secondary until the system answers. *@
+                var waiting = !Model.Actor.IsGlobal ? open.FirstOrDefault(l => l.State == LinkState.Error) : null;
+                @if (waiting is not null)
+                {
+                    <p><strong>@Systems.WaitForOperator(waiting.Backend)</strong></p>
+                }
                 <form method="post" asp-page-handler="Offboard">
                     <input type="hidden" name="confirm" value="true">
-                    <button type="submit">Finish offboarding</button>
-                    @if (!Model.Actor.IsGlobal && open.FirstOrDefault(l => l.State == LinkState.Error) is { } failing)
-                    {
-                        <p class="hint">@Systems.WaitForOperator(failing.Backend)</p>
-                    }
-                    else
+                    <button type="submit" class="@(waiting is null ? null : "secondary")">Finish offboarding</button>
+                    @if (waiting is null)
                     {
                         <span class="hint">Safe to repeat; run it again once the system is reachable.</span>
                     }

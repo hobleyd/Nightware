@@ -103,7 +103,7 @@ public static class Systems
             AccessEventKind.MailDeleted => "Mail deleted",
             _ => "Files & calendar data deleted",
         };
-        string systems = string.Join(", ", entry.Systems.Select(static s => $"{ShortName(s.Backend)} {AfterWord(s.State)}"));
+        string systems = string.Join(", ", entry.Systems.Select(static s => $"{ShortName(s.Backend)}: {AfterWord(s.State)}"));
         return systems.Length == 0 ? $"{what} by {entry.By}" : $"{what} by {entry.By}: {systems}";
     }
 
@@ -119,10 +119,11 @@ public static class Systems
     };
 
     /// <summary>
-    /// Rows for a read-only record value: enough to show it whole even in the narrower change table (about 45
-    /// characters a line), at most six; a spare line is better than a hidden part of a key.
+    /// Rows for a read-only record value: enough to show it whole even at phone width (about 35 characters a line),
+    /// at most eight; a spare line is better than a hidden part of a key. Browsers that size fields to their content
+    /// (<c>field-sizing</c>) ignore it.
     /// </summary>
-    public static int ValueRows(string value) => Math.Clamp(((value?.Length ?? 0) / 45) + 1, 1, 6);
+    public static int ValueRows(string value) => Math.Clamp(((value?.Length ?? 0) / 35) + 1, 1, 8);
 
     /// <summary>
     /// What an SPF record means for <paramref name="domain"/>, worked out from the record itself: who it lets send,

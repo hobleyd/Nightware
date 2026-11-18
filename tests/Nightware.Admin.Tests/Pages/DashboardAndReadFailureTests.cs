@@ -356,8 +356,10 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         global.ShouldNotContain("If this persists");
 
         string entityAdmin = await GetAsync("/users/u-eve", ConsoleHost.EntityAdmin);
-        entityAdmin.ShouldContain("Mail is not answering. Tell your Nightware operator; once it answers, Finish offboarding shuts it.");
+        entityAdmin.ShouldContain("<p><strong>Mail is not answering. Tell your Nightware operator; once it answers, Finish offboarding shuts it.</strong></p>");
+        entityAdmin.ShouldContain("<button type=\"submit\" class=\"secondary\">Finish offboarding</button>");
         entityAdmin.ShouldNotContain("run it again once the system is reachable");
+        entityAdmin.IndexOf("Tell your Nightware operator", StringComparison.Ordinal).ShouldBeLessThan(entityAdmin.IndexOf(">Finish offboarding</button>", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -370,7 +372,7 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         string html = await GetAsync("/", ConsoleHost.EntityAdmin);
 
         html.ShouldContain("Mail is not answering for eve. If this persists, tell your Nightware operator.");
-        html.ShouldContain("<span class=\"detail hint\">If this persists, tell your Nightware operator.</span>");
+        html.ShouldContain("Mail is not answering. Tell your Nightware operator; once it answers, Finish offboarding shuts it.");
         html.ShouldNotContain("answers its health check");
     }
 
@@ -405,5 +407,21 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
 
         html.ShouldContain("<button type=\"submit\" class=\"secondary\">Add</button>");
         html.ShouldNotContain("<button type=\"submit\">Connect</button>");
+    }
+
+    [Fact]
+    public async Task An_spf_that_lets_anyone_send_is_on_the_dashboard_with_the_way_to_fix_it()
+    {
+        _host.Entities.GetAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(ConsoleHost.AcmeEntity with
+        {
+            MailPolicies = new Dictionary<MailDomain, DomainMailPolicy> { [ConsoleHost.Domain("acme.example")] = new(SpfRecord.Parse("v=spf1 +all").Value, null) },
+        });
+
+        string global = await GetAsync("/");
+        global.ShouldContain("its SPF lets any server send mail as it");
+        global.ShouldContain("?edit=true#mail-policy\">Fix SPF and DMARC</a>");
+        global.ShouldNotContain("handler=RepairDomain");
+
+        (await GetAsync("/", ConsoleHost.EntityAdmin)).ShouldContain("Ask your Nightware operator to fix it.");
     }
 }

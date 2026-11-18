@@ -14,7 +14,7 @@ public sealed class AccessHistoryRecorder(IAdminActor actor, IIdentityAccounts i
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         Result<IdentityAccount> admin = await identities.GetAsync(actor.Current.UserId, cancellationToken).ConfigureAwait(false);
-        string by = admin.IsSuccess ? admin.Value.Username : actor.Current.UserId;
+        string by = admin.IsSuccess ? admin.Value.DisplayName : actor.Current.UserId;
         // Sign-in included: whether Keycloak itself was shut is the first thing an offboarding's history must say.
         SystemState[] systems = after is null ? [] : [.. after.Links.Select(static l => new SystemState(l.Backend, l.State))];
         await identities.AddAccessEventAsync(userId, new AccessEvent(time.GetUtcNow(), kind, by, systems), cancellationToken).ConfigureAwait(false);

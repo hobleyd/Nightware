@@ -418,8 +418,8 @@ public sealed class UserPagesTests : IDisposable
         string html = await (await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri("/users/u-dan", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
 
         html.ShouldContain("<h3>History</h3>");
-        int finished = html.IndexOf("Offboarding run again by ops: Mail shut", StringComparison.Ordinal);
-        int first = html.IndexOf("Offboarded by ops: Mail failed", StringComparison.Ordinal);
+        int finished = html.IndexOf("Offboarding run again by ops: Mail: shut", StringComparison.Ordinal);
+        int first = html.IndexOf("Offboarded by ops: Mail: failed", StringComparison.Ordinal);
         finished.ShouldBeGreaterThan(0);
         first.ShouldBeGreaterThan(finished);
         html.ShouldContain("18 Nov 2026, 09:40 UTC");
@@ -433,5 +433,13 @@ public sealed class UserPagesTests : IDisposable
         string html = await (await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri("/users/u-dan", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
 
         html.ShouldNotContain("<h3>History</h3>");
+    }
+
+    [Fact]
+    public async Task The_new_user_form_says_which_of_its_two_steps_it_is_on()
+    {
+        string html = await (await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri(NewUserUrl, UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain("<h2>Step 1 of 2: Who</h2>");
     }
 }

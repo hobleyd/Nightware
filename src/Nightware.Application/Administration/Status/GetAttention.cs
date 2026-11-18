@@ -9,7 +9,12 @@ namespace Nightware.Application.Administration.Status;
 public sealed record UserNeedingAttention(UserDetail User, UserStatus Status, Entity Entity);
 
 /// <summary>A domain the mail server does not serve, or serves without signing keys.</summary>
-public sealed record DomainNeedingAttention(DomainStatus Domain, Entity Entity);
+/// <param name="Unsafe">What in the domain's own SPF or DMARC lets anyone send as it; empty when nothing does.</param>
+public sealed record DomainNeedingAttention(DomainStatus Domain, Entity Entity, IReadOnlyList<MailAuthenticationWeakness> Unsafe)
+{
+    /// <summary>The mail server's side is what needs fixing (Repair), not the domain's own records.</summary>
+    public bool NeedsRepair => Domain.Mail.State != LinkState.Linked || !Domain.DkimPresent;
+}
 
 /// <summary>
 /// What needs an admin across their entities. <see cref="NotChecked"/> names the entities that were too large
@@ -49,9 +54,10 @@ public sealed class GetAttention(ListEntities entities, GetEntity getEntity, Lis
 
             if (detail.IsSuccess)
             {
+                // Weak records are shown where they are read; only one that lets anyone send as the domain needs you now.
                 domains.AddRange(detail.Value.Domains
-                    .Where(static d => d.Mail.State != LinkState.Linked || !d.DkimPresent)
-                    .Select(d => new DomainNeedingAttention(d, entity)));
+                    .Select(d => new DomainNeedingAttention(d, entity, UnsafeIn(detail.Value.Entity.MailPolicyFor(d.Domain))))
+                    .Where(static d => d.NeedsRepair || d.Unsafe.Count > 0));
             }
 
             if (members.IsSuccess && members.Value.Count <= ListUsers.LinkedListLimit)
@@ -75,4 +81,11 @@ public sealed class GetAttention(ListEntities entities, GetEntity getEntity, Lis
         UserStatus.Conflict => 1,
         _ => 2,
     };
+
+    private static MailAuthenticationWeakness[] UnsafeIn(DomainMailPolicy policy) =>
+        [
+            .. (policy.Spf is { } spf ? MailAuthenticationWeaknesses.Spf(spf.Value) : [])
+                .Concat(policy.Dmarc is { } dmarc ? MailAuthenticationWeaknesses.Dmarc(dmarc.Value) : [])
+                .Where(static w => w.Severity == WeaknessSeverity.Unsafe),
+        ];
 }
