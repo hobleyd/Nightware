@@ -188,6 +188,22 @@ public sealed class UserPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task A_nextcloud_administrators_page_opens_for_a_global_admin_without_actions()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+        _host.Groupware.FindAsync("dan", Arg.Any<CancellationToken>()).Returns(new GroupwareAccount("dan", "dan@acme.example", "Dan", true, true) { IsAdministrator = true });
+
+        using HttpResponseMessage response = await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri("/users/u-dan", UriKind.Relative), Ct);
+        string html = await response.Content.ReadAsStringAsync(Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("This account administers the mail or Nextcloud server; manage it there.");
+        html.ShouldNotContain("handler=Repair");
+        html.ShouldNotContain("<h2>Access</h2>");
+        html.ShouldNotContain("<h2>Password</h2>");
+    }
+
+    [Fact]
     public async Task Reinstating_needs_the_confirmation_box()
     {
         _host.AddUser("u-dan", "dan", "dan@acme.example", enabled: false);

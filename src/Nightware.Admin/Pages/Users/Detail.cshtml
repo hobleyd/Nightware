@@ -9,6 +9,8 @@
     // The page's one primary action is the one this user's status calls for.
     var status = Nightware.Application.Administration.Users.UserStatuses.Of(Model.Subject);
     var incomplete = status == Nightware.Application.Administration.Users.UserStatus.OffboardingIncomplete;
+    // Shown to a global admin so a listed conflict opens, but the console changes nothing on such an account.
+    var offLimits = Model.Subject.OffLimits;
     ViewData["Title"] = id.DisplayName;
 }
 @* Every breadcrumb starts where the navigation does; someone in no entity is reached as a global administrator. *@
@@ -53,7 +55,11 @@ else if (u.IsGlobalAdmin && Model.Actor.IsGlobal)
     {
         <p class="hint">@Systems.TellOperator</p>
     }
-    @if (id.Enabled)
+    @if (offLimits is not null)
+    {
+        <p><strong>@offLimits</strong> The console shows this account but never changes it, so it offers no actions here.</p>
+    }
+    else if (id.Enabled)
     {
         <form method="post" asp-page-handler="Repair"><button type="submit" class="@(status == Nightware.Application.Administration.Users.UserStatus.NeedsRepair ? null : "secondary")">Repair</button> <span class="hint">Creates what is missing; never changes a conflicting account.</span></form>
     }
@@ -67,7 +73,7 @@ else if (u.IsGlobalAdmin && Model.Actor.IsGlobal)
     </div>
 }
 
-@if (!self)
+@if (!self && offLimits is null)
 {
     @* An incomplete offboarding is this page's subject: the Access panel itself carries its colour, not a box inside it. *@
     <section class="panel@(incomplete ? " incomplete" : "")">
@@ -147,7 +153,7 @@ else if (u.IsGlobalAdmin && Model.Actor.IsGlobal)
     </section>
 }
 
-@if (id.Enabled && !self)
+@if (id.Enabled && !self && offLimits is null)
 {
     <section class="panel">
         <h2>Password</h2>
@@ -159,7 +165,7 @@ else if (u.IsGlobalAdmin && Model.Actor.IsGlobal)
 
 }
 
-@if (!self)
+@if (!self && offLimits is null)
 {
     @* Rare changes wait behind one summary, so the page leads with state, access and passwords. Granting global
        rights is for people who can sign in; an offboarded global admin can still have the rights removed. *@

@@ -450,6 +450,51 @@ public sealed class UserLifecycleTests
     }
 
     [Fact]
+    public async Task A_global_admin_sees_a_server_administrator_marked_off_limits_but_still_cannot_act_on_them()
+    {
+        Carol();
+        _bed.Groupware.FindAsync("carol", Arg.Any<CancellationToken>()).Returns(new GroupwareAccount("carol", "carol@acme.example", "C", true, true) { IsAdministrator = true });
+
+        UserDetail detail = (await new GetUser(_bed.UserAccess()).ExecuteAsync("u-carol", Ct)).Value;
+
+        detail.OffLimits.ShouldBe("This account administers the mail or Nextcloud server; manage it there.");
+        detail.For(BackendKind.Groupware).State.ShouldBe(LinkState.Conflict);
+        (await new RepairUser(_bed.Actor, _bed.UserAccess(), _bed.Mail, _bed.Groupware, _bed.Audit).ExecuteAsync("u-carol", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+    }
+
+    [Fact]
+    public async Task A_global_admin_sees_a_keycloak_administrator_marked_off_limits_but_still_cannot_act_on_them()
+    {
+        Carol(scope: new AdminScope(true, new HashSet<string>(), AdministersDirectory: true));
+        _bed.Mail.FindByAddressAsync("carol@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-carol", "carol@acme.example", true) { IsPrivileged = true });
+
+        UserDetail detail = (await new GetUser(_bed.UserAccess()).ExecuteAsync("u-carol", Ct)).Value;
+
+        // The first reason found is the one shown.
+        detail.OffLimits.ShouldBe("This account administers Keycloak; manage it in Keycloak itself.");
+        detail.User.IsGlobalAdmin.ShouldBeTrue();
+        (await new ResetUserCredential(_bed.Actor, _bed.UserAccess(), _bed.Credentials(), _bed.Audit).ExecuteAsync("u-carol", CredentialDelivery.TemporaryPassword, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+    }
+
+    [Fact]
+    public async Task An_entity_admin_still_cannot_see_an_off_limits_user()
+    {
+        Carol();
+        _bed.Groupware.FindAsync("carol", Arg.Any<CancellationToken>()).Returns(new GroupwareAccount("carol", "carol@acme.example", "C", true, true) { IsAdministrator = true });
+        _bed.ActAsEntityAdmin();
+
+        (await new GetUser(_bed.UserAccess()).ExecuteAsync("u-carol", Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task A_manageable_user_is_not_off_limits()
+    {
+        Carol();
+
+        (await new GetUser(_bed.UserAccess()).ExecuteAsync("u-carol", Ct)).Value.OffLimits.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Aliases_cannot_capture_another_persons_address_or_a_reserved_one()
     {
         Carol();

@@ -45,11 +45,14 @@ public sealed class ListUsers(IAdminActor actor, IEntityRegistry entities, UserA
     }
 }
 
-/// <summary>One user with their entity, admin roles and link state in every backend.</summary>
+/// <summary>
+/// One user with their entity, admin roles and link state in every backend. A global admin also sees an account
+/// the console never changes, marked <see cref="UserDetail.OffLimits"/>; every action on it is still refused.
+/// </summary>
 public sealed class GetUser(UserAccess users)
 {
     public Task<Result<UserDetail>> ExecuteAsync(string userId, CancellationToken cancellationToken) =>
-        users.LoadWithLinksAsync(userId, cancellationToken);
+        users.ViewWithLinksAsync(userId, cancellationToken);
 }
 
 /// <summary>A user found by <see cref="FindUsers"/>, with the entity they were found in and their state everywhere.</summary>

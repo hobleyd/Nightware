@@ -6,6 +6,12 @@ namespace Nightware.Application.Administration;
 /// <summary>A user the actor may act on, with the backend links derived for them.</summary>
 public sealed record UserDetail(ManagedUser User, IReadOnlyList<BackendLink> Links)
 {
+    /// <summary>
+    /// Why the console only shows this user and changes nothing (they administer Keycloak, the mail or the Nextcloud
+    /// server); null when the actor may act on them. Set only by <see cref="UserAccess.ViewWithLinksAsync"/>.
+    /// </summary>
+    public string? OffLimits { get; init; }
+
     public BackendLink For(BackendKind backend) => Links.Single(l => l.Backend == backend);
 }
 
@@ -23,6 +29,25 @@ public sealed class UserAccess(
     IGroupwareAccounts groupware)
 {
     public async Task<Result<ManagedUser>> LoadAsync(string userId, CancellationToken cancellationToken)
+    {
+        Result<(ManagedUser User, string? OffLimits)> loaded = await LoadAsync(userId, false, cancellationToken).ConfigureAwait(false);
+        return loaded.IsSuccess ? loaded.Value.User : loaded.Error;
+    }
+
+    /// <summary>
+    /// A user to show, not to act on: a global admin also sees an account the console never changes, with the
+    /// reason in <see cref="UserDetail.OffLimits"/>, so a conflict the console lists always opens. Entity admins
+    /// get exactly what <see cref="LoadAsync(string, CancellationToken)"/> gives them.
+    /// </summary>
+    public async Task<Result<UserDetail>> ViewWithLinksAsync(string userId, CancellationToken cancellationToken)
+    {
+        Result<(ManagedUser User, string? OffLimits)> loaded = await LoadAsync(userId, true, cancellationToken).ConfigureAwait(false);
+        return loaded.IsSuccess
+            ? await WithLinksAsync(loaded.Value.User, cancellationToken).ConfigureAwait(false) with { OffLimits = loaded.Value.OffLimits }
+            : loaded.Error;
+    }
+
+    private async Task<Result<(ManagedUser User, string? OffLimits)>> LoadAsync(string userId, bool view, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         Result admin = AdminAuthorization.RequireAdmin(actor.Current);
@@ -49,8 +74,15 @@ public sealed class UserAccess(
             return scope.Error;
         }
 
+        // Only a view by a global admin gets past a refusal, and then only to read.
+        bool showOnly = view && actor.Current.IsGlobal;
+        string? offLimits = null;
         Result allowed = AdminAuthorization.RequireMayManageUser(actor.Current, memberships.Value, scope.Value);
-        if (!allowed.IsSuccess)
+        if (!allowed.IsSuccess && showOnly)
+        {
+            offLimits = allowed.Error.Message;
+        }
+        else if (!allowed.IsSuccess)
         {
             // Not "forbidden": an entity admin must not learn which ids exist outside their scope.
             return actor.Current.IsGlobal ? allowed.Error : Error.NotFound("The user was not found.");
@@ -64,12 +96,20 @@ public sealed class UserAccess(
         if ((await mailbox.ConfigureAwait(false)) is { IsSuccess: true, Value.IsPrivileged: true }
             || (await cloud.ConfigureAwait(false)) is { IsSuccess: true, Value.IsAdministrator: true })
         {
-            return actor.Current.IsGlobal
-                ? Error.Forbidden("This account administers the mail or Nextcloud server; manage it there.")
-                : Error.NotFound("The user was not found.");
+            const string ServerAdministrator = "This account administers the mail or Nextcloud server; manage it there.";
+            if (showOnly)
+            {
+                offLimits ??= ServerAdministrator;
+            }
+            else
+            {
+                return actor.Current.IsGlobal
+                    ? Error.Forbidden(ServerAdministrator)
+                    : Error.NotFound("The user was not found.");
+            }
         }
 
-        return new ManagedUser(identity.Value, memberships.Value.Count > 0 ? memberships.Value[0] : null, scope.Value.IsGlobal, scope.Value.EntityIds.Count > 0);
+        return (new ManagedUser(identity.Value, memberships.Value.Count > 0 ? memberships.Value[0] : null, scope.Value.IsGlobal, scope.Value.EntityIds.Count > 0), offLimits);
     }
 
     public async Task<Result<UserDetail>> LoadWithLinksAsync(string userId, CancellationToken cancellationToken)
