@@ -55,7 +55,7 @@ public sealed class MailPolicyPageTests : IDisposable
     {
         string html = await GetAsync(DnsUrl);
 
-        html.ShouldContain("<h2>SPF and DMARC</h2>");
+        html.ShouldContain("<h2>1. Decide SPF and DMARC</h2>");
         html.ShouldContain("handler=MailPolicy");
         html.ShouldContain("Now: the mail server's record <code>v=spf1 mx ra=postmaster -all</code>");
         html.ShouldContain("Now: the mail server's record <code>v=DMARC1; p=reject</code>");
@@ -78,7 +78,18 @@ public sealed class MailPolicyPageTests : IDisposable
     [Fact]
     public async Task The_records_to_publish_sit_in_their_own_panel()
     {
-        (await GetAsync(DnsUrl)).ShouldContain("<h2>Publish these records</h2>");
+        (await GetAsync(DnsUrl)).ShouldContain("<h2>2. Publish these records</h2>");
+    }
+
+    [Fact]
+    public async Task A_global_admin_decides_spf_and_dmarc_before_the_records_to_publish()
+    {
+        string global = await GetAsync(DnsUrl);
+        global.IndexOf("1. Decide SPF and DMARC", StringComparison.Ordinal).ShouldBeLessThan(global.IndexOf("2. Publish these records", StringComparison.Ordinal));
+        global.ShouldContain("<summary>How SPF and DMARC work</summary>");
+
+        string entityAdmin = await GetAsync(DnsUrl, ConsoleHost.EntityAdmin);
+        entityAdmin.IndexOf("<h2>Publish these records</h2>", StringComparison.Ordinal).ShouldBeLessThan(entityAdmin.IndexOf("<h2>SPF and DMARC</h2>", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -219,7 +219,7 @@ Forms flow top to bottom. Related fields share a wrapping row in which each fiel
 **Responsive:** one breakpoint, at 640px. Below it every table becomes a stack of records: the header row is hidden, each row is a block separated by a hairline, and each cell is a line prefixed with its column label (`data-label`). Nothing scrolls sideways.
 
 ### Named Rules
-**The Reading-Order Rule.** A page reads top to bottom in the order the admin acts: where you are, what this is, its state, what you can do, and what is destructive (last). On a user's page Access comes straight after Systems, so offboarding on a phone is one screen away.
+**The Reading-Order Rule.** A page reads top to bottom in the order the admin acts: where you are, what this is, its state, what you can do, and what is destructive (last). On a user's page Access comes straight after Systems, so offboarding on a phone is one screen away. On a domain's DNS page a global administrator decides SPF and DMARC first, then publishes, so what is copied or sent to Cloudflare already carries the decision; the steps are numbered because their order is the information. Explanations a returning operator no longer needs fold into a "How … work" summary.
 
 ## Elevation & Depth
 

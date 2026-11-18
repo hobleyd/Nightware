@@ -131,7 +131,7 @@ public sealed partial class DnsHostingPageTests : IDisposable
     {
         string html = await GetAsync(DnsUrl);
 
-        html.ShouldContain("<h2>Publish to Cloudflare</h2>");
+        html.ShouldContain("<h2>3. Publish to Cloudflare</h2>");
         html.ShouldContain("Connect Acme Pty's Cloudflare account");
         await _host.DnsHosting.DidNotReceiveWithAnyArgs().FindZoneAsync(default!, default!, Ct);
     }

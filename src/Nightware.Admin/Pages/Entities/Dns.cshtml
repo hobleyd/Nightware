@@ -31,6 +31,12 @@
     </div>
 }
 
+@if (Model.Actor.IsGlobal)
+{
+    @* Decided first, so what is copied or published below already carries it. *@
+    <partial name="_MailPolicy" model="Model" />
+}
+
 @if (Model.Records.Count == 0)
 {
     @if (!Model.Repairable)
@@ -41,7 +47,7 @@
 else
 {
     <section class="panel">
-    <h2>Publish these records</h2>
+    <h2>@(Model.Actor.IsGlobal ? "2. Publish these records" : "Publish these records")</h2>
     <p class="hint">Publish these at your DNS provider so mail for @Model.Domain is delivered here and your outgoing mail passes SPF, DKIM and DMARC checks. Select a value to copy it.</p>
     <table class="dns">
         <thead><tr><th>Type</th><th>Name</th><th>TTL</th><th>Value</th></tr></thead>
@@ -63,7 +69,7 @@ else
 @if (Model.Actor.IsGlobal && Model.Records.Count > 0)
 {
     <section class="panel">
-        <h2>Publish to Cloudflare</h2>
+        <h2>3. Publish to Cloudflare</h2>
         @if (!Model.Entity.Entity.HasDnsToken)
         {
             <p class="hint">Connect @Model.Entity.Entity.Name's Cloudflare account on <a asp-page="/Entities/Detail" asp-route-id="@Model.Id">the entity's page</a> to publish these records from here.</p>
@@ -113,65 +119,7 @@ else
     </section>
 }
 
-<section class="panel">
-    <h2>SPF and DMARC</h2>
-    <p class="hint">SPF lists the servers allowed to send mail for @Model.Domain. DMARC tells receiving servers what to do with mail that fails SPF and DKIM, and where to send reports. Unless you set your own, the domain uses the mail server's records.</p>
-    @if (Model.Actor.IsGlobal)
-    {
-        <form method="post" asp-page-handler="MailPolicy">
-            <p id="spf-now" class="now">Now: @if (Model.SpfDefaultInUse is { } spfNow) { <text>the mail server's record </text><code>@spfNow</code> } else { <text>this domain's own record, below.</text> }</p>
-            <label>SPF record
-                <textarea asp-for="Spf" rows="2" class="mono" aria-describedby="@(Model.SpfSuggested ? "spf-now spf-suggested spf-hint" : "spf-now spf-hint")"></textarea>
-            </label>
-            @if (Model.SpfSuggested && Model.Suggestion is { } s)
-            {
-                <p id="spf-suggested" class="suggested">Suggested, not in use until you save: only @(s.Addresses.Count > 0 ? "this server's public " + (s.Addresses.Count == 1 ? "address" : "addresses") : "the domain's MX hosts") may send, and other senders are refused.
-                    @switch (s.Source)
-                    {
-                        case Nightware.Application.Administration.Entities.PublicAddressSource.Cloudflare:
-                            <text>The address comes from the A/AAAA records for @s.Host in the entity's Cloudflare zone.</text>
-                            break;
-                        case Nightware.Application.Administration.Entities.PublicAddressSource.PublicDns:
-                            <text>The address comes from public DNS for @s.Host. Behind NAT, mail can leave from a different address: check it.</text>
-                            break;
-                        case Nightware.Application.Administration.Entities.PublicAddressSource.Proxied:
-                            <text>Cloudflare proxies @s.Host, so its addresses are Cloudflare's, not this server's. Enter the server's own address with <code>ip4:</code> if you know it.</text>
-                            break;
-                        default:
-                            <text>@(s.Host is null ? "No public host is configured" : $"No public address was found for {s.Host}"), so the MX hosts stand in. Enter the server's own address with <code>ip4:</code> if you know it.</text>
-                            break;
-                    }
-                </p>
-            }
-            <p id="spf-hint" class="hint">For example <code>v=spf1 mx -all</code>; add <code>include:</code> for any other service that sends as @Model.Domain. Leave blank to use the mail server's record.</p>
-            <p id="dmarc-now" class="now">Now: @if (Model.DmarcDefaultInUse is { } dmarcNow) { <text>the mail server's record </text><code>@dmarcNow</code>@(Model.DmarcPolicyInUse == "reject" ? ". It is strict: mail that fails the checks is refused." : "") } else { <text>this domain's own record, below.</text>@(Model.DmarcPolicyInUse == "reject" ? " It is strict: mail that fails the checks is refused." : "") }</p>
-            <label>DMARC record
-                <textarea asp-for="Dmarc" rows="2" class="mono" aria-describedby="@(Model.DmarcSuggested ? "dmarc-now dmarc-suggested dmarc-hint" : "dmarc-now dmarc-hint")"></textarea>
-            </label>
-            @if (Model.DmarcSuggested)
-            {
-                <p id="dmarc-suggested" class="suggested">Suggested, not in use until you save: mail that fails is refused, for subdomains too, and both checks must match the domain exactly. Reports go to postmaster@@@Model.Domain.</p>
-            }
-            <p id="dmarc-hint" class="hint">For example <code>v=DMARC1; p=quarantine; rua=mailto:postmaster@@@Model.Domain</code>. While other services still send as @Model.Domain, a gentler <code>p=none</code> only reports failures instead of refusing them. Reports sent to a <code>rua=</code> address need a mailbox there. Leave blank to use the mail server's record.</p>
-            @if (Model.SpfSuggested || Model.DmarcSuggested)
-            {
-                <p class="hint">Saving makes both fields this domain's own records, suggestions included. Clear a field to keep the mail server's record for it.</p>
-            }
-            @if (Model.SpfChanges)
-            {
-                <label class="choice"><input type="checkbox" name="ConfirmSpf" value="true" required> @Model.SpfConsequence</label>
-            }
-            <button type="submit" class="secondary">Save</button>
-        </form>
-        @if (!Model.Policy.IsDefault)
-        {
-            <form method="post" asp-page-handler="DefaultMailPolicy">
-                <button type="submit" class="secondary">Use the mail server's records</button>
-            </form>
-        }
-    }
-    else
-    {
-        <p>SPF: @(Model.Policy.Spf is null ? "the mail server's record" : "set for this domain"). DMARC: @(Model.Policy.Dmarc is null ? "the mail server's record" : $"set for this domain (p={Model.Policy.Dmarc.Policy})"). Only your Nightware operator can change them.</p>
-    }
-</section>
+@if (!Model.Actor.IsGlobal)
+{
+    <partial name="_MailPolicy" model="Model" />
+}

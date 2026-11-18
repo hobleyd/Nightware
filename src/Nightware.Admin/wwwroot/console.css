@@ -79,7 +79,10 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; }
 .detail { margin: 4px 0 0; }
 .danger-zone, .panel.incomplete { border-color: var(--bad); }
 .hint { color: var(--muted); font-size: 0.9em; }
-p.hint, p.now, p.suggested { max-width: 75ch; }
+/* 60ch of "0" widths holds about 75 characters of running text. */
+p.hint, p.now, p.suggested, details.teach p { max-width: 60ch; }
+details.teach { margin: 0 0 12px; }
+details.teach > summary { cursor: pointer; color: var(--accent); }
 p.suggested { margin: 4px 0; font-size: 0.9em; }
 p.now { margin: 12px 0 4px; }
 p.now code { overflow-wrap: anywhere; }
