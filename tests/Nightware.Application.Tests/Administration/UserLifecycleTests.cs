@@ -170,7 +170,7 @@ public sealed class UserLifecycleTests
         written.Kind.ShouldBe(AccessEventKind.Offboarded);
         written.By.ShouldBe("ops");
         written.At.ShouldBe(_bed.Time.GetUtcNow());
-        written.Systems.Select(static s => s.Backend).ShouldBe([BackendKind.Mail, BackendKind.Groupware], ignoreOrder: true);
+        written.Systems.Select(static s => s.Backend).ShouldBe([BackendKind.Identity, BackendKind.Mail, BackendKind.Groupware], ignoreOrder: true);
     }
 
     [Fact]

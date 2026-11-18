@@ -16,7 +16,7 @@ public sealed class AccessHistoryRecorderTests
             [new BackendLink(BackendKind.Identity, LinkState.Disabled), .. links]);
 
     [Fact]
-    public async Task Names_the_admin_by_username_and_keeps_only_the_downstream_systems()
+    public async Task Names_the_admin_by_username_and_keeps_every_systems_state_sign_in_first()
     {
         _bed.AddUser("u-admin", "ops", "ops@example.net");
         AccessEvent? written = null;
@@ -25,7 +25,7 @@ public sealed class AccessHistoryRecorderTests
         await _bed.History().RecordAsync("u-carol", AccessEventKind.Offboarded, Carol(new BackendLink(BackendKind.Mail, LinkState.Disabled)), Ct);
 
         written!.By.ShouldBe("ops");
-        written.Systems.ShouldBe([new SystemState(BackendKind.Mail, LinkState.Disabled)]);
+        written.Systems.ShouldBe([new SystemState(BackendKind.Identity, LinkState.Disabled), new SystemState(BackendKind.Mail, LinkState.Disabled)]);
     }
 
     [Fact]

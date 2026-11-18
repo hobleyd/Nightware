@@ -285,7 +285,7 @@ Each row carries its fix when the fix is safe to repeat: "Finish offboarding" (o
 The Systems chips below agree with it: a system that answers its health check but failed for someone in the sweep reads "Reachable, failed for N" in amber, with the names beneath, never a plain "OK".
 
 ### Access history
-At the foot of a user's Access panel, newest first and at most ten: when (UTC, in Slate, tabular numerals), what, by whom, and what each system said straight after ("18 Nov 2026, 09:12 UTC · Offboarded by ops: Mail failed, Files & calendar none"). It is kept on the user in Keycloak (`nightware_access_history`), never in the console, and shown only when there is something to show.
+At the foot of a user's Access panel, newest first and at most ten: when (UTC, in Slate, tabular numerals), what, by whom, and what each system said straight after ("18 Nov 2026, 09:12 UTC · Offboarded by ops: Sign-in shut, Mail failed, Files & calendar none"). It is kept on the user in Keycloak (`nightware_access_history`), never in the console, and shown only when there is something to show.
 
 ### Secret Box (signature)
 The one moment of emphasis. A one-time credential appears in a box with a 2px dashed amber border at 8px radius, under the bolded instruction "Temporary password — shown once." and the advice to deliver it by another channel. The value is mono at 1.3em with `user-select: all`. It is never shown twice.

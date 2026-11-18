@@ -57,10 +57,10 @@ public sealed class SystemsTests
     public void A_history_entry_reads_as_what_who_and_what_each_system_said()
     {
         var at = new DateTimeOffset(2026, 11, 18, 19, 12, 0, TimeSpan.FromHours(10));
-        var offboarded = new AccessEvent(at, AccessEventKind.Offboarded, "ops", [new SystemState(BackendKind.Mail, LinkState.Error), new SystemState(BackendKind.Groupware, LinkState.Missing)]);
+        var offboarded = new AccessEvent(at, AccessEventKind.Offboarded, "ops", [new SystemState(BackendKind.Identity, LinkState.Disabled), new SystemState(BackendKind.Mail, LinkState.Error), new SystemState(BackendKind.Groupware, LinkState.Missing)]);
 
         Systems.When(at).ShouldBe("18 Nov 2026, 09:12 UTC");
-        Systems.HistoryLine(offboarded).ShouldBe("Offboarded by ops: Mail failed, Files & calendar none");
+        Systems.HistoryLine(offboarded).ShouldBe("Offboarded by ops: Sign-in shut, Mail failed, Files & calendar none");
         Systems.HistoryLine(new AccessEvent(at, AccessEventKind.Reinstated, "ops", [])).ShouldBe("Reinstated by ops");
     }
 }
