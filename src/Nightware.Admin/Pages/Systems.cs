@@ -124,6 +124,79 @@ public static class Systems
     /// </summary>
     public static int ValueRows(string value) => Math.Clamp(((value?.Length ?? 0) / 45) + 1, 1, 6);
 
+    /// <summary>
+    /// What an SPF record means for <paramref name="domain"/>, worked out from the record itself: who it lets send,
+    /// and what happens to everyone else. "Only 81.2.69.160 and the MX hosts may send mail for acme.example; other
+    /// senders are refused."
+    /// </summary>
+    public static string SpfMeaning(SpfRecord spf, string domain)
+    {
+        ArgumentNullException.ThrowIfNull(spf);
+        string[] terms = [.. spf.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1)];
+        var senders = new List<string>();
+        foreach (string term in terms.Select(static t => t.TrimStart('+')))
+        {
+            string lower = term.ToLowerInvariant();
+            if (lower.StartsWith("ip4:", StringComparison.Ordinal) || lower.StartsWith("ip6:", StringComparison.Ordinal))
+            {
+                senders.Add(term[4..]);
+            }
+            else if (lower == "mx" || lower.StartsWith("mx:", StringComparison.Ordinal) || lower.StartsWith("mx/", StringComparison.Ordinal))
+            {
+                senders.Add("the MX hosts");
+            }
+            else if (lower == "a" || lower.StartsWith("a:", StringComparison.Ordinal) || lower.StartsWith("a/", StringComparison.Ordinal))
+            {
+                senders.Add(lower == "a" ? $"{domain}'s own address" : $"{term[2..]}'s address");
+            }
+            else if (lower.StartsWith("include:", StringComparison.Ordinal))
+            {
+                senders.Add($"whatever {term[8..]} lists");
+            }
+            else if (lower.StartsWith("redirect=", StringComparison.Ordinal))
+            {
+                return $"{domain} uses {term[9..]}'s SPF record: whoever it lets send may send mail for {domain}.";
+            }
+        }
+
+        string? all = terms.LastOrDefault(static t => t.TrimStart('+', '-', '~', '?').Equals("all", StringComparison.OrdinalIgnoreCase))?.ToLowerInvariant();
+        if (all is "+all" or "all")
+        {
+            return $"Any server may send mail for {domain}: +all lets every sender through.";
+        }
+
+        string others = all switch
+        {
+            "-all" => "other senders are refused",
+            "~all" => "other senders only soft-fail, and most receivers still accept their mail",
+            _ => "other senders are not refused",
+        };
+        string[] named = [.. senders.Distinct()];
+        string who = named.Length switch
+        {
+            0 => "No server",
+            1 => $"Only {named[0]}",
+            _ => $"Only {string.Join(", ", named[..^1])} and {named[^1]}",
+        };
+        return $"{who} may send mail for {domain}; {others}.";
+    }
+
+    /// <summary>A weakness's chip word: "Unsafe" lets anyone send as the domain, "Weak" leaves something open.</summary>
+    public static string WeaknessLabel(WeaknessSeverity severity) => severity == WeaknessSeverity.Unsafe ? "Unsafe" : "Weak";
+
+    /// <summary>A weakness's chip class: red for unsafe, amber for weak.</summary>
+    public static string WeaknessClass(WeaknessSeverity severity) => severity == WeaknessSeverity.Unsafe ? "error" : "missing";
+
+    /// <summary>
+    /// The chip class for an SPF or DMARC record as a whole: green with nothing open, otherwise the colour of its
+    /// worst weakness.
+    /// </summary>
+    public static string StrengthClass(IReadOnlyList<MailAuthenticationWeakness> weaknesses)
+    {
+        ArgumentNullException.ThrowIfNull(weaknesses);
+        return weaknesses.Count == 0 ? "linked" : WeaknessClass(weaknesses.Max(static w => w.Severity));
+    }
+
     /// <summary>A user's one-line status, the same on every page.</summary>
     public static string StatusLabel(UserStatus status) => status switch
     {

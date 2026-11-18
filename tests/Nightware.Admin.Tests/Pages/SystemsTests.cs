@@ -71,4 +71,26 @@ public sealed class SystemsTests
     [InlineData(2000, 6)]
     public void A_record_value_gets_rows_to_show_it_whole_up_to_six(int length, int rows) =>
         Systems.ValueRows(new string('x', length)).ShouldBe(rows);
+
+    [Theory]
+    [InlineData("v=spf1 ip4:81.2.69.160 -all", "Only 81.2.69.160 may send mail for acme.example; other senders are refused.")]
+    [InlineData("v=spf1 mx mx -all", "Only the MX hosts may send mail for acme.example; other senders are refused.")]
+    [InlineData("v=spf1 a ip6:2a01:4f8::1 ?all", "Only acme.example's own address and 2a01:4f8::1 may send mail for acme.example; other senders are not refused.")]
+    [InlineData("v=spf1 mx +all", "Any server may send mail for acme.example: +all lets every sender through.")]
+    [InlineData("v=spf1 redirect=_spf.example.net", "acme.example uses _spf.example.net's SPF record: whoever it lets send may send mail for acme.example.")]
+    public void An_spf_record_is_described_from_its_own_text(string value, string meaning) =>
+        Systems.SpfMeaning(SpfRecord.Parse(value).Value, "acme.example").ShouldBe(meaning);
+
+    [Fact]
+    public void A_record_is_green_with_nothing_open_and_otherwise_the_colour_of_its_worst_weakness()
+    {
+        MailAuthenticationWeakness weak = new(WeaknessSeverity.Weak, "Weak.");
+        MailAuthenticationWeakness @unsafe = new(WeaknessSeverity.Unsafe, "Unsafe.");
+
+        Systems.StrengthClass([]).ShouldBe("linked");
+        Systems.StrengthClass([weak]).ShouldBe("missing");
+        Systems.StrengthClass([weak, @unsafe]).ShouldBe("error");
+        Systems.WeaknessLabel(WeaknessSeverity.Unsafe).ShouldBe("Unsafe");
+        Systems.WeaknessLabel(WeaknessSeverity.Weak).ShouldBe("Weak");
+    }
 }

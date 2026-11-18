@@ -77,10 +77,11 @@ public sealed class DnsModel(
     /// </summary>
     public bool SpfChanges => !string.IsNullOrWhiteSpace(Spf) && Spf.Trim() != Policy.Spf?.Value;
 
-    /// <summary>What saving the SPF field means, in words, for the confirming box.</summary>
-    public string SpfConsequence => SpfSuggested && Suggestion is { Addresses.Count: > 0 } s
-        ? $"Only {string.Join(", ", s.Addresses)} may send mail for {Domain}; other senders are refused"
-        : $"Use this SPF record for {Domain}: senders it does not list fail SPF";
+    /// <summary>
+    /// The SPF record awaiting confirmation: the exact value that was posted, shown back with what it means, so the
+    /// confirming box can only ever describe the record it commits. Null when nothing is being reviewed.
+    /// </summary>
+    public SpfRecord? SpfUnderReview { get; private set; }
 
     /// <summary>The form's DMARC field: blank means the mail server's default.</summary>
     [BindProperty]
@@ -178,16 +179,17 @@ public sealed class DnsModel(
     public async Task<IActionResult> OnPostMailPolicyAsync(CancellationToken cancellationToken)
     {
         _policyPosted = true;
-        // A wrong SPF with -all stops the domain's outgoing mail, so changing it is confirmed like any change to who
-        // can get in. Saving only DMARC, with SPF as it was, needs no box.
-        // Only global administrators may set records at all; anyone else is refused by the use case, not asked to confirm.
+        // A wrong SPF with -all stops the domain's outgoing mail, so a new SPF record is reviewed before it is saved:
+        // the exact record posted, with what it means, and a box that describes only that record. Saving only DMARC,
+        // with SPF as it was or blank, goes straight through. A malformed record goes to the use case, which says why.
+        // Only global administrators may set records at all; anyone else is refused by the use case, not asked.
         if (Actor.IsGlobal && !ConfirmSpf && await getEntity.ExecuteAsync(Id, cancellationToken) is { IsSuccess: true } entity
             && entity.Value.Domains.FirstOrDefault(d => string.Equals(d.Domain.Name, Domain, StringComparison.OrdinalIgnoreCase)) is { } status)
         {
             Policy = entity.Value.Entity.MailPolicyFor(status.Domain);
-            if (SpfChanges)
+            if (SpfChanges && SpfRecord.Parse(Spf) is { IsSuccess: true } posted)
             {
-                ModelState.AddModelError(string.Empty, "Tick the box to confirm the SPF record: it decides who may send mail for " + Domain + ".");
+                SpfUnderReview = posted.Value;
                 return await RenderAsync(cancellationToken, keepForm: true);
             }
         }

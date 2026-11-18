@@ -1,5 +1,25 @@
 @model Nightware.Admin.Pages.Entities.DnsModel
 @* The domain's SPF and DMARC choice, for a global administrator: shown while the domain has none of its own, or on Edit. *@
+@if (Model.SpfUnderReview is { } reviewed)
+{
+    @* The SPF record just posted, shown back before it is saved: the box describes this record and no other. *@
+    var meaning = Systems.SpfMeaning(reviewed, Model.Domain);
+    <section class="panel" id="spf-review">
+        <h2>Use this SPF record?</h2>
+        <p><code>@reviewed.Value</code></p>
+        @foreach (var w in Nightware.Domain.Administration.MailAuthenticationWeaknesses.Spf(reviewed.Value))
+        {
+            <p class="weakness"><span class="chip @Systems.WeaknessClass(w.Severity)">@Systems.WeaknessLabel(w.Severity)</span> @w.Message</p>
+        }
+        <form method="post" asp-page-handler="MailPolicy">
+            <input type="hidden" name="Spf" value="@reviewed.Value">
+            <input type="hidden" name="Dmarc" value="@Model.Dmarc">
+            <label class="choice"><input type="checkbox" name="ConfirmSpf" value="true" required> @meaning</label>
+            <button type="submit">Use this SPF record</button>
+        </form>
+        <p class="hint">Or change it below and save again.</p>
+    </section>
+}
 <section class="panel" id="mail-policy">
     <h2>@ViewData["PolicyStep"]Decide SPF and DMARC</h2>
     <details class="teach">
@@ -47,10 +67,6 @@
             @if (Model.SpfSuggested || Model.DmarcSuggested)
             {
                 <p class="hint">Saving makes both fields this domain's own records, suggestions included. Clear a field to keep the mail server's record for it.</p>
-            }
-            @if (Model.SpfChanges)
-            {
-                <label class="choice"><input type="checkbox" name="ConfirmSpf" value="true" required> @Model.SpfConsequence</label>
             }
             <button type="submit" class="secondary">Save</button>
         </form>

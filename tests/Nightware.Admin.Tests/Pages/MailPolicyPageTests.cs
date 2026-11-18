@@ -44,10 +44,24 @@ public sealed class MailPolicyPageTests : IDisposable
     {
         string plain = await GetAsync($"/entities/{ConsoleHost.Acme}");
         plain.ShouldContain("<th>SPF</th><th>DMARC</th>");
-        plain.ShouldContain("Mail server&#x27;s");
+        plain.ShouldContain("Mail server's");
 
         GivenChosen(new DomainMailPolicy(null, DmarcRecord.Parse("v=DMARC1; p=quarantine").Value));
-        (await GetAsync($"/entities/{ConsoleHost.Acme}")).ShouldContain("Custom (p=quarantine)");
+        (await GetAsync($"/entities/{ConsoleHost.Acme}")).ShouldContain("<span class=\"chip missing\" title=\"No rua= address, so nobody receives reports of mail that fails.\">Present</span>");
+    }
+
+    [Fact]
+    public async Task The_entity_page_colours_the_domains_own_spf_and_dmarc_by_what_they_leave_open()
+    {
+        GivenChosen(new DomainMailPolicy(SpfRecord.Parse("v=spf1 mx -all").Value, DmarcRecord.Default(ConsoleHost.Domain("acme.example"))));
+        string strict = await GetAsync($"/entities/{ConsoleHost.Acme}");
+        strict.Split("<span class=\"chip linked\">Present</span>").Length.ShouldBe(3);
+        strict.ShouldNotContain("Custom");
+
+        GivenChosen(new DomainMailPolicy(SpfRecord.Parse("v=spf1 +all").Value, null));
+        string open = await GetAsync($"/entities/{ConsoleHost.Acme}");
+        open.ShouldContain("<span class=\"chip error\" title=\"&#x2B;all lets any server send mail as the domain.\">Present</span>");
+        open.ShouldContain("<span class=\"visually-hidden\">, unsafe: &#x2B;all lets any server send mail as the domain.</span>");
     }
 
     [Fact]
@@ -203,15 +217,29 @@ public sealed class MailPolicyPageTests : IDisposable
     }
 
     [Fact]
-    public async Task Changing_spf_without_the_confirming_box_changes_nothing()
+    public async Task A_new_spf_record_is_reviewed_before_it_is_saved_with_a_box_describing_that_record()
     {
         string html = await (await ConsoleHost.PostFormAsync(_host.ClientAs(ConsoleHost.GlobalAdmin), DnsUrl, DnsUrl + "?handler=MailPolicy",
-            new Dictionary<string, string> { ["Spf"] = "v=spf1 ip4:81.2.69.160 -all", ["Dmarc"] = "" })).Content.ReadAsStringAsync(Ct);
+            new Dictionary<string, string> { ["Spf"] = "v=spf1 ip4:81.2.69.160 include:mailer.example ~all", ["Dmarc"] = "" })).Content.ReadAsStringAsync(Ct);
 
-        html.ShouldContain("Tick the box to confirm the SPF record: it decides who may send mail for acme.example.");
-        html.ShouldContain(FormField("Spf", "v=spf1 ip4:81.2.69.160 -all"));
-        html.ShouldContain("name=\"ConfirmSpf\" value=\"true\" required");
+        html.ShouldContain("<h2>Use this SPF record?</h2>");
+        html.ShouldContain("<code>v=spf1 ip4:81.2.69.160 include:mailer.example ~all</code>");
+        html.ShouldContain("name=\"ConfirmSpf\" value=\"true\" required> Only 81.2.69.160 and whatever mailer.example lists may send mail for acme.example; other senders only soft-fail");
+        html.ShouldContain("<span class=\"chip missing\">Weak</span> ~all only soft-fails");
+        html.ShouldContain("type=\"hidden\" name=\"Spf\" value=\"v=spf1 ip4:81.2.69.160 include:mailer.example ~all\"");
+        html.ShouldNotContain("validation-summary-errors");
         await _host.Entities.DidNotReceiveWithAnyArgs().SetMailPolicyAsync(default!, default!, default!, Ct);
+    }
+
+    [Fact]
+    public async Task Clearing_spf_to_keep_the_mail_servers_record_needs_no_review()
+    {
+        _host.Entities.SetMailPolicyAsync(default!, default!, default!, Ct).ReturnsForAnyArgs(ConsoleHost.AcmeEntity);
+
+        using HttpResponseMessage response = await ConsoleHost.PostFormAsync(_host.ClientAs(ConsoleHost.GlobalAdmin), DnsUrl, DnsUrl + "?handler=MailPolicy",
+            new Dictionary<string, string> { ["Spf"] = "", ["Dmarc"] = "v=DMARC1; p=reject" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
     }
 
     [Fact]
