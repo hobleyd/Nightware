@@ -77,6 +77,8 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin: 16px 0; }
 .panel > h2:first-child { margin-top: 0; }
 .panel table + form { margin-top: 12px; }
+p.consoles { margin: 12px 0 0; }
+p.consoles .hint { display: block; }
 .detail { margin: 4px 0 0; }
 .danger-zone, .panel.incomplete { border-color: var(--bad); }
 .hint { color: var(--muted); font-size: 0.9em; }

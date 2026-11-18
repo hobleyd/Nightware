@@ -48,6 +48,15 @@ public sealed class AdminAuthOptions
     /// </summary>
     public string? PublicHost { get; set; }
 
+    /// <summary>Keycloak's own admin console, linked from the dashboard for global administrators; unset hides the link.</summary>
+    public string? KeycloakAdminUrl { get; set; }
+
+    /// <summary>Stalwart's web admin, linked from the dashboard for global administrators; unset hides the link.</summary>
+    public string? StalwartAdminUrl { get; set; }
+
+    /// <summary>Nextcloud's administration settings, linked from the dashboard for global administrators; unset hides the link.</summary>
+    public string? NextcloudAdminUrl { get; set; }
+
     /// <summary>How long an administrator's scope, resolved from Keycloak, is reused.</summary>
     public TimeSpan ScopeCacheLifetime { get; set; } = TimeSpan.FromSeconds(60);
 }
@@ -86,6 +95,14 @@ internal sealed class AdminAuthOptionsValidator(IHostEnvironment environment) : 
         if (options.DestructiveActionMaxAge <= TimeSpan.Zero)
         {
             failures.Add("Admin:DestructiveActionMaxAge must be positive.");
+        }
+
+        foreach ((string key, string? url) in new[] { ("KeycloakAdminUrl", options.KeycloakAdminUrl), ("StalwartAdminUrl", options.StalwartAdminUrl), ("NextcloudAdminUrl", options.NextcloudAdminUrl) })
+        {
+            if (url is { Length: > 0 } && (!Uri.TryCreate(url, UriKind.Absolute, out Uri? parsed) || (parsed.Scheme != Uri.UriSchemeHttps && parsed.Scheme != Uri.UriSchemeHttp)))
+            {
+                failures.Add($"Admin:{key} must be an absolute http(s) URL.");
+            }
         }
 
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);

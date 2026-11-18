@@ -24,8 +24,25 @@ public sealed class IndexModel(
     OffboardUser offboard,
     RepairUser repair,
     AddEntityDomain repairDomain,
-    AdministrationOptions options) : ConsolePageModel(actor)
+    AdministrationOptions options,
+    Microsoft.Extensions.Options.IOptions<Nightware.Admin.Auth.AdminAuthOptions> console) : ConsolePageModel(actor)
 {
+    /// <summary>
+    /// Each system's own admin console that is configured, for global administrators: the way out when the
+    /// console itself cannot do something. Empty for entity administrators, who hold no rights there.
+    /// </summary>
+    public IReadOnlyList<(BackendKind Backend, string Url)> AdminConsoles =>
+        !Actor.IsGlobal
+            ? []
+            : [.. new (BackendKind, string?)[]
+                {
+                    (BackendKind.Identity, console.Value.KeycloakAdminUrl),
+                    (BackendKind.Mail, console.Value.StalwartAdminUrl),
+                    (BackendKind.Groupware, console.Value.NextcloudAdminUrl),
+                }
+                .Where(static l => !string.IsNullOrWhiteSpace(l.Item2))
+                .Select(static l => (l.Item1, l.Item2!))];
+
     public Attention Attention { get; private set; } = new([], [], []);
 
     public IReadOnlyList<BackendHealth> Health { get; private set; } = [];

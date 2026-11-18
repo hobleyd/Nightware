@@ -131,6 +131,17 @@
                 : $"{Systems.ShortName(h.Backend)} is not answering for {string.Join(", ", failed)}. {Systems.TellOperator}")</p>
         }
     }
+    @if (Model.AdminConsoles.Count > 0)
+    {
+        <p class="consoles">Their own admin consoles:
+            @for (var i = 0; i < Model.AdminConsoles.Count; i++)
+            {
+                var c = Model.AdminConsoles[i];
+                <a href="@c.Url" target="_blank" rel="noopener noreferrer">@Systems.Name(c.Backend)</a>@(i < Model.AdminConsoles.Count - 1 ? " · " : "")
+            }
+            <span class="hint">Each opens in a new tab and signs in with its own administrator account.</span>
+        </p>
+    }
 </section>
 
 <section class="panel">

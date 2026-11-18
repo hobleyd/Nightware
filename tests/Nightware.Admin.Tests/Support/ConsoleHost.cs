@@ -107,6 +107,9 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
     /// <summary><c>Admin:PublicHost</c>; unset unless a test sets it before the first client.</summary>
     public string? PublicHost { get; set; }
 
+    /// <summary>Further configuration, applied before the first client.</summary>
+    public Dictionary<string, string> Settings { get; } = [];
+
     public List<IBackendStatus> Statuses { get; } = [];
 
     public FakeTimeProvider Time { get; } = new(Now);
@@ -165,6 +168,11 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
         if (PublicHost is not null)
         {
             builder.UseSetting("Admin:PublicHost", PublicHost);
+        }
+
+        foreach ((string key, string value) in Settings)
+        {
+            builder.UseSetting(key, value);
         }
 
         // The real adapters are registered and validated on start; the tests replace their ports below.

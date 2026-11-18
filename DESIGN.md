@@ -254,6 +254,7 @@ Native `<button>` elements, compact and unadorned.
 - **Corner Style:** 8px. **Background:** Panel White. **Border:** 1px Hairline, Fault Red for the danger zone. **Padding:** 16px.
 - **Use:** one panel per topic, on every page including the dashboard; a list that is a page's whole subject still sits in one (labelled, without a repeated heading).
 - **Folded:** rare changes on a user's page (other addresses, administrator rights) share one `details.more` panel whose summary names what is inside; it opens itself when a post there fails.
+- **Systems:** below the chips, global admins get one line of plain links to each configured system's own admin console (full names, ` · ` between, new tab), with a muted hint that each signs in separately. Entity admins never see it.
 - **Incomplete offboarding:** the Access panel takes the Fault Red border itself, matching its red status chip; no callout card is nested inside a panel. The Danger zone is left out until the offboarding is complete, so one red panel carries the alarm and its fix.
 
 ### Callouts

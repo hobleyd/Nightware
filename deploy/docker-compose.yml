@@ -298,6 +298,10 @@ services:
       Admin__EntityAdminsMayDeleteData: ${ADMIN_ENTITY_ADMINS_MAY_DELETE_DATA:-false}
       # Its public addresses (Cloudflare zone, else public DNS) go into the SPF record the DNS page suggests.
       Admin__PublicHost: ${PUBLIC_HOST:-nightware.localhost}
+      # Each system's own admin console, linked from the dashboard for global admins.
+      Admin__KeycloakAdminUrl: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/auth/admin/master/console/#/nightware
+      Admin__StalwartAdminUrl: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/admin
+      Admin__NextcloudAdminUrl: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/cloud/settings/admin
       # Keycloak admin API as the console's own service account.
       Directory__KeycloakBaseUrl: http://keycloak:8080/auth
       Directory__Realm: nightware

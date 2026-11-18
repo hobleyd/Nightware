@@ -426,4 +426,22 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
 
         (await GetAsync("/", ConsoleHost.EntityAdmin)).ShouldContain("Ask your Nightware operator to fix it.");
     }
+
+    [Fact]
+    public async Task Global_admins_see_links_to_each_configured_system_admin_console()
+    {
+        _host.Settings["Admin:KeycloakAdminUrl"] = "https://vpn.example/auth/admin/master/console/#/nightware";
+        _host.Settings["Admin:NextcloudAdminUrl"] = "https://cloud.example/settings/admin";
+
+        string html = await GetAsync("/");
+
+        html.ShouldContain("<a href=\"https://vpn.example/auth/admin/master/console/#/nightware\" target=\"_blank\" rel=\"noopener noreferrer\">Sign-in (Keycloak)</a>");
+        html.ShouldContain("<a href=\"https://cloud.example/settings/admin\" target=\"_blank\" rel=\"noopener noreferrer\">Files &amp; calendar (Nextcloud)</a>");
+        html.ShouldNotContain("Mail (Stalwart)</a>");
+        (await GetAsync("/", ConsoleHost.EntityAdmin)).ShouldNotContain("Their own admin consoles");
+    }
+
+    [Fact]
+    public async Task Without_configured_admin_consoles_the_dashboard_links_none() =>
+        (await GetAsync("/")).ShouldNotContain("Their own admin consoles");
 }

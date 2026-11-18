@@ -213,6 +213,23 @@ public sealed class AdminAuthenticationTests
         development.Validate(null, idleTooLong).Failed.ShouldBeTrue();
     }
 
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("https://vpn.example/auth/admin/master/console/", true)]
+    [InlineData("http://192.168.1.5:8080/admin", true)]
+    [InlineData("/admin", false)]
+    [InlineData("javascript:alert(1)", false)]
+    public void A_system_admin_console_link_must_be_an_absolute_web_address(string? url, bool ok)
+    {
+        var validator = new AdminAuthOptionsValidator(Environment(Environments.Development));
+        foreach (Action<AdminAuthOptions, string?> set in new Action<AdminAuthOptions, string?>[] { (o, u) => o.KeycloakAdminUrl = u, (o, u) => o.StalwartAdminUrl = u, (o, u) => o.NextcloudAdminUrl = u })
+        {
+            AdminAuthOptions options = Options();
+            set(options, url);
+            validator.Validate(null, options).Succeeded.ShouldBe(ok);
+        }
+    }
+
     [Fact]
     public void The_csp_allows_forms_to_the_console_and_keycloak_only()
     {
