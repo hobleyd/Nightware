@@ -169,7 +169,10 @@ if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" ]]; then
     ROLE_ID=$(call "$(jq -cn --argjson p "$PERMS" '[["x:Role/set",{"create":{"r":{description:"Nightware admin console",enabledPermissions:$p,disabledPermissions:{},roleIds:{}}}},"c"]]')" \
       | jq -r '.methodResponses[0][1].created.r.id // empty')
   else
-    call "$(jq -cn --arg id "$ROLE_ID" --argjson p "$PERMS" '[["x:Role/set",{"update":{($id):{enabledPermissions:$p}}},"c"]]')" >/dev/null
+    # A permission name this Stalwart does not know refuses the whole update; say so rather than run without it.
+    call "$(jq -cn --arg id "$ROLE_ID" --argjson p "$PERMS" '[["x:Role/set",{"update":{($id):{enabledPermissions:$p}}},"c"]]')" \
+      | jq -e --arg id "$ROLE_ID" '.methodResponses[0][1].updated | has($id)' >/dev/null \
+      || echo "Stalwart: WARNING could not update the admin console role's permissions" >&2
   fi
   if [[ -z "$ROLE_ID" || -z "$USER_ROLE" ]]; then
     echo "Stalwart: WARNING could not find or create the admin console role (User role: '${USER_ROLE}')" >&2

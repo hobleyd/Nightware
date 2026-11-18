@@ -169,6 +169,7 @@ public sealed class EntityAndAdminTests
         AuditEvent removed = _bed.Audit.Single("entity.domain.removed");
         removed.Succeeded.ShouldBeTrue();
         removed.Details["mailServer"].ShouldBe("destroyed");
+        await _bed.MailDomains.DidNotReceiveWithAnyArgs().ReloadSettingsAsync(Ct);
     }
 
     [Fact]
@@ -181,6 +182,7 @@ public sealed class EntityAndAdminTests
         (await new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct)).IsSuccess.ShouldBeTrue();
 
         await _bed.Entities.Received(1).RemoveDomainAsync(AdminTestBed.Acme, AdminTestBed.Domain("acme.org"), Arg.Any<CancellationToken>());
+        await _bed.MailDomains.Received(1).ReloadSettingsAsync(Arg.Any<CancellationToken>());
         _bed.Audit.Single("entity.domain.removed").Details["mailServer"].ShouldBe("absent");
     }
 

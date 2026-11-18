@@ -40,6 +40,13 @@ public sealed class RemoveEntityDomain(IAdminActor actor, IEntityRegistry entiti
         // Already gone from the mail server (removed by hand, or an earlier attempt failed in Keycloak): carry on.
         Result destroyed = await mailDomains.DestroyAsync(mailDomain, cancellationToken).ConfigureAwait(false);
         bool absent = !destroyed.IsSuccess && destroyed.Error.Kind == ErrorKind.NotFound;
+        if (absent)
+        {
+            // An earlier attempt may have destroyed it without the reload that makes SMTP forget it. Best effort:
+            // the domain is gone either way, and a restart of the mail server reloads too.
+            await mailDomains.ReloadSettingsAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         Result<Entity> updated = destroyed.IsSuccess || absent
             ? await entities.RemoveDomainAsync(entityId, mailDomain, cancellationToken).ConfigureAwait(false)
             : destroyed.Error!;

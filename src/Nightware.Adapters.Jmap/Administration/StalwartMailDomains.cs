@@ -90,6 +90,11 @@ internal sealed partial class StalwartMailDomains(IStalwartManagementClient clie
                 return Error.Conflict($"The mail server still has {others} account(s) with an address or alias on {domain.Name}; remove them first.", "domain");
             }
 
+            if (links.Count == 0)
+            {
+                return Error.Conflict($"The mail server refused to delete {domain.Name}: something still uses it, but it did not say what.", "domain");
+            }
+
             outcome = await DestroyRequestAsync(id, [.. links.Select(static l => l.Id)], cancellationToken).ConfigureAwait(false);
         }
 
@@ -178,15 +183,23 @@ internal sealed partial class StalwartMailDomains(IStalwartManagementClient clie
     private async Task<Result<DestroyOutcome>> DestroyRequestAsync(string domainId, IReadOnlyList<string> dkimIds, CancellationToken cancellationToken)
     {
         var request = new JmapRequestBuilder();
-        if (dkimIds.Count > 0)
-        {
-            request.Add(StalwartMethods.DkimSignatureSet, new StalwartSetRequest { Destroy = dkimIds });
-        }
-
+        var keys = dkimIds.Count > 0 ? request.Add(StalwartMethods.DkimSignatureSet, new StalwartSetRequest { Destroy = dkimIds }) : null;
         var set = request.Add(StalwartMethods.DomainSet, new StalwartSetRequest { Destroy = [domainId] });
         var reload = request.Add(StalwartMethods.ActionSet, ReloadSettings());
         Result<JmapResponse> response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        Result<SetResponse<StalwartCreated>> domainSet = response.Bind(r => r.Get(set));
+        if (!response.IsSuccess)
+        {
+            return response.Error;
+        }
+
+        // A refused key destroy is the real cause of the domain's objectIsLinked that follows it.
+        Result keysDestroyed = keys is null ? Result.Success() : response.Value.Get(keys).Match(static r => r.AllSucceeded(), static e => Result.Failure(e));
+        if (!keysDestroyed.IsSuccess)
+        {
+            return keysDestroyed.Error;
+        }
+
+        Result<SetResponse<StalwartCreated>> domainSet = response.Value.Get(set);
         if (!domainSet.IsSuccess)
         {
             return domainSet.Error;
