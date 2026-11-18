@@ -86,66 +86,20 @@
 # Created once, with a temporary password Keycloak makes them change at first
 # sign-in; nothing about an existing user is touched. Before
 # configure-console.sh, which makes the admin: true ones global administrators.
+# Through the checkout's lib.sh, which reaches Caddy under the public name:
+# Caddy refuses a TLS handshake without SNI, so https://127.0.0.1 won't do.
 - name: Create Nightware's users in Keycloak
-  when: not ansible_check_mode and nightware_users | length > 0
-  module_defaults:
-    ansible.builtin.uri:
-      # Through Caddy on this host, whatever DNS says; the certificate is for
-      # the public name, and the connection never leaves the host.
-      validate_certs: false
-      headers:
-        Host: "{{ nightware_public_host }}"
-  block:
-    - name: Sign in to Keycloak as its admin
-      ansible.builtin.uri:
-        url: "https://127.0.0.1:{{ nightware_https_port }}/auth/realms/master/protocol/openid-connect/token"
-        method: POST
-        body_format: form-urlencoded
-        body:
-          client_id: admin-cli
-          grant_type: password
-          username: admin
-          password: "{{ nightware_keycloak_admin_password }}"
-      register: nightware_kc_admin
-      no_log: true
-
-    - name: Look up Nightware's users
-      ansible.builtin.uri:
-        url: "https://127.0.0.1:{{ nightware_https_port }}/auth/admin/realms/nightware/users?exact=true&username={{ item.username | urlencode }}"
-        headers:
-          Host: "{{ nightware_public_host }}"
-          Authorization: "Bearer {{ nightware_kc_admin.json.access_token }}"
-      loop: "{{ nightware_users }}"
-      loop_control:
-        label: "{{ item.username }}"
-      register: nightware_existing
-
-    - name: Create the missing ones
-      ansible.builtin.uri:
-        url: "https://127.0.0.1:{{ nightware_https_port }}/auth/admin/realms/nightware/users"
-        method: POST
-        headers:
-          Host: "{{ nightware_public_host }}"
-          Authorization: "Bearer {{ nightware_kc_admin.json.access_token }}"
-        body_format: json
-        body:
-          username: "{{ item.item.username }}"
-          email: "{{ item.item.email }}"
-          emailVerified: true
-          firstName: "{{ item.item.first_name }}"
-          lastName: "{{ item.item.last_name }}"
-          enabled: true
-          credentials:
-            - type: password
-              value: "{{ nightware_user_initial_password }}"
-              temporary: true
-        status_code: 201
-      loop: "{{ nightware_existing.results }}"
-      loop_control:
-        label: "{{ item.item.username }}"
-      when: item.json | length == 0
-      changed_when: true
-      no_log: true
+  ansible.builtin.script:
+    cmd: create-users.sh
+    executable: bash
+  environment:
+    NIGHTWARE_DIR: "{{ nightware_dir }}"
+    NIGHTWARE_USERS: "{{ nightware_users | to_json }}"
+    NIGHTWARE_USER_INITIAL_PASSWORD: "{{ nightware_user_initial_password }}"
+  register: nightware_created
+  changed_when: "'created ' in nightware_created.stdout"
+  when: nightware_users | length > 0
+  no_log: true
 
 # configure-console.sh: the console's client, MFA flow, roles, default entity,
 # global admins, and Grafana's client. stalwart/configure.sh makes Keycloak

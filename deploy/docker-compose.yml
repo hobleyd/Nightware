@@ -314,8 +314,10 @@ services:
       GF_AUTH_GENERIC_OAUTH_API_URL: http://keycloak:8080/auth/realms/nightware/protocol/openid-connect/userinfo
       GF_AUTH_GENERIC_OAUTH_LOGIN_ATTRIBUTE_PATH: preferred_username
       # `roles` is the realm-role claim configure-console.sh maps onto this
-      # client. Global administrators are Grafana admins; anyone else is refused.
-      GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: contains(roles[*], 'nightware-global-admin') && 'Admin'
+      # client. Global administrators are Grafana admins; anyone else is refused,
+      # as is a sign-in without the console's acr (Keycloak's minimum.acr.value
+      # on the client enforces it too; Grafana asks for no acr itself).
+      GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: contains(roles[*], 'nightware-global-admin') && (acr == '${ADMIN_REQUIRED_ACR-mfa}' || '${ADMIN_REQUIRED_ACR-mfa}' == '') && 'Admin'
       GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT: "true"
       GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP: "true"
       GF_ANALYTICS_REPORTING_ENABLED: "false"

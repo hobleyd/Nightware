@@ -33,7 +33,7 @@ nightware_default_entity_name: Nightware
 # People created in Keycloak when missing, with nightware_user_initial_password
 # (temporary: Keycloak makes them change it). Each gets a Stalwart mailbox for
 # the local part of their email. Example:
-#   - { username: jo, email: jo@example.com, first_name: Jo, last_name: Bloggs, admin: true }
+#   - { username: jbloggs, email: jo@example.com, first_name: Jo, last_name: Bloggs, admin: true }
 # admin: true makes them a global administrator of the console (and of Grafana).
 nightware_users: []
 

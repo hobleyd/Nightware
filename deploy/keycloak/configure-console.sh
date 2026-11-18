@@ -309,7 +309,9 @@ else
     current=$(kc "${API}/clients/${GRAFANA_UUID}")
     merged=$(jq --argjson want "$grafana_rep" '. + ($want | del(.attributes, .protocolMappers)) | .attributes = ((.attributes // {}) + $want.attributes)
       | if ($want.attributes | has("minimum.acr.value")) then . else .attributes |= del(."minimum.acr.value") end' <<<"$current")
-    if [[ "$(jq -S 'del(.secret)' <<<"$current")" != "$(jq -S 'del(.secret)' <<<"$merged")" ]] \
+    # Keycloak lists the client scopes in an order of its own.
+    same() { jq -S 'del(.secret) | .defaultClientScopes |= sort | .optionalClientScopes |= sort' <<<"$1"; }
+    if [[ "$(same "$current")" != "$(same "$merged")" ]] \
        || [[ "$(kc "${API}/clients/${GRAFANA_UUID}/client-secret" | jq -r .value)" != "$NIGHTWARE_GRAFANA_CLIENT_SECRET" ]]; then
       log "Keycloak (console): updating client nightware-grafana"
       kcj -X PUT "${API}/clients/${GRAFANA_UUID}" --data-binary @- <<<"$merged" >/dev/null

@@ -13,7 +13,7 @@ nightware_tls: ops@example.com
 nightware_admin_allowed_cidrs: "0.0.0.0/0 ::/0"
 
 nightware_users:
-  - { username: jo, email: jo@example.com, first_name: Jo, last_name: Bloggs, admin: true }
+  - { username: jbloggs, email: jo@example.com, first_name: Jo, last_name: Bloggs, admin: true }
 
 nightware_keycloak_admin_password: CHANGE-ME
 nightware_keycloak_db_password: CHANGE-ME
