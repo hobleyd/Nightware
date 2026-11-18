@@ -7,6 +7,7 @@
 #     contains "nextcloud" (the provider's client id)
 #   - outgoing mail -> Stalwart SMTP (iMIP invitations)
 #   - a building, a floor and two rooms via calendar_resource_management
+#     (demo data, like the test users: NIGHTWARE_KC_SEED=0 skips them)
 source "$(dirname "$0")/../scripts/lib.sh"
 
 log "Nextcloud: waiting for installation"
@@ -144,6 +145,11 @@ occ config:system:set mail_smtpstreamoptions ssl allow_self_signed --value=true 
 # own users internally; mail is only sent to attendees without a NC account.
 
 # --------------------------------------------------------------------- rooms
+if [[ "${NIGHTWARE_KC_SEED:-1}" == "0" ]]; then
+  log "Nextcloud: NIGHTWARE_KC_SEED=0, not seeding the demo rooms"
+  log "Nextcloud: configured"
+  exit 0
+fi
 if grep -q 'nightware-boardroom' <<<"$(occ calendar-resource:resources:list)"; then
   log "Nextcloud: rooms exist"
 else
