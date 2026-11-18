@@ -157,6 +157,12 @@ public interface IMailDomains
     /// <summary>Creates the domain with automatic DKIM keys.</summary>
     Task<Result<MailDomainInfo>> CreateAsync(MailDomain domain, string description, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Destroys the domain with its DKIM keys, so the mail server stops treating it as local. NotFound when it is
+    /// already gone; Conflict, with nothing destroyed, while any account has an address or alias on it.
+    /// </summary>
+    Task<Result> DestroyAsync(MailDomain domain, CancellationToken cancellationToken);
+
     /// <summary>Reloads the mail server's settings, which loads the DKIM keys of a domain created without a reload.</summary>
     Task<Result> ReloadSettingsAsync(CancellationToken cancellationToken);
 

@@ -75,7 +75,7 @@ public sealed class DetailModel(
                 + (cleanUp.Value.Left > 0 ? $"; {cleanUp.Value.Left} that differ from what the console publishes were left." : ".");
         }
 
-        return await AfterAsync(await removeDomain.ExecuteAsync(Id, domain, cancellationToken), _ => $"{domain} removed from the entity. The mail server keeps the domain.{cleaned}", cancellationToken);
+        return await AfterAsync(await removeDomain.ExecuteAsync(Id, domain, cancellationToken), _ => $"{domain} removed from the entity and the mail server.{cleaned}", cancellationToken);
     }
 
     public async Task<IActionResult> OnPostGrantAdminAsync(string userId, bool confirm, CancellationToken cancellationToken) =>

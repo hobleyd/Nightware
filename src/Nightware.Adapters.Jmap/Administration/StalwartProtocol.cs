@@ -174,6 +174,9 @@ internal static class StalwartMethods
     public static JmapMethod<StalwartQueryRequest<DkimSignatureFilter>, QueryResponse> DkimSignatureQuery { get; } =
         new("x:DkimSignature/query", JmapMethodKind.Query, Caps, Json.StalwartQueryRequestDkimSignatureFilter, Json.QueryResponse);
 
+    public static JmapMethod<StalwartSetRequest, SetResponse<StalwartCreated>> DkimSignatureSet { get; } =
+        new("x:DkimSignature/set", JmapMethodKind.Set, Caps, Json.StalwartSetRequest, Json.SetResponseStalwartCreated);
+
     public static JmapMethod<StalwartSetRequest, SetResponse<StalwartCreated>> ActionSet { get; } =
         new("x:Action/set", JmapMethodKind.Set, Caps, Json.StalwartSetRequest, Json.SetResponseStalwartCreated);
 

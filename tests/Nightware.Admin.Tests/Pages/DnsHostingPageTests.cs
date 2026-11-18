@@ -286,6 +286,7 @@ public sealed partial class DnsHostingPageTests : IDisposable
         _host.DnsHosting.ListRecordsAsync(default!, default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<ZoneRecord>>.Success(
             [new ZoneRecord("r-mx", new DnsRecord("acme.example", "MX", 3600, "10 mail.acme.example"))]));
         _host.Entities.RemoveDomainAsync(default!, default!, Ct).ReturnsForAnyArgs(ConsoleHost.AcmeEntity);
+        _host.MailDomains.DestroyAsync(default!, Ct).ReturnsForAnyArgs(Result.Success());
 
         string page = await GetAsync(EntityUrl);
         page.ShouldContain("name=\"cleanUpDns\" value=\"true\"> Also remove acme.example's mail records from Cloudflare");
@@ -296,6 +297,7 @@ public sealed partial class DnsHostingPageTests : IDisposable
         Received.InOrder(() =>
         {
             _host.DnsHosting.ApplyAsync(Arg.Any<DnsProviderToken>(), AcmeZone, Arg.Is<DnsChange>(c => c.Kind == DnsChangeKind.Remove && c.Current!.Id == "r-mx"), Arg.Any<CancellationToken>());
+            _host.MailDomains.DestroyAsync(ConsoleHost.Domain("acme.example"), Arg.Any<CancellationToken>());
             _host.Entities.RemoveDomainAsync(ConsoleHost.Acme, Arg.Any<MailDomain>(), Arg.Any<CancellationToken>());
         });
     }

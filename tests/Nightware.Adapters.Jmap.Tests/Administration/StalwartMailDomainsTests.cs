@@ -205,5 +205,95 @@ public sealed class StalwartMailDomainsTests : IAsyncDisposable
         (await Domains().FindAsync(Acme, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
     }
 
+    // Shapes as Stalwart 1.1.0 answers (throwaway container, 2026-11-18).
+    private const string LinkedToKeys = """{"notDestroyed":{"d7":{"type":"objectIsLinked","objectId":{"object":"Domain","id":"d7"},"linkedObjects":[{"object":"DkimSignature","id":"k1"},{"object":"DkimSignature","id":"k2"}]}}}""";
+
+    private const string Reloaded = """["x:Action/set",{"created":{"r":{"id":"a1"}}},"c1"]""";
+
+    [Fact]
+    public async Task Destroying_a_domain_with_only_its_dkim_keys_takes_the_keys_then_the_domain_then_reloads()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d7", "acme.example")));
+        _host.Stub("x:Domain/set", $$$$$"""[["x:Domain/set",{{{{{LinkedToKeys}}}}},"c0"],{{{{{Reloaded}}}}}]""");
+        _host.Stub("x:DkimSignature/set", """[["x:DkimSignature/set",{"destroyed":["k1","k2"]},"c0"],["x:Domain/set",{"destroyed":["d7"]},"c1"],["x:Action/set",{"created":{"r":{"id":"a2"}}},"c2"]]""");
+
+        (await Domains().DestroyAsync(Acme, Ct)).IsSuccess.ShouldBeTrue();
+
+        var bodies = _host.Bodies();
+        var first = bodies[1]["methodCalls"]!.AsArray();
+        first[0]![0]!.GetValue<string>().ShouldBe("x:Domain/set");
+        first[0]![1]!["destroy"]![0]!.GetValue<string>().ShouldBe("d7");
+        first[1]![1]!["create"]!["r"]!["@type"]!.GetValue<string>().ShouldBe("ReloadSettings");
+        var second = bodies[2]["methodCalls"]!.AsArray();
+        second.Select(c => c![0]!.GetValue<string>()).ShouldBe(["x:DkimSignature/set", "x:Domain/set", "x:Action/set"]);
+        second[0]![1]!["destroy"]!.AsArray().Select(i => i!.GetValue<string>()).ShouldBe(["k1", "k2"]);
+        second[1]![1]!["destroy"]![0]!.GetValue<string>().ShouldBe("d7");
+        _host.Logs.AllText.ShouldContain("Destroyed Stalwart domain acme.example (d7)");
+    }
+
+    [Fact]
+    public async Task A_domain_with_nothing_linked_is_destroyed_in_one_request()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d7", "acme.example")));
+        _host.Stub("x:Domain/set", $$$$$"""[["x:Domain/set",{"destroyed":["d7"]},"c0"],{{{{{Reloaded}}}}}]""");
+
+        (await Domains().DestroyAsync(Acme, Ct)).IsSuccess.ShouldBeTrue();
+        _host.Calls("x:DkimSignature/set").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_domain_an_account_still_uses_is_a_conflict_and_keeps_its_dkim_keys()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d7", "acme.example")));
+        _host.Stub("x:Domain/set", $$$$$"""[["x:Domain/set",{"notDestroyed":{"d7":{"type":"objectIsLinked","linkedObjects":[{"object":"Account","id":"c"},{"object":"DkimSignature","id":"k1"}]}}},"c0"],{{{{{Reloaded}}}}}]""");
+
+        var destroyed = await Domains().DestroyAsync(Acme, Ct);
+
+        destroyed.Error!.Kind.ShouldBe(ErrorKind.Conflict);
+        destroyed.Error.Message.ShouldContain("1 account(s) with an address or alias on acme.example");
+        _host.Calls("x:DkimSignature/set").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_domain_still_linked_after_its_keys_went_is_refused_without_a_third_try()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d7", "acme.example")));
+        _host.Stub("x:Domain/set", $$$$$"""[["x:Domain/set",{{{{{LinkedToKeys}}}}},"c0"],{{{{{Reloaded}}}}}]""");
+        _host.Stub("x:DkimSignature/set", """[["x:DkimSignature/set",{"destroyed":["k1","k2"]},"c0"],["x:Domain/set",{"notDestroyed":{"d7":{"type":"objectIsLinked","linkedObjects":[{"object":"Account","id":"c"}]}}},"c1"],["x:Action/set",{"created":{"r":{"id":"a2"}}},"c2"]]""");
+
+        (await Domains().DestroyAsync(Acme, Ct)).IsSuccess.ShouldBeFalse();
+        _host.Calls("x:Domain/set").Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Destroying_an_unknown_domain_is_not_found()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup());
+
+        (await Domains().DestroyAsync(Acme, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        _host.Calls("x:Domain/set").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_forbidden_destroy_is_reported()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d7", "acme.example")));
+        _host.Stub("x:Domain/set", $$$$$"""[["x:Domain/set",{"notDestroyed":{"d7":{"type":"forbidden"}}},"c0"],{{{{{Reloaded}}}}}]""");
+
+        (await Domains().DestroyAsync(Acme, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+    }
+
+    [Fact]
+    public async Task A_failed_reload_after_a_destroy_is_reported()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d7", "acme.example")));
+        _host.Stub("x:Domain/set", """[["x:Domain/set",{"destroyed":["d7"]},"c0"],["x:Action/set",{"notCreated":{"r":{"type":"forbidden"}}},"c1"]]""");
+
+        var destroyed = await Domains().DestroyAsync(Acme, Ct);
+
+        destroyed.Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+        destroyed.Error.Message.ShouldContain("treats the domain as its own until it does");
+    }
+
     public ValueTask DisposeAsync() => _host.DisposeAsync();
 }

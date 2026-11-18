@@ -144,8 +144,10 @@ fi
 #   - roles are extended through roleIds, and the built-in role "User" holds
 #     `authenticate` plus the user permissions Stalwart requires a principal to
 #     hold before it may change user accounts.
-# Our role adds the management permissions (destroy only for "delete mail",
-# which the console's policy gates); no impersonation, no domain deletion.
+# Our role adds the management permissions (account destroy only for "delete
+# mail", which the console's policy gates; domain and DKIM-key destroy for
+# removing a domain, which Stalwart refuses while any account is on it); no
+# impersonation.
 # The key is written to .env as STALWART_MANAGEMENT_API_KEY and re-minted when
 # it no longer authenticates. STALWART_MANAGEMENT_LOGIN (the recovery-admin
 # fallback) skips all of this.
@@ -159,7 +161,7 @@ if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" ]]; then
   MGMT_USER="${STALWART_MANAGEMENT_USER:-nightware-admin}"
   role_id() { call '[["x:Role/query",{},"q"],["x:Role/get",{"#ids":{"resultOf":"q","name":"x:Role/query","path":"/ids"},"properties":["description"]},"g"]]' \
     | jq -r --arg d "$1" '.methodResponses[1][1].list[]? | select(.description==$d) | .id' | head -n1; }
-  PERMS='{"sysAccountGet":true,"sysAccountQuery":true,"sysAccountCreate":true,"sysAccountUpdate":true,"sysAccountDestroy":true,"sysDomainGet":true,"sysDomainQuery":true,"sysDomainCreate":true,"sysDomainUpdate":true,"sysDkimSignatureGet":true,"sysDkimSignatureQuery":true,"sysActionCreate":true,"actionReloadSettings":true}'
+  PERMS='{"sysAccountGet":true,"sysAccountQuery":true,"sysAccountCreate":true,"sysAccountUpdate":true,"sysAccountDestroy":true,"sysDomainGet":true,"sysDomainQuery":true,"sysDomainCreate":true,"sysDomainUpdate":true,"sysDomainDestroy":true,"sysDkimSignatureGet":true,"sysDkimSignatureQuery":true,"sysDkimSignatureDestroy":true,"sysActionCreate":true,"actionReloadSettings":true}'
   USER_ROLE=$(role_id "User")
   ROLE_ID=$(role_id "Nightware admin console")
   if [[ -z "$ROLE_ID" ]]; then

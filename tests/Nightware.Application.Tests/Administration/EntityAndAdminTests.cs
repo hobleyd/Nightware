@@ -79,7 +79,7 @@ public sealed class EntityAndAdminTests
 
         (await new CreateEntity(_bed.Actor, _bed.Entities, _bed.DomainProvisioning(), _bed.Audit).ExecuteAsync("B", "beta", "beta.example", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         (await new AddEntityDomain(_bed.Actor, _bed.Entities, _bed.DomainProvisioning(), _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
-        (await new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        (await new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         await _bed.Entities.DidNotReceiveWithAnyArgs().CreateAsync(default!, Ct);
     }
 
@@ -142,11 +142,61 @@ public sealed class EntityAndAdminTests
     {
         _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success(
             [new IdentityAccount("u", "c", "c@acme.org", true), new IdentityAccount("v", "d", "d@acme.example", true) { Aliases = ["x@acme.example"] }]));
-        var remove = new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.Audit);
+        var remove = new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.Audit);
         _bed.Entities.RemoveDomainAsync(default!, default!, Ct).ReturnsForAnyArgs(AdminTestBed.AcmeEntity);
 
+        _bed.MailDomains.DestroyAsync(default!, Ct).ReturnsForAnyArgs(Result.Success());
+
         (await remove.ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Error!.Kind.ShouldBe(ErrorKind.Conflict);
+        await _bed.MailDomains.DidNotReceive().DestroyAsync(AdminTestBed.Domain("acme.example"), Arg.Any<CancellationToken>());
         (await remove.ExecuteAsync(AdminTestBed.Acme, "unused.example", Ct)).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Removing_a_domain_destroys_it_on_the_mail_server_before_keycloak()
+    {
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        _bed.Entities.RemoveDomainAsync(default!, default!, Ct).ReturnsForAnyArgs(AdminTestBed.AcmeEntity);
+        _bed.MailDomains.DestroyAsync(default!, Ct).ReturnsForAnyArgs(Result.Success());
+
+        (await new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct)).IsSuccess.ShouldBeTrue();
+
+        Received.InOrder(() =>
+        {
+            _bed.MailDomains.DestroyAsync(AdminTestBed.Domain("acme.org"), Arg.Any<CancellationToken>());
+            _bed.Entities.RemoveDomainAsync(AdminTestBed.Acme, AdminTestBed.Domain("acme.org"), Arg.Any<CancellationToken>());
+        });
+        AuditEvent removed = _bed.Audit.Single("entity.domain.removed");
+        removed.Succeeded.ShouldBeTrue();
+        removed.Details["mailServer"].ShouldBe("destroyed");
+    }
+
+    [Fact]
+    public async Task A_domain_the_mail_server_no_longer_has_is_still_removed_from_keycloak()
+    {
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        _bed.Entities.RemoveDomainAsync(default!, default!, Ct).ReturnsForAnyArgs(AdminTestBed.AcmeEntity);
+        _bed.MailDomains.DestroyAsync(default!, Ct).ReturnsForAnyArgs(Error.NotFound("gone"));
+
+        (await new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct)).IsSuccess.ShouldBeTrue();
+
+        await _bed.Entities.Received(1).RemoveDomainAsync(AdminTestBed.Acme, AdminTestBed.Domain("acme.org"), Arg.Any<CancellationToken>());
+        _bed.Audit.Single("entity.domain.removed").Details["mailServer"].ShouldBe("absent");
+    }
+
+    [Fact]
+    public async Task A_mail_server_that_refuses_the_destroy_leaves_the_domain_on_the_entity()
+    {
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        _bed.MailDomains.DestroyAsync(default!, Ct).ReturnsForAnyArgs(Error.Conflict("The mail server still has 1 account(s) with an address or alias on acme.org; remove them first."));
+
+        Result<Entity> removed = await new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct);
+
+        removed.Error!.Kind.ShouldBe(ErrorKind.Conflict);
+        await _bed.Entities.DidNotReceiveWithAnyArgs().RemoveDomainAsync(default!, default!, Ct);
+        AuditEvent audited = _bed.Audit.Single("entity.domain.removed");
+        audited.Succeeded.ShouldBeFalse();
+        audited.Details["mailServer"].ShouldBe("failed");
     }
 
     [Fact]

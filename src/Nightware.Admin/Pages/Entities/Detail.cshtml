@@ -50,7 +50,7 @@
                                     <input type="hidden" name="domain" value="@d.Domain.Name">
                                     <input type="hidden" name="confirm" value="true">
                                     <h3>Remove @d.Domain.Name from @entity.Name?</h3>
-                                    <p class="hint">The mail server keeps the domain; no user's address is on it.</p>
+                                    <p class="hint">No user's address is on it. The mail server deletes the domain and its DKIM keys, and mail sent to it is no longer accepted here.</p>
                                     @if (entity.HasDnsToken)
                                     {
                                         <label class="choice"><input type="checkbox" name="cleanUpDns" value="true"> Also remove @d.Domain.Name's mail records from Cloudflare (only those that match what this console publishes)</label>
