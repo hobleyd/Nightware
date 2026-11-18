@@ -4,6 +4,7 @@
     var page = ViewContext.RouteData.Values["page"] as string ?? string.Empty;
     var inEntities = page.StartsWith("/Entities/", StringComparison.Ordinal) || page.StartsWith("/Users/", StringComparison.Ordinal);
     var inAdmins = page.StartsWith("/Admins/", StringComparison.Ordinal);
+    var sections = signedIn && actor?.IsAdmin == true;
 }
 <!doctype html>
 <html lang="en">
@@ -22,14 +23,10 @@
 <a class="skip" href="#main">Skip to content</a>
 <header class="top">
     <a class="brand" asp-page="/Index"><img src="~/img/mark.png" width="28" height="28" alt="">Nightware console</a>
-    @if (signedIn && actor?.IsAdmin == true)
+    @if (sections)
     {
         <nav>
-            <a asp-page="/Entities/Index" aria-current="@(inEntities ? "page" : null)">Entities</a>
-            @if (actor.IsGlobal)
-            {
-                <a asp-page="/Admins/Index" aria-current="@(inAdmins ? "page" : null)">Global admins</a>
-            }
+            <a asp-page="/Index" aria-current="@(page == "/Index" ? "page" : null)">Dashboard</a>
         </nav>
         <form method="get" asp-page="/Users/Find" class="find" role="search">
             <label><span class="visually-hidden">Find a user</span><input type="search" name="q" placeholder="Find a user" autocomplete="off" required></label>
@@ -51,6 +48,17 @@
         </div>
     }
 </header>
+<div class="@(sections ? "frame" : null)">
+@if (sections)
+{
+    <nav class="side panel" aria-label="Sections">
+        <a asp-page="/Entities/Index" aria-current="@(inEntities ? "page" : null)">Entities</a>
+        @if (actor!.IsGlobal)
+        {
+            <a asp-page="/Admins/Index" aria-current="@(inAdmins ? "page" : null)">Global admins</a>
+        }
+    </nav>
+}
 <main id="main" class="@(ViewData["Wide"] is true ? "wide" : null)">
     @{ var body = RenderBody(); }
     @* Pages place their messages under their heading; the body renders first, so this only catches pages that do not. *@
@@ -60,5 +68,6 @@
     }
     @body
 </main>
+</div>
 </body>
 </html>
