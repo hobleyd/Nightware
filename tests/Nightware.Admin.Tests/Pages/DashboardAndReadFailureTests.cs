@@ -18,15 +18,13 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
 
     public void Dispose() => _host.Dispose();
 
-    /// <summary>The breadcrumb's words, tags stripped and spacing collapsed.</summary>
+    /// <summary>The left menu.</summary>
+    private static string Side(string html) =>
+        Regex.Match(html, "<nav class=\"side panel\"[^>]*>(.*?)</nav>", RegexOptions.Singleline).Groups[1].Value;
+
+    /// <summary>The breadcrumb the left menu marks: the trail down to the current page, joined with ›.</summary>
     private static string Crumbs(string html) =>
-        WhiteSpace().Replace(Tags().Replace(Regex.Match(html, "<nav class=\"crumbs\"[^>]*>(.*?)</nav>", RegexOptions.Singleline).Groups[1].Value, ""), " ").Trim();
-
-    [GeneratedRegex("<[^>]+>")]
-    private static partial Regex Tags();
-
-    [GeneratedRegex(@"\s+")]
-    private static partial Regex WhiteSpace();
+        string.Join(" › ", Regex.Matches(Side(html), "<a (?:aria-current=\"page\"|class=\"trail\")[^>]*>(.*?)</a>").Select(m => m.Groups[1].Value));
 
     private async Task<string> GetAsync(string url, string sub = ConsoleHost.GlobalAdmin) =>
         await (await _host.ClientAs(sub).GetAsync(new Uri(url, UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
@@ -42,7 +40,7 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         string top = Regex.Match(html, "<header class=\"top\">(.*?)</header>", RegexOptions.Singleline).Groups[1].Value;
         top.ShouldNotContain(">Dashboard</a>");
         top.ShouldNotContain(">Entities</a>");
-        string side = Regex.Match(html, "<nav class=\"side panel\"[^>]*>(.*?)</nav>", RegexOptions.Singleline).Groups[1].Value;
+        string side = Side(html);
         side.ShouldContain("<a aria-current=\"page\" href=\"/\">Dashboard</a>");
         side.ShouldContain(">Entities</a>");
         side.ShouldContain(">Global admins</a>");
@@ -51,6 +49,47 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         string entities = await GetAsync("/entities");
         entities.ShouldContain("<a aria-current=\"page\" href=\"/entities\">Entities</a>");
         entities.ShouldNotContain("aria-current=\"page\">Dashboard</a>");
+    }
+
+    [Fact]
+    public async Task The_left_menu_lists_the_entities_and_marks_the_way_down_to_the_page()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+
+        string side = Side(await GetAsync("/users/u-dan"));
+
+        side.ShouldContain("<a class=\"trail\" href=\"/entities/e-acme\">Acme Pty</a>");
+        side.ShouldContain("<a href=\"/entities/e-other\">Other Co</a>");
+        side.ShouldContain("<a class=\"trail\" href=\"/entities/e-acme/users\">Users</a>");
+        side.ShouldContain("<a aria-current=\"page\" href=\"/users/u-dan\">dan</a>");
+        Regex.Count(side, "aria-current=").ShouldBe(1);
+        side.IndexOf(">Users</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">Other Co</a>", StringComparison.Ordinal));
+
+        Crumbs(await GetAsync("/entities/" + ConsoleHost.Acme)).ShouldBe("Entities › Acme Pty");
+    }
+
+    [Fact]
+    public async Task An_entity_admins_menu_lists_only_their_own_entity()
+    {
+        string side = Side(await GetAsync("/entities", ConsoleHost.EntityAdmin));
+
+        side.ShouldContain(">Acme Pty</a>");
+        side.ShouldNotContain(ConsoleHost.Other);
+        side.ShouldNotContain("Global admins");
+    }
+
+    [Fact]
+    public async Task A_menu_whose_entities_cannot_be_read_still_leads_to_the_page()
+    {
+        _host.Entities.ListAsync(Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("Keycloak is down."));
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+
+        string html = await GetAsync("/users/u-dan");
+
+        html.ShouldContain("<h1>dan <small>");
+        Crumbs(html).ShouldBe("Entities › Entity › Users › dan");
+        Side(html).ShouldContain("<a class=\"trail\" href=\"/entities/e-acme\">Entity</a>");
+        Side(html).ShouldNotContain(ConsoleHost.Other);
     }
 
     [Fact]
@@ -74,8 +113,8 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
 
         string html = await GetAsync(DnsUrl);
 
-        Crumbs(html).ShouldBe("Entities › Entity › DNS records for acme.example");
-        html.ShouldContain("<a href=\"/entities/e-acme\">Entity</a>");
+        Crumbs(html).ShouldBe("Entities › Acme Pty › DNS records for acme.example");
+        Side(html).ShouldContain("<a class=\"trail\" href=\"/entities/e-acme\">Acme Pty</a>");
     }
 
     [Fact]
@@ -319,7 +358,7 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
 
         string html = await GetAsync("/users/u-dan");
 
-        html.ShouldContain("<a href=\"/entities\">Entities</a> › <span aria-current=\"page\">User</span></nav>");
+        Crumbs(html).ShouldBe("Entities › User");
         html.ShouldContain("<h1>User</h1>");
         html.ShouldContain("Keycloak is down.");
     }

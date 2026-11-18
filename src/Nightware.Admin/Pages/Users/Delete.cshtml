@@ -14,6 +14,7 @@
     ViewData["Title"] = whose is null ? $"Delete {Model.What}" : $"Delete {Model.What} of {whose}";
     ViewData["Back"] = Url.Page("/Users/Detail", new { id = Model.Id });
     ViewData["Crumbs"] = crumbs;
+    ViewData["EntityId"] = Model.EntityId;
 }
 @if (Model.Unread is not null)
 {
@@ -31,8 +32,8 @@
 @{
     var p = Model.Preview;
     var what = Model.What;
+    ViewData["Here"] = "Delete " + what;
 }
-<nav class="crumbs" aria-label="Breadcrumb">@foreach (var c in crumbs) { <a href="@c.Href">@c.Text</a><text> › </text> }<span aria-current="page">Delete @what</span></nav>
 <h1>Delete @what of @p.User.Identity.DisplayName</h1>
 <partial name="_Messages" />
 

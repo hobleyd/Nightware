@@ -183,7 +183,7 @@ public sealed class UserPagesTests : IDisposable
 
         string html = await (await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri("/users/u-dan", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
 
-        html.ShouldContain("aria-label=\"Breadcrumb\"");
+        html.ShouldContain("<a aria-current=\"page\" href=\"/users/u-dan\">dan</a>");
         html.IndexOf("<h2>Access</h2>", StringComparison.Ordinal).ShouldBeLessThan(html.IndexOf("<h2>Password</h2>", StringComparison.Ordinal));
     }
 

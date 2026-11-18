@@ -2,9 +2,45 @@
     var actor = (ViewData.Model as ConsolePageModel)?.Actor;
     var signedIn = User.Identity?.IsAuthenticated == true;
     var page = ViewContext.RouteData.Values["page"] as string ?? string.Empty;
-    var inEntities = page.StartsWith("/Entities/", StringComparison.Ordinal) || page.StartsWith("/Users/", StringComparison.Ordinal);
-    var inAdmins = page.StartsWith("/Admins/", StringComparison.Ordinal);
     var sections = signedIn && actor?.IsAdmin == true;
+}
+@inject Nightware.Application.Administration.Entities.ListEntities ListEntities
+@{
+    // The menu is also the breadcrumb. A page names the way up to it in Crumbs (a section first, then its entity
+    // and anything below it), the entity it sits under in EntityId, and its own entry in Here (else its title).
+    var crumbs = (ViewData["Crumbs"] as IEnumerable<(string Text, string? Href)>)?.ToList() ?? [];
+    var here = (ViewData["Here"] ?? ViewData["Title"]) as string ?? string.Empty;
+    var entityId = ViewData["EntityId"] as string;
+    var entitiesHref = Url.Page("/Entities/Index");
+    var adminsHref = Url.Page("/Admins/Index");
+    var under = crumbs.Count > 0 ? crumbs[0].Href : null;
+    var self = Context.Request.PathBase + Context.Request.Path;
+
+    // Every entity the actor manages; a list that cannot be read leaves just the section, plus the entity this page is under.
+    var entities = new List<(string Id, string Name)>();
+    if (sections && await ListEntities.ExecuteAsync(Context.RequestAborted) is { IsSuccess: true } listed)
+    {
+        entities.AddRange(listed.Value.Select(e => (e.Id, e.Name)));
+    }
+
+    var entityHref = entityId is null ? null : Url.Page("/Entities/Detail", new { id = entityId });
+    var at = crumbs.FindIndex(c => c.Href == entityHref);
+    if (entityId is not null && !entities.Any(e => e.Id == entityId))
+    {
+        entities.Add((entityId, at >= 0 ? crumbs[at].Text : here));
+    }
+
+    // What hangs below the entity (or below the section, when no entity is on the way), ending with this page.
+    List<(string Text, string? Href)> below = entityId is null ? [.. crumbs.Skip(1), (here, self)]
+        : at >= 0 ? [.. crumbs.Skip(at + 1), (here, self)]
+        : [];
+
+    void Chain(int i)
+    {
+        if (i >= below.Count) { return; }
+        var last = i == below.Count - 1;
+        <ul><li><a aria-current="@(last ? "page" : null)" class="@(last ? null : "trail")" href="@(last ? self : below[i].Href)">@below[i].Text</a>@{ Chain(i + 1); }</li></ul>
+    }
 }
 <!doctype html>
 <html lang="en">
@@ -48,13 +84,32 @@
 <div class="@(sections ? "frame" : null)">
 @if (sections)
 {
+    @* Only the page itself is aria-current; the way up to it is marked as the trail. *@
     <nav class="side panel" aria-label="Sections">
-        <a asp-page="/Index" aria-current="@(page == "/Index" ? "page" : null)">Dashboard</a>
-        <a asp-page="/Entities/Index" aria-current="@(inEntities ? "page" : null)">Entities</a>
-        @if (actor!.IsGlobal)
-        {
-            <a asp-page="/Admins/Index" aria-current="@(inAdmins ? "page" : null)">Global admins</a>
-        }
+        <ul>
+            <li><a asp-page="/Index" aria-current="@(page == "/Index" ? "page" : null)">Dashboard</a></li>
+            <li><a asp-page="/Entities/Index" aria-current="@(page == "/Entities/Index" ? "page" : null)" class="@(under == entitiesHref ? "trail" : null)">Entities</a>
+                @if (entities.Count > 0)
+                {
+                    <ul>
+                        @foreach (var e in entities)
+                        {
+                            var on = e.Id == entityId;
+                            var current = on && below.Count == 0;
+                            <li><a aria-current="@(current ? "page" : null)" class="@(on && !current ? "trail" : null)" href="@Url.Page("/Entities/Detail", new { id = e.Id })">@e.Name</a>@if (on) { Chain(0); }</li>
+                        }
+                    </ul>
+                }
+                @if (under == entitiesHref && entityId is null)
+                {
+                    Chain(0);
+                }
+            </li>
+            @if (actor!.IsGlobal)
+            {
+                <li><a asp-page="/Admins/Index" aria-current="@(page == "/Admins/Index" ? "page" : null)" class="@(under == adminsHref ? "trail" : null)">Global admins</a>@if (under == adminsHref) { Chain(0); }</li>
+            }
+        </ul>
     </nav>
 }
 <main id="main" class="@(ViewData["Wide"] is true ? "wide" : null)">

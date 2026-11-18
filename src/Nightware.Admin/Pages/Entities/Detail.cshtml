@@ -1,13 +1,12 @@
 @page "/entities/{id}"
 @model Nightware.Admin.Pages.Entities.DetailModel
-@{ ViewData["Title"] = "Entity"; ViewData["Crumbs"] = new (string, string?)[] { ("Entities", Url.Page("/Entities/Index")) }; }
+@{ ViewData["Title"] = "Entity"; ViewData["Crumbs"] = new (string, string?)[] { ("Entities", Url.Page("/Entities/Index")) }; ViewData["EntityId"] = Model.Id; }
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 @{
     var entity = Model.Entity.Entity;
     ViewData["Title"] = entity.Name;
     var adminIds = Model.Admins.Select(a => a.Id).ToHashSet();
 }
-<nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Entities/Index">Entities</a> › <span aria-current="page">@entity.Name</span></nav>
 <h1>@entity.Name <small>@entity.Alias</small></h1>
 <partial name="_Messages" />
 <p><a asp-page="/Users/Index" asp-route-entity="@entity.Id">@Model.Members.Count @(Model.Members.Count == 1 ? "user" : "users")</a> · <a asp-page="/Users/New" asp-route-entity="@entity.Id">Add or link a user</a></p>

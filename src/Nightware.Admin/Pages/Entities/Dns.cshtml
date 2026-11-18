@@ -10,9 +10,9 @@
         ("Entities", Url.Page("/Entities/Index")),
         ((Model.Entity as Nightware.Application.Administration.Entities.EntityDetail)?.Entity.Name ?? "Entity", Url.Page("/Entities/Detail", new { id = Model.Id })),
     };
+    ViewData["EntityId"] = Model.Id;
 }
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
-<nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Entities/Index">Entities</a> › <a asp-page="/Entities/Detail" asp-route-id="@Model.Id">@Model.Entity.Entity.Name</a> › <span aria-current="page">DNS records for @Model.Domain</span></nav>
 <h1>DNS records for @Model.Domain</h1>
 <partial name="_Messages" />
 

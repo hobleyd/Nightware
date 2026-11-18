@@ -12,15 +12,17 @@
     // Shown to a global admin so a listed conflict opens, but the console changes nothing on such an account.
     var offLimits = Model.Subject.OffLimits;
     ViewData["Title"] = id.DisplayName;
-}
-@* Every breadcrumb starts where the navigation does; someone in no entity is reached as a global administrator. *@
-@if (u.EntityId is not null)
-{
-    <nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Entities/Index">Entities</a> › <a asp-page="/Entities/Detail" asp-route-id="@u.EntityId">@(Model.EntityName ?? "Entity")</a> › <a asp-page="/Users/Index" asp-route-entity="@u.EntityId">Users</a> › <span aria-current="page">@id.DisplayName</span></nav>
-}
-else if (u.IsGlobalAdmin && Model.Actor.IsGlobal)
-{
-    <nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Admins/Index">Global admins</a> › <span aria-current="page">@id.DisplayName</span></nav>
+    // The menu's trail starts where the navigation does; someone in no entity is reached as a global administrator.
+    ViewData["EntityId"] = u.EntityId;
+    ViewData["Crumbs"] = u.EntityId is not null
+        ? new (string, string?)[]
+        {
+            ("Entities", Url.Page("/Entities/Index")),
+            (Model.EntityName ?? "Entity", Url.Page("/Entities/Detail", new { id = u.EntityId })),
+            ("Users", Url.Page("/Users/Index", new { entity = u.EntityId })),
+        }
+        : u.IsGlobalAdmin && Model.Actor.IsGlobal ? new (string, string?)[] { ("Global admins", Url.Page("/Admins/Index")) }
+        : null;
 }
 <h1>@id.DisplayName <small>@id.Email</small> <partial name="_Status" model="Model.Subject" /></h1>
 <partial name="_Messages" />

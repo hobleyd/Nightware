@@ -90,17 +90,19 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; }
 .frame:has(.dashboard) { max-width: calc(16px + 11rem + 1080px + 17rem); }
 .frame > main { max-width: none; margin: 0; }
 /* main's 16px padding plus a panel's 16px top margin, so the menu is level with the page's first panel. */
-.side { display: flex; flex-direction: column; gap: 4px; margin: 32px 0 16px 16px; padding: 8px; }
-.side a { padding: 6px 10px; border-radius: 6px; text-decoration: none; }
+.side { margin: 32px 0 16px 16px; padding: 8px; }
+/* The menu is also the breadcrumb: entities under Entities, and the way down to this page under its entity or section. */
+.side ul { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.side ul ul { margin-top: 2px; padding-left: 10px; font-size: 0.95em; }
+.side a { display: block; padding: 6px 10px; border-radius: 6px; text-decoration: none; overflow-wrap: anywhere; }
+.side ul ul a { padding: 4px 10px; }
 .side a:hover { background: var(--bg); text-decoration: underline; }
-.side a[aria-current="page"] { background: var(--chip-bg); color: var(--text); font-weight: 600; }
+.side a.trail { color: var(--text); font-weight: 600; }
+.side a[aria-current="page"] { background: var(--chip-bg); color: var(--text); font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
 @media (max-width: 900px) {
   .frame { display: block; }
-  .side { flex-direction: row; flex-wrap: wrap; margin: 16px 16px 0; }
+  .side { margin: 16px 16px 0; }
 }
-
-.crumbs { color: var(--muted); font-size: 0.9em; margin: 8px 0 -8px; }
-.crumbs [aria-current] { color: var(--text); }
 
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin: 16px 0; }
 .panel > h2:first-child { margin-top: 0; }

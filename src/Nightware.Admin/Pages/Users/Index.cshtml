@@ -1,9 +1,13 @@
 @page "/entities/{entity}/users"
 @model Nightware.Admin.Pages.Users.IndexModel
-@{ ViewData["Title"] = "Users"; ViewData["Crumbs"] = new (string, string?)[] { ("Entities", Url.Page("/Entities/Index")) }; }
+@{
+    ViewData["Title"] = "Users";
+    ViewData["Here"] = "Users";
+    ViewData["EntityId"] = Model.Entity;
+    ViewData["Crumbs"] = new (string, string?)[] { ("Entities", Url.Page("/Entities/Index")), ("Entity", Url.Page("/Entities/Detail", new { id = Model.Entity })) };
+}
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 @{ ViewData["Title"] = "Users of " + Model.Detail.Entity.Name; }
-<nav class="crumbs" aria-label="Breadcrumb"><a asp-page="/Entities/Index">Entities</a> › <a asp-page="/Entities/Detail" asp-route-id="@Model.Entity">@Model.Detail.Entity.Name</a> › <span aria-current="page">Users</span></nav>
 <h1>Users of @Model.Detail.Entity.Name</h1>
 <partial name="_Messages" />
 <form method="get" class="row">
