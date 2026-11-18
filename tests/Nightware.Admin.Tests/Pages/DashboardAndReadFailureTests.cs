@@ -428,22 +428,23 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
     }
 
     [Fact]
-    public async Task Global_admins_see_links_to_each_configured_system_admin_console()
+    public async Task Global_admins_open_each_configured_system_admin_console_from_its_status()
     {
         _host.Settings["Admin:KeycloakAdminUrl"] = "https://vpn.example/auth/admin/master/console/#/nightware";
         _host.Settings["Admin:NextcloudAdminUrl"] = "https://cloud.example/settings/admin";
 
         string html = await GetAsync("/");
 
-        html.ShouldContain("<a href=\"https://vpn.example/auth/admin/master/console/#/nightware\" target=\"_blank\" rel=\"noopener noreferrer\">Sign-in (Keycloak)</a>");
-        html.ShouldContain("<a href=\"https://cloud.example/settings/admin\" target=\"_blank\" rel=\"noopener noreferrer\">Files &amp; calendar (Nextcloud)</a>");
-        html.ShouldNotContain("Mail (Stalwart)</a>");
-        (await GetAsync("/", ConsoleHost.EntityAdmin)).ShouldNotContain("Their own admin consoles");
+        html.ShouldContain("<a class=\"chip linked\" href=\"https://vpn.example/auth/admin/master/console/#/nightware\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"Sign-in (Keycloak) admin console\">Sign-in: OK</a>");
+        html.ShouldContain("<a class=\"chip linked\" href=\"https://cloud.example/settings/admin\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"Files &amp; calendar (Nextcloud) admin console\">Files &amp; calendar: OK</a>");
+        html.ShouldContain("<span class=\"chip linked\">Mail: OK</span>");
+        html.ShouldNotContain("signs in with its own administrator account");
+        (await GetAsync("/", ConsoleHost.EntityAdmin)).ShouldNotContain("https://vpn.example");
     }
 
     [Fact]
-    public async Task Without_configured_admin_consoles_the_dashboard_links_none() =>
-        (await GetAsync("/")).ShouldNotContain("Their own admin consoles");
+    public async Task Without_configured_admin_consoles_no_status_is_a_link() =>
+        (await GetAsync("/")).ShouldNotContain("<a class=\"chip");
 
     [Fact]
     public async Task The_entities_table_links_each_domain_to_its_dns_page_and_counts_users()

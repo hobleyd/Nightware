@@ -2,6 +2,8 @@
 @model IndexModel
 @{ ViewData["Title"] = "Dashboard"; }
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
+<div class="dashboard">
+<div class="dashboard-main">
 <h1>Dashboard</h1>
 <partial name="_Messages" />
 
@@ -109,42 +111,6 @@
 </section>
 
 <section class="panel">
-    <h2>Systems</h2>
-    <ul class="chips">
-        @foreach (var h in Model.Health)
-        {
-            var name = Systems.ShortName(h.Backend);
-            var failed = h.Healthy ? Model.FailedFor(h.Backend) : [];
-            <li class="chip @(!h.Healthy ? "error" : failed.Count > 0 ? "missing" : "linked")">@name: @(!h.Healthy ? "Unreachable" : failed.Count > 0 ? $"Reachable, failed for {failed.Count}" : "OK")</li>
-        }
-    </ul>
-    @foreach (var h in Model.Health)
-    {
-        if (!h.Healthy && !string.IsNullOrEmpty(h.Detail))
-        {
-            <p class="hint detail">@Systems.Name(h.Backend): @h.Detail@(Model.Actor.IsGlobal ? "" : " " + Systems.TellOperator)</p>
-        }
-        else if (h.Healthy && Model.FailedFor(h.Backend) is { Count: > 0 } failed)
-        {
-            <p class="hint detail">@(Model.Actor.IsGlobal
-                ? $"{Systems.Name(h.Backend)} answers its health check but failed to answer for {string.Join(", ", failed)}. It may be partly down; see Needs attention."
-                : $"{Systems.ShortName(h.Backend)} is not answering for {string.Join(", ", failed)}. {Systems.TellOperator}")</p>
-        }
-    }
-    @if (Model.AdminConsoles.Count > 0)
-    {
-        <p class="consoles">Their own admin consoles:
-            @for (var i = 0; i < Model.AdminConsoles.Count; i++)
-            {
-                var c = Model.AdminConsoles[i];
-                <a href="@c.Url" target="_blank" rel="noopener noreferrer">@Systems.Name(c.Backend)</a>@(i < Model.AdminConsoles.Count - 1 ? " · " : "")
-            }
-            <span class="hint">Each opens in a new tab and signs in with its own administrator account.</span>
-        </p>
-    }
-</section>
-
-<section class="panel">
     <h2>@(Model.Actor.IsGlobal ? "Entities" : "Your entities")</h2>
     @if (Model.Entities.Count == 0)
     {
@@ -171,3 +137,38 @@
         </table>
     }
 </section>
+</div>
+
+<aside class="panel systems" aria-labelledby="systems-heading">
+    <h2 id="systems-heading">Systems</h2>
+    <ul class="plain">
+        @foreach (var h in Model.Health)
+        {
+            var name = Systems.ShortName(h.Backend);
+            var failed = h.Healthy ? Model.FailedFor(h.Backend) : [];
+            var chip = !h.Healthy ? "error" : failed.Count > 0 ? "missing" : "linked";
+            var label = $"{name}: {(!h.Healthy ? "Unreachable" : failed.Count > 0 ? $"Reachable, failed for {failed.Count}" : "OK")}";
+            <li>
+                @if (Model.AdminConsoleFor(h.Backend) is { } url)
+                {
+                    <a class="chip @chip" href="@url" target="_blank" rel="noopener noreferrer" title="@Systems.Name(h.Backend) admin console">@label</a>
+                }
+                else
+                {
+                    <span class="chip @chip">@label</span>
+                }
+                @if (!h.Healthy && !string.IsNullOrEmpty(h.Detail))
+                {
+                    <p class="hint detail">@Systems.Name(h.Backend): @h.Detail@(Model.Actor.IsGlobal ? "" : " " + Systems.TellOperator)</p>
+                }
+                else if (failed.Count > 0)
+                {
+                    <p class="hint detail">@(Model.Actor.IsGlobal
+                        ? $"{Systems.Name(h.Backend)} answers its health check but failed to answer for {string.Join(", ", failed)}. It may be partly down; see Needs attention."
+                        : $"{Systems.ShortName(h.Backend)} is not answering for {string.Join(", ", failed)}. {Systems.TellOperator}")</p>
+                }
+            </li>
+        }
+    </ul>
+</aside>
+</div>

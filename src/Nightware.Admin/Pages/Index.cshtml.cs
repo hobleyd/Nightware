@@ -28,20 +28,19 @@ public sealed class IndexModel(
     Microsoft.Extensions.Options.IOptions<Nightware.Admin.Auth.AdminAuthOptions> console) : ConsolePageModel(actor)
 {
     /// <summary>
-    /// Each system's own admin console that is configured, for global administrators: the way out when the
-    /// console itself cannot do something. Empty for entity administrators, who hold no rights there.
+    /// The system's own admin console, when one is configured and the actor is a global administrator: the way
+    /// out when the console itself cannot do something. Null for entity administrators, who hold no rights there.
     /// </summary>
-    public IReadOnlyList<(BackendKind Backend, string Url)> AdminConsoles =>
+    public string? AdminConsoleFor(BackendKind backend) =>
         !Actor.IsGlobal
-            ? []
-            : [.. new (BackendKind, string?)[]
-                {
-                    (BackendKind.Identity, console.Value.KeycloakAdminUrl),
-                    (BackendKind.Mail, console.Value.StalwartAdminUrl),
-                    (BackendKind.Groupware, console.Value.NextcloudAdminUrl),
-                }
-                .Where(static l => !string.IsNullOrWhiteSpace(l.Item2))
-                .Select(static l => (l.Item1, l.Item2!))];
+            ? null
+            : backend switch
+            {
+                BackendKind.Identity => console.Value.KeycloakAdminUrl,
+                BackendKind.Mail => console.Value.StalwartAdminUrl,
+                BackendKind.Groupware => console.Value.NextcloudAdminUrl,
+                _ => null,
+            } is { } url && !string.IsNullOrWhiteSpace(url) ? url : null;
 
     public Attention Attention { get; private set; } = new([], [], [], new Dictionary<string, int>());
 
