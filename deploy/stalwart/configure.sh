@@ -12,7 +12,9 @@
 #   4. trusted compose network, inbound throttle scope, JMAP concurrent
 #      requests per account (default 32), public DNSSEC-validating resolver,
 #      TLS certificate from files (STALWART_TLS_CERT/KEY)
-#   5. ReloadSettings
+#   5. web admin sign-in through Keycloak: the web admin's client id pinned,
+#      Stalwart's Admin role for STALWART_ADMIN_ACCOUNTS
+#   6. ReloadSettings
 #
 # Authenticates as the recovery administrator (STALWART_RECOVERY_ADMIN).
 source "$(dirname "$0")/../scripts/lib.sh"
@@ -267,11 +269,53 @@ if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" ]]; then
   fi
 fi
 
-# ------------------------------------------------------------------ 5. reload
+# ----------------------------------------- 5. web admin sign-in (Keycloak)
+# The web admin (/admin) asks /api/discover where an address signs in: the
+# recovery admin at Stalwart's own /login, a Keycloak user at Keycloak. It needs
+# a client id for Keycloak, which publishes no client metadata documents; pin
+# the web admin's own (its metadata document's URL), the one id Stalwart's
+# sign-in server also knows, and keycloak/configure-console.sh creates the
+# Keycloak client of that name. The page carries the id from a restart on.
+WEBUI_CLIENT="${PUBLIC_URL}/admin/oauth-client.json"
+apps=$(call '[["x:Application/query",{},"q"],["x:Application/get",{"#ids":{"resultOf":"q","name":"x:Application/query","path":"/ids"},"properties":["description","urlPrefix","oauthClientId"]},"g"]]' \
+  | jq -c '[.methodResponses[1][1].list[]? | select(.urlPrefix | has("/admin"))]')
+APP_ID=$(jq -r '.[0].id // empty' <<<"$apps")
+if [[ -z "$APP_ID" ]]; then
+  echo "Stalwart: WARNING no web admin application (urlPrefix /admin); Keycloak users cannot sign in to it" >&2
+elif [[ "$(jq -r '.[0].oauthClientId // empty' <<<"$apps")" != "$WEBUI_CLIENT" ]]; then
+  log "Stalwart: the web admin signs Keycloak users in as client ${WEBUI_CLIENT}"
+  call "$(jq -cn --arg id "$APP_ID" --arg c "$WEBUI_CLIENT" '[["x:Application/set",{"update":{($id):{oauthClientId:$c}}},"c"]]')" \
+    | jq -e --arg id "$APP_ID" '.methodResponses[0][1].updated | has($id)' >/dev/null \
+    || echo "Stalwart: WARNING could not set the web admin's client id" >&2
+  RESTART_STALWART=1
+fi
+
+# STALWART_ADMIN_ACCOUNTS: local parts (at MAIL_DOMAIN) that hold Stalwart's
+# Admin role, so their Keycloak sign-in to the web admin can administer it
+# (default: alice on a seeded dev stack). Granted, never revoked here.
+ADMINS="${STALWART_ADMIN_ACCOUNTS:-}"
+[[ -z "$ADMINS" && "${NIGHTWARE_KC_SEED:-1}" != "0" ]] && ADMINS=alice
+if [[ -n "$ADMINS" ]]; then
+  accounts=$(call '[["x:Account/query",{},"q"],["x:Account/get",{"#ids":{"resultOf":"q","name":"x:Account/query","path":"/ids"},"properties":["emailAddress","roles"]},"g"]]' \
+    | jq -c '.methodResponses[1][1].list')
+  for u in $ADMINS; do
+    acct=$(jq -c --arg a "${u}@${MAIL_DOMAIN}" '[.[] | select(.emailAddress == $a)] | first // empty' <<<"$accounts")
+    if [[ -z "$acct" ]]; then
+      echo "Stalwart: WARNING STALWART_ADMIN_ACCOUNTS: no account ${u}@${MAIL_DOMAIN} (list it in STALWART_ACCOUNTS)" >&2
+    elif [[ "$(jq -r '.roles["@type"]' <<<"$acct")" != Admin ]]; then
+      log "Stalwart: ${u}@${MAIL_DOMAIN} is an administrator"
+      call "$(jq -cn --arg id "$(jq -r .id <<<"$acct")" '[["x:Account/set",{"update":{($id):{roles:{"@type":"Admin"}}}},"c"]]')" \
+        | jq -e '.methodResponses[0][1].updated' >/dev/null \
+        || echo "Stalwart: WARNING could not make ${u}@${MAIL_DOMAIN} an administrator" >&2
+    fi
+  done
+fi
+
+# ------------------------------------------------------------------ 6. reload
 call '[["x:Action/set",{"create":{"r":{"@type":"ReloadSettings"}}},"c"]]' \
   | jq -e '.methodResponses[0][1].created' >/dev/null
 if (( RESTART_STALWART )); then
-  log "Stalwart: restarting to apply the JMAP request limits or TLS certificate"
+  log "Stalwart: restarting to apply the JMAP request limits, TLS certificate or web admin client id"
   dc restart stalwart >/dev/null
   wait_for "stalwart restart" ccurl -f "${MAIL_ALIAS_URL}/healthz/live"
 fi

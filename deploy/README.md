@@ -153,8 +153,16 @@ all data. A re-bootstrap from empty volumes is fully scripted.
 Admin consoles (credentials are in `.env`):
 
 - Keycloak: `https://nightware.localhost/auth/admin` (master realm `admin`).
-- Stalwart WebUI: `https://nightware.localhost/admin/`, signing in as the
-  recovery admin (`STALWART_ADMIN_USER`). It and its sign-in page live at the
+- Stalwart WebUI: `https://nightware.localhost/admin/`. Type a Keycloak
+  user's address (alice's, on a seeded stack) and Stalwart sends the sign-in to
+  Keycloak: with a Keycloak session already open (the console, Grafana) it
+  comes straight back, otherwise password + OTP, the console's MFA. The client
+  is Keycloak's `https://<host>/admin/oauth-client.json` (the web admin's own
+  id, which `stalwart/configure.sh` pins and `keycloak/configure-console.sh`
+  creates), and Caddy drops the `prompt=login` the web admin always sends for
+  it. Administering needs Stalwart's Admin role on the account
+  (`STALWART_ADMIN_ACCOUNTS`). The recovery admin (`STALWART_ADMIN_USER`)
+  still signs in on Stalwart's own page. It and its sign-in page live at the
   host root, and its OAuth endpoints are a few exact paths under `/auth/`
   that Caddy sends to Stalwart rather than Keycloak (`caddy/Caddyfile`). The
   management API it drives is JMAP (`/jmap/`), which `stalwart/configure.sh`
@@ -174,6 +182,7 @@ Admin consoles (credentials are in `.env`):
 | `stalwart` | audience only | Stalwart accepts only tokens with `aud: stalwart`. |
 | `nextcloud` | confidential | user_oidc's provider client, used for browser login. Nextcloud requires `aud` to contain `nextcloud` on bearer requests. |
 | `nightware-admin` | confidential | The admin console (see "Admin console"); created by `keycloak/configure-console.sh`. |
+| `https://<host>/admin/oauth-client.json` | public | Stalwart's web admin (see "Admin consoles" above): PKCE, `aud: stalwart`, the console's step-up flow and minimum acr. |
 | `nightware-grafana` | confidential | Grafana at `/grafana` (`NIGHTWARE_GRAFANA_CLIENT_SECRET`), created by `keycloak/configure-console.sh` with the console's step-up flow and minimum acr. A realm-role mapper puts `roles` in its ID token and userinfo; Grafana makes `nightware-global-admin` an Admin and refuses everyone else. |
 
 ### Token flow

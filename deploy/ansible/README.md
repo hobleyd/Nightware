@@ -41,6 +41,7 @@ Afterwards:
 |---|---|
 | `https://<host>/console/` | Admin console: users with `admin: true`, password + OTP |
 | `https://<host>/grafana/` | Grafana: the same people, through Keycloak. Also linked from the console's Systems panel |
+| `https://<host>/admin/` | Stalwart's web admin: type your address and it signs you in through Keycloak (silently when you're already signed in) |
 | `https://<host>/.well-known/nightware` | What NightMail reads; users type `<host>` into NightMail |
 
 `/console` and `/grafana` are open to `nightware_admin_allowed_cidrs`; narrow it.

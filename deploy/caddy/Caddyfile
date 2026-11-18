@@ -36,6 +36,15 @@
 			reverse_proxy stalwart:8080
 		}
 		handle {
+			# Stalwart's web admin always asks for prompt=login, which would make
+			# someone already signed in (to the console, say) sign in again. For
+			# its client only (client id .../admin/oauth-client.json), drop it:
+			# Keycloak's session, and the client's MFA minimum, decide instead.
+			@stalwart-webui-prompt {
+				path /auth/realms/nightware/protocol/openid-connect/auth
+				expression `{query.client_id}.endsWith("/admin/oauth-client.json")`
+			}
+			uri @stalwart-webui-prompt query -prompt
 			reverse_proxy keycloak:8080
 		}
 	}

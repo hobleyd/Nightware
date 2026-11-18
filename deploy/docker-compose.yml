@@ -359,6 +359,8 @@ services:
       Admin__NextcloudAdminUrl: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/cloud/settings/admin
       # Telemetry (the grafana service), linked from the dashboard's Systems panel for global admins.
       Admin__GrafanaUrl: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/grafana/
+      # Its status on the dashboard, asked over the internal network.
+      Admin__GrafanaHealthUrl: http://grafana:3000/grafana/api/health
       # Keycloak admin API as the console's own service account.
       Directory__KeycloakBaseUrl: http://keycloak:8080/auth
       Directory__Realm: nightware

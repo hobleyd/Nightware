@@ -24,6 +24,8 @@
 #      acr as the console) with the realm roles as a `roles` claim in its ID
 #      token and userinfo, which Grafana maps: nightware-global-admin -> Admin,
 #      anyone else refused. Skipped when the secret is unset.
+#   9. a client for Stalwart's web admin, named ${PUBLIC_URL}/admin/oauth-client.json
+#      (public, PKCE, aud stalwart, the same step-up flow and minimum acr)
 # The step-4 flow (and its migration from the OTP-only flow) is verified on
 # Keycloak 26.8.2: no factor -> OTP set-up; OTP, passkey, or both (passkey first,
 # "Try another way" to OTP) -> acr mfa. UNVERIFIED against a live Keycloak: the
@@ -191,7 +193,8 @@ client_rep=$(jq -cn --arg id "$CLIENT_ID" \
                   "client.session.idle.timeout": "1200", "client.session.max.lifespan": "28800"}
                  + (if $acr == "" then {} else {"minimum.acr.value": $acr} end)),
     authenticationFlowBindingOverrides: (if $flow == "" then {} else {browser: $flow} end),
-    defaultClientScopes: ["acr", "basic", "profile", "email", "roles"],
+    # service_account: Keycloak adds it to a client with a service account anyway.
+    defaultClientScopes: ["acr", "basic", "profile", "email", "roles", "service_account"],
     optionalClientScopes: ["kc-admin-api"]}')
 CLIENT_UUID=$(kc "${API}/clients?clientId=${CLIENT_ID}" | jq -r '.[0].id // empty')
 if [[ -z "$CLIENT_UUID" ]]; then
@@ -202,7 +205,9 @@ else
   current=$(kc "${API}/clients/${CLIENT_UUID}")
   merged=$(jq --argjson want "$client_rep" '. + ($want | del(.attributes)) | .attributes = ((.attributes // {}) + $want.attributes)
     | if ($want.attributes | has("minimum.acr.value")) then . else .attributes |= del(."minimum.acr.value") end' <<<"$current")
-  if [[ "$(jq -S 'del(.secret)' <<<"$current")" != "$(jq -S 'del(.secret)' <<<"$merged")" ]] \
+  # Keycloak lists the client scopes in an order of its own.
+  if [[ "$(jq -S 'del(.secret) | .defaultClientScopes |= sort | .optionalClientScopes |= sort' <<<"$current")" \
+        != "$(jq -S 'del(.secret) | .defaultClientScopes |= sort | .optionalClientScopes |= sort' <<<"$merged")" ]] \
      || [[ "$(kc "${API}/clients/${CLIENT_UUID}/client-secret" | jq -r .value)" != "$NIGHTWARE_ADMIN_CLIENT_SECRET" ]]; then
     log "Keycloak (console): updating client ${CLIENT_ID}"
     kcj -X PUT "${API}/clients/${CLIENT_UUID}" --data-binary @- <<<"$merged" >/dev/null
@@ -278,16 +283,47 @@ for who in $BOOTSTRAP; do
   fi
 done
 
-# ----------------------------------------------------------- 8. Grafana
-# Telemetry at /grafana (docker-compose.yml's grafana service). Its realm-role
-# mapper puts `roles` where Grafana reads it (ID token, userinfo); the realm's
-# own `roles` scope only fills the access token's realm_access.
+# ---------------------------------------------- 8, 9. Grafana and Stalwart
+# upsert_client CLIENT_ID REPRESENTATION: create the client, or bring an
+# existing one in line (its secret included), and add any of the
+# representation's protocol mappers it lacks.
+upsert_client() {
+  local id="$1" rep="$2" uuid current merged mapper
+  uuid=$(kc "${API}/clients?clientId=$(jq -rn --arg c "$id" '$c|@uri')" | jq -r '.[0].id // empty')
+  if [[ -z "$uuid" ]]; then
+    log "Keycloak (console): creating client ${id}"
+    kcj -X POST "${API}/clients" --data-binary @- <<<"$rep" >/dev/null || warn "could not create ${id}"
+    return
+  fi
+  current=$(kc "${API}/clients/${uuid}")
+  merged=$(jq --argjson want "$rep" '. + ($want | del(.attributes, .protocolMappers)) | .attributes = ((.attributes // {}) + $want.attributes)
+    | if ($want.attributes | has("minimum.acr.value")) then . else .attributes |= del(."minimum.acr.value") end' <<<"$current")
+  # Keycloak lists the client scopes in an order of its own.
+  same() { jq -S 'del(.secret) | .defaultClientScopes |= sort | .optionalClientScopes |= sort' <<<"$1"; }
+  if [[ "$(same "$current")" != "$(same "$merged")" ]] \
+     || { [[ "$(jq -r .publicClient <<<"$rep")" != true ]] \
+          && [[ "$(kc "${API}/clients/${uuid}/client-secret" | jq -r .value)" != "$(jq -r .secret <<<"$rep")" ]]; }; then
+    log "Keycloak (console): updating client ${id}"
+    kcj -X PUT "${API}/clients/${uuid}" --data-binary @- <<<"$merged" >/dev/null
+  fi
+  # Mappers an earlier version of the client was created without.
+  jq -c '.protocolMappers[]?' <<<"$rep" | while read -r mapper; do
+    if ! kc "${API}/clients/${uuid}/protocol-mappers/models" | jq -e --arg n "$(jq -r .name <<<"$mapper")" '.[] | select(.name==$n)' >/dev/null; then
+      log "Keycloak (console): ${id} gets the mapper '$(jq -r .name <<<"$mapper")'"
+      kcj -X POST "${API}/clients/${uuid}/protocol-mappers/models" --data-binary @- <<<"$mapper" >/dev/null
+    fi
+  done
+}
+
+# 8. Grafana: telemetry at /grafana (docker-compose.yml's grafana service).
+# Its realm-role mapper puts `roles` where Grafana reads it (ID token,
+# userinfo); the realm's own `roles` scope only fills the access token's
+# realm_access.
 if [[ -z "${NIGHTWARE_GRAFANA_CLIENT_SECRET:-}" ]]; then
   warn "NIGHTWARE_GRAFANA_CLIENT_SECRET is not set; no Grafana sign-in (run scripts/init-env.sh)"
 else
   export NIGHTWARE_GRAFANA_CLIENT_SECRET
-  GRAFANA_URL="${PUBLIC_URL}/grafana"
-  grafana_rep=$(jq -cn --arg url "$GRAFANA_URL" --arg acr "$REQUIRED_ACR" --arg flow "$FLOW_ID" '{
+  upsert_client nightware-grafana "$(jq -cn --arg url "${PUBLIC_URL}/grafana" --arg acr "$REQUIRED_ACR" --arg flow "$FLOW_ID" '{
       clientId: "nightware-grafana", name: "Grafana",
       description: "Grafana (telemetry): sign-in for the console'"'"'s global administrators.",
       enabled: true, publicClient: false, secret: $ENV.NIGHTWARE_GRAFANA_CLIENT_SECRET, clientAuthenticatorType: "client-secret", protocol: "openid-connect",
@@ -300,27 +336,29 @@ else
       optionalClientScopes: [],
       protocolMappers: [{name: "realm roles", protocol: "openid-connect", protocolMapper: "oidc-usermodel-realm-role-mapper",
         config: {"claim.name": "roles", "multivalued": "true", "jsonType.label": "String",
-                 "id.token.claim": "true", "userinfo.token.claim": "true", "access.token.claim": "false", "introspection.token.claim": "false"}}]}')
-  GRAFANA_UUID=$(kc "${API}/clients?clientId=nightware-grafana" | jq -r '.[0].id // empty')
-  if [[ -z "$GRAFANA_UUID" ]]; then
-    log "Keycloak (console): creating client nightware-grafana"
-    kcj -X POST "${API}/clients" --data-binary @- <<<"$grafana_rep" >/dev/null || warn "could not create nightware-grafana"
-  else
-    current=$(kc "${API}/clients/${GRAFANA_UUID}")
-    merged=$(jq --argjson want "$grafana_rep" '. + ($want | del(.attributes, .protocolMappers)) | .attributes = ((.attributes // {}) + $want.attributes)
-      | if ($want.attributes | has("minimum.acr.value")) then . else .attributes |= del(."minimum.acr.value") end' <<<"$current")
-    # Keycloak lists the client scopes in an order of its own.
-    same() { jq -S 'del(.secret) | .defaultClientScopes |= sort | .optionalClientScopes |= sort' <<<"$1"; }
-    if [[ "$(same "$current")" != "$(same "$merged")" ]] \
-       || [[ "$(kc "${API}/clients/${GRAFANA_UUID}/client-secret" | jq -r .value)" != "$NIGHTWARE_GRAFANA_CLIENT_SECRET" ]]; then
-      log "Keycloak (console): updating client nightware-grafana"
-      kcj -X PUT "${API}/clients/${GRAFANA_UUID}" --data-binary @- <<<"$merged" >/dev/null
-    fi
-    # The roles mapper, should an earlier version have created the client without it.
-    if ! kc "${API}/clients/${GRAFANA_UUID}/protocol-mappers/models" | jq -e '.[] | select(.name=="realm roles")' >/dev/null; then
-      log "Keycloak (console): nightware-grafana gets the realm roles claim"
-      kcj -X POST "${API}/clients/${GRAFANA_UUID}/protocol-mappers/models" --data-binary @- <<<"$(jq -c '.protocolMappers[0]' <<<"$grafana_rep")" >/dev/null
-    fi
-  fi
+                 "id.token.claim": "true", "userinfo.token.claim": "true", "access.token.claim": "false", "introspection.token.claim": "false"}}]}')"
 fi
+
+# 9. Stalwart's web admin (/admin). Its sign-in page asks Stalwart where an
+# address signs in (/api/discover), and for a Keycloak user that is this realm.
+# The client id is the web admin's own (its client metadata document's URL),
+# which stalwart/configure.sh pins: Stalwart's sign-in server, which the
+# recovery admin still uses, knows no other. A public client (the browser
+# holds no secret) with PKCE, whose access tokens carry aud stalwart like the
+# façade's exchanged ones, and the console's MFA.
+STALWART_WEBUI_CLIENT="${PUBLIC_URL}/admin/oauth-client.json"
+upsert_client "$STALWART_WEBUI_CLIENT" "$(jq -cn --arg id "$STALWART_WEBUI_CLIENT" --arg url "${PUBLIC_URL}/admin" --arg origin "$PUBLIC_URL" --arg acr "$REQUIRED_ACR" --arg flow "$FLOW_ID" '{
+    clientId: $id, name: "Stalwart web admin",
+    description: "Stalwart'"'"'s web admin: sign-in for Keycloak users (stalwart/configure.sh grants admins its Admin role).",
+    enabled: true, publicClient: true, protocol: "openid-connect",
+    standardFlowEnabled: true, implicitFlowEnabled: false, directAccessGrantsEnabled: false, serviceAccountsEnabled: false,
+    redirectUris: [($url + "/oauth/callback")], webOrigins: [$origin],
+    attributes: ({"pkce.code.challenge.method": "S256", "post.logout.redirect.uris": ($url + "/login")}
+                 + (if $acr == "" then {} else {"minimum.acr.value": $acr} end)),
+    authenticationFlowBindingOverrides: (if $flow == "" then {} else {browser: $flow} end),
+    defaultClientScopes: ["acr", "basic", "profile", "email"],
+    optionalClientScopes: [],
+    protocolMappers: [{name: "stalwart audience", protocol: "openid-connect", protocolMapper: "oidc-audience-mapper",
+      config: {"included.client.audience": "stalwart", "id.token.claim": "false", "access.token.claim": "true", "introspection.token.claim": "true"}}]}')"
+
 log "Keycloak (console): configured (${CONSOLE_URL})"

@@ -34,7 +34,8 @@ nightware_default_entity_name: Nightware
 # (temporary: Keycloak makes them change it). Each gets a Stalwart mailbox for
 # the local part of their email. Example:
 #   - { username: jbloggs, email: jo@example.com, first_name: Jo, last_name: Bloggs, admin: true }
-# admin: true makes them a global administrator of the console (and of Grafana).
+# admin: true makes them a global administrator of the console and of Grafana,
+# and gives their mailbox Stalwart's Admin role for its web admin.
 nightware_users: []
 
 # Traces, metrics and logs from the façade go to the grafana service. Set to
