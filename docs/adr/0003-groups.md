@@ -158,8 +158,11 @@ entity's users only. Every use case loads the group through `GroupAccess`
 - The console's Stalwart role gains `sysMailingList*` and
   `sysSieveSystemScript{Get,Query,Create,Update}`; Nextcloud needs the
   `groupfolders` app (both in the configure scripts).
-- NightMail is unchanged: mail to a list works from any client, but address
-  autocomplete does not suggest lists (no `/groups` in the Graph contract).
+- NightMail is unchanged: mail to a list works from any client. Address
+  autocomplete suggests a list through `/people` (there is no `/groups` in the
+  Graph contract): the façade reads the caller's organizations' groups as the
+  `nightware-api` service account (`view-organizations`), and offers a
+  members-only list to its members only, since anyone else is refused at RCPT.
 - Bounces for outside recipients go to the original sender, not the list.
 - A hand-edited `nightware-lists` block that is left unterminated is dropped on
   the next change; anything outside the marked blocks is kept.

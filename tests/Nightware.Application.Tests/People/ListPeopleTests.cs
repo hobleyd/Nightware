@@ -17,6 +17,7 @@ public sealed class ListPeopleTests
     private static readonly MailboxRef Me = new("me@example.com");
     private readonly IContactStore _contacts = Substitute.For<IContactStore>();
     private readonly IUserDirectory _directory = Substitute.For<IUserDirectory>();
+    private readonly IDirectoryAddresses _addresses = Substitute.For<IDirectoryAddresses>();
     private readonly IRecentCorrespondents _recent = Substitute.For<IRecentCorrespondents>();
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 11, 15, 12, 0, 0, TimeSpan.Zero));
 
@@ -24,12 +25,13 @@ public sealed class ListPeopleTests
     {
         _contacts.ListAsync(Me, Arg.Any<ItemQuery>(), Arg.Any<CancellationToken>()).Returns(Page<Contact>.Empty);
         _directory.ListAsync(Arg.Any<ItemQuery>(), Arg.Any<CancellationToken>()).Returns(Page<DirectoryUser>.Empty);
+        _addresses.ListAsync(Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<DirectoryAddress>>.Success([]));
         _recent.ListAsync(Me, ListPeople.MaxCorrespondents, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<Correspondent>>.Success([]));
     }
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private ListPeople UseCase => new(_contacts, _directory, _recent, new PeopleRanker(), _time);
+    private ListPeople UseCase => new(_contacts, _directory, _addresses, _recent, new PeopleRanker(), _time);
 
     private static DirectoryUser User(int i) => new($"u{i}", $"User {i:D2}", $"user{i:D2}@example.com") { Mail = $"user{i:D2}@example.com" };
 
@@ -40,12 +42,14 @@ public sealed class ListPeopleTests
             .Returns(new Page<Contact>([new Contact(new ContactId("c"), "Pat") { EmailAddresses = [new EmailAddress("pat@example.com")] }]));
         _directory.ListAsync(Arg.Is<ItemQuery>(q => q.Top == ListPeople.SourcePageSize && q.SkipToken == null), Arg.Any<CancellationToken>())
             .Returns(new Page<DirectoryUser>([User(1)]));
+        _addresses.ListAsync(Arg.Any<CancellationToken>())
+            .Returns(Result<IReadOnlyList<DirectoryAddress>>.Success([new DirectoryAddress("support@example.com", "Support Inbox")]));
         _recent.ListAsync(Me, ListPeople.MaxCorrespondents, Arg.Any<CancellationToken>())
             .Returns(Result<IReadOnlyList<Correspondent>>.Success([new Correspondent(new EmailAddress("alex@example.com", "Alex"), 20, _time.GetUtcNow())]));
 
         var page = (await UseCase.ExecuteAsync(Me, ItemQuery.Default, Ct)).Value;
 
-        page.Items.Select(static p => p.DisplayName).ShouldBe(["Alex", "Pat", "User 01"]);
+        page.Items.Select(static p => p.DisplayName).ShouldBe(["Alex", "Pat", "Support Inbox", "User 01"]);
         page.SkipToken.ShouldBeNull();
     }
 
@@ -148,6 +152,7 @@ public sealed class ListPeopleTests
     public async Task A_source_that_does_not_apply_contributes_nobody(ErrorKind kind)
     {
         _contacts.ListAsync(Me, Arg.Any<ItemQuery>(), Arg.Any<CancellationToken>()).Returns(new Error(kind, "c", "m"));
+        _addresses.ListAsync(Arg.Any<CancellationToken>()).Returns(new Error(kind, "c", "m"));
         _directory.ListAsync(Arg.Any<ItemQuery>(), Arg.Any<CancellationToken>()).Returns(new Page<DirectoryUser>([User(1)]));
 
         (await UseCase.ExecuteAsync(Me, ItemQuery.Default, Ct)).Value.Items.ShouldHaveSingleItem();
@@ -159,6 +164,10 @@ public sealed class ListPeopleTests
     [InlineData(ErrorKind.BackendAuthFailed)]
     public async Task A_failing_contact_store_or_directory_fails_the_request(ErrorKind kind)
     {
+        _addresses.ListAsync(Arg.Any<CancellationToken>()).Returns(new Error(kind, "c", "m"));
+        (await UseCase.ExecuteAsync(Me, ItemQuery.Default, Ct)).Error!.Kind.ShouldBe(kind);
+
+        _addresses.ListAsync(Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<DirectoryAddress>>.Success([]));
         _directory.ListAsync(Arg.Any<ItemQuery>(), Arg.Any<CancellationToken>()).Returns(new Error(kind, "c", "m"));
         (await UseCase.ExecuteAsync(Me, ItemQuery.Default, Ct)).Error!.Kind.ShouldBe(kind);
 

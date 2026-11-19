@@ -25,6 +25,7 @@ public sealed class PeopleArrangements : IConformanceArrangements
             var me = new MailboxRef("me@example.com");
             fakes.For<IContactStore>().ListAsync(me, Arg.Any<ItemQuery>(), Arg.Any<CancellationToken>()).Returns(Page<Contact>.Empty);
             fakes.For<IUserDirectory>().ListAsync(Arg.Any<ItemQuery>(), Arg.Any<CancellationToken>()).Returns(Page<DirectoryUser>.Empty);
+            fakes.For<IDirectoryAddresses>().ListAsync(Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<DirectoryAddress>>.Success([]));
             fakes.For<IRecentCorrespondents>().ListAsync(me, Arg.Any<int>(), Arg.Any<CancellationToken>())
                 .Returns(Result<IReadOnlyList<Correspondent>>.Success([new Correspondent(new EmailAddress("alex@example.com", "Alex Sender"), 42, Now)]));
         })

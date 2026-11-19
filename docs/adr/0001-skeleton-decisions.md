@@ -79,7 +79,9 @@ anything contradictory in `architecture.md` or the phase docs.
     token exchange (RFC 8693) per backend audience, cached by token hash in a
     disposable `IMemoryCache`.
 17. Directory lookups (`/users`, `/users/{upn}`) use the `nightware-api` service
-    account (`view-users`) as the **primary** design.
+    account (`view-users`) as the **primary** design. `/people` also reads the
+    caller's organizations' groups and shared mailboxes with it
+    (`view-organizations`; ADR 0003, ADR 0004).
 18. `mailboxSettings.timeZone/language/workingHours` are stored as Keycloak user
     attributes (`zoneinfo`, `locale`, …) via `IUserPreferencesStore` in
     `Adapters.Directory`; auto-replies are JMAP `VacationResponse`.

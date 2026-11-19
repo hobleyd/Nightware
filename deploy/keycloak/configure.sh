@@ -9,6 +9,9 @@
 #     façade's /me mailbox) and `username` are editable by admins only, so a user
 #     cannot claim another mailbox's address in the account console; usernames
 #     are not editable and the UPDATE_EMAIL required action stays disabled.
+#   - give the nightware-api service account realm-management
+#     view-organizations, so /people can suggest the caller's groups and shared
+#     mailboxes (the realm import grants it only to a new realm).
 #   - seed them for the test users, writing as the nightware-api service
 #     account (realm-management manage-users) to prove that path
 #     (NIGHTWARE_KC_SEED=0 skips this).
@@ -59,6 +62,28 @@ if [[ -n "$action" && "$(jq -r .enabled <<<"$action")" != "false" ]]; then
   jq '.enabled = false | .defaultAction = false' <<<"$action" \
     | ccurl -f -X PUT -H "Authorization: Bearer ${ADMIN}" -H 'Content-Type: application/json' \
         "${API}/authentication/required-actions/UPDATE_EMAIL" --data-binary @- >/dev/null
+fi
+
+# The façade reads the organization groups the console keeps (groups' lists and
+# shared mailboxes) for the people typeahead. view-organizations is read-only;
+# query-organizations alone answers every organization read with an empty list
+# (verified on 26.8).
+API_CLIENT_UUID=$(ccurl -f -H "Authorization: Bearer ${ADMIN}" "${API}/clients?clientId=nightware-api" | jq -r '.[0].id')
+API_SA=$(ccurl -f -H "Authorization: Bearer ${ADMIN}" "${API}/clients/${API_CLIENT_UUID}/service-account-user" | jq -r .id)
+RM=$(ccurl -f -H "Authorization: Bearer ${ADMIN}" "${API}/clients?clientId=realm-management" | jq -r '.[0].id')
+if ccurl -f -H "Authorization: Bearer ${ADMIN}" "${API}/users/${API_SA}/role-mappings/clients/${RM}" \
+     | jq -e 'any(.[]; .name == "view-organizations")' >/dev/null; then
+  log "Keycloak: nightware-api service account already has view-organizations"
+else
+  rep=$(ccurl -f -H "Authorization: Bearer ${ADMIN}" "${API}/users/${API_SA}/role-mappings/clients/${RM}/available" \
+    | jq -c '[.[] | select(.name == "view-organizations")]')
+  if [[ "$rep" == "[]" ]]; then
+    log "Keycloak: WARNING realm-management view-organizations does not exist in this Keycloak; /people will not suggest groups or shared mailboxes"
+  else
+    log "Keycloak: nightware-api service account gets realm-management view-organizations"
+    ccurl -f -X POST -H "Authorization: Bearer ${ADMIN}" -H 'Content-Type: application/json' \
+      "${API}/users/${API_SA}/role-mappings/clients/${RM}" -d "$rep" >/dev/null
+  fi
 fi
 
 # NIGHTWARE_KC_SEED=0 applies only the realm/user-profile steps above, leaving

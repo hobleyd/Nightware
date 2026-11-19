@@ -18,6 +18,7 @@ public sealed class PeopleEndpointsTests : IAsyncLifetime
 {
     private readonly IContactStore _contacts = Substitute.For<IContactStore>();
     private readonly IUserDirectory _directory = Substitute.For<IUserDirectory>();
+    private readonly IDirectoryAddresses _addresses = Substitute.For<IDirectoryAddresses>();
     private readonly IRecentCorrespondents _recent = Substitute.For<IRecentCorrespondents>();
     private TestHost _host = null!;
 
@@ -29,8 +30,9 @@ public sealed class PeopleEndpointsTests : IAsyncLifetime
             new DirectoryUser("u1", "Ann", "ann@example.com") { Mail = "ann@example.com" },
             new DirectoryUser("u2", "Bea", "bea@example.com") { Mail = "bea@example.com" },
         ]));
+        _addresses.ListAsync(Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<DirectoryAddress>>.Success([]));
         _recent.ListAsync(Arg.Any<MailboxRef>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(Error.Unsupported("not yet"));
-        _host = await TestHost.StartAsync(services => services.AddSingleton(_contacts).AddSingleton(_directory).AddSingleton(_recent));
+        _host = await TestHost.StartAsync(services => services.AddSingleton(_contacts).AddSingleton(_directory).AddSingleton(_addresses).AddSingleton(_recent));
     }
 
     public async ValueTask DisposeAsync() => await _host.DisposeAsync();
@@ -74,5 +76,17 @@ public sealed class PeopleEndpointsTests : IAsyncLifetime
     public async Task Unsupported_or_tampered_queries_are_a_400(string query)
     {
         (await _host.AuthorizedClient().GetAsync("/v1.0/me/people" + query, Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Groups_and_shared_mailboxes_are_suggested_beside_people()
+    {
+        _addresses.ListAsync(Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<DirectoryAddress>>.Success(
+            [new DirectoryAddress("household@example.com", "Household"), new DirectoryAddress("support@example.com", "Support Inbox")]));
+
+        var body = await (await _host.AuthorizedClient().GetAsync("/v1.0/me/people?$select=displayName,scoredEmailAddresses&$top=999", Ct)).ReadObjectAsync();
+
+        body["value"]!.AsArray().Select(static p => p.Str("displayName")).ShouldBe(["Ann", "Bea", "Household", "Support Inbox"]);
+        body["value"]![3]!["scoredEmailAddresses"]![0].Str("address").ShouldBe("support@example.com");
     }
 }

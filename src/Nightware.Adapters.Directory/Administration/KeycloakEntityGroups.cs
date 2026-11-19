@@ -15,13 +15,13 @@ namespace Nightware.Adapters.Directory.Administration;
 /// </summary>
 internal sealed class KeycloakEntityGroups(IKeycloakAdminClient keycloak) : IEntityGroups
 {
-    public const string ParentName = "groups";
+    public const string ParentName = OrganizationGroupNames.GroupsParent;
 
-    internal const string NameAttribute = "nightware_name";
-    internal const string ListAddressAttribute = "nightware_list_address";
+    internal const string NameAttribute = OrganizationGroupNames.NameAttribute;
+    internal const string ListAddressAttribute = OrganizationGroupNames.ListAddressAttribute;
     internal const string ListAliasesAttribute = "nightware_list_aliases";
     internal const string ExternalRecipientsAttribute = "nightware_external_recipients";
-    internal const string SendersAttribute = "nightware_senders";
+    internal const string SendersAttribute = OrganizationGroupNames.SendersAttribute;
     internal const string FilesAttribute = "nightware_files";
     internal const string TeamFolderAttribute = "nightware_team_folder";
     internal const string TeamFolderIdAttribute = "nightware_team_folder_id";

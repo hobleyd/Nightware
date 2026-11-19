@@ -13,9 +13,9 @@ namespace Nightware.Adapters.Directory.Administration;
 /// </summary>
 internal sealed class KeycloakEntityMailboxes(IKeycloakAdminClient keycloak) : IEntityMailboxes
 {
-    public const string ParentName = "mailboxes";
+    public const string ParentName = OrganizationGroupNames.MailboxesParent;
 
-    internal const string NameAttribute = "nightware_name";
+    internal const string NameAttribute = OrganizationGroupNames.NameAttribute;
     internal const string AliasesAttribute = "nightware_mailbox_aliases";
 
     public async Task<Result<IReadOnlyList<SharedMailbox>>> ListAsync(string entityId, CancellationToken cancellationToken)

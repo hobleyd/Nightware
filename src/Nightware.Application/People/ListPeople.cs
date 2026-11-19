@@ -10,8 +10,8 @@ using Nightware.Domain.Mail;
 namespace Nightware.Application.People;
 
 /// <summary>
-/// <c>GET {mailbox}/people</c>: the mailbox owner's relevant people (contacts ∪ directory ∪ recent
-/// correspondents), ranked by <see cref="PeopleRanker"/> and paged by offset.
+/// <c>GET {mailbox}/people</c>: the mailbox owner's relevant people (contacts ∪ directory ∪ the directory's group and
+/// shared-mailbox addresses ∪ recent correspondents), ranked by <see cref="PeopleRanker"/> and paged by offset.
 /// </summary>
 /// <remarks>
 /// <para>Each page re-reads the sources and re-ranks against the instant frozen in the
@@ -19,13 +19,14 @@ namespace Nightware.Application.People;
 /// <para>Source failures: a source that does not apply to this mailbox (<see cref="ErrorKind.NotFound"/>,
 /// <see cref="ErrorKind.Forbidden"/> — e.g. a shared mailbox without an address book) or is not built
 /// (<see cref="ErrorKind.Unsupported"/>) contributes nobody. Recent correspondents are an enrichment and
-/// contribute nobody on any failure. Any other failure of contacts or the directory (outage, throttling,
-/// credentials) fails the request, so the client records a partial sync instead of caching a ranking
+/// contribute nobody on any failure. Any other failure of contacts or the directory, its addresses included (outage,
+/// throttling, credentials), fails the request, so the client records a partial sync instead of caching a ranking
 /// silently missing a source.</para>
 /// </remarks>
 public sealed class ListPeople(
     IContactStore contacts,
     IUserDirectory directory,
+    IDirectoryAddresses directoryAddresses,
     IRecentCorrespondents correspondents,
     PeopleRanker ranker,
     TimeProvider timeProvider)
@@ -67,8 +68,9 @@ public sealed class ListPeople(
 
         var contactsTask = ReadAllAsync(q => contacts.ListAsync(mailbox, q, cancellationToken), cancellationToken);
         var usersTask = ReadAllAsync(q => directory.ListAsync(q, cancellationToken), cancellationToken);
+        var addressesTask = directoryAddresses.ListAsync(cancellationToken);
         var correspondentsTask = correspondents.ListAsync(mailbox, MaxCorrespondents, cancellationToken);
-        await Task.WhenAll(contactsTask, usersTask, correspondentsTask).ConfigureAwait(false);
+        await Task.WhenAll(contactsTask, usersTask, addressesTask, correspondentsTask).ConfigureAwait(false);
 
         var contactList = await contactsTask.ConfigureAwait(false);
         if (!contactList.IsSuccess)
@@ -82,10 +84,18 @@ public sealed class ListPeople(
             return userList.Error;
         }
 
+        var addresses = await addressesTask.ConfigureAwait(false);
+        if (!addresses.IsSuccess && !DoesNotApply(addresses.Error))
+        {
+            return addresses.Error;
+        }
+
+        IReadOnlyList<DirectoryAddress> addressList = addresses.IsSuccess ? addresses.Value : [];
+
         var recent = await correspondentsTask.ConfigureAwait(false);
         IReadOnlyList<Correspondent> recentList = recent.IsSuccess ? recent.Value : [];
 
-        var ranked = ranker.Rank(contactList.Value, userList.Value, recentList, rankedAt);
+        var ranked = ranker.Rank(contactList.Value, userList.Value, addressList, recentList, rankedAt);
         var page = ranked.Skip(offset).Take(top).ToList();
         var next = offset + top < ranked.Count ? new PeopleSkipToken(offset + top, rankedAt).ToString() : null;
         return new Page<Person>(page, next);
@@ -98,6 +108,8 @@ public sealed class ListPeople(
         : query.Skip is not null ? "$skip"
         : query.Expand.Count > 0 ? "$expand"
         : null;
+
+    private static bool DoesNotApply(Error error) => error.Kind is ErrorKind.NotFound or ErrorKind.Forbidden or ErrorKind.Unsupported;
 
     /// <summary>Every item of a paged source (up to <see cref="MaxSourcePages"/>), or empty when it does not apply.</summary>
     private static async Task<Result<IReadOnlyList<T>>> ReadAllAsync<T>(
@@ -112,9 +124,7 @@ public sealed class ListPeople(
             var page = await list(new ItemQuery { Top = SourcePageSize, SkipToken = skipToken }).ConfigureAwait(false);
             if (!page.IsSuccess)
             {
-                return page.Error.Kind is ErrorKind.NotFound or ErrorKind.Forbidden or ErrorKind.Unsupported
-                    ? items
-                    : page.Error;
+                return DoesNotApply(page.Error) ? items : page.Error;
             }
 
             items.AddRange(page.Value.Items);

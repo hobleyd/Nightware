@@ -22,6 +22,15 @@ public interface ISharedMailboxDirectory
     Task<Result<DirectoryUser>> GetAsync(string address, CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// The addresses in the signed-in user's organizations that are nobody's own mailbox and the user may send to: groups'
+/// lists (a members-only list only to its members) and shared mailboxes.
+/// </summary>
+public interface IDirectoryAddresses
+{
+    Task<Result<IReadOnlyList<DirectoryAddress>>> ListAsync(CancellationToken cancellationToken);
+}
+
 public interface IUserPhotoReader
 {
     /// <summary>The user's photo; <see cref="ErrorKind.NotFound"/> when they have none.</summary>

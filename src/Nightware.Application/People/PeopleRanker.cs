@@ -9,7 +9,8 @@ using Nightware.Domain.Mail;
 namespace Nightware.Application.People;
 
 /// <summary>
-/// Merges personal contacts, directory users and recent correspondents into Graph <c>person</c>s, ranked
+/// Merges personal contacts, directory users, the directory's group and shared-mailbox addresses and recent
+/// correspondents into Graph <c>person</c>s, ranked
 /// by relevance to the mailbox owner. Pure: the reference time is an argument, so a paged walk ranks
 /// every page against the same instant.
 /// </summary>
@@ -23,7 +24,8 @@ namespace Nightware.Application.People;
 /// <item>correspondence: up to <see cref="FrequencyWeight"/> for message count (saturating at
 /// <see cref="FrequencySaturation"/> messages) plus up to <see cref="RecencyWeight"/> for the last
 /// exchange, halving every <see cref="RecencyHalfLifeDays"/> days;</item>
-/// <item><see cref="ContactWeight"/> for a saved contact, <see cref="DirectoryWeight"/> for a colleague.</item>
+/// <item><see cref="ContactWeight"/> for a saved contact, <see cref="DirectoryWeight"/> for a colleague, a group or a
+/// shared mailbox.</item>
 /// </list>
 /// Ties are broken by display name, then address, so the order is total and pages never overlap.
 /// </remarks>
@@ -40,11 +42,13 @@ public sealed class PeopleRanker
     public IReadOnlyList<Person> Rank(
         IEnumerable<Contact> contacts,
         IEnumerable<DirectoryUser> users,
+        IEnumerable<DirectoryAddress> addresses,
         IEnumerable<Correspondent> correspondents,
         DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(contacts);
         ArgumentNullException.ThrowIfNull(users);
+        ArgumentNullException.ThrowIfNull(addresses);
         ArgumentNullException.ThrowIfNull(correspondents);
 
         var merger = new Merger();
@@ -79,6 +83,18 @@ public sealed class PeopleRanker
             person.Surname ??= user.Surname;
             person.CompanyName ??= user.CompanyName;
             person.JobTitle ??= user.JobTitle;
+        }
+
+        foreach (var directoryAddress in addresses)
+        {
+            var person = merger.Find([directoryAddress.Address]);
+            if (person is null)
+            {
+                continue;
+            }
+
+            person.Sources |= PersonSource.Directory;
+            person.DirectoryName ??= directoryAddress.DisplayName;
         }
 
         foreach (var correspondent in correspondents)

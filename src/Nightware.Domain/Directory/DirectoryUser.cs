@@ -54,3 +54,9 @@ public sealed record UserPreferencesPatch
 
     public WorkingHours? WorkingHours { get; init; }
 }
+
+/// <summary>
+/// An address in the directory that is nobody's own mailbox: a group's list or a shared mailbox. NightMail suggests it
+/// beside people when addressing mail.
+/// </summary>
+public sealed record DirectoryAddress(string Address, string DisplayName);

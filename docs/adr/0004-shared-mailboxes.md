@@ -68,8 +68,12 @@ gain them.
 the mailbox base) falls back, when the directory has no such user, to the
 caller's JMAP session (`ISharedMailboxDirectory`): an account the caller may
 open at that address is described by its address and its identity's name.
-Anyone else still gets the directory's 404, so the profile tells nobody else the
-mailbox exists. Every other `/users/{shared}/...` route already worked through
+Anyone else still gets the directory's 404, so the profile is shown to members
+only. The address itself is not secret: it is for mailing, like a user's, so
+`/people` suggests every shared mailbox of the caller's organizations to everyone
+in them, read from the Keycloak record (named by the address and titled by
+`nightware_name`) as the `nightware-api` service account (`view-organizations`).
+Every other `/users/{shared}/...` route already worked through
 `JmapAccountResolver`; nothing else changed in the façade.
 
 ### D5 — Lifecycle
