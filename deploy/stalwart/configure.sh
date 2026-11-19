@@ -15,7 +15,9 @@
 #   5. web admin sign-in through Keycloak: the web admin's client id pinned,
 #      its code built and patched here (stalwart/webui), Stalwart's Admin role
 #      for STALWART_ADMIN_ACCOUNTS
-#   6. ReloadSettings
+#   6. who may send to each group's list: the system Sieve script
+#      nightware-lists, run at RCPT (the console writes its contents)
+#   7. ReloadSettings
 #
 # Authenticates as the recovery administrator (STALWART_RECOVERY_ADMIN).
 source "$(dirname "$0")/../scripts/lib.sh"
@@ -212,7 +214,7 @@ if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" ]]; then
   MGMT_USER="${STALWART_MANAGEMENT_USER:-nightware-admin}"
   role_id() { call '[["x:Role/query",{},"q"],["x:Role/get",{"#ids":{"resultOf":"q","name":"x:Role/query","path":"/ids"},"properties":["description"]},"g"]]' \
     | jq -r --arg d "$1" '.methodResponses[1][1].list[]? | select(.description==$d) | .id' | head -n1; }
-  PERMS='{"sysAccountGet":true,"sysAccountQuery":true,"sysAccountCreate":true,"sysAccountUpdate":true,"sysAccountDestroy":true,"sysDomainGet":true,"sysDomainQuery":true,"sysDomainCreate":true,"sysDomainUpdate":true,"sysDomainDestroy":true,"sysDkimSignatureGet":true,"sysDkimSignatureQuery":true,"sysDkimSignatureDestroy":true,"sysActionCreate":true,"actionReloadSettings":true}'
+  PERMS='{"sysAccountGet":true,"sysAccountQuery":true,"sysAccountCreate":true,"sysAccountUpdate":true,"sysAccountDestroy":true,"sysDomainGet":true,"sysDomainQuery":true,"sysDomainCreate":true,"sysDomainUpdate":true,"sysDomainDestroy":true,"sysDkimSignatureGet":true,"sysDkimSignatureQuery":true,"sysDkimSignatureDestroy":true,"sysActionCreate":true,"actionReloadSettings":true,"sysMailingListGet":true,"sysMailingListQuery":true,"sysMailingListCreate":true,"sysMailingListUpdate":true,"sysMailingListDestroy":true,"sysSieveSystemScriptGet":true,"sysSieveSystemScriptQuery":true,"sysSieveSystemScriptCreate":true,"sysSieveSystemScriptUpdate":true}'
   USER_ROLE=$(role_id "User")
   ROLE_ID=$(role_id "Nightware admin console")
   if [[ -z "$ROLE_ID" ]]; then
@@ -348,7 +350,32 @@ if [[ -n "$ADMINS" ]]; then
   done
 fi
 
-# ------------------------------------------------------------------ 6. reload
+# ------------------------------------------- 6. list sender rules (phase 9)
+# The console keeps one system Sieve script, nightware-lists, with a block per
+# group list that refuses senders the group's policy does not allow (550 5.7.1
+# at RCPT). Stalwart runs it for every recipient once MtaStageRcpt.script names
+# it; an empty script (just its require line) accepts everything. Created here,
+# so the RCPT stage never names a script that does not exist; its contents are
+# the console's and are never touched again here.
+LIST_SCRIPT=nightware-lists
+script_id=$(call '[["x:SieveSystemScript/query",{},"q"],["x:SieveSystemScript/get",{"#ids":{"resultOf":"q","name":"x:SieveSystemScript/query","path":"/ids"},"properties":["name"]},"g"]]' \
+  | jq -r --arg n "$LIST_SCRIPT" '.methodResponses[1][1].list[]? | select(.name==$n) | .id' | head -n1)
+if [[ -z "$script_id" ]]; then
+  log "Stalwart: creating the list sender script ${LIST_SCRIPT}"
+  call "$(jq -cn --arg n "$LIST_SCRIPT" '[["x:SieveSystemScript/set",{"create":{"s":{name:$n,description:"Who may send to each list (Nightware console)",isActive:true,contents:"require [\"envelope\", \"reject\"];\n"}}},"c"]]')" \
+    | jq -e '.methodResponses[0][1].created.s' >/dev/null \
+    || echo "Stalwart: WARNING could not create the list sender script; lists accept mail from anyone" >&2
+fi
+rcpt_script=$(call '[["x:MtaStageRcpt/get",{"ids":["singleton"],"properties":["script"]},"c"]]' | jq -c '.methodResponses[0][1].list[0].script')
+wanted=$(jq -cn --arg n "$LIST_SCRIPT" '{match:{},else:("\u0027" + $n + "\u0027")}')
+if [[ "$rcpt_script" != "$wanted" ]]; then
+  log "Stalwart: RCPT runs ${LIST_SCRIPT} (was ${rcpt_script})"
+  call "$(jq -cn --argjson w "$wanted" '[["x:MtaStageRcpt/set",{"update":{"singleton":{script:$w}}},"c"]]')" \
+    | jq -e '.methodResponses[0][1].updated' >/dev/null \
+    || echo "Stalwart: WARNING could not set the RCPT script; lists accept mail from anyone" >&2
+fi
+
+# ------------------------------------------------------------------ 7. reload
 call '[["x:Action/set",{"create":{"r":{"@type":"ReloadSettings"}}},"c"]]' \
   | jq -e '.methodResponses[0][1].created' >/dev/null
 if (( RESTART_STALWART )); then
