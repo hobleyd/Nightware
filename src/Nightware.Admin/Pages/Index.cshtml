@@ -83,6 +83,7 @@
                         {
                             !served ? $"the mail server does not serve it ({Systems.StateLabel(d.Domain.Mail.State)})" : served && !d.Domain.DkimPresent ? "no signing (DKIM) keys" : null,
                             d.Unsafe.Count > 0 ? "its SPF lets any server send mail as it" : null,
+                            d.DnsChanges > 0 ? $"{d.DnsChanges} DNS {(d.DnsChanges == 1 ? "change" : "changes")} not yet published to Cloudflare" : null,
                         }.Where(static x => x is not null))
                         @if (Model.Actor.IsGlobal && d.Unsafe.Count > 0)
                         {
@@ -98,7 +99,7 @@
                         }
                         @if (served)
                         {
-                            <a asp-page="/Entities/Dns" asp-route-id="@d.Entity.Id" asp-route-domain="@d.Domain.Domain.Name">DNS records</a>
+                            <a asp-page="/Entities/Dns" asp-route-id="@d.Entity.Id" asp-route-domain="@d.Domain.Domain.Name">@(d.DnsChanges > 0 ? "Review and publish" : "DNS records")</a>
                         }
                     </li>
                 }

@@ -9,14 +9,19 @@ namespace Nightware.Application.Tests.Administration;
 
 public sealed class AttentionTests
 {
+    private const string Token = "cf-token-0123456789abcdefghijklmnopqrstuv";
+
     private readonly AdminTestBed _bed = new();
+    private readonly IDnsHosting _hosting = Substitute.For<IDnsHosting>();
 
     private static CancellationToken Ct => AdminTestBed.Ct;
 
     private GetAttention Attention => new(
+        _bed.Actor,
         new ListEntities(_bed.Actor, _bed.Entities),
         new GetEntity(_bed.Actor, _bed.Entities, _bed.DomainProvisioning()),
-        new ListUsers(_bed.Actor, _bed.Entities, _bed.UserAccess()));
+        new ListUsers(_bed.Actor, _bed.Entities, _bed.UserAccess()),
+        new PlanDnsPublication(_bed.Actor, Records(), _hosting, Vault()));
 
     public AttentionTests()
     {
@@ -86,5 +91,62 @@ public sealed class AttentionTests
         found.NotChecked.Single().Id.ShouldBe(AdminTestBed.Acme);
         found.IsClear.ShouldBeFalse();
         found.UserCounts.ShouldNotContainKey(AdminTestBed.Acme);
+    }
+
+    [Fact]
+    public async Task A_served_domain_whose_cloudflare_zone_lacks_its_records_needs_attention_until_published()
+    {
+        ConnectToCloudflare(new ZoneRecord("r-spf", new DnsRecord("acme.example", "TXT", null, "v=spf1 -all")));
+
+        DomainNeedingAttention flagged = (await Attention.ExecuteAsync(Ct)).Value.Domains.ShouldHaveSingleItem();
+        flagged.DnsChanges.ShouldBeGreaterThan(0);
+        flagged.NeedsRepair.ShouldBeFalse();
+
+        IReadOnlyList<DnsRecord> needed = (await Records().ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Value.Records;
+        ConnectToCloudflare([.. needed.Select((r, i) => new ZoneRecord($"r-{i}", r))]);
+        (await Attention.ExecuteAsync(Ct)).Value.IsClear.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Cloudflare_is_compared_only_for_a_global_administrator_and_an_unreadable_zone_holds_nothing_up()
+    {
+        ConnectToCloudflare();
+        _bed.ActAsEntityAdmin();
+        (await Attention.ExecuteAsync(Ct)).Value.Domains.ShouldBeEmpty();
+        await _hosting.DidNotReceiveWithAnyArgs().ListRecordsAsync(default!, default!, Ct);
+
+        _bed.ActAsGlobal();
+        _hosting.FindZoneAsync(default!, default!, Ct).ReturnsForAnyArgs(Error.BackendUnavailable("Cloudflare is down."));
+        (await Attention.ExecuteAsync(Ct)).Value.IsClear.ShouldBeTrue();
+    }
+
+    private void ConnectToCloudflare(params ZoneRecord[] zone)
+    {
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        _bed.Entities.GetAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(AdminTestBed.AcmeEntity with { HasDnsToken = true });
+        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<string?>.Success("sealed"));
+        _bed.MailDomains.GetDnsRecordsAsync(default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<DnsRecord>>.Success(
+        [
+            new DnsRecord("acme.example", "MX", 3600, "10 mail.acme.example"),
+            new DnsRecord("acme.example", "TXT", 3600, "v=spf1 mx -all"),
+        ]));
+        _hosting.FindZoneAsync(default!, default!, Ct).ReturnsForAnyArgs(new DnsZone("z-acme", "acme.example"));
+        _hosting.ListRecordsAsync(default!, default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<ZoneRecord>>.Success(zone));
+    }
+
+    private GetEntityDnsRecords Records() => new(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.PublicAddresses());
+
+    private DnsTokenVault Vault() => new(_bed.Entities, new OpenSealer());
+
+    /// <summary>Opens any sealed token to <see cref="Token"/>.</summary>
+    private sealed class OpenSealer : ISecretSealer
+    {
+        public string Seal(string purpose, string secret) => secret;
+
+        public bool TryUnseal(string purpose, string sealedSecret, out string secret)
+        {
+            secret = Token;
+            return true;
+        }
     }
 }

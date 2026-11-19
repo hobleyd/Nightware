@@ -8,9 +8,10 @@ namespace Nightware.Application.Administration.Status;
 /// <summary>A user whose status needs an admin, in the entity they were found in.</summary>
 public sealed record UserNeedingAttention(UserDetail User, UserStatus Status, Entity Entity);
 
-/// <summary>A domain the mail server does not serve, or serves without signing keys.</summary>
+/// <summary>A domain the mail server does not serve, or serves without signing keys, or whose records are not yet in its Cloudflare zone.</summary>
 /// <param name="Unsafe">What in the domain's own SPF or DMARC lets anyone send as it; empty when nothing does.</param>
-public sealed record DomainNeedingAttention(DomainStatus Domain, Entity Entity, IReadOnlyList<MailAuthenticationWeakness> Unsafe)
+/// <param name="DnsChanges">The changes publishing to the entity's Cloudflare zone would write; 0 when none, or when not compared.</param>
+public sealed record DomainNeedingAttention(DomainStatus Domain, Entity Entity, IReadOnlyList<MailAuthenticationWeakness> Unsafe, int DnsChanges = 0)
 {
     /// <summary>The mail server's side is what needs fixing (Repair), not the domain's own records.</summary>
     public bool NeedsRepair => Domain.Mail.State != LinkState.Linked || !Domain.DkimPresent;
@@ -29,9 +30,11 @@ public sealed record Attention(IReadOnlyList<UserNeedingAttention> Users, IReadO
 /// <summary>
 /// The dashboard's worklist: every user of the actor's entities whose offboarding is incomplete, who conflicts
 /// or who needs repair, and every domain not served properly. Read on each visit, stored nowhere (ADR 0002 D1);
-/// an entity above <see cref="ListUsers"/>' link limit is reported as not checked rather than half-read.
+/// an entity above <see cref="ListUsers"/>' link limit is reported as not checked rather than half-read. For a
+/// global administrator, a served domain of an entity connected to Cloudflare is also compared with its zone, and
+/// needs attention while publishing would change it (publishing is theirs alone).
 /// </summary>
-public sealed class GetAttention(ListEntities entities, GetEntity getEntity, ListUsers listUsers)
+public sealed class GetAttention(IAdminActor actor, ListEntities entities, GetEntity getEntity, ListUsers listUsers, PlanDnsPublication planPublication)
 {
     public async Task<Result<Attention>> ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -62,9 +65,15 @@ public sealed class GetAttention(ListEntities entities, GetEntity getEntity, Lis
             if (detail.IsSuccess)
             {
                 // Weak records are shown where they are read; only one that lets anyone send as the domain needs you now.
-                domains.AddRange(detail.Value.Domains
-                    .Select(d => new DomainNeedingAttention(d, entity, UnsafeIn(detail.Value.Entity.MailPolicyFor(d.Domain))))
-                    .Where(static d => d.NeedsRepair || d.Unsafe.Count > 0));
+                foreach (DomainStatus d in detail.Value.Domains)
+                {
+                    var domain = new DomainNeedingAttention(d, entity, UnsafeIn(detail.Value.Entity.MailPolicyFor(d.Domain)),
+                        await DnsChangesAsync(detail.Value.Entity, d, cancellationToken).ConfigureAwait(false));
+                    if (domain.NeedsRepair || domain.Unsafe.Count > 0 || domain.DnsChanges > 0)
+                    {
+                        domains.Add(domain);
+                    }
+                }
             }
 
             if (members.IsSuccess && members.Value.Count <= ListUsers.LinkedListLimit)
@@ -80,6 +89,21 @@ public sealed class GetAttention(ListEntities entities, GetEntity getEntity, Lis
             ? byRank
             : string.Compare(a.User.User.Identity.DisplayName, b.User.User.Identity.DisplayName, StringComparison.OrdinalIgnoreCase));
         return new Attention(users, domains, notChecked, userCounts);
+    }
+
+    /// <summary>
+    /// How many changes publishing the domain's records to the entity's Cloudflare zone would write. A zone that
+    /// cannot be read counts as none: the domain's DNS page says why, and the dashboard is not held up by it.
+    /// </summary>
+    private async Task<int> DnsChangesAsync(Entity entity, DomainStatus domain, CancellationToken cancellationToken)
+    {
+        if (!actor.Current.IsGlobal || !entity.HasDnsToken || domain.Mail.State != LinkState.Linked)
+        {
+            return 0;
+        }
+
+        Result<DnsPublicationPreview> preview = await planPublication.ExecuteAsync(entity.Id, domain.Domain.Name, cancellationToken).ConfigureAwait(false);
+        return preview.IsSuccess ? preview.Value.Plan.Changes.Count(static c => c.IsWrite) : 0;
     }
 
     private static int Rank(UserStatus status) => status switch
