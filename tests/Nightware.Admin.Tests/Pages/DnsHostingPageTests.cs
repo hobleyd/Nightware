@@ -12,7 +12,7 @@ using Nightware.Domain.Kernel;
 
 namespace Nightware.Admin.Tests.Pages;
 
-/// <summary>An entity's Cloudflare token (entity page) and publishing a domain's records with it (DNS page).</summary>
+/// <summary>An entity's Cloudflare token (its DNS hosting page) and publishing a domain's records with it (DNS page).</summary>
 public sealed partial class DnsHostingPageTests : IDisposable
 {
     private const string Token = "cf-SECRET-token-0123456789abcdefghijklmn";
@@ -24,6 +24,8 @@ public sealed partial class DnsHostingPageTests : IDisposable
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private static string EntityUrl => $"/entities/{ConsoleHost.Acme}";
+
+    private static string HostingUrl => $"/entities/{ConsoleHost.Acme}/dns-hosting";
 
     private static string DnsUrl => $"/entities/{ConsoleHost.Acme}/dns/acme.example";
 
@@ -64,13 +66,13 @@ public sealed partial class DnsHostingPageTests : IDisposable
     [Fact]
     public async Task A_global_admin_is_offered_to_connect_and_an_entity_admin_only_told_the_state()
     {
-        string global = await GetAsync(EntityUrl);
-        global.ShouldContain("<h2>DNS hosting</h2>");
+        string global = await GetAsync(HostingUrl);
+        global.ShouldContain("<h1>DNS hosting <small>Acme Pty</small></h1>");
         global.ShouldContain("handler=DnsToken");
         global.ShouldContain("type=\"password\" name=\"dnsToken\" autocomplete=\"off\"");
         global.ShouldNotContain("handler=RemoveDnsToken");
 
-        string entityAdmin = await GetAsync(EntityUrl, ConsoleHost.EntityAdmin);
+        string entityAdmin = await GetAsync(HostingUrl, ConsoleHost.EntityAdmin);
         entityAdmin.ShouldContain("Not connected: publish each domain");
         entityAdmin.ShouldNotContain("handler=DnsToken");
     }
@@ -78,7 +80,7 @@ public sealed partial class DnsHostingPageTests : IDisposable
     [Fact]
     public async Task Connecting_checks_the_token_with_cloudflare_and_stores_it_sealed()
     {
-        using HttpResponseMessage response = await PostAsync(EntityUrl, "DnsToken", new() { ["dnsToken"] = Token });
+        using HttpResponseMessage response = await PostAsync(HostingUrl, "DnsToken", new() { ["dnsToken"] = Token });
 
         response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         await _host.DnsHosting.Received(1).FindZoneAsync(Arg.Is<DnsProviderToken>(t => t.Value == Token), ConsoleHost.Domain("acme.example"), Arg.Any<CancellationToken>());
@@ -94,7 +96,7 @@ public sealed partial class DnsHostingPageTests : IDisposable
     {
         _host.DnsHosting.FindZoneAsync(default!, default!, Ct).ReturnsForAnyArgs(Error.Validation("Cloudflare refused the token (Invalid API Token).", "dnsToken"));
 
-        using HttpResponseMessage response = await PostAsync(EntityUrl, "DnsToken", new() { ["dnsToken"] = Token });
+        using HttpResponseMessage response = await PostAsync(HostingUrl, "DnsToken", new() { ["dnsToken"] = Token });
         string html = await response.Content.ReadAsStringAsync(Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -109,10 +111,10 @@ public sealed partial class DnsHostingPageTests : IDisposable
     {
         GivenConnected();
 
-        (await PostAsync(EntityUrl, "RemoveDnsToken", [])).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await PostAsync(HostingUrl, "RemoveDnsToken", [])).StatusCode.ShouldBe(HttpStatusCode.OK);
         _stored.ShouldNotBeNull();
 
-        (await PostAsync(EntityUrl, "RemoveDnsToken", new() { ["confirm"] = "true" })).StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        (await PostAsync(HostingUrl, "RemoveDnsToken", new() { ["confirm"] = "true" })).StatusCode.ShouldBe(HttpStatusCode.Redirect);
         _stored.ShouldBeNull();
     }
 
@@ -121,17 +123,17 @@ public sealed partial class DnsHostingPageTests : IDisposable
     {
         GivenConnected();
 
-        (await PostAsync(EntityUrl, "DnsToken", new() { ["dnsToken"] = Token }, ConsoleHost.EntityAdmin)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await PostAsync(HostingUrl, "DnsToken", new() { ["dnsToken"] = Token }, ConsoleHost.EntityAdmin)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         (await PostAsync(DnsUrl, "Publish", new() { ["PlanFingerprint"] = "x" }, ConsoleHost.EntityAdmin)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         await _host.DnsHosting.DidNotReceiveWithAnyArgs().ApplyAsync(default!, default!, default!, Ct);
     }
 
     [Fact]
-    public async Task Without_a_token_the_dns_page_points_to_the_entity_page()
+    public async Task Without_a_token_the_dns_page_points_to_the_dns_hosting_page()
     {
         string html = await GetAsync(DnsUrl);
 
-        html.ShouldContain("connect Acme Pty's Cloudflare account");
+        html.ShouldContain($"connect Acme Pty's Cloudflare account on its <a href=\"{HostingUrl}\">DNS hosting</a> page.");
         await _host.DnsHosting.DidNotReceiveWithAnyArgs().FindZoneAsync(default!, default!, Ct);
     }
 
@@ -314,6 +316,17 @@ public sealed partial class DnsHostingPageTests : IDisposable
 
         html.ShouldContain("acme.example was not removed: Cloudflare refused to delete 1 of its mail records (Cloudflare refused it.)");
         await _host.Entities.DidNotReceiveWithAnyArgs().RemoveDomainAsync(default!, default!, Ct);
+    }
+
+    [Fact]
+    public async Task The_entity_page_leaves_dns_hosting_to_its_own_page()
+    {
+        string html = await GetAsync(EntityUrl);
+
+        html.ShouldNotContain("DNS hosting</h");
+        html.ShouldNotContain("handler=DnsToken");
+        (await PostAsync(EntityUrl, "DnsToken", new() { ["dnsToken"] = Token })).StatusCode.ShouldNotBe(HttpStatusCode.Redirect);
+        _stored.ShouldBeNull();
     }
 
     [Fact]

@@ -96,20 +96,37 @@
                         {
                             var on = e.Id == entityId;
                             var current = on && below.Count == 0;
-                            // A domain's DNS records are its own entry, so on that page the domain is the current one.
+                            // The entity's own pages are entries under it; a domain's DNS records are an entry under Domains,
+                            // so on that page the domain is the current one and Domains is on the trail.
                             var domains = e.Domains.Select(d => (Name: d, Href: Url.Page("/Entities/Dns", new { id = e.Id, domain = d }))).ToList();
-                            var atDomain = on && below.Count == 1 && domains.Any(d => string.Equals(d.Href, self, StringComparison.OrdinalIgnoreCase));
+                            var parts = new[]
+                            {
+                                (Text: "DNS hosting", Href: Url.Page("/Entities/DnsHosting", new { id = e.Id })),
+                                (Text: "Administrators", Href: Url.Page("/Entities/Admins", new { id = e.Id })),
+                                (Text: "Domains", Href: Url.Page("/Entities/Detail", new { id = e.Id }) + "#domains"),
+                            }.Select(p => (p.Text, p.Href,
+                                Here: on && below.Count == 1 && string.Equals(p.Href, self, StringComparison.OrdinalIgnoreCase),
+                                Trail: on && below.Count > 1 && below[0].Href == p.Href)).ToList();
+                            var atDomain = on && below.Count == 2 && parts[2].Trail && domains.Any(d => string.Equals(d.Href, self, StringComparison.OrdinalIgnoreCase));
                             <li><a aria-current="@(current ? "page" : null)" class="@(on && !current ? "trail" : null)" href="@Url.Page("/Entities/Detail", new { id = e.Id })">@e.Name</a>
-                                @if (domains.Count > 0)
-                                {
-                                    <ul class="domains">
-                                        @foreach (var d in domains)
-                                        {
-                                            <li><a aria-current="@(atDomain && string.Equals(d.Href, self, StringComparison.OrdinalIgnoreCase) ? "page" : null)" href="@d.Href">@d.Name</a></li>
-                                        }
-                                    </ul>
-                                }
-                                @if (on && !atDomain) { Chain(0); }
+                                <ul class="entity">
+                                    @foreach (var p in parts)
+                                    {
+                                        <li><a aria-current="@(p.Here ? "page" : null)" class="@(p.Trail ? "trail" : null)" href="@p.Href">@p.Text</a>
+                                            @if (p.Text == "Domains" && domains.Count > 0)
+                                            {
+                                                <ul class="domains">
+                                                    @foreach (var d in domains)
+                                                    {
+                                                        <li><a aria-current="@(atDomain && string.Equals(d.Href, self, StringComparison.OrdinalIgnoreCase) ? "page" : null)" href="@d.Href">@d.Name</a></li>
+                                                    }
+                                                </ul>
+                                            }
+                                            @if (p.Trail && !atDomain) { Chain(1); }
+                                        </li>
+                                    }
+                                </ul>
+                                @if (on && !parts.Any(p => p.Here || p.Trail)) { Chain(0); }
                             </li>
                         }
                     </ul>

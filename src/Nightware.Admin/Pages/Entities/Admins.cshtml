@@ -1,0 +1,70 @@
+@page "/entities/{id}/admins"
+@model Nightware.Admin.Pages.Entities.AdminsModel
+@{
+    ViewData["Title"] = "Administrators";
+    ViewData["Crumbs"] = new (string, string?)[]
+    {
+        ("Entities", Url.Page("/Entities/Index")),
+        ((Model.Entity as Nightware.Application.Administration.Entities.EntityDetail)?.Entity.Name ?? "Entity", Url.Page("/Entities/Detail", new { id = Model.Id })),
+    };
+    ViewData["EntityId"] = Model.Id;
+}
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
+@{
+    var entity = Model.Entity.Entity;
+    var adminIds = Model.Admins.Select(a => a.Id).ToHashSet();
+}
+<section class="panel">
+    <h1>Administrators <small>@entity.Name</small></h1>
+    <partial name="_Messages" />
+    <p class="hint">They manage this entity's users. They cannot create entities, change domains or grant global rights.</p>
+    @if (Model.Admins.Count == 0)
+    {
+        <p>None yet.</p>
+    }
+    <ul class="plain">
+        @foreach (var a in Model.Admins)
+        {
+            <li>
+                <a asp-page="/Users/Detail" asp-route-id="@a.Id">@a.DisplayName</a>@(a.Id == Model.Actor.UserId ? " (you)" : "") <span class="hint">@a.Email</span>
+            </li>
+        }
+    </ul>
+    @{ var candidates = Model.Members.Where(m => !adminIds.Contains(m.User.Identity.Id) && m.User.Identity.Enabled && m.User.Identity.Id != Model.Actor.UserId).ToList(); }
+    @if (candidates.Count > 0)
+    {
+        <form method="post" asp-page-handler="GrantAdmin">
+            <div class="row">
+            <label>Make administrator
+                <select name="userId">
+                    @foreach (var m in candidates)
+                    {
+                        <option value="@m.User.Identity.Id">@m.User.Identity.DisplayName (@m.User.Identity.Email)</option>
+                    }
+                </select>
+            </label>
+            </div>
+            <label class="choice"><input type="checkbox" name="confirm" value="true" required> They will manage this entity's users</label>
+            <button type="submit" class="secondary">Make administrator</button>
+        </form>
+    }
+    @{ var removable = Model.Admins.Where(a => a.Id != Model.Actor.UserId).ToList(); }
+    @if (removable.Count > 0)
+    {
+        <form method="post" asp-page-handler="RevokeAdmin" class="remove">
+            <h2>Remove an administrator</h2>
+            <div class="row">
+                <label>Administrator
+                    <select name="userId">
+                        @foreach (var a in removable)
+                        {
+                            <option value="@a.Id">@a.DisplayName (@a.Email)</option>
+                        }
+                    </select>
+                </label>
+            </div>
+            <label class="choice"><input type="checkbox" name="confirm" value="true" required> They will no longer manage @entity.Name</label>
+            <button type="submit" class="secondary">Remove administrator</button>
+        </form>
+    }
+</section>

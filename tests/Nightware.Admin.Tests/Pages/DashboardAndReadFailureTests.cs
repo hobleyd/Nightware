@@ -79,9 +79,35 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         side.IndexOf(">acme.example</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">Other Co</a>", StringComparison.Ordinal));
 
         string dns = Side(await GetAsync(DnsUrl));
+        dns.ShouldContain("<a class=\"trail\" href=\"/entities/e-acme#domains\">Domains</a>");
         dns.ShouldContain("<a aria-current=\"page\" href=\"/entities/e-acme/dns/acme.example\">acme.example</a>");
         dns.ShouldNotContain("DNS records for");
         Regex.Count(dns, "aria-current=").ShouldBe(1);
+    }
+
+    [Theory]
+    [InlineData("/entities/e-acme/dns-hosting", "DNS hosting")]
+    [InlineData("/entities/e-acme/admins", "Administrators")]
+    public async Task Each_entitys_dns_hosting_and_administrators_are_entries_under_it(string url, string entry)
+    {
+        string side = Side(await GetAsync("/entities"));
+        foreach (string id in new[] { "e-acme", "e-other" })
+        {
+            side.ShouldContain($"<a href=\"/entities/{id}/dns-hosting\">DNS hosting</a>");
+            side.ShouldContain($"<a href=\"/entities/{id}/admins\">Administrators</a>");
+            side.ShouldContain($"<a href=\"/entities/{id}#domains\">Domains</a>");
+        }
+
+        side.IndexOf(">DNS hosting</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">Administrators</a>", StringComparison.Ordinal));
+        side.IndexOf(">Administrators</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">Domains</a>", StringComparison.Ordinal));
+        side.IndexOf(">Domains</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">acme.example</a>", StringComparison.Ordinal));
+
+        string html = await GetAsync(url);
+        side = Side(html);
+        side.ShouldContain($"<a aria-current=\"page\" href=\"{url}\">{entry}</a>");
+        Regex.Count(side, "aria-current=").ShouldBe(1);
+        Regex.Count(side, $">{entry}</a>").ShouldBe(2);
+        Crumbs(html).ShouldBe($"Entities › Acme Pty › {entry}");
     }
 
     [Fact]
@@ -119,7 +145,7 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         html.ShouldContain("Connection refused (mail.example:443).");
         html.ShouldContain("Try again");
         html.ShouldNotContain("no records for this domain yet");
-        Crumbs(html).ShouldBe("Entities › Acme Pty › acme.example");
+        Crumbs(html).ShouldBe("Entities › Acme Pty › Domains › acme.example");
     }
 
     [Fact]
@@ -129,7 +155,7 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
 
         string html = await GetAsync(DnsUrl);
 
-        Crumbs(html).ShouldBe("Entities › Acme Pty › acme.example");
+        Crumbs(html).ShouldBe("Entities › Acme Pty › Domains › acme.example");
         Side(html).ShouldContain("<a class=\"trail\" href=\"/entities/e-acme\">Acme Pty</a>");
     }
 
@@ -402,11 +428,11 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         _host.MailDomains.FindAsync(ConsoleHost.Domain("acme.example"), Arg.Any<CancellationToken>()).Returns(new MailDomainInfo("d", ConsoleHost.Domain("acme.example"), false));
         _host.Entities.ListAdminsAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([new IdentityAccount("u-dan", "dan", "dan@acme.example", true)]));
 
-        string html = await GetAsync("/entities/" + ConsoleHost.Acme);
+        (await GetAsync("/entities/" + ConsoleHost.Acme)).ShouldContain("<span class=\"chip missing\">Missing</span>");
 
-        html.ShouldContain("<span class=\"chip missing\">Missing</span>");
-        html.ShouldContain("<span class=\"hint\">dan@acme.example</span>");
-        html.ShouldNotContain("&lt;dan@acme.example&gt;");
+        string admins = await GetAsync("/entities/" + ConsoleHost.Acme + "/admins");
+        admins.ShouldContain("<span class=\"hint\">dan@acme.example</span>");
+        admins.ShouldNotContain("&lt;dan@acme.example&gt;");
     }
 
     [Fact]

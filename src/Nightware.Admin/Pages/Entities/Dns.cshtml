@@ -9,6 +9,7 @@
     {
         ("Entities", Url.Page("/Entities/Index")),
         ((Model.Entity as Nightware.Application.Administration.Entities.EntityDetail)?.Entity.Name ?? "Entity", Url.Page("/Entities/Detail", new { id = Model.Id })),
+        ("Domains", Url.Page("/Entities/Detail", new { id = Model.Id }) + "#domains"),
     };
     ViewData["EntityId"] = Model.Id;
 }
@@ -117,7 +118,7 @@ else
         }
         else if (global && !Model.Entity.Entity.HasDnsToken)
         {
-            <p class="hint">Publish these at your DNS provider so mail for @Model.Domain is delivered here and passes SPF, DKIM and DMARC checks. Select a value to copy it. To publish from here instead, connect @Model.Entity.Entity.Name's Cloudflare account on <a asp-page="/Entities/Detail" asp-route-id="@Model.Id">the entity's page</a>.</p>
+            <p class="hint">Publish these at your DNS provider so mail for @Model.Domain is delivered here and passes SPF, DKIM and DMARC checks. Select a value to copy it. To publish from here instead, connect @Model.Entity.Entity.Name's Cloudflare account on its <a asp-page="/Entities/DnsHosting" asp-route-id="@Model.Id">DNS hosting</a> page.</p>
         }
         else if (!global)
         {

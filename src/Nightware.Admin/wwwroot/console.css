@@ -107,6 +107,8 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; }
   .side.panel { margin: 16px 16px 0; }
   /* On a phone the menu sits above the page: of the entities, only the way down to this page stays. */
   .side ul ul > li:not(:has(.trail, [aria-current])) { display: none; }
+  /* ...except the entity's own pages, which are no longer on its page itself. */
+  .side ul ul.entity > li { display: list-item; }
 }
 
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin: 16px 0; }

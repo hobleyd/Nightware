@@ -5,13 +5,12 @@
 @{
     var entity = Model.Entity.Entity;
     ViewData["Title"] = entity.Name;
-    var adminIds = Model.Admins.Select(a => a.Id).ToHashSet();
 }
 <section class="panel">
 <h1>@entity.Name <small>@entity.Alias</small></h1>
 <partial name="_Messages" />
 <p><a asp-page="/Users/Index" asp-route-entity="@entity.Id">@Model.Members.Count @(Model.Members.Count == 1 ? "user" : "users")</a> · <a asp-page="/Users/New" asp-route-entity="@entity.Id">Add or link a user</a></p>
-    <h2>Mail domains</h2>
+    <h2 id="domains">Mail domains</h2>
     <table>
         <thead><tr><th>Domain</th><th>Mail server</th><th>Signing (DKIM)</th><th>SPF</th><th>DMARC</th><th><span class="visually-hidden">Actions</span></th>@if (Model.Actor.IsGlobal) { <th><span class="visually-hidden">Remove</span></th> }</tr></thead>
         <tbody>
@@ -83,86 +82,3 @@
     }
 </section>
 
-<section class="panel">
-    <h2>DNS hosting</h2>
-    @if (Model.Actor.IsGlobal)
-    {
-        <p>@(entity.HasDnsToken
-            ? "Connected to Cloudflare. Publish each domain's records from its DNS page."
-            : "Not connected. Connect the entity's Cloudflare account to publish its domains' records from their DNS pages.")</p>
-        <form method="post" asp-page-handler="DnsToken">
-            <label>@(entity.HasDnsToken ? "Replace the Cloudflare API token" : "Cloudflare API token")
-                <input type="password" name="dnsToken" autocomplete="off" spellcheck="false" required aria-describedby="dns-token-hint">
-            </label>
-            <p id="dns-token-hint" class="hint">In Cloudflare, create an API token from the "Edit zone DNS" template, limited to this entity's zones. The console checks it with Cloudflare, stores it encrypted, and never shows it again.</p>
-            <button type="submit" class="secondary">@(entity.HasDnsToken ? "Replace token" : "Connect")</button>
-        </form>
-        @if (entity.HasDnsToken)
-        {
-            <form method="post" asp-page-handler="RemoveDnsToken" class="remove">
-                <label class="choice"><input type="checkbox" name="confirm" value="true" required> Forget the token; records already published stay in Cloudflare</label>
-                <button type="submit" class="secondary">Disconnect Cloudflare</button>
-            </form>
-        }
-    }
-    else
-    {
-        <p>@(entity.HasDnsToken
-            ? "Connected to Cloudflare: your Nightware operator publishes your domains' records there."
-            : "Not connected: publish each domain's records at your DNS provider, as listed on its DNS page.")</p>
-    }
-</section>
-
-<section class="panel">
-    <h2>Entity administrators</h2>
-    <p class="hint">They manage this entity's users. They cannot create entities, change domains or grant global rights.</p>
-    @if (Model.Admins.Count == 0)
-    {
-        <p>None yet.</p>
-    }
-    <ul class="plain">
-        @foreach (var a in Model.Admins)
-        {
-            <li>
-                <a asp-page="/Users/Detail" asp-route-id="@a.Id">@a.DisplayName</a>@(a.Id == Model.Actor.UserId ? " (you)" : "") <span class="hint">@a.Email</span>
-            </li>
-        }
-    </ul>
-    @{ var candidates = Model.Members.Where(m => !adminIds.Contains(m.User.Identity.Id) && m.User.Identity.Enabled && m.User.Identity.Id != Model.Actor.UserId).ToList(); }
-    @if (candidates.Count > 0)
-    {
-        <form method="post" asp-page-handler="GrantAdmin">
-            <div class="row">
-            <label>Make administrator
-                <select name="userId">
-                    @foreach (var m in candidates)
-                    {
-                        <option value="@m.User.Identity.Id">@m.User.Identity.DisplayName (@m.User.Identity.Email)</option>
-                    }
-                </select>
-            </label>
-            </div>
-            <label class="choice"><input type="checkbox" name="confirm" value="true" required> They will manage this entity's users</label>
-            <button type="submit" class="secondary">Make administrator</button>
-        </form>
-    }
-    @{ var removable = Model.Admins.Where(a => a.Id != Model.Actor.UserId).ToList(); }
-    @if (removable.Count > 0)
-    {
-        <form method="post" asp-page-handler="RevokeAdmin" class="remove">
-            <h3>Remove an administrator</h3>
-            <div class="row">
-                <label>Administrator
-                    <select name="userId">
-                        @foreach (var a in removable)
-                        {
-                            <option value="@a.Id">@a.DisplayName (@a.Email)</option>
-                        }
-                    </select>
-                </label>
-            </div>
-            <label class="choice"><input type="checkbox" name="confirm" value="true" required> They will no longer manage @entity.Name</label>
-            <button type="submit" class="secondary">Remove administrator</button>
-        </form>
-    }
-</section>

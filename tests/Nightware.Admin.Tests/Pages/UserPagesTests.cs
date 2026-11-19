@@ -263,7 +263,8 @@ public sealed class UserPagesTests : IDisposable
         string domain = await (await ConsoleHost.PostFormAsync(client, url, url + "?handler=RemoveDomain", new Dictionary<string, string> { ["domain"] = "acme.example" })).Content.ReadAsStringAsync(Ct);
         domain.ShouldContain("Confirm removing the domain in its row.");
 
-        string admin = await (await ConsoleHost.PostFormAsync(client, url, url + "?handler=RevokeAdmin", new Dictionary<string, string> { ["userId"] = "u-dan" })).Content.ReadAsStringAsync(Ct);
+        const string admins = url + "/admins";
+        string admin = await (await ConsoleHost.PostFormAsync(client, admins, admins + "?handler=RevokeAdmin", new Dictionary<string, string> { ["userId"] = "u-dan" })).Content.ReadAsStringAsync(Ct);
         admin.ShouldContain("Tick the box to confirm removing the administrator.");
         await _host.Entities.DidNotReceiveWithAnyArgs().RevokeAdminAsync(default!, default!, Ct);
         await _host.Entities.DidNotReceiveWithAnyArgs().RemoveDomainAsync(default!, default!, Ct);
