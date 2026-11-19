@@ -126,6 +126,12 @@ public sealed class GroupsLiveTests : IAsyncDisposable
             (await s.GetRequiredService<IMailingLists>().FindByAddressAsync(address, Ct)).Value.Recipients.ShouldBe(["accountant@example.net"]);
             (await groupware.FindAsync(groupwareId, Ct)).Value.MemberUids.ShouldNotContain("alice");
 
+            // ...nor a new user's: the wizard's plan shows the conflict before anything is written.
+            ProvisioningPlan plan = (await s.GetRequiredService<Nightware.Application.Administration.Users.PlanUserProvisioning>()
+                .ExecuteAsync(new Nightware.Application.Administration.Users.NewUserRequest(entity.Id, address.Value, null, "It", "User", []), Ct)).Value;
+            plan.HasConflict.ShouldBeTrue();
+            plan.For(BackendKind.Mail).Action.ShouldBe(PlannedAction.Conflict);
+
             // An address the list holds cannot be a second list's.
             (await s.GetRequiredService<CreateGroup>().ExecuteAsync(entity.Id, new GroupForm(key + "-b") { Mail = true, LocalPart = key, Domain = DevStack.MailDomain }, Ct))
                 .Error!.Kind.ShouldBe(ErrorKind.Conflict);

@@ -64,7 +64,22 @@ internal sealed partial class StalwartMailAccounts(
             match = scanned.Value;
         }
 
-        return match is null ? NotFound(trimmed) : await ToMailAccountAsync(match, domain.Value, cancellationToken).ConfigureAwait(false);
+        if (match is not null)
+        {
+            return await ToMailAccountAsync(match, domain.Value, cancellationToken).ConfigureAwait(false);
+        }
+
+        // 3. A list (phase 9): not an individual mailbox, so the user wizard and aliases see a Conflict at plan time
+        //    instead of meeting the mail server's refusal after Keycloak was written.
+        Result<StalwartMailingList?> list = await StalwartMailingLists.FindHolderAsync(client, trimmed, local, domain.Value.Id, cancellationToken).ConfigureAwait(false);
+        if (!list.IsSuccess)
+        {
+            return list.Error;
+        }
+
+        return list.Value is { } holder
+            ? new MailAccount(holder.Id, holder.EmailAddress ?? trimmed, IsIndividual: false)
+            : NotFound(trimmed);
     }
 
     public async Task<Result<MailAccount>> CreateAsync(MailAddress address, string description, CancellationToken cancellationToken)

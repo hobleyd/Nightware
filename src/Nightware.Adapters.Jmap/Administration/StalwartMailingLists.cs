@@ -193,6 +193,22 @@ internal sealed partial class StalwartMailingLists(IStalwartManagementClient cli
         return response.Value.Get(reload).Bind(r => r.Created("r")).ToResult();
     }
 
+    /// <summary>
+    /// The list whose address or alias is <paramref name="address"/>, or null. Reads every list: lists are few, and
+    /// the only filter (<c>text</c>) is not documented to match aliases.
+    /// </summary>
+    internal static async Task<Result<StalwartMailingList?>> FindHolderAsync(IStalwartManagementClient client, string address, string local, string domainId, CancellationToken cancellationToken)
+    {
+        var request = new JmapRequestBuilder();
+        var query = request.Add(StalwartMethods.MailingListQuery, new StalwartQueryRequest<MailingListFilter>());
+        var get = request.Add(StalwartMethods.MailingListGet, new StalwartGetRequest { Properties = ListProperties }, query.Ref("ids", JmapPaths.Ids));
+        Result<GetResponse<StalwartMailingList>> lists = (await client.SendAsync(request, cancellationToken).ConfigureAwait(false)).Bind(r => r.Get(get));
+        return lists.IsSuccess
+            ? lists.Value.List.FirstOrDefault(l => string.Equals(l.EmailAddress?.Trim(), address, StringComparison.OrdinalIgnoreCase)
+                || StalwartMethods.ReadAliases(l.Aliases).Any(a => a.DomainId == domainId && string.Equals(a.Name, local, StringComparison.OrdinalIgnoreCase)))
+            : lists.Error;
+    }
+
     private static Error NotFound(MailAddress address) => Error.NotFound($"No list has the address {address}.", address.Value);
 
     private static JsonObject Recipients(IEnumerable<string> recipients)

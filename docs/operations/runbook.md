@@ -288,6 +288,9 @@ list); `deploy/stalwart/configure.sh` makes the RCPT stage run it. If every
 list accepts everything, check that `MtaStageRcpt.script` names
 `'nightware-lists'` and run the configure script again.
 
+The rule checks the envelope sender only: an outsider who forges a member's
+address is not refused there (ADR 0003 D5); the spam filter scores such mail.
+
 ## Rotating the admin console's credentials
 
 Clear the value in `deploy/.env`, run `scripts/init-env.sh`, then the

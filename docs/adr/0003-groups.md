@@ -88,8 +88,18 @@ if allof (envelope :is "to" ["finance@acme.example", "accounts@acme.example"],
 
 (`not envelope :domain :is "from" [...]` for the organisation policy.) The
 console rewrites only its list's block and reloads the settings in the same
-request. Members may send from their aliases too. The check is on the envelope
-sender; Stalwart's own SPF/DMARC checks are what stop a forged local sender.
+request. Members may send from their aliases too.
+
+**What the rule does not do.** It compares the envelope sender only. With
+Stalwart's defaults (`SenderAuth`: SPF, DMARC and reverse-IP checks `relaxed`
+on port 25, i.e. checked but never refused), an unauthenticated sender on the
+internet who claims a member's address passes the rule; the spam filter scores
+the message afterwards (SPF fails for our domains from a foreign IP). So
+"members only" keeps out casual and mistaken senders, not a determined forger.
+Hardening (open question G6 in the phase plan): refuse unauthenticated mail
+that claims one of our own domains from outside the trusted Docker subnet, or
+make the list rule also require `authenticated_as`. Read from the settings,
+not tested: every container on the stack's network is inside the trusted subnet.
 
 ### D6 — Outside recipients only on closed lists (G5)
 Stalwart 1.1 forwards without rewriting the envelope sender (no SRS). A copy
@@ -141,5 +151,7 @@ entity's users only. Every use case loads the group through `GroupAccess`
 All against the local stack on 2026-11-19 (Keycloak 26.8.2, Stalwart 1.1.0,
 Nextcloud with groupfolders 23.0.1): step 0 in the phase plan, the live test
 `tests/Nightware.Integration.Tests/Administration/GroupsLiveTests.cs`, and the
-generated sender rules over SMTP (non-members 550 5.7.1 at RCPT; members,
-organisation senders and mail to ordinary addresses accepted).
+generated sender rules over SMTP from the trusted Docker subnet (non-members
+550 5.7.1 at RCPT; members, organisation senders and mail to ordinary
+addresses accepted). Not verified: behaviour for a forged sender from an
+untrusted address (D5).

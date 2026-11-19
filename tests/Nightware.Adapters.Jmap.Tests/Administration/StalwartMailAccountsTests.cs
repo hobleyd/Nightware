@@ -418,4 +418,21 @@ public sealed class StalwartMailAccountsTests : IAsyncDisposable
         created.Message.ShouldContain("a list");
         aliased.Kind.ShouldBe(ErrorKind.Conflict);
     }
+
+    [Theory]
+    [InlineData("finance@acme.example")]
+    [InlineData("accounts@acme.example")]
+    public async Task An_address_a_list_holds_is_found_as_not_individual(string address)
+    {
+        StubAcme();
+        _host.StubWhen("x:Account/query", "\"name\"", StalwartManagementTestHost.AccountPage(), priority: 0);
+        _host.Stub("x:Account/query", StalwartManagementTestHost.AccountPage());
+        _host.Stub("x:MailingList/query", """[["x:MailingList/query",{"ids":["b"],"position":0,"queryState":"q"},"c0"],["x:MailingList/get",{"state":"s","list":[{"id":"b","name":"finance","domainId":"d7","emailAddress":"finance@acme.example","aliases":{"0":{"name":"accounts","domainId":"d7"}}}],"notFound":[]},"c1"]]""");
+
+        MailAccount account = (await Accounts().FindByAddressAsync(address, Ct)).Value;
+
+        account.Id.ShouldBe("b");
+        account.IsIndividual.ShouldBeFalse();
+        _host.Calls("x:MailingList/query").Single()[1]!.AsObject().ContainsKey("filter").ShouldBeFalse();
+    }
 }

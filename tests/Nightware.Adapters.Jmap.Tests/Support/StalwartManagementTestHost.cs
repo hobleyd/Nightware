@@ -43,7 +43,12 @@ internal sealed class StalwartManagementTestHost : IAsyncDisposable
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace).AddProvider(Logs));
         services.AddStalwartAdministration(new ConfigurationBuilder().AddInMemoryCollection(settings).Build());
         _provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
+
+        // No lists unless a test says otherwise: an address no account holds is looked for among the lists too.
+        Stub("x:MailingList/query", NoLists, priority: 1000);
     }
+
+    public const string NoLists = """[["x:MailingList/query",{"ids":[],"position":0,"queryState":"q"},"c0"],["x:MailingList/get",{"state":"s","list":[],"notFound":[]},"c1"]]""";
 
     public WireMockServer Server { get; }
 

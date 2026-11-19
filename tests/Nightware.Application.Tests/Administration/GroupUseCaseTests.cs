@@ -159,6 +159,19 @@ public sealed class GroupUseCaseTests
     }
 
     [Fact]
+    public async Task A_list_that_cannot_be_taken_down_leaves_the_group_as_it_was()
+    {
+        ArrangeGroup();
+        _bed.Lists.FindByAddressAsync(AdminTestBed.Address("finance@acme.example"), Arg.Any<CancellationToken>()).Returns(new MailingList("l1", "finance@acme.example"));
+        _bed.Lists.DestroyAsync("l1", Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("mail down"));
+
+        (await Update().ExecuteAsync(AdminTestBed.Acme, "g-fin", new GroupForm("Finance") { Files = true }, Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+
+        await _bed.Groups.DidNotReceiveWithAnyArgs().UpdateAsync(default!, Ct);
+        _bed.Audit.Single("group.updated").Succeeded.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task Turning_the_files_facet_off_deletes_the_Nextcloud_group()
     {
         ArrangeGroup();

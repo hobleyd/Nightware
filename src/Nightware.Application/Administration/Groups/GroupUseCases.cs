@@ -110,7 +110,8 @@ public sealed class CreateGroup(IAdminActor actor, GroupAccess access, IEntityGr
 
 /// <summary>
 /// Changes a group's name and facets and brings the backends into line. Turning the mail facet off destroys the
-/// list; turning the files facet off deletes the Nextcloud group (refused while the group has a team folder).
+/// list; turning the files facet off deletes the Nextcloud group (refused while the group has a team folder). Both
+/// happen before the record changes, so a failure leaves the group as it was.
 /// </summary>
 public sealed class UpdateGroup(IAdminActor actor, GroupAccess access, IEntityGroups groups, IMailingLists lists, IGroupwareGroups groupware, GroupSync sync, IAuditLog audit)
 {
@@ -130,21 +131,21 @@ public sealed class UpdateGroup(IAdminActor actor, GroupAccess access, IEntityGr
             return read.Error;
         }
 
-        Result<Group> updated = await groups.UpdateAsync(before with { Name = read.Value.Name, Mail = read.Value.Mail, Files = read.Value.Files }, cancellationToken).ConfigureAwait(false);
+        // What a facet turned off had is taken down first, and the record changes only once it is gone: the other way
+        // round, a list that failed to go would be left open to anyone and unknown to the record.
+        Group after = before with { Name = read.Value.Name, Mail = read.Value.Mail, Files = read.Value.Files };
+        Result removed = await GroupRemoval.RemoveFacetsAsync(entity, before, after, lists, groupware, cancellationToken).ConfigureAwait(false);
+        Result<Group> updated = removed.IsSuccess ? await groups.UpdateAsync(after, cancellationToken).ConfigureAwait(false) : removed.Error!;
         if (!updated.IsSuccess)
         {
+            audit.Record(new AuditEvent("group.updated", actor.Current.UserId, false) { EntityId = entityId, Details = CreateGroup.Details(before, before.Key, before.Mail) });
             return updated.Error;
         }
 
-        Result removed = await GroupRemoval.RemoveFacetsAsync(entity, before, updated.Value, lists, groupware, cancellationToken).ConfigureAwait(false);
         Result<IReadOnlyList<IdentityAccount>> members = await groups.ListMembersAsync(entityId, groupId, cancellationToken).ConfigureAwait(false);
         Result<GroupSyncOutcome> outcome = members.IsSuccess
             ? await sync.ApplyAsync(entity, updated.Value, members.Value, cancellationToken).ConfigureAwait(false)
             : members.Error;
-        if (outcome.IsSuccess && !removed.IsSuccess)
-        {
-            outcome = removed.Error;
-        }
 
         audit.Record(new AuditEvent("group.updated", actor.Current.UserId, outcome.IsSuccess)
         {

@@ -212,7 +212,9 @@ public sealed class GroupAccess(
         Result<MailAccount> mailbox = await mail.FindByAddressAsync(address.Value, cancellationToken).ConfigureAwait(false);
         if (mailbox.IsSuccess)
         {
-            return Error.Conflict($"{address} already belongs to the mailbox {mailbox.Value.Address}.", "address");
+            return Error.Conflict(
+                mailbox.Value.IsIndividual ? $"{address} already belongs to the mailbox {mailbox.Value.Address}." : $"{address} is already an address of the list {mailbox.Value.Address}.",
+                "address");
         }
 
         // A lookup that failed for another reason cannot vouch for the address.
