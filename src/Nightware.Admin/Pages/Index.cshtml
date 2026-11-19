@@ -107,7 +107,7 @@
         }
         @if (Model.Attention.NotChecked.Count > 0)
         {
-            <p class="hint">Not checked: @string.Join(", ", Model.Attention.NotChecked.Select(e => e.Name)). Too many users to read here, or a system could not be reached; open the entity to look.</p>
+            <p class="hint">Not checked: @string.Join(", ", Model.Attention.NotChecked.Select(e => e.Name)). Too many users to read here, or a system (or a Cloudflare zone) could not be reached; open the entity to look.</p>
         }
     }
 </section>

@@ -108,7 +108,7 @@ public sealed class AttentionTests
     }
 
     [Fact]
-    public async Task Cloudflare_is_compared_only_for_a_global_administrator_and_an_unreadable_zone_holds_nothing_up()
+    public async Task Cloudflare_is_compared_only_for_a_global_administrator_and_an_unreadable_zone_is_named_not_checked()
     {
         ConnectToCloudflare();
         _bed.ActAsEntityAdmin();
@@ -117,7 +117,10 @@ public sealed class AttentionTests
 
         _bed.ActAsGlobal();
         _hosting.FindZoneAsync(default!, default!, Ct).ReturnsForAnyArgs(Error.BackendUnavailable("Cloudflare is down."));
-        (await Attention.ExecuteAsync(Ct)).Value.IsClear.ShouldBeTrue();
+        Attention found = (await Attention.ExecuteAsync(Ct)).Value;
+        found.Domains.ShouldBeEmpty();
+        found.NotChecked.ShouldHaveSingleItem().Id.ShouldBe(AdminTestBed.Acme);
+        found.UserCounts[AdminTestBed.Acme].ShouldBe(0);
     }
 
     private void ConnectToCloudflare(params ZoneRecord[] zone)
