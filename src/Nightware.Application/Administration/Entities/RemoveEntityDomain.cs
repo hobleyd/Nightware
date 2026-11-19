@@ -5,11 +5,11 @@ namespace Nightware.Application.Administration.Entities;
 
 /// <summary>
 /// Removes a domain from an entity: destroys it on the mail server, then removes it in Keycloak. Refused while any
-/// member or group has an address on it, and while any mail account or list does (the mail server refuses). The mail server goes
+/// member, group or shared mailbox has an address on it, and while any mail account or list does (the mail server refuses). The mail server goes
 /// first so that a failure leaves the domain on the entity, where removing it can be tried again; the other way
 /// round, the mail server would go on treating a domain no entity shows as its own, refusing mail sent to it.
 /// </summary>
-public sealed class RemoveEntityDomain(IAdminActor actor, IEntityRegistry entities, IEntityGroups groups, IMailDomains mailDomains, IAuditLog audit)
+public sealed class RemoveEntityDomain(IAdminActor actor, IEntityRegistry entities, IEntityGroups groups, IEntityMailboxes mailboxes, IMailDomains mailDomains, IAuditLog audit)
 {
     public async Task<Result<Entity>> ExecuteAsync(string entityId, string domain, CancellationToken cancellationToken)
     {
@@ -48,6 +48,19 @@ public sealed class RemoveEntityDomain(IAdminActor actor, IEntityRegistry entiti
         if (lists.Length > 0)
         {
             return Error.Conflict($"The group(s) {string.Join(", ", lists)} have addresses on {mailDomain}; change or delete them first.", "domain");
+        }
+
+        // Likewise a shared mailbox, which the mail server counts among its accounts.
+        Result<IReadOnlyList<SharedMailbox>> shared = await mailboxes.ListAsync(entityId, cancellationToken).ConfigureAwait(false);
+        if (!shared.IsSuccess)
+        {
+            return shared.Error;
+        }
+
+        string[] held = [.. shared.Value.Where(m => m.Addresses.Any(a => a.Domain == mailDomain)).Select(static m => m.Name)];
+        if (held.Length > 0)
+        {
+            return Error.Conflict($"The shared mailbox(es) {string.Join(", ", held)} have addresses on {mailDomain}; change or delete them first.", "domain");
         }
 
         // Already gone from the mail server (removed by hand, or an earlier attempt failed in Keycloak): carry on.

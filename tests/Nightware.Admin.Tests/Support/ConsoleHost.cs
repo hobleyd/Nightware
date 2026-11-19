@@ -100,6 +100,22 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
         GroupwareGroups.CreateFolderAsync(default!, default).ReturnsForAnyArgs(c => c.Arg<string?>() is { } m ? Result<TeamFolder>.Success(new TeamFolder(7, m, new HashSet<string>())) : default);
         GroupwareGroups.GrantFolderAsync(default, default!, default).ReturnsForAnyArgs(Result.Success());
         GroupwareGroups.DeleteFolderAsync(default, default).ReturnsForAnyArgs(Result.Success());
+        Mailboxes.ListAsync(default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<SharedMailbox>>.Success([]));
+        Mailboxes.GetAsync(default!, default!, default).ReturnsForAnyArgs(Error.NotFound("no shared mailbox"));
+        Mailboxes.ListMembersAsync(default!, default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        Mailboxes.ListUserMailboxesAsync(default!, default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<SharedMailbox>>.Success([]));
+        Mailboxes.CreateAsync(default!, default!, default).ReturnsForAnyArgs(c =>
+            c.Arg<NewSharedMailbox?>() is { } m ? Result<SharedMailbox>.Success(new SharedMailbox("s-new", c.Arg<string>(), m.Address, m.Name) { Aliases = m.Aliases }) : default);
+        Mailboxes.UpdateAsync(default!, default).ReturnsForAnyArgs(c => c.Arg<SharedMailbox?>() is { } m ? Result<SharedMailbox>.Success(m) : default);
+        Mailboxes.DeleteAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        Mailboxes.AddMemberAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        Mailboxes.RemoveMemberAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        SharedMail.FindByAddressAsync(default!, default).ReturnsForAnyArgs(Error.NotFound("no shared mailbox"));
+        SharedMail.CreateAsync(default!, default!, default!, default).ReturnsForAnyArgs(c => c.Arg<MailAddress?>() is { } a ? Result<SharedMailAccount>.Success(new SharedMailAccount("sm-new", a.Value)) : default);
+        SharedMail.UpdateAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        SharedMail.AddMemberAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        SharedMail.RemoveMemberAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        SharedMail.DestroyAsync(default!, default).ReturnsForAnyArgs(Result.Success());
 
         foreach (BackendKind kind in Enum.GetValues<BackendKind>())
         {
@@ -137,6 +153,10 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
     public IMailingLists Lists { get; } = Substitute.For<IMailingLists>();
 
     public IGroupwareGroups GroupwareGroups { get; } = Substitute.For<IGroupwareGroups>();
+
+    public IEntityMailboxes Mailboxes { get; } = Substitute.For<IEntityMailboxes>();
+
+    public ISharedMailAccounts SharedMail { get; } = Substitute.For<ISharedMailAccounts>();
 
     public IDnsHosting DnsHosting { get; } = Substitute.For<IDnsHosting>();
 
@@ -239,7 +259,7 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Time);
             services.AddSingleton(Entities).AddSingleton(Identities).AddSingleton(Scopes).AddSingleton(Mail).AddSingleton(MailDomains).AddSingleton(Groupware).AddSingleton(DnsHosting).AddSingleton(PublicDns);
-            services.AddSingleton(Groups).AddSingleton(Lists).AddSingleton(GroupwareGroups);
+            services.AddSingleton(Groups).AddSingleton(Lists).AddSingleton(GroupwareGroups).AddSingleton(Mailboxes).AddSingleton(SharedMail);
             services.RemoveAll<IGrafanaStatus>();
             services.AddSingleton(Grafana);
             services.RemoveAll<IBackendStatus>();

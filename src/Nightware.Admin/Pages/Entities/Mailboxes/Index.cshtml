@@ -1,0 +1,37 @@
+@page "/entities/{id}/mailboxes"
+@model Nightware.Admin.Pages.Entities.Mailboxes.IndexModel
+@{
+    ViewData["Title"] = "Shared mailboxes";
+    ViewData["Crumbs"] = new (string, string?)[]
+    {
+        ("Entities", Url.Page("/Entities/Index")),
+        ((Model.Entity as Entity)?.Name ?? "Entity", Url.Page("/Entities/Detail", new { id = Model.Id })),
+    };
+    ViewData["EntityId"] = Model.Id;
+}
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
+<section class="panel">
+    <h1>Shared mailboxes <small>@Model.Entity.Name</small></h1>
+    <partial name="_Messages" />
+    <p class="hint">A shared mailbox is one inbox, with its own address and sent items, that several of this entity's users open beside their own. Its members read its mail and send as it; nobody signs in to it.</p>
+    @if (Model.Mailboxes.Count == 0)
+    {
+        <p>None yet.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Name</th><th>Address</th></tr></thead>
+            <tbody>
+                @foreach (var m in Model.Mailboxes)
+                {
+                    <tr>
+                        <td data-label="Name"><a asp-page="/Entities/Mailboxes/Detail" asp-route-id="@Model.Id" asp-route-mailboxId="@m.Id">@m.Name</a></td>
+                        <td data-label="Address">@m.Address</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    <p><a class="button" asp-page="/Entities/Mailboxes/New" asp-route-id="@Model.Id">New shared mailbox</a></p>
+</section>

@@ -1,0 +1,97 @@
+@page "/entities/{id}/mailboxes/{mailboxId}"
+@model Nightware.Admin.Pages.Entities.Mailboxes.DetailModel
+@{
+    var detail = Model.Detail as Nightware.Application.Administration.SharedMailboxes.SharedMailboxDetail;
+    ViewData["Title"] = detail?.Mailbox.Name ?? "Shared mailbox";
+    ViewData["Crumbs"] = new (string, string?)[]
+    {
+        ("Entities", Url.Page("/Entities/Index")),
+        (detail?.Entity.Name ?? "Entity", Url.Page("/Entities/Detail", new { id = Model.Id })),
+        ("Shared mailboxes", Url.Page("/Entities/Mailboxes/Index", new { id = Model.Id })),
+    };
+    ViewData["EntityId"] = Model.Id;
+}
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
+@{
+    var mailbox = Model.Detail.Mailbox;
+    var entity = Model.Detail.Entity;
+}
+<section class="panel">
+    <h1>@mailbox.Name <small>@entity.Name</small></h1>
+    <partial name="_Messages" />
+    <partial name="_MailboxLinks" model="Model.Detail.Links" />
+    @if (Model.Detail.Links.Any(l => l.State is LinkState.Missing or LinkState.Conflict or LinkState.Error))
+    {
+        <form method="post" asp-page-handler="Repair">
+            <button type="submit" class="secondary">Repair</button>
+            <span class="hint">Builds the mailbox if it is missing and brings who may open it back in line with the members below.</span>
+        </form>
+    }
+    <p>Mail to <strong>@mailbox.Address</strong>@(mailbox.Aliases.Count > 0 ? $" (or {string.Join(", ", mailbox.Aliases.Select(a => a.Value))})" : "") lands in this mailbox. Its members see it in NightMail beside their own mailbox, and can send as it.</p>
+</section>
+
+<section class="panel">
+    <h2>Members</h2>
+    @if (Model.Detail.Members.Count == 0)
+    {
+        <p>None yet.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Name</th><th>Address</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var m in Model.Detail.Members.OrderBy(m => m.DisplayName, StringComparer.CurrentCultureIgnoreCase))
+                {
+                    <tr>
+                        <td data-label="Name"><a asp-page="/Users/Detail" asp-route-id="@m.Id">@m.DisplayName</a>@(m.Enabled ? "" : " (offboarded: cannot open it until reinstated)")</td>
+                        <td data-label="Address">@m.Email</td>
+                        <td>
+                            <form method="post" asp-page-handler="RemoveMember">
+                                <input type="hidden" name="userId" value="@m.Id">
+                                <button type="submit" class="secondary">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    @if (Model.Candidates.Count > 0)
+    {
+        <form method="post" asp-page-handler="AddMember">
+            <div class="row">
+                <label>Add
+                    <select name="userId">
+                        @foreach (var u in Model.Candidates)
+                        {
+                            <option value="@u.User.Identity.Id">@u.User.Identity.DisplayName (@u.User.Identity.Email)</option>
+                        }
+                    </select>
+                </label>
+            </div>
+            <button type="submit" class="secondary">Add member</button>
+        </form>
+    }
+</section>
+
+<section class="panel">
+    <h2>Settings</h2>
+    <form method="post" asp-page-handler="Save">
+        <partial name="_MailboxForm" model="(Model.Input!, entity, (SharedMailbox?)mailbox)" />
+        <p class="hint">The name mail goes out under is set when the mailbox is created; renaming it later changes only the name the console shows.</p>
+        <button type="submit">Save</button>
+    </form>
+</section>
+
+<section class="panel danger">
+    <h2>Delete</h2>
+    @if (Model.MayDelete)
+    {
+        <p><a asp-page="/Entities/Mailboxes/Delete" asp-route-id="@Model.Id" asp-route-mailboxId="@mailbox.Id">Delete the shared mailbox and all its mail</a></p>
+    }
+    else
+    {
+        <p class="hint">Deleting a shared mailbox deletes its mail; only a global administrator can do it.</p>
+    }
+</section>

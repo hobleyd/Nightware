@@ -23,8 +23,8 @@ recipients — and a **files facet** — a Nextcloud group, optionally with a
 **team folder** (`groupfolders`) shared with that group only. Either facet is
 switched on or off later; members are edited once.
 
-Shared mailboxes (one inbox several people open) are a different feature and
-stay in ADR 0002 OQ6.
+Shared mailboxes (one inbox several people open) are a different feature:
+ADR 0004.
 
 ### D2 — Keycloak is the record
 A group is a subgroup of the organization group **`groups`** of its entity

@@ -42,7 +42,7 @@ public static class LinkStateEvaluator
 
         if (!account.IsIndividual)
         {
-            return new BackendLink(BackendKind.Mail, LinkState.Conflict, $"{address} belongs to a group or mailing list.", account.Id);
+            return new BackendLink(BackendKind.Mail, LinkState.Conflict, account.IsSharedMailbox ? $"{address} belongs to a shared mailbox." : $"{address} belongs to a group or mailing list.", account.Id);
         }
 
         if (!string.Equals(account.Address, address, StringComparison.OrdinalIgnoreCase))

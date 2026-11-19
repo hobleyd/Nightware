@@ -66,6 +66,16 @@
             }
         </ul>
     }
+    @if (Model.Mailboxes is { Count: > 0 } mailboxes)
+    {
+        <h2>Shared mailboxes</h2>
+        <ul class="plain">
+            @foreach (var m in mailboxes)
+            {
+                <li><a asp-page="/Entities/Mailboxes/Detail" asp-route-id="@m.EntityId" asp-route-mailboxId="@m.Id">@m.Name</a> <span class="hint">@m.Address</span></li>
+            }
+        </ul>
+    }
     @if (offLimits is not null)
     {
         <p><strong>@offLimits</strong> The console shows this account but never changes it, so it offers no actions here.</p>

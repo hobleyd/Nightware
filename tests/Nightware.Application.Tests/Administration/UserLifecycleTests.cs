@@ -179,7 +179,7 @@ public sealed class UserLifecycleTests
     public async Task Offboarding_disables_ends_sessions_and_deletes_nothing()
     {
         Carol();
-        var offboard = new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.History(), _bed.GroupSync());
+        var offboard = new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.History(), _bed.GroupSync(), _bed.SharedMailboxSync());
 
         (await offboard.ExecuteAsync("u-carol", Ct)).IsSuccess.ShouldBeTrue();
 
@@ -283,7 +283,7 @@ public sealed class UserLifecycleTests
         OffboardUser.IsIncomplete((await new GetUser(_bed.UserAccess()).ExecuteAsync("u-carol", Ct)).Value).ShouldBeFalse();
     }
 
-    private OffboardUser Offboard() => new(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.History(), _bed.GroupSync());
+    private OffboardUser Offboard() => new(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.History(), _bed.GroupSync(), _bed.SharedMailboxSync());
 
     [Fact]
     public async Task Nobody_offboards_themselves()
@@ -291,7 +291,7 @@ public sealed class UserLifecycleTests
         Carol();
         _bed.ActAsGlobal("u-carol");
 
-        (await new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.History(), _bed.GroupSync()).ExecuteAsync("u-carol", Ct))
+        (await new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.History(), _bed.GroupSync(), _bed.SharedMailboxSync()).ExecuteAsync("u-carol", Ct))
             .Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         await _bed.Identities.DidNotReceiveWithAnyArgs().SetEnabledAsync(default!, default, Ct);
     }
@@ -302,7 +302,7 @@ public sealed class UserLifecycleTests
         Carol(scope: new AdminScope(true, new HashSet<string>()));
         _bed.ActAsEntityAdmin();
 
-        (await new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.History(), _bed.GroupSync()).ExecuteAsync("u-carol", Ct))
+        (await new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.History(), _bed.GroupSync(), _bed.SharedMailboxSync()).ExecuteAsync("u-carol", Ct))
             .Error!.Kind.ShouldBe(ErrorKind.NotFound);
         await _bed.Identities.DidNotReceiveWithAnyArgs().SetEnabledAsync(default!, default, Ct);
     }
@@ -313,7 +313,7 @@ public sealed class UserLifecycleTests
         IdentityAccount carol = Carol(enabled: false) with { MailDeletedAt = _bed.Time.GetUtcNow() };
         _bed.Update(carol);
         _bed.Mail.FindByAddressAsync("carol@acme.example", Arg.Any<CancellationToken>()).Returns(Error.NotFound("gone"));
-        var reinstate = new ReinstateUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.Options, _bed.Time, _bed.History(), _bed.GroupSync());
+        var reinstate = new ReinstateUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.Options, _bed.Time, _bed.History(), _bed.GroupSync(), _bed.SharedMailboxSync());
 
         (await reinstate.ExecuteAsync("u-carol", recreateMailbox: false, Ct)).IsSuccess.ShouldBeTrue();
         await _bed.Mail.DidNotReceiveWithAnyArgs().CreateAsync(default!, default!, Ct);
@@ -333,7 +333,7 @@ public sealed class UserLifecycleTests
         _bed.Update(carol);
         _bed.Groupware.FindAsync("carol", Arg.Any<CancellationToken>()).Returns(Error.NotFound("gone"));
 
-        (await new ReinstateUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.Options, _bed.Time, _bed.History(), _bed.GroupSync()).ExecuteAsync("u-carol", false, Ct)).IsSuccess.ShouldBeTrue();
+        (await new ReinstateUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.Options, _bed.Time, _bed.History(), _bed.GroupSync(), _bed.SharedMailboxSync()).ExecuteAsync("u-carol", false, Ct)).IsSuccess.ShouldBeTrue();
 
         await _bed.Groupware.Received(1).PreProvisionAsync("carol", "carol@acme.example", "carol", Arg.Any<CancellationToken>());
         await _bed.Identities.Received(1).SetDeletionMarkerAsync("u-carol", DeletionTarget.GroupwareData, null, Arg.Any<CancellationToken>());
@@ -445,7 +445,7 @@ public sealed class UserLifecycleTests
     {
         Carol(scope: new AdminScope(false, new HashSet<string>(), AdministersDirectory: true));
 
-        (await new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.History(), _bed.GroupSync()).ExecuteAsync("u-carol", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        (await new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.History(), _bed.GroupSync(), _bed.SharedMailboxSync()).ExecuteAsync("u-carol", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         (await new ResetUserCredential(_bed.Actor, _bed.UserAccess(), _bed.Credentials(), _bed.Audit).ExecuteAsync("u-carol", CredentialDelivery.TemporaryPassword, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         await _bed.Identities.DidNotReceiveWithAnyArgs().SetTemporaryPasswordAsync(default!, default!, Ct);
     }
@@ -456,7 +456,7 @@ public sealed class UserLifecycleTests
         Carol(enabled: false);
         _bed.SignedInAgo(TimeSpan.FromMinutes(10));
 
-        (await new ReinstateUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.Options, _bed.Time, _bed.History(), _bed.GroupSync()).ExecuteAsync("u-carol", false, Ct))
+        (await new ReinstateUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.Options, _bed.Time, _bed.History(), _bed.GroupSync(), _bed.SharedMailboxSync()).ExecuteAsync("u-carol", false, Ct))
             .Error!.Code.ShouldBe("reauthenticationRequired");
         await _bed.Identities.DidNotReceiveWithAnyArgs().SetEnabledAsync(default!, default, Ct);
     }
@@ -467,7 +467,7 @@ public sealed class UserLifecycleTests
         Carol(enabled: false);
         _bed.ActAsGlobal("u-carol");
 
-        (await new ReinstateUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.Options, _bed.Time, _bed.History(), _bed.GroupSync()).ExecuteAsync("u-carol", false, Ct))
+        (await new ReinstateUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.Options, _bed.Time, _bed.History(), _bed.GroupSync(), _bed.SharedMailboxSync()).ExecuteAsync("u-carol", false, Ct))
             .Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         await _bed.Identities.DidNotReceiveWithAnyArgs().SetEnabledAsync(default!, default, Ct);
     }
@@ -589,7 +589,7 @@ public sealed class UserLifecycleTests
         Carol(enabled: false);
         _bed.Mail.FindByAddressAsync("carol@acme.example", Arg.Any<CancellationToken>()).Returns(new MailAccount("m-carol", "carol@acme.example", true) { Enabled = false });
 
-        (await new ReinstateUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.Options, _bed.Time, _bed.History(), _bed.GroupSync()).ExecuteAsync("u-carol", false, Ct)).IsSuccess.ShouldBeTrue();
+        (await new ReinstateUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.Options, _bed.Time, _bed.History(), _bed.GroupSync(), _bed.SharedMailboxSync()).ExecuteAsync("u-carol", false, Ct)).IsSuccess.ShouldBeTrue();
 
         await _bed.Mail.Received(1).SetEnabledAsync("m-carol", true, Arg.Any<CancellationToken>());
     }

@@ -25,7 +25,8 @@ public sealed class LinkStateEvaluatorTests
         LinkStateEvaluator.Mail(Address, Error.NotFound("x")).State.ShouldBe(LinkState.Missing);
         LinkStateEvaluator.Mail(Address, Error.BackendUnavailable("down")).State.ShouldBe(LinkState.Error);
         LinkStateEvaluator.Mail(Address, new MailAccount("m", "Carol@acme.example", true)).ShouldBe(new BackendLink(BackendKind.Mail, LinkState.Linked, "Mailbox Carol@acme.example", "m"));
-        LinkStateEvaluator.Mail(Address, new MailAccount("m", Address, false)).State.ShouldBe(LinkState.Conflict);
+        LinkStateEvaluator.Mail(Address, new MailAccount("m", Address, false)).Detail.ShouldBe($"{Address} belongs to a group or mailing list.");
+        LinkStateEvaluator.Mail(Address, new MailAccount("m", Address, false) { IsSharedMailbox = true }).ShouldBe(new BackendLink(BackendKind.Mail, LinkState.Conflict, $"{Address} belongs to a shared mailbox.", "m"));
         LinkStateEvaluator.Mail(Address, new MailAccount("m", "c.jones@acme.example", true)).State.ShouldBe(LinkState.Conflict);
     }
 

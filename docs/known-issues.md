@@ -76,8 +76,14 @@ what a fix needs. Ordered by impact within each section.
   editor's websocket, save landed in Nextcloud), not in a rendered browser.
 
 ### Directory
-- `/users/{shared}` for a shared mailbox that isn't a Keycloak user is 404. The
-  client only calls it for the signed-in account.
+- `/users/{shared}` describes a shared mailbox only to its members, by address
+  and the name its identity was created with; renaming it in the console does
+  not change that name (ADR 0004).
+- A new member of a shared mailbox sees it in NightMail only once the façade's
+  cached JMAP session expires (`Jmap:SessionCacheDuration`, 5 minutes) or their
+  token is renewed. Removal is immediate (the mail server refuses).
+- A shared mailbox has no calendar, contacts or files: those routes answer as
+  for any address Nextcloud does not know.
 - Graph-only profile fields (`jobTitle`, `department`, aliases, …) come from
   `nightware_*` Keycloak attributes that the dev realm doesn't declare yet, so
   they are null live and `proxyAddresses` is only `SMTP:<mail>`.

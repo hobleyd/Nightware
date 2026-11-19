@@ -1,0 +1,22 @@
+@page "/entities/{id}/mailboxes/new"
+@model Nightware.Admin.Pages.Entities.Mailboxes.NewModel
+@{
+    ViewData["Title"] = "New shared mailbox";
+    ViewData["Crumbs"] = new (string, string?)[]
+    {
+        ("Entities", Url.Page("/Entities/Index")),
+        ((Model.Entity as Entity)?.Name ?? "Entity", Url.Page("/Entities/Detail", new { id = Model.Id })),
+        ("Shared mailboxes", Url.Page("/Entities/Mailboxes/Index", new { id = Model.Id })),
+    };
+    ViewData["EntityId"] = Model.Id;
+}
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
+<section class="panel">
+    <h1>New shared mailbox <small>@Model.Entity.Name</small></h1>
+    <partial name="_Messages" />
+    <form method="post">
+        <partial name="_MailboxForm" model="(Model.Input, Model.Entity, (SharedMailbox?)null)" />
+        <p class="hint">Members are added on the mailbox's page once it exists.</p>
+        <button type="submit">Create shared mailbox</button>
+    </form>
+</section>

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Nightware.Application.Administration.Admins;
 using Nightware.Application.Administration.Entities;
 using Nightware.Application.Administration.Groups;
+using Nightware.Application.Administration.SharedMailboxes;
 using Nightware.Application.Administration.Status;
 using Nightware.Application.Administration.Users;
 
@@ -78,6 +79,18 @@ public static class AdministrationServiceCollectionExtensions
         services.TryAddScoped<RepairGroup>();
         services.TryAddScoped<DeleteGroup>();
         services.TryAddScoped<DeleteTeamFolder>();
+
+        services.TryAddScoped<SharedMailboxSync>();
+        services.TryAddScoped<SharedMailboxAccess>();
+        services.TryAddScoped<ListSharedMailboxes>();
+        services.TryAddScoped<GetSharedMailbox>();
+        services.TryAddScoped<ListUserSharedMailboxes>();
+        services.TryAddScoped<CreateSharedMailbox>();
+        services.TryAddScoped<UpdateSharedMailbox>();
+        services.TryAddScoped<AddSharedMailboxMember>();
+        services.TryAddScoped<RemoveSharedMailboxMember>();
+        services.TryAddScoped<RepairSharedMailbox>();
+        services.TryAddScoped<DeleteSharedMailbox>();
 
         services.TryAddScoped<GetSystemStatus>();
         return services;

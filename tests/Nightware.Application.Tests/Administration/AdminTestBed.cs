@@ -3,6 +3,7 @@ using Microsoft.Extensions.Time.Testing;
 using Nightware.Application.Administration;
 using Nightware.Application.Administration.Entities;
 using Nightware.Application.Administration.Groups;
+using Nightware.Application.Administration.SharedMailboxes;
 using Nightware.Application.Administration.Users;
 using Nightware.Domain.Administration;
 using Nightware.Domain.Kernel;
@@ -96,6 +97,25 @@ internal sealed class AdminTestBed
         GroupwareGroups.GrantFolderAsync(default, default!, default).ReturnsForAnyArgs(Result.Success());
         GroupwareGroups.DeleteFolderAsync(default, default).ReturnsForAnyArgs(Result.Success());
 
+        Mailboxes.ListAsync(default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<SharedMailbox>>.Success([]));
+        Mailboxes.GetAsync(default!, default!, default).ReturnsForAnyArgs(Error.NotFound("no shared mailbox"));
+        Mailboxes.ListMembersAsync(default!, default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        Mailboxes.ListUserMailboxesAsync(default!, default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<SharedMailbox>>.Success([]));
+        Mailboxes.CreateAsync(default!, default!, default).ReturnsForAnyArgs(c =>
+            c.Arg<NewSharedMailbox?>() is { } m ? Result<SharedMailbox>.Success(new SharedMailbox("s-new", c.Arg<string>(), m.Address, m.Name) { Aliases = m.Aliases }) : default);
+        Mailboxes.UpdateAsync(default!, default).ReturnsForAnyArgs(c => c.Arg<SharedMailbox?>() is { } m ? Result<SharedMailbox>.Success(m) : default);
+        Mailboxes.DeleteAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        Mailboxes.AddMemberAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        Mailboxes.RemoveMemberAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
+
+        SharedMail.FindByAddressAsync(default!, default).ReturnsForAnyArgs(Error.NotFound("no shared mailbox"));
+        SharedMail.CreateAsync(default!, default!, default!, default).ReturnsForAnyArgs(c =>
+            c.Arg<MailAddress?>() is { } a ? Result<SharedMailAccount>.Success(new SharedMailAccount("sm-new", a.Value) { Name = c.ArgAt<string>(2) }) : default);
+        SharedMail.UpdateAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        SharedMail.AddMemberAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        SharedMail.RemoveMemberAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        SharedMail.DestroyAsync(default!, default).ReturnsForAnyArgs(Result.Success());
+
         Passwords.Generate().Returns(new TemporaryCredential("Generated-Pass-1"));
         ActAsGlobal();
     }
@@ -123,6 +143,10 @@ internal sealed class AdminTestBed
     public IMailingLists Lists { get; } = Substitute.For<IMailingLists>();
 
     public IGroupwareGroups GroupwareGroups { get; } = Substitute.For<IGroupwareGroups>();
+
+    public IEntityMailboxes Mailboxes { get; } = Substitute.For<IEntityMailboxes>();
+
+    public ISharedMailAccounts SharedMail { get; } = Substitute.For<ISharedMailAccounts>();
 
     public RecordingAuditLog Audit { get; } = new();
 
@@ -196,6 +220,10 @@ internal sealed class AdminTestBed
     public GroupSync GroupSync() => new(Entities, Groups, Lists, GroupwareGroups, Groupware);
 
     public GroupAccess GroupAccess() => new(Actor, Entities, Groups, Identities, Mail, Lists, GroupSync(), Options);
+
+    public SharedMailboxSync SharedMailboxSync() => new(Entities, Mailboxes, SharedMail, Mail);
+
+    public SharedMailboxAccess SharedMailboxAccess() => new(Actor, Entities, Mailboxes, Identities, Mail, Lists, SharedMailboxSync(), Options);
 
     private sealed class MutableActor : IAdminActor
     {

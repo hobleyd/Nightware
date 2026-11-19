@@ -1,0 +1,28 @@
+@using Nightware.Admin.Pages.Entities.Mailboxes
+@using Nightware.Domain.Administration
+@model (MailboxInput Input, Entity Entity, SharedMailbox? Existing)
+@* The shared mailbox form's fields, for a new mailbox (Existing null) and for changing one. *@
+@{
+    var input = Model.Input;
+    var existing = Model.Existing;
+}
+<label>Name <input name="Input.Name" value="@input.Name" maxlength="80" required autocomplete="off">@if (existing is null) { <span class="hint">Mail sent from the shared mailbox goes out under this name.</span> }</label>
+@if (existing is not null)
+{
+    <p>Address <strong>@existing.Address</strong> <span class="hint">(an address never changes; add an alias instead)</span></p>
+}
+else
+{
+    <div class="row">
+        <label>Address, before the @@ <input name="Input.LocalPart" value="@input.LocalPart" placeholder="support" required autocomplete="off"></label>
+        <label>Domain
+            <select name="Input.Domain">
+                @foreach (var d in Model.Entity.Domains)
+                {
+                    <option value="@d.Name" selected="@(string.Equals(d.Name, input.Domain, StringComparison.OrdinalIgnoreCase))">@d.Name</option>
+                }
+            </select>
+        </label>
+    </div>
+}
+<label>Other addresses (aliases) <input name="Input.Aliases" value="@input.Aliases" autocomplete="off"><span class="hint">Optional. Separate with commas; each must be on one of this entity's domains.</span></label>

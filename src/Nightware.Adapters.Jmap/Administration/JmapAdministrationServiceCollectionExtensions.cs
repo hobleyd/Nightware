@@ -10,8 +10,8 @@ namespace Nightware.Adapters.Jmap.Administration;
 public static class JmapAdministrationServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers the Stalwart side of the admin console: <see cref="IMailAccounts"/>, <see cref="IMailDomains"/>
-    /// and an <see cref="IBackendStatus"/>, over a management client with the console's own credential
+    /// Registers the Stalwart side of the admin console: <see cref="IMailAccounts"/>, <see cref="IMailDomains"/>,
+    /// <see cref="IMailingLists"/>, <see cref="ISharedMailAccounts"/> and an <see cref="IBackendStatus"/>, over a management client with the console's own credential
     /// (<c>StalwartManagement</c>). Independent of <c>AddJmapAdapter</c>: needs no user context or backend credentials.
     /// </summary>
     public static IServiceCollection AddStalwartAdministration(this IServiceCollection services, IConfiguration configuration)
@@ -35,6 +35,7 @@ public static class JmapAdministrationServiceCollectionExtensions
         services.TryAddScoped<IMailAccounts, StalwartMailAccounts>();
         services.TryAddScoped<IMailDomains, StalwartMailDomains>();
         services.TryAddScoped<IMailingLists, StalwartMailingLists>();
+        services.TryAddScoped<ISharedMailAccounts, StalwartSharedMailboxes>();
         services.TryAddEnumerable(ServiceDescriptor.Scoped<IBackendStatus, StalwartBackendStatus>());
         return services;
     }

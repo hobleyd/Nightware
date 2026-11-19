@@ -49,7 +49,7 @@ Dependencies point inward only. Enforced by `tests/Nightware.Architecture.Tests`
 | `Nightware.Adapters.Cloudflare` | Application | Cloudflare v4 API for the admin console: publishing an entity's DNS records with the entity's own token; and public DNS lookups (Cloudflare's DNS-over-HTTPS resolver) for the server's public addresses. |
 | `Nightware.Adapters.DnsHosts` | Application | The admin console's other DNS hosts, one `IDnsHosting` each: DigitalOcean (v2), Gandi (LiveDNS v5), Hetzner (Cloud API zones), Amazon Route 53 (REST/XML, SigV4), Azure DNS (Resource Manager, client-credentials sign-in) and Google Cloud DNS (v1, service-account JWT sign-in), each with the entity's own credential; Azure and Google access tokens are cached in memory until shortly before they expire. Record-set hosts give each value a stable id (name, type, value hash). |
 | `Nightware.Hosting` | nothing in the solution (ASP.NET Core only) | Hosting code shared by the hosts (ADR 0002 §D2): security headers with a configurable CSP, trusted-proxy (`ForwardedHeaders`) registration, the cookie-free `HttpClient` filter, log redaction. |
-| `Nightware.Admin` | Application, all Adapters (composition root only), Hosting | The admin console (ADR 0002; groups, ADR 0003): Razor Pages, OIDC + MFA sign-in, the `Administration/` use cases. Never references `Nightware.Api`, and the Api never references the `Administration/` feature. |
+| `Nightware.Admin` | Application, all Adapters (composition root only), Hosting | The admin console (ADR 0002; groups, ADR 0003; shared mailboxes, ADR 0004): Razor Pages, OIDC + MFA sign-in, the `Administration/` use cases. Never references `Nightware.Api`, and the Api never references the `Administration/` feature. |
 | `Nightware.Api` | Application, all Adapters (composition root only), Hosting | ASP.NET Core host, JWT auth, Graph routes, OData-subset parsing, `Prefer` header handling, Graph JSON DTOs + mappers, Graph error envelope. |
 
 The Api references adapters **only** in `Composition/` (DI wiring). Endpoint
@@ -94,7 +94,9 @@ code depends on Application use cases, never on adapters.
   service-account fallback is per-adapter configuration, never the default.
 - `/users/{id|upn}/...` routes resolve the target mailbox through
   `IMailboxResolver`; delegated (shared-mailbox) access is authorised by the
-  backend, not re-implemented in the façade.
+  backend, not re-implemented in the façade. A shared mailbox is an account in
+  the caller's JMAP session; `/users/{address}` describes it from there when the
+  directory has no such user (ADR 0004 D4).
 
 ### Use cases
 - One class per use case, `sealed`, named as a verb phrase

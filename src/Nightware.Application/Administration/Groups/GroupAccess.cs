@@ -187,38 +187,10 @@ public sealed class GroupAccess(
 
             if (valid.IsSuccess)
             {
-                valid = await RequireFreeAsync(added, cancellationToken).ConfigureAwait(false);
+                valid = await AddressAvailability.RequireFreeAsync(identities, lists, mail, added, cancellationToken).ConfigureAwait(false);
             }
         }
 
         return valid.IsSuccess ? groupMail : valid.Error;
-    }
-
-    /// <summary>No user, mailbox, alias or other list has the address. The mail server refuses a clash too; this says whose it is first.</summary>
-    private async Task<Result> RequireFreeAsync(MailAddress address, CancellationToken cancellationToken)
-    {
-        Result<IdentityAccount> user = await identities.FindByEmailAsync(address.Value, cancellationToken).ConfigureAwait(false);
-        if (user.IsSuccess)
-        {
-            return Error.Conflict($"{address} is {user.Value.DisplayName}'s address.", "address");
-        }
-
-        Result<MailingList> list = await lists.FindByAddressAsync(address, cancellationToken).ConfigureAwait(false);
-        if (list.IsSuccess)
-        {
-            return Error.Conflict($"{address} is already a list's address.", "address");
-        }
-
-        Result<MailAccount> mailbox = await mail.FindByAddressAsync(address.Value, cancellationToken).ConfigureAwait(false);
-        if (mailbox.IsSuccess)
-        {
-            return Error.Conflict(
-                mailbox.Value.IsIndividual ? $"{address} already belongs to the mailbox {mailbox.Value.Address}." : $"{address} is already an address of the list {mailbox.Value.Address}.",
-                "address");
-        }
-
-        // A lookup that failed for another reason cannot vouch for the address.
-        Error? unanswered = new[] { user.Error, list.Error, mailbox.Error }.FirstOrDefault(static e => e is not null && e.Kind != ErrorKind.NotFound);
-        return unanswered is null ? Result.Success() : unanswered;
     }
 }

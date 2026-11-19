@@ -278,6 +278,25 @@ recreated, or the folder was unshared in Nextcloud — Repair shares it again.
 A folder whose group was deleted is kept, shared with no one; a Nextcloud
 administrator sees it under *Administration settings → Team folders*.
 
+## Admin console: a member cannot see a shared mailbox
+
+The shared mailbox's page shows Members (Keycloak, the record) and Mailbox
+(Stalwart). "Out of step" names who the mail server lets in that the record
+does not, or the reverse; **Repair** writes the record's members (ADR 0004 D3).
+Not faults:
+
+- A member whose own mailbox does not exist yet cannot be let in; the page
+  says so and Repair adds them once it exists.
+- An offboarded member stays listed (so reinstating restores them) but cannot
+  open it.
+- A member added in the last few minutes may not see it in NightMail until
+  the façade's session cache expires (5 minutes) or they sign in again.
+
+NightMail adds it by address (*Add shared mailbox*): `GET /users/{address}`
+and `.../mailFolders/inbox` must both answer 200 for the member. A 404 for a
+listed, enabled member means Stalwart does not have them as a member: check
+`memberGroupIds` on their account, then Repair.
+
 ## Admin console: mail to a group is refused (550 5.7.1)
 
 The list's sender policy refused the envelope sender (members only, or the

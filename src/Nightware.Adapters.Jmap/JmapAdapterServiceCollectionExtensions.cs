@@ -1,4 +1,5 @@
 using Nightware.Adapters.Jmap.Security;
+using Nightware.Adapters.Jmap.Directory;
 using Nightware.Adapters.Jmap.MailboxSettings;
 using Nightware.Adapters.Jmap.Mail.Write;
 using Nightware.Adapters.Jmap.Mail.Read;
@@ -45,7 +46,8 @@ public static class JmapAdapterServiceCollectionExtensions
             .AddJmapMailRead()
             .AddJmapMailWrite()
             .AddJmapMailboxSettings()
-            .AddJmapSecurity();
+            .AddJmapSecurity()
+            .AddJmapDirectory();
     }
 
     private static void AddHttpClients(IServiceCollection services)

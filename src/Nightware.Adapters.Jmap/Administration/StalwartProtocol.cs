@@ -39,6 +39,9 @@ internal sealed record AccountFilter
     public string? Name { get; init; }
 
     public string? DomainId { get; init; }
+
+    /// <summary>The accounts that are members of this group account (phase 10 step 0: one id, verified on 1.1).</summary>
+    public string? MemberGroupIds { get; init; }
 }
 
 /// <summary><c>x:Domain/query</c> condition <c>name</c> (configure.sh uses it).</summary>
@@ -78,6 +81,9 @@ internal sealed record StalwartAccount
     /// <summary>Server-set primary address.</summary>
     public string? EmailAddress { get; init; }
 
+    /// <summary>A group account's identities take their name from it when they are created (verified on 1.1).</summary>
+    public string? Description { get; init; }
+
     /// <summary>
     /// <c>EmailAlias</c> list (<c>{name, domainId, enable, description}</c>). Stalwart writes lists as maps
     /// keyed by index (<c>{"0": …}</c>); read either that or a JSON array.
@@ -97,10 +103,15 @@ internal sealed record StalwartAccount
     /// Whether the account holds more than an ordinary user's rights: an <c>Admin</c> or <c>Custom</c> role (the
     /// console's own principal has one) or permissions of its own. Fails closed: Stalwart 1.1 always returns both
     /// fields (verified), so a missing or unreadable one counts as privileged rather than ordinary.
+    /// A group account (a shared mailbox) is created with the <c>Default</c> role (verified on 1.1), which is ordinary for it;
+    /// whatever a group holds beyond that, its members gain.
     /// </summary>
     public bool IsPrivileged =>
-        !string.Equals(TypeOf(Roles), "User", StringComparison.Ordinal)
+        !(string.Equals(TypeOf(Roles), "User", StringComparison.Ordinal) || (IsGroup && string.Equals(TypeOf(Roles), "Default", StringComparison.Ordinal)))
         || !(string.Equals(TypeOf(Permissions), "Inherit", StringComparison.Ordinal) || IsSignInBlock(Permissions));
+
+    /// <summary>A group account: a mailbox its members open (a shared mailbox), not a person's.</summary>
+    public bool IsGroup => string.Equals(Type, "Group", StringComparison.Ordinal);
 
     /// <summary>
     /// The <c>Admin</c> role and no permissions of its own beyond the console's sign-in block: the role the console

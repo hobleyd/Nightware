@@ -21,6 +21,7 @@ public static class DirectoryAdministrationServiceCollectionExtensions
         services.TryAddScoped<IIdentityAccounts, KeycloakIdentityAccounts>();
         services.TryAddScoped<IAdminScopeSource, KeycloakAdminScopeSource>();
         services.TryAddScoped<IEntityGroups, KeycloakEntityGroups>();
+        services.TryAddScoped<IEntityMailboxes, KeycloakEntityMailboxes>();
 
         // Enumerable: Stalwart and Nextcloud register their own IBackendStatus.
         services.TryAddEnumerable(ServiceDescriptor.Scoped<IBackendStatus, KeycloakBackendStatus>());

@@ -215,32 +215,11 @@ internal sealed class KeycloakEntityGroups(IKeycloakAdminClient keycloak) : IEnt
         return groups;
     }
 
-    private async Task<Result<KeycloakGroup?>> FindParentAsync(string entityId, CancellationToken cancellationToken)
-    {
-        Result<IReadOnlyList<KeycloakGroup>> found = await keycloak.ListOrganizationTopLevelGroupsAsync(entityId, cancellationToken).ConfigureAwait(false);
-        return found.IsSuccess
-            ? found.Value.FirstOrDefault(static g => string.Equals(g.Name, ParentName, StringComparison.Ordinal))
-            : found.Error;
-    }
+    private Task<Result<KeycloakGroup?>> FindParentAsync(string entityId, CancellationToken cancellationToken) =>
+        OrganizationParentGroup.FindAsync(keycloak, entityId, ParentName, cancellationToken);
 
-    private async Task<Result<string>> EnsureParentAsync(string entityId, CancellationToken cancellationToken)
-    {
-        Result<KeycloakGroup?> existing = await FindParentAsync(entityId, cancellationToken).ConfigureAwait(false);
-        if (!existing.IsSuccess || existing.Value is not null)
-        {
-            return existing.IsSuccess ? existing.Value!.Id : existing.Error;
-        }
-
-        Result<string> created = await keycloak.CreateOrganizationGroupAsync(entityId, ParentName, cancellationToken).ConfigureAwait(false);
-        if (created.IsSuccess || created.Error.Kind != ErrorKind.Conflict)
-        {
-            return created;
-        }
-
-        // Another request made it first.
-        Result<KeycloakGroup?> raced = await FindParentAsync(entityId, cancellationToken).ConfigureAwait(false);
-        return raced.IsSuccess && raced.Value is { } parent ? parent.Id : created;
-    }
+    private Task<Result<string>> EnsureParentAsync(string entityId, CancellationToken cancellationToken) =>
+        OrganizationParentGroup.EnsureAsync(keycloak, entityId, ParentName, cancellationToken);
 
     private static Error NotFound() => Error.NotFound("The group was not found.");
 

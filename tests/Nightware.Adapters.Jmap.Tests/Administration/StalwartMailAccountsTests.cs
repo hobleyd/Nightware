@@ -146,7 +146,21 @@ public sealed class StalwartMailAccountsTests : IAsyncDisposable
         var account = (await Accounts().FindByAddressAsync("sales@acme.example", Ct)).Value;
 
         account.IsIndividual.ShouldBeFalse();
+        account.IsSharedMailbox.ShouldBe(type.Length > 0);
         account.Aliases.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("Group", "Default", false)] // a shared mailbox as the console creates it (phase 10 step 0)
+    [InlineData("Group", "Admin", true)] // its members would gain the role
+    [InlineData("User", "Default", true)] // only a group's default role is ordinary
+    public async Task A_group_s_default_role_is_ordinary(string type, string role, bool privileged)
+    {
+        string account = $$$"""{"id":"f","@type":"{{{type}}}","name":"support","domainId":"d7","emailAddress":"support@acme.example","roles":{"@type":"{{{role}}}"},"permissions":{"@type":"Inherit"}}""";
+        StubAcme();
+        _host.Stub("x:Account/query", StalwartManagementTestHost.AccountPage(account));
+
+        (await Accounts().FindByAddressAsync("support@acme.example", Ct)).Value.IsPrivileged.ShouldBe(privileged);
     }
 
     [Fact]

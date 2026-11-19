@@ -111,10 +111,13 @@ public interface IIdentityAccounts
     Task<Result> AddAccessEventAsync(string userId, AccessEvent added, CancellationToken cancellationToken);
 }
 
-/// <param name="IsIndividual">False for a group or mailing list that holds the address.</param>
+/// <param name="IsIndividual">False for a shared mailbox or mailing list that holds the address.</param>
 public sealed record MailAccount(string Id, string Address, bool IsIndividual)
 {
     public IReadOnlyList<string> Aliases { get; init; } = [];
+
+    /// <summary>A shared mailbox (phase 10) holds the address: not individual, and not a list.</summary>
+    public bool IsSharedMailbox { get; init; }
 
     /// <summary>
     /// Holds more than an ordinary mailbox's rights (an administrator, or the console's own principal). Never
@@ -312,6 +315,76 @@ public interface IGroupwareGroups
 
     /// <summary>Deletes the folder and every file in it. NotFound when already gone.</summary>
     Task<Result> DeleteFolderAsync(int folderId, CancellationToken cancellationToken);
+}
+
+/// <summary>An entity's shared mailboxes (phase 10), kept in the identity provider (Keycloak organization groups) as the record.</summary>
+public interface IEntityMailboxes
+{
+    Task<Result<IReadOnlyList<SharedMailbox>>> ListAsync(string entityId, CancellationToken cancellationToken);
+
+    /// <summary>NotFound when the entity has no such shared mailbox.</summary>
+    Task<Result<SharedMailbox>> GetAsync(string entityId, string mailboxId, CancellationToken cancellationToken);
+
+    /// <summary>Conflict when the entity already has a shared mailbox at that address.</summary>
+    Task<Result<SharedMailbox>> CreateAsync(string entityId, NewSharedMailbox mailbox, CancellationToken cancellationToken);
+
+    /// <summary>Stores the name and aliases; the address never changes.</summary>
+    Task<Result<SharedMailbox>> UpdateAsync(SharedMailbox mailbox, CancellationToken cancellationToken);
+
+    /// <summary>NotFound when already gone.</summary>
+    Task<Result> DeleteAsync(string entityId, string mailboxId, CancellationToken cancellationToken);
+
+    Task<Result<IReadOnlyList<IdentityAccount>>> ListMembersAsync(string entityId, string mailboxId, CancellationToken cancellationToken);
+
+    /// <summary>Idempotent.</summary>
+    Task<Result> AddMemberAsync(string entityId, string mailboxId, string userId, CancellationToken cancellationToken);
+
+    /// <summary>Idempotent.</summary>
+    Task<Result> RemoveMemberAsync(string entityId, string mailboxId, string userId, CancellationToken cancellationToken);
+
+    /// <summary>The shared mailboxes of <paramref name="entityId"/> that <paramref name="userId"/> may open.</summary>
+    Task<Result<IReadOnlyList<SharedMailbox>>> ListUserMailboxesAsync(string entityId, string userId, CancellationToken cancellationToken);
+}
+
+/// <summary>A mailbox account a shared mailbox's member can open, by its mail server id and its primary address.</summary>
+public sealed record SharedMailMember(string AccountId, string Address);
+
+/// <summary>A shared mailbox on the mail server: the addresses it answers to and the accounts that may open it.</summary>
+public sealed record SharedMailAccount(string Id, string Address)
+{
+    /// <summary>The name its mail is sent under (new identities take it; existing ones keep theirs).</summary>
+    public string? Name { get; init; }
+
+    public IReadOnlyList<string> Aliases { get; init; } = [];
+
+    public IReadOnlyList<SharedMailMember> Members { get; init; } = [];
+
+    /// <summary>
+    /// Carries a role or permissions of its own, which every member would gain: never given members by the console.
+    /// </summary>
+    public bool IsPrivileged { get; init; }
+}
+
+/// <summary>Shared mailboxes on the mail server (Stalwart group accounts), managed with the console's own principal.</summary>
+public interface ISharedMailAccounts
+{
+    /// <summary>The shared mailbox whose primary address is <paramref name="address"/>; NotFound when none.</summary>
+    Task<Result<SharedMailAccount>> FindByAddressAsync(MailAddress address, CancellationToken cancellationToken);
+
+    /// <summary>Conflict, naming the holder, when a mailbox, alias or list has any of the addresses.</summary>
+    Task<Result<SharedMailAccount>> CreateAsync(MailAddress address, IReadOnlyList<MailAddress> aliases, string name, CancellationToken cancellationToken);
+
+    /// <summary>Replaces the aliases and the name. Conflict, naming the holder, when an alias is taken.</summary>
+    Task<Result> UpdateAsync(string mailboxId, IReadOnlyList<MailAddress> aliases, string name, CancellationToken cancellationToken);
+
+    /// <summary>Lets the mail account <paramref name="memberAccountId"/> open the shared mailbox and send as it. Idempotent.</summary>
+    Task<Result> AddMemberAsync(string mailboxId, string memberAccountId, CancellationToken cancellationToken);
+
+    /// <summary>Takes that access away at once. Idempotent.</summary>
+    Task<Result> RemoveMemberAsync(string mailboxId, string memberAccountId, CancellationToken cancellationToken);
+
+    /// <summary>Takes every member out, then destroys the shared mailbox and its mail. NotFound when already gone.</summary>
+    Task<Result> DestroyAsync(string mailboxId, CancellationToken cancellationToken);
 }
 
 public sealed record BackendHealth(BackendKind Backend, bool Healthy, string? Detail = null);

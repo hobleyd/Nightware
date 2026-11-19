@@ -1,0 +1,15 @@
+@model IReadOnlyList<BackendLink>
+@* A shared mailbox's state in each backend. Like _GroupLinks, named for what it is in each: who may open it, and the mailbox. *@
+@{
+    static string Name(BackendKind backend) => backend == BackendKind.Identity ? "Members" : "Mailbox";
+}
+<ul class="chips">
+    @foreach (var link in Model)
+    {
+        <li class="chip @Systems.LinkClass(link, false)">@Name(link.Backend): @(link.State == LinkState.Conflict ? "Out of step" : Systems.LinkLabel(link, false))</li>
+    }
+</ul>
+@foreach (var link in Model.Where(l => l.State is LinkState.Conflict or LinkState.Error or LinkState.Missing))
+{
+    <p class="hint detail">@Name(link.Backend): @link.Detail</p>
+}

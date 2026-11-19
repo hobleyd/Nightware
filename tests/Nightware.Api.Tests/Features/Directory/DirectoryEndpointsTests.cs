@@ -15,6 +15,7 @@ public sealed class DirectoryEndpointsTests : IAsyncLifetime
 {
     private readonly IUserDirectory _directory = Substitute.For<IUserDirectory>();
     private readonly IUserPhotoReader _photos = Substitute.For<IUserPhotoReader>();
+    private readonly ISharedMailboxDirectory _shared = Substitute.For<ISharedMailboxDirectory>();
     private TestHost _host = null!;
 
     private static readonly DirectoryUser Sam = new("id-sam", "Sam Attendee", "sam@example.com")
@@ -31,8 +32,11 @@ public sealed class DirectoryEndpointsTests : IAsyncLifetime
         Aliases = ["s.attendee@example.com"],
     };
 
-    public async ValueTask InitializeAsync() =>
-        _host = await TestHost.StartAsync(services => services.AddSingleton(_directory).AddSingleton(_photos));
+    public async ValueTask InitializeAsync()
+    {
+        _shared.GetAsync(default!, default).ReturnsForAnyArgs(Error.NotFound("not a shared mailbox"));
+        _host = await TestHost.StartAsync(services => services.AddSingleton(_directory).AddSingleton(_photos).AddSingleton(_shared));
+    }
 
     public async ValueTask DisposeAsync() => await _host.DisposeAsync();
 
@@ -127,6 +131,22 @@ public sealed class DirectoryEndpointsTests : IAsyncLifetime
         _directory.GetAsync("x@example.com", Arg.Any<CancellationToken>()).Returns(new Error(kind, "c", "m"));
 
         (await GetAsync("/v1.0/users/x%40example.com")).StatusCode.ShouldBe(status);
+    }
+
+    [Fact]
+    public async Task A_shared_mailbox_s_profile_is_read_through_the_mailbox_base()
+    {
+        // NightMail's account setup: GET /users/{shared}?$select=displayName,mail,userPrincipalName, raw '@'.
+        _directory.GetAsync("support@example.com", Arg.Any<CancellationToken>()).Returns(Error.NotFound("no user"));
+        _shared.GetAsync("support@example.com", Arg.Any<CancellationToken>()).Returns(new DirectoryUser("support@example.com", "Support", "support@example.com") { Mail = "support@example.com" });
+
+        var response = await GetAsync("/v1.0/users/support@example.com?%24select=displayName%2Cmail%2CuserPrincipalName");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await response.ReadObjectAsync();
+        body["displayName"]!.GetValue<string>().ShouldBe("Support");
+        body["mail"]!.GetValue<string>().ShouldBe("support@example.com");
+        body["userPrincipalName"]!.GetValue<string>().ShouldBe("support@example.com");
     }
 
     [Fact]

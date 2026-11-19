@@ -319,7 +319,7 @@ public sealed class GroupUseCaseTests
         _bed.AddUser("u-carol", "carol", "carol@acme.example");
         _bed.Entities.GetMembershipsAsync("u-carol", Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<string>>.Failure(Error.BackendUnavailable("keycloak down")), Result<IReadOnlyList<string>>.Success([AdminTestBed.Acme]));
 
-        var offboard = new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.History(), _bed.GroupSync());
+        var offboard = new OffboardUser(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Mail, _bed.Groupware, _bed.Audit, _bed.History(), _bed.GroupSync(), _bed.SharedMailboxSync());
         _bed.Entities.GetMembershipsAsync("u-carol", Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<string>>.Success([AdminTestBed.Acme]));
         (await offboard.ExecuteAsync("u-carol", Ct)).IsSuccess.ShouldBeTrue();
         await _bed.Groups.Received().ListUserGroupsAsync(AdminTestBed.Acme, "u-carol", Arg.Any<CancellationToken>());

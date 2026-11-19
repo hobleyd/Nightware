@@ -1,0 +1,29 @@
+@page "/entities/{id}/mailboxes/{mailboxId}/delete"
+@model Nightware.Admin.Pages.Entities.Mailboxes.DeleteModel
+@{
+    var detail = Model.Detail as Nightware.Application.Administration.SharedMailboxes.SharedMailboxDetail;
+    ViewData["Title"] = "Delete shared mailbox";
+    ViewData["Crumbs"] = new (string, string?)[]
+    {
+        ("Entities", Url.Page("/Entities/Index")),
+        (detail?.Entity.Name ?? "Entity", Url.Page("/Entities/Detail", new { id = Model.Id })),
+        ("Shared mailboxes", Url.Page("/Entities/Mailboxes/Index", new { id = Model.Id })),
+        (detail?.Mailbox.Name ?? "Shared mailbox", Url.Page("/Entities/Mailboxes/Detail", new { id = Model.Id, mailboxId = Model.MailboxId })),
+    };
+    ViewData["EntityId"] = Model.Id;
+}
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
+@{ var mailbox = Model.Detail.Mailbox; }
+<section class="panel danger">
+    <h1>Delete the shared mailbox <small>@mailbox.Name</small></h1>
+    <partial name="_Messages" />
+    @if (Model.Allowed)
+    {
+        <p>Deletes <strong>@mailbox.Address</strong> and <strong>every message in it</strong>@(Model.Usage is { } used ? $" ({(used / 1048576.0).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} MB)" : ""), for all @Model.Detail.Members.Count member(s). Mail to its address@(mailbox.Aliases.Count > 0 ? "es" : "") will be refused. This cannot be undone.</p>
+        <form method="post">
+            <label>Type the address, <strong>@mailbox.Address</strong>, to confirm <input name="confirmation" autocomplete="off" required></label>
+            <button type="submit">Delete the shared mailbox and its mail</button>
+        </form>
+    }
+    <p><a asp-page="/Entities/Mailboxes/Detail" asp-route-id="@Model.Id" asp-route-mailboxId="@Model.MailboxId">Back to the shared mailbox</a></p>
+</section>

@@ -306,6 +306,7 @@ internal sealed partial class StalwartMailAccounts(
             ?? (account.Name is not null && account.DomainId is not null && names.TryGetValue(account.DomainId, out string? own) ? $"{account.Name}@{own}" : string.Empty);
         return new MailAccount(account.Id, primary, IsIndividual: string.Equals(account.Type, "User", StringComparison.Ordinal))
         {
+            IsSharedMailbox = account.IsGroup,
             IsPrivileged = account.IsPrivileged,
             IsAdministrator = account.IsAdministrator,
             Enabled = account.IsEnabled,
