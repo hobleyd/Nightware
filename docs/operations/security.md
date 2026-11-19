@@ -163,7 +163,8 @@ credentials with it.
   origin with Nextcloud, Stalwart's UI and Keycloak; an XSS in one of them could
   act in the console (`docs/known-issues.md`, fix: a host of its own).
 - **DNS host credentials** (per entity, for publishing DNS records to its
-  host: Cloudflare, DigitalOcean, Gandi, Hetzner or Amazon Route 53). Global
+  host: Cloudflare, DigitalOcean, Gandi, Hetzner, Amazon Route 53, Azure DNS
+  or Google Cloud DNS). Global
   admins only enter them, in a password field that is never rendered back. The
   console first checks the credential with that host and refuses one it does
   not accept or that reaches none of the entity's domains. It then seals it
@@ -180,7 +181,15 @@ credentials with it.
   a Cloudflare token from the "Edit zone DNS" template limited to their zones,
   a Hetzner token of the project holding them, an AWS IAM user allowed only
   `route53:ListHostedZonesByName`, `ListResourceRecordSets` and
-  `ChangeResourceRecordSets`. DigitalOcean and Gandi tokens cannot be limited to
+  `ChangeResourceRecordSets`, an Azure service principal with DNS Zone
+  Contributor on the zones only (the console reads them by name in the given
+  resource group, so it needs nothing wider), a Google service account with DNS
+  Administrator in the zones' project. Of a Google key the console keeps only
+  the project, the account's address, the key ID and the private key. A
+  credential whose sealed form is longer than one attribute value (Azure's,
+  Google's) is stored as numbered values `00:…`, `01:…` of the same attribute.
+  Azure and Google access tokens are held in memory only, until two minutes
+  before they expire. DigitalOcean and Gandi tokens cannot be limited to
   one domain's DNS as finely; prefer an account holding only that domain. Publishing only adds and corrects records.
   It never removes one the domain does not need, except a second SPF, DMARC or
   DKIM record at a name where there must be one. It writes records as plain

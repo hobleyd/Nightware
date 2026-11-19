@@ -22,6 +22,21 @@ public sealed class DnsHostsOptions
     /// <summary>Amazon Route 53's API (global: signed for <c>us-east-1</c>).</summary>
     public Uri Route53ApiBaseUrl { get; set; } = new("https://route53.amazonaws.com/2013-04-01/");
 
+    /// <summary>Microsoft Entra ID, where an Azure service principal signs in (<c>{tenant}/oauth2/v2.0/token</c>).</summary>
+    public Uri AzureLoginBaseUrl { get; set; } = new("https://login.microsoftonline.com/");
+
+    /// <summary>Azure Resource Manager, which holds Azure DNS zones.</summary>
+    public Uri AzureManagementBaseUrl { get; set; } = new("https://management.azure.com/");
+
+    /// <summary>
+    /// Google's OAuth token endpoint, where a service account signs in. Always this one, never the <c>token_uri</c>
+    /// in a pasted key: a signed assertion goes only to Google.
+    /// </summary>
+    public Uri GoogleTokenUrl { get; set; } = new("https://oauth2.googleapis.com/token");
+
+    /// <summary>Google Cloud DNS's v1 API.</summary>
+    public Uri GoogleDnsBaseUrl { get; set; } = new("https://dns.googleapis.com/dns/v1/");
+
     /// <summary>Total time for one call (all retries included).</summary>
     public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
@@ -40,6 +55,9 @@ public sealed class DnsHostsOptions
         (nameof(GandiApiBaseUrl), GandiApiBaseUrl),
         (nameof(HetznerApiBaseUrl), HetznerApiBaseUrl),
         (nameof(Route53ApiBaseUrl), Route53ApiBaseUrl),
+        (nameof(AzureLoginBaseUrl), AzureLoginBaseUrl),
+        (nameof(AzureManagementBaseUrl), AzureManagementBaseUrl),
+        (nameof(GoogleDnsBaseUrl), GoogleDnsBaseUrl),
     ];
 }
 
@@ -63,6 +81,11 @@ internal sealed class DnsHostsOptionsValidator : IValidateOptions<DnsHostsOption
             {
                 failures.Add($"{Prefix}{setting} must end with '/'.");
             }
+        }
+
+        if (options.GoogleTokenUrl is not { IsAbsoluteUri: true } token || (token.Scheme != Uri.UriSchemeHttps && token.Scheme != Uri.UriSchemeHttp))
+        {
+            failures.Add($"{Prefix}GoogleTokenUrl must be an absolute http(s) URL.");
         }
 
         if (options.RequestTimeout <= TimeSpan.Zero || options.AttemptTimeout <= TimeSpan.Zero)

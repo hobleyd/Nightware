@@ -24,7 +24,7 @@ public sealed class DigitalOceanDnsHostingTests : IDisposable
 
     [Fact]
     public void Every_host_of_the_adapter_is_registered_as_the_port() =>
-        _host.All().Select(static h => h.Provider).Order().ShouldBe([DnsProvider.DigitalOcean, DnsProvider.Gandi, DnsProvider.Hetzner, DnsProvider.Route53]);
+        _host.All().Select(static h => h.Provider).Order().ShouldBe([DnsProvider.DigitalOcean, DnsProvider.Gandi, DnsProvider.Hetzner, DnsProvider.Route53, DnsProvider.AzureDns, DnsProvider.GoogleCloud]);
 
     [Fact]
     public async Task Finds_the_domain_of_a_subdomain_by_walking_up_and_sends_the_token_as_bearer()

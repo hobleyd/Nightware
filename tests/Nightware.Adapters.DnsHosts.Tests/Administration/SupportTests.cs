@@ -148,6 +148,10 @@ public sealed class DnsHostClientFailureTests
     }
 
     [Fact]
+    public void A_host_may_say_something_is_not_there_whatever_the_status() =>
+        DnsHostClient.Failure(DnsProvider.AzureDns, HttpStatusCode.Forbidden, new DnsHostFault("out of scope", NotFound: true), null).Kind.ShouldBe(ErrorKind.NotFound);
+
+    [Fact]
     public void Outages_missing_things_and_refused_records_are_told_apart()
     {
         DnsHostClient.Failure(DnsProvider.Gandi, HttpStatusCode.TooManyRequests, new DnsHostFault(null), null).Kind.ShouldBe(ErrorKind.BackendUnavailable);

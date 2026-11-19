@@ -48,8 +48,11 @@ public sealed class SetEntityDnsToken(IAdminActor actor, IEntityRegistry entitie
             return parsed.Error;
         }
 
+        // A host may refuse the credential for a domain it may not see (Gandi, Azure answer 403): that domain is
+        // unreached when another is reached, and the refusal is the answer only when none is.
         var reached = new List<(MailDomain, DnsZone)>();
         var unreached = new List<MailDomain>();
+        Error? refused = null;
         foreach (MailDomain domain in entity.Value.Domains)
         {
             Result<DnsZone> zone = await hosting.Value.FindZoneAsync(parsed.Value, domain, cancellationToken).ConfigureAwait(false);
@@ -57,8 +60,9 @@ public sealed class SetEntityDnsToken(IAdminActor actor, IEntityRegistry entitie
             {
                 reached.Add((domain, zone.Value));
             }
-            else if (zone.Error.Kind == ErrorKind.NotFound)
+            else if (zone.Error.Kind == ErrorKind.NotFound || zone.Error is { Kind: ErrorKind.Validation, Target: "dnsToken" })
             {
+                refused ??= zone.Error.Kind == ErrorKind.NotFound ? null : zone.Error;
                 unreached.Add(domain);
             }
             else
@@ -66,6 +70,12 @@ public sealed class SetEntityDnsToken(IAdminActor actor, IEntityRegistry entitie
                 Record("entity.dns-token.set", entityId, provider, false, null);
                 return zone.Error;
             }
+        }
+
+        if (reached.Count == 0 && refused is not null)
+        {
+            Record("entity.dns-token.set", entityId, provider, false, null);
+            return refused;
         }
 
         if (reached.Count == 0)

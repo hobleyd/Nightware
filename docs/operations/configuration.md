@@ -154,6 +154,7 @@ from `deploy/.env`.
 | `Cloudflare:RequestTimeout` / `AttemptTimeout` / `MaxRetryAttempts` | `00:00:30` / `00:00:10` / `2` | Per call; reads are retried, writes never. |
 | `Cloudflare:RecordPageSize` / `MaxRecords` | `500` / `10000` | Zone read in pages; a larger zone is refused rather than planned against in part. |
 | `DnsHosts:DigitalOceanApiBaseUrl` / `GandiApiBaseUrl` / `HetznerApiBaseUrl` / `Route53ApiBaseUrl` | `https://api.digitalocean.com/v2/` / `https://api.gandi.net/v5/livedns/` / `https://api.hetzner.cloud/v1/` / `https://route53.amazonaws.com/2013-04-01/` | The other DNS hosts an entity can be connected to instead of Cloudflare. No credential here either: each entity's own is entered on its DNS hosting page and kept sealed in Keycloak. |
+| `DnsHosts:AzureLoginBaseUrl` / `AzureManagementBaseUrl` / `GoogleTokenUrl` / `GoogleDnsBaseUrl` | `https://login.microsoftonline.com/` / `https://management.azure.com/` / `https://oauth2.googleapis.com/token` / `https://dns.googleapis.com/dns/v1/` | Where Azure service principals and Google service accounts sign in, and their DNS APIs. A pasted Google key's own `token_uri` is ignored: the signed assertion goes only to `GoogleTokenUrl`. |
 | `DnsHosts:RequestTimeout` / `AttemptTimeout` / `MaxRetryAttempts` / `MaxRecords` | `00:00:30` / `00:00:10` / `2` / `10000` | As for Cloudflare, shared by those hosts. |
 
 Publishing to any DNS host needs the console to trust public certificate authorities: set

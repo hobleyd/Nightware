@@ -150,10 +150,9 @@ internal sealed class KeycloakEntityRegistry(IKeycloakAdminClient keycloak, Keyc
     public async Task<Result> SetSealedDnsTokenAsync(string entityId, SealedDnsToken? token, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(entityId);
-        if (token is { Sealed.Length: > MaxAttributeLength })
+        if (token is { Sealed.Length: > SealedChunks.MaxLength })
         {
-            // Keycloak stores an attribute value in 255 characters and answers a longer one with a 500.
-            return Error.Validation("That token is too long to store.", "dnsToken");
+            return Error.Validation("That credential is too long to store.", "dnsToken");
         }
 
         Result<KeycloakOrganization> updated = await keycloak.UpdateOrganizationAsync(
@@ -164,7 +163,8 @@ internal sealed class KeycloakEntityRegistry(IKeycloakAdminClient keycloak, Keyc
                     bool changed = false;
                     foreach (DnsProvider provider in DnsProviders.All)
                     {
-                        changed |= SetAttribute(representation, KeycloakAdminNames.DnsTokenAttribute(provider), provider == token?.Provider ? token.Sealed : null);
+                        // Keycloak stores an attribute value in 255 characters and answers a longer one with a 500.
+                        changed |= SetAttributeValues(representation, KeycloakAdminNames.DnsTokenAttribute(provider), provider == token?.Provider ? SealedChunks.Split(token.Sealed) : null);
                     }
 
                     return changed;
@@ -273,6 +273,31 @@ internal sealed class KeycloakEntityRegistry(IKeycloakAdminClient keycloak, Keyc
         }
 
         attributes[name] = new JsonArray(value);
+        return true;
+    }
+
+    /// <summary>Sets a multi-valued attribute, or removes it when <paramref name="values"/> is null; whether anything changed.</summary>
+    private static bool SetAttributeValues(JsonObject representation, string name, IReadOnlyList<string>? values)
+    {
+        JsonObject? attributes = representation["attributes"] as JsonObject;
+        if (values is null)
+        {
+            return attributes?.Remove(name) == true;
+        }
+
+        string[] current = attributes?[name] is JsonArray existing ? [.. existing.Select(static v => v is JsonValue s && s.TryGetValue(out string? text) ? text : string.Empty)] : [];
+        if (current.SequenceEqual(values, StringComparer.Ordinal))
+        {
+            return false;
+        }
+
+        if (attributes is null)
+        {
+            attributes = [];
+            representation["attributes"] = attributes;
+        }
+
+        attributes[name] = new JsonArray([.. values.Select(static v => (JsonNode)JsonValue.Create(v))]);
         return true;
     }
 

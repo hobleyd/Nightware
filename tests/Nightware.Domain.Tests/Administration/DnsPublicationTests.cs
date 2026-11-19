@@ -201,6 +201,46 @@ public sealed class DnsPublicationTests
     }
 
     [Fact]
+    public void An_azure_principal_is_its_ids_resource_group_and_secret()
+    {
+        const string Tenant = "72F988BF-86F1-41AF-91AB-2D7CD011DB47";
+        const string Client = "00000000-1111-2222-3333-444444444444";
+        const string Subscription = "55555555-6666-7777-8888-999999999999";
+
+        DnsProviderToken.Parse(DnsProvider.AzureDns, $"{Tenant}:{Client}: {Subscription} :rg-dns.prod(1):abc~DEF.123_x-y").Value.Value
+            .ShouldBe($"{Tenant.ToLowerInvariant()}:{Client}:{Subscription}:rg-dns.prod(1):abc~DEF.123_x-y");
+        DnsProviderToken.Parse(DnsProvider.AzureDns, $"contoso.onmicrosoft.com:{Client}:{Subscription}:rg:s3cret:with:colons").IsSuccess.ShouldBeTrue();
+        DnsProviderToken.Parse(DnsProvider.AzureDns, $"{Tenant}:not-a-guid:{Subscription}:rg:secret").Error!.Target.ShouldBe("dnsToken");
+        DnsProviderToken.Parse(DnsProvider.AzureDns, $"{Tenant}:{Client}:{Subscription}:rg").Error!.Message.ShouldContain("resource group");
+        DnsProviderToken.Parse(DnsProvider.AzureDns, $"{Tenant}:{Client}:{Subscription}:rg:two words").IsSuccess.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void A_google_key_keeps_only_what_signing_in_needs()
+    {
+        const string Key = """
+            {"type":"service_account","project_id":"acme-dns","private_key_id":"k1","private_key":"-----BEGIN PRIVATE KEY-----\nMIIE\n-----END PRIVATE KEY-----\n",
+             "client_email":"dns@acme-dns.iam.gserviceaccount.com","client_id":"123","token_uri":"https://evil.example/token","universe_domain":"googleapis.com"}
+            """;
+
+        string kept = DnsProviderToken.Parse(DnsProvider.GoogleCloud, Key).Value.Value;
+
+        using var json = System.Text.Json.JsonDocument.Parse(kept);
+        json.RootElement.EnumerateObject().Select(static p => p.Name).ShouldBe(["project_id", "client_email", "private_key_id", "private_key"]);
+        json.RootElement.GetProperty("private_key").GetString().ShouldStartWith("-----BEGIN PRIVATE KEY-----\n");
+        kept.ShouldNotContain("evil.example");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not json")]
+    [InlineData("""{"type":"authorized_user","project_id":"p","client_email":"a@b","private_key":"-----BEGIN PRIVATE KEY-----"}""")]
+    [InlineData("""{"type":"service_account","client_email":"a@b","private_key":"-----BEGIN PRIVATE KEY-----"}""")]
+    [InlineData("""{"type":"service_account","project_id":"p","client_email":"a@b","private_key":"-----BEGIN RSA PRIVATE KEY-----"}""")]
+    public void Anything_but_a_service_account_key_is_refused(string value) =>
+        DnsProviderToken.Parse(DnsProvider.GoogleCloud, value).Error!.Target.ShouldBe("dnsToken");
+
+    [Fact]
     public void A_refused_token_names_its_host() =>
         DnsProviderToken.Parse(DnsProvider.DigitalOcean, "two words").Error!.Message.ShouldContain("DigitalOcean API token");
 
@@ -209,7 +249,7 @@ public sealed class DnsPublicationTests
     {
         DnsProviders.All[0].ShouldBe(DnsProvider.Cloudflare);
         DnsProvider.Cloudflare.Key().ShouldBe("cloudflare");
-        DnsProviders.All.Select(static p => p.Key()).ShouldBe(["cloudflare", "digitalocean", "gandi", "hetzner", "route53"]);
+        DnsProviders.All.Select(static p => p.Key()).ShouldBe(["cloudflare", "digitalocean", "gandi", "hetzner", "route53", "azure", "google"]);
         DnsProvider.Route53.Name().ShouldBe("Amazon Route 53");
         DnsProviders.TryParse(" Hetzner ", out DnsProvider hetzner).ShouldBeTrue();
         hetzner.ShouldBe(DnsProvider.Hetzner);

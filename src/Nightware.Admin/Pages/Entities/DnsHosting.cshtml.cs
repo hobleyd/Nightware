@@ -22,16 +22,27 @@ public sealed class DnsHostingModel(IAdminActor actor, GetEntity getEntity, SetE
     /// <summary>The hosts this console can publish to.</summary>
     public IReadOnlyList<DnsProvider> Providers => hosts.Available;
 
-    /// <summary>The host selected in the form: the entity's own, otherwise Cloudflare.</summary>
-    public DnsProvider Selected => Entity.Entity.DnsHost ?? DnsProvider.Cloudflare;
+    /// <summary>The hosts whose credential is one token or key, offered in the main form's select.</summary>
+    public IReadOnlyList<DnsProvider> TokenProviders => [.. Providers.Where(static p => !HasOwnForm(p))];
+
+    /// <summary>The host selected in the main form: the entity's own when it is one of those, otherwise Cloudflare.</summary>
+    public DnsProvider Selected => Entity.Entity.DnsHost is { } host && !HasOwnForm(host) ? host : DnsProvider.Cloudflare;
 
     public Task<IActionResult> OnGetAsync(CancellationToken cancellationToken) => RenderAsync(cancellationToken);
 
     /// <summary>
     /// The credential is a handler argument, never a bound property, so a failed save cannot render it back. A form
-    /// without <paramref name="dnsProvider"/> keeps the entity's host.
+    /// without <paramref name="dnsProvider"/> keeps the entity's host. For Azure, <paramref name="dnsToken"/> is the
+    /// client secret and the IDs come in fields of their own; for Google it is the JSON key.
     /// </summary>
-    public async Task<IActionResult> OnPostDnsTokenAsync(string? dnsProvider, string? dnsToken, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostDnsTokenAsync(
+        string? dnsProvider,
+        string? dnsToken,
+        string? azureTenant,
+        string? azureClient,
+        string? azureSubscription,
+        string? azureResourceGroup,
+        CancellationToken cancellationToken)
     {
         if (!TryGet(await getEntity.ExecuteAsync(Id, cancellationToken), out EntityDetail entity, out IActionResult? failure))
         {
@@ -44,8 +55,19 @@ public sealed class DnsHostingModel(IAdminActor actor, GetEntity getEntity, SetE
             return await UnconfirmedAsync("Choose a DNS host from the list.", cancellationToken);
         }
 
+        if (provider == DnsProvider.AzureDns && !string.IsNullOrWhiteSpace(dnsToken))
+        {
+            dnsToken = string.Join(':', azureTenant?.Trim(), azureClient?.Trim(), azureSubscription?.Trim(), azureResourceGroup?.Trim(), dnsToken.Trim());
+        }
+
         return string.IsNullOrWhiteSpace(dnsToken)
-            ? await UnconfirmedAsync(provider == DnsProvider.Route53 ? "Enter the AWS access key as KEYID:SECRET." : $"Paste the {provider.Name()} API token.", cancellationToken)
+            ? await UnconfirmedAsync(provider switch
+            {
+                DnsProvider.Route53 => "Enter the AWS access key as KEYID:SECRET.",
+                DnsProvider.AzureDns => "Enter the service principal's client secret.",
+                DnsProvider.GoogleCloud => "Paste the service account's JSON key.",
+                _ => $"Paste the {provider.Name()} API token.",
+            }, cancellationToken)
             : await AfterAsync(await setDnsToken.ExecuteAsync(Id, provider, dnsToken, cancellationToken), reach => DnsTokenNotice(provider, reach), cancellationToken);
     }
 
@@ -80,8 +102,13 @@ public sealed class DnsHostingModel(IAdminActor actor, GetEntity getEntity, SetE
         DnsProvider.Gandi => "Organization → Personal Access Tokens: a token that may manage the domains' technical configuration (LiveDNS).",
         DnsProvider.Hetzner => "Hetzner Console → the project holding the zones → Security → API Tokens: a Read & Write token.",
         DnsProvider.Route53 => "IAM: an access key for a user allowed route53:ListHostedZonesByName, ListResourceRecordSets and ChangeResourceRecordSets; enter it as KEYID:SECRET.",
+        DnsProvider.AzureDns => "Microsoft Entra ID → App registrations: an application with a client secret, given the DNS Zone Contributor role on the domains' zones. Azure DNS here hosts no TLSA records.",
+        DnsProvider.GoogleCloud => "IAM → Service accounts: an account with the DNS Administrator role in the zones' project, and a JSON key for it (Keys → Add key).",
         _ => string.Empty,
     };
+
+    /// <summary>Azure's five values and Google's key are entered in a form of their own.</summary>
+    public static bool HasOwnForm(DnsProvider provider) => provider is DnsProvider.AzureDns or DnsProvider.GoogleCloud;
 
     private async Task<IActionResult> UnconfirmedAsync(string message, CancellationToken cancellationToken)
     {

@@ -25,7 +25,7 @@
         <form method="post" asp-page-handler="DnsToken">
             <label>DNS host
                 <select name="dnsProvider">
-                    @foreach (var provider in Model.Providers)
+                    @foreach (var provider in Model.TokenProviders)
                     {
                         <option value="@Nightware.Domain.Administration.DnsProviders.Key(provider)" selected="@(provider == Model.Selected)">@Nightware.Domain.Administration.DnsProviders.Name(provider)</option>
                     }
@@ -37,7 +37,7 @@
             <div id="dns-token-hint" class="hint">
                 <p>The console checks the credential with the DNS host, stores it encrypted, and never shows it again.@(host is not null ? $" Choosing another host replaces the {host} connection; records already published at {host} stay there." : "")</p>
                 <ul>
-                    @foreach (var provider in Model.Providers)
+                    @foreach (var provider in Model.TokenProviders)
                     {
                         <li><strong>@Nightware.Domain.Administration.DnsProviders.Name(provider)</strong>: @Nightware.Admin.Pages.Entities.DnsHostingModel.Hint(provider)</li>
                     }
@@ -45,6 +45,39 @@
             </div>
             <button type="submit" class="secondary">@(host is not null ? "Replace" : "Connect")</button>
         </form>
+        @* Hosts whose credential is more than one token have a form of their own, open when the entity is on it. *@
+        @if (Model.Providers.Contains(Nightware.Domain.Administration.DnsProvider.AzureDns))
+        {
+            var azure = entity.DnsHost == Nightware.Domain.Administration.DnsProvider.AzureDns;
+            <details class="panel more" open="@(azure ? "open" : null)">
+                <summary>@(azure ? "Replace the Azure DNS service principal" : "Connect Azure DNS")</summary>
+                <form method="post" asp-page-handler="DnsToken">
+                    <input type="hidden" name="dnsProvider" value="azure">
+                    <label>Directory (tenant) ID <input name="azureTenant" autocomplete="off" spellcheck="false" required></label>
+                    <label>Application (client) ID <input name="azureClient" autocomplete="off" spellcheck="false" required></label>
+                    <label>Subscription ID <input name="azureSubscription" autocomplete="off" spellcheck="false" required></label>
+                    <label>Resource group holding the zones <input name="azureResourceGroup" autocomplete="off" spellcheck="false" required></label>
+                    <label>Client secret <input type="password" name="dnsToken" autocomplete="off" spellcheck="false" required aria-describedby="azure-hint"></label>
+                    <p id="azure-hint" class="hint">@Nightware.Admin.Pages.Entities.DnsHostingModel.Hint(Nightware.Domain.Administration.DnsProvider.AzureDns)@(host is not null && !azure ? $" Connecting Azure DNS replaces the {host} connection." : "")</p>
+                    <button type="submit" class="secondary">@(azure ? "Replace" : "Connect Azure DNS")</button>
+                </form>
+            </details>
+        }
+        @if (Model.Providers.Contains(Nightware.Domain.Administration.DnsProvider.GoogleCloud))
+        {
+            var google = entity.DnsHost == Nightware.Domain.Administration.DnsProvider.GoogleCloud;
+            <details class="panel more" open="@(google ? "open" : null)">
+                <summary>@(google ? "Replace the Google Cloud DNS key" : "Connect Google Cloud DNS")</summary>
+                <form method="post" asp-page-handler="DnsToken">
+                    <input type="hidden" name="dnsProvider" value="google">
+                    <label>Service account JSON key
+                        <textarea name="dnsToken" rows="6" autocomplete="off" spellcheck="false" required aria-describedby="google-hint"></textarea>
+                    </label>
+                    <p id="google-hint" class="hint">@Nightware.Admin.Pages.Entities.DnsHostingModel.Hint(Nightware.Domain.Administration.DnsProvider.GoogleCloud) Only the project, the account's address and its private key are kept, encrypted.@(host is not null && !google ? $" Connecting Google Cloud DNS replaces the {host} connection." : "")</p>
+                    <button type="submit" class="secondary">@(google ? "Replace" : "Connect Google Cloud DNS")</button>
+                </form>
+            </details>
+        }
         @if (host is not null)
         {
             <form method="post" asp-page-handler="RemoveDnsToken" class="remove">

@@ -112,6 +112,47 @@ public sealed partial class DnsHostingPageTests : IDisposable
     }
 
     [Fact]
+    public async Task Azure_and_google_have_forms_of_their_own_and_the_connected_ones_is_open()
+    {
+        string html = await GetAsync(HostingUrl);
+
+        html.ShouldNotContain("<option value=\"azure\"");
+        html.ShouldNotContain("<option value=\"google\"");
+        html.ShouldContain("<summary>Connect Azure DNS</summary>");
+        html.ShouldContain("name=\"azureResourceGroup\"");
+        html.ShouldContain("<textarea name=\"dnsToken\"");
+
+        _host.Entities.GetAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(ConsoleHost.AcmeEntity with { DnsHost = DnsProvider.GoogleCloud });
+        string google = await GetAsync(HostingUrl);
+        google.ShouldContain("Connected to Google Cloud DNS.");
+        Regex.IsMatch(google, @"<details class=""panel more"" open=""open"">\s*<summary>Replace the Google Cloud DNS key</summary>").ShouldBeTrue();
+        google.ShouldContain("<option value=\"cloudflare\" selected=\"selected\">");
+    }
+
+    [Fact]
+    public async Task An_azure_principal_is_put_together_from_its_fields_and_sealed_for_azure()
+    {
+        _host.DnsHosting.Provider.Returns(DnsProvider.AzureDns);
+        const string Principal = "72f988bf-86f1-41af-91ab-2d7cd011db47:00000000-1111-2222-3333-444444444444:55555555-6666-7777-8888-999999999999:rg-dns:s3cret~value";
+
+        using HttpResponseMessage response = await PostAsync(HostingUrl, "DnsToken", new()
+        {
+            ["dnsProvider"] = "azure",
+            ["azureTenant"] = " 72F988BF-86F1-41AF-91AB-2D7CD011DB47 ",
+            ["azureClient"] = "00000000-1111-2222-3333-444444444444",
+            ["azureSubscription"] = "55555555-6666-7777-8888-999999999999",
+            ["azureResourceGroup"] = "rg-dns",
+            ["dnsToken"] = "s3cret~value",
+        });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        _storedHost.ShouldBe(DnsProvider.AzureDns);
+        _host.Services.GetRequiredService<ISecretSealer>().TryUnseal("dns-token:azure:" + ConsoleHost.Acme, _stored!, out string opened).ShouldBeTrue();
+        opened.ShouldBe(Principal);
+        _host.Logs.Lines.ShouldAllBe(l => !l.Contains("s3cret", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task An_unknown_host_is_refused_without_a_call()
     {
         using HttpResponseMessage response = await PostAsync(HostingUrl, "DnsToken", new() { ["dnsProvider"] = "godaddy", ["dnsToken"] = Token });

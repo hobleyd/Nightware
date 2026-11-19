@@ -297,7 +297,7 @@ The "What will happen" step: before any write, a table lists each system's actio
 The DNS page's "Publish to Cloudflare" panel is the same idea for a zone. It lists only the records that would change (Add, Correct, Remove duplicate, Not published with its reason), with the value it will write beside the one Cloudflare holds now, and counts the records already right in one sentence. Records that stay but still matter (another provider's MX) are amber callouts below. The button names how many changes it makes, and publishes only the plan on screen. If the zone moved in the meantime, the new plan is shown instead.
 
 ### Write-only secrets
-A credential the console keeps (an entity's DNS host token or key) is entered in a password field with `autocomplete="off"` and never rendered back, not even after a failed save. The panel states only whether one is set ("Connected to Cloudflare"), offers the hosts in a plain select with the connected one selected (so replacing a token never changes the host unasked) and how to create a credential at each, and puts the removal in its own confirmed block.
+A credential the console keeps (an entity's DNS host token or key) is entered in a password field with `autocomplete="off"` and never rendered back, not even after a failed save. The panel states only whether one is set ("Connected to Cloudflare"), offers the one-token hosts in a plain select with the connected one selected (so replacing a token never changes the host unasked) and how to create a credential at each, gives Azure DNS (five fields) and Google Cloud DNS (a JSON key) folded forms of their own, the connected one's open, and puts the removal in its own confirmed block.
 
 ## Do's and Don'ts
 

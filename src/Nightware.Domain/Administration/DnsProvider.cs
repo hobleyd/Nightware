@@ -11,6 +11,8 @@ public enum DnsProvider
     Gandi,
     Hetzner,
     Route53,
+    AzureDns,
+    GoogleCloud,
 }
 
 public static class DnsProviders
@@ -25,6 +27,8 @@ public static class DnsProviders
         DnsProvider.Gandi => "Gandi",
         DnsProvider.Hetzner => "Hetzner",
         DnsProvider.Route53 => "Amazon Route 53",
+        DnsProvider.AzureDns => "Azure DNS",
+        DnsProvider.GoogleCloud => "Google Cloud DNS",
         _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, "Unknown DNS provider."),
     };
 
@@ -39,6 +43,8 @@ public static class DnsProviders
         DnsProvider.Gandi => "gandi",
         DnsProvider.Hetzner => "hetzner",
         DnsProvider.Route53 => "route53",
+        DnsProvider.AzureDns => "azure",
+        DnsProvider.GoogleCloud => "google",
         _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, "Unknown DNS provider."),
     };
 

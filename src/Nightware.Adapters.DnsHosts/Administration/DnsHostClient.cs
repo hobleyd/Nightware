@@ -17,7 +17,8 @@ internal sealed record DnsHostResponse(HttpStatusCode Status, string Body, IRead
 /// <summary>What a host said when it refused a call, read from its own error format.</summary>
 /// <param name="TokenRefused">The credential is wrong, expired or lacks a permission (besides any 401/403).</param>
 /// <param name="Throttled">The host is limiting requests (besides any 429).</param>
-internal sealed record DnsHostFault(string? Message, bool TokenRefused = false, bool Throttled = false);
+/// <param name="NotFound">What was asked for is not there, as far as the credential may know (whatever the status).</param>
+internal sealed record DnsHostFault(string? Message, bool TokenRefused = false, bool Throttled = false, bool NotFound = false);
 
 /// <summary>Sends one call to a DNS host's API; the caller has set the entity's credential on the request.</summary>
 internal interface IDnsHostClient
@@ -82,6 +83,11 @@ internal sealed partial class DnsHostClient(HttpClient http, ILogger<DnsHostClie
     internal static Error Failure(DnsProvider provider, HttpStatusCode status, DnsHostFault fault, TimeSpan? retryAfter)
     {
         string said = string.IsNullOrWhiteSpace(fault.Message) ? $"HTTP {(int)status}" : fault.Message.Trim().TrimEnd('.');
+        if (fault.NotFound)
+        {
+            return Error.NotFound($"{provider.Name()}: {said}.");
+        }
+
         if (fault.TokenRefused || status is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
             return Error.Validation($"{provider.Name()} refused the credential ({said}). Check that it is current and may edit the domain's zone.", "dnsToken");

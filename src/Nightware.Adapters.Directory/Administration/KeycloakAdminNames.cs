@@ -48,8 +48,11 @@ internal static class KeycloakAdminNames
     /// </summary>
     public static SealedDnsToken? DnsToken(KeycloakOrganization organization) =>
         DnsProviders.All
-            .Select(provider => organization.Attribute(DnsTokenAttribute(provider)) is { Length: > 0 } sealedToken ? new SealedDnsToken(provider, sealedToken) : null)
+            .Select(provider => SealedChunks.Join(Values(organization, DnsTokenAttribute(provider))) is { Length: > 0 } sealedToken ? new SealedDnsToken(provider, sealedToken) : null)
             .FirstOrDefault(static t => t is not null);
+
+    private static IReadOnlyList<string> Values(KeycloakOrganization organization, string name) =>
+        organization.Attributes is not null && organization.Attributes.TryGetValue(name, out IReadOnlyList<string>? values) ? values : [];
 
     /// <summary>Keycloak's credential type for a passkey or security key used as a second factor.</summary>
     public const string PasskeyCredentialType = "webauthn";

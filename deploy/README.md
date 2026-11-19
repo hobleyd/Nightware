@@ -341,8 +341,9 @@ output: anything they cannot do is printed as a WARNING.
   `p=none` while other services still send as the domain.
 - **DNS hosting.** A global administrator can connect an entity's DNS host on
   its DNS hosting page: Cloudflare (an API token from the "Edit zone DNS"
-  template), DigitalOcean, Gandi, Hetzner or Amazon Route 53 (an access key as
-  `KEYID:SECRET`), kept sealed. Each DNS page then lists what publishing would
+  template), DigitalOcean, Gandi, Hetzner, Amazon Route 53 (an access key as
+  `KEYID:SECRET`), Azure DNS (a service principal and the zones' resource group)
+  or Google Cloud DNS (a service account's JSON key), kept sealed. Each DNS page then lists what publishing would
   add or correct in the zone and publishes it. Needs
   `NIGHTWARE_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` so the console
   trusts the host's certificate.

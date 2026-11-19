@@ -18,8 +18,9 @@ namespace Nightware.Adapters.DnsHosts.Tests.Administration;
 
 /// <summary>
 /// <c>AddDnsHostsAdministration</c> pointed at one WireMock server standing in for every host (DigitalOcean at
-/// <c>/do/</c>, Gandi at <c>/gandi/</c>, Hetzner at <c>/hetzner/</c>, Route 53 at <c>/r53/</c>), with every log line
-/// captured and the clock fixed.
+/// <c>/do/</c>, Gandi at <c>/gandi/</c>, Hetzner at <c>/hetzner/</c>, Route 53 at <c>/r53/</c>, Entra ID at
+/// <c>/entra/</c>, Resource Manager at <c>/</c>, Google at <c>/google/token</c> and <c>/gdns/</c>), with every log
+/// line captured and the clock fixed.
 /// </summary>
 internal sealed class DnsHostsTestHost : IDisposable
 {
@@ -34,6 +35,10 @@ internal sealed class DnsHostsTestHost : IDisposable
             ["DnsHosts:GandiApiBaseUrl"] = $"{Server.Url}/gandi/",
             ["DnsHosts:HetznerApiBaseUrl"] = $"{Server.Url}/hetzner/",
             ["DnsHosts:Route53ApiBaseUrl"] = $"{Server.Url}/r53/",
+            ["DnsHosts:AzureLoginBaseUrl"] = $"{Server.Url}/entra/",
+            ["DnsHosts:AzureManagementBaseUrl"] = $"{Server.Url}/",
+            ["DnsHosts:GoogleTokenUrl"] = $"{Server.Url}/google/token",
+            ["DnsHosts:GoogleDnsBaseUrl"] = $"{Server.Url}/gdns/",
             ["DnsHosts:MaxRetryAttempts"] = "0",
             ["DnsHosts:RequestTimeout"] = "00:00:05",
             ["DnsHosts:AttemptTimeout"] = "00:00:05",

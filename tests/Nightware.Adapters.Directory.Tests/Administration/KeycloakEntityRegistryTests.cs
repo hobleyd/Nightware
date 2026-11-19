@@ -341,11 +341,37 @@ public sealed class KeycloakEntityRegistryTests : IDisposable
     }
 
     [Fact]
-    public async Task A_sealed_token_longer_than_an_attribute_value_is_refused_without_a_write()
+    public async Task A_sealed_credential_longer_than_an_attribute_value_is_stored_in_chunks_and_read_back_whole()
+    {
+        string sealedText = string.Concat(Enumerable.Range(0, 700).Select(static i => (char)('a' + (i % 26))));
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, Fixture.Load("organization-nightware.json"));
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 204, method: "PUT");
+        await using AdapterHost host = Host();
+
+        (await host.Scoped<IEntityRegistry>().SetSealedDnsTokenAsync(OrgId, new SealedDnsToken(DnsProvider.GoogleCloud, sealedText), Ct)).IsSuccess.ShouldBeTrue();
+
+        JsonArray values = JsonNode.Parse(_keycloak.Admin("PUT", $"/organizations/{OrgId}").Single().Body!)!["attributes"]!["nightware_dns_token:google"]!.AsArray();
+        string[] chunks = [.. values.Select(static v => v!.GetValue<string>())];
+        chunks.Length.ShouldBe(3);
+        chunks.ShouldAllBe(static c => c.Length <= 255);
+        chunks[0].ShouldStartWith("00:");
+        var organization = new JsonObject
+        {
+            ["id"] = OrgId,
+            ["name"] = "Nightware",
+            ["alias"] = "nightware",
+            ["attributes"] = new JsonObject { ["nightware_dns_token:google"] = new JsonArray([.. chunks.Reverse().Select(static c => (JsonNode)JsonValue.Create(c))]) },
+        };
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, organization.ToJsonString(), priority: 1);
+        (await host.Scoped<IEntityRegistry>().GetSealedDnsTokenAsync(OrgId, Ct)).Value.ShouldBe(new SealedDnsToken(DnsProvider.GoogleCloud, sealedText));
+    }
+
+    [Fact]
+    public async Task A_sealed_credential_too_long_for_its_chunks_is_refused_without_a_write()
     {
         await using AdapterHost host = Host();
 
-        Result result = await host.Scoped<IEntityRegistry>().SetSealedDnsTokenAsync(OrgId, new SealedDnsToken(DnsProvider.Cloudflare, new string('x', 256)), Ct);
+        Result result = await host.Scoped<IEntityRegistry>().SetSealedDnsTokenAsync(OrgId, new SealedDnsToken(DnsProvider.Cloudflare, new string('x', 99 * 252 + 1)), Ct);
 
         result.Error!.Target.ShouldBe("dnsToken");
         _keycloak.Admin("PUT", $"/organizations/{OrgId}").ShouldBeEmpty();

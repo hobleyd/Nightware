@@ -127,6 +127,19 @@ public sealed class DnsPublishingTests
     }
 
     [Fact]
+    public async Task A_domain_the_host_refuses_to_show_is_unreached_while_another_is_reached_and_the_refusal_stands_alone()
+    {
+        Error refusal = Error.Validation("Gandi refused the credential (Access was denied).", "dnsToken");
+        _bed.Entities.GetAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(AdminTestBed.AcmeEntity with { Domains = [AdminTestBed.Domain("acme.example"), AdminTestBed.Domain("acme.org")] });
+        _hosting.FindZoneAsync(Arg.Any<DnsProviderToken>(), AdminTestBed.Domain("acme.org"), Arg.Any<CancellationToken>()).Returns(refusal);
+
+        (await SetToken().ExecuteAsync(AdminTestBed.Acme, DnsProvider.Cloudflare, Token, Ct)).Value.Unreached.ShouldBe([AdminTestBed.Domain("acme.org")]);
+
+        _hosting.FindZoneAsync(Arg.Any<DnsProviderToken>(), AdminTestBed.Domain("acme.example"), Arg.Any<CancellationToken>()).Returns(refusal);
+        (await SetToken().ExecuteAsync(AdminTestBed.Acme, DnsProvider.Cloudflare, Token, Ct)).Error.ShouldBe(refusal);
+    }
+
+    [Fact]
     public async Task A_blank_token_removes_the_stored_one_and_a_malformed_one_is_refused()
     {
         (await SetToken().ExecuteAsync(AdminTestBed.Acme, DnsProvider.Cloudflare, " ", Ct)).IsSuccess.ShouldBeTrue();

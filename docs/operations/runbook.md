@@ -221,13 +221,19 @@ full-access credential; see deploy/README.md "Admin console".
 ## Admin console: publishing to a DNS host fails
 
 The messages below are Cloudflare's; the other hosts (DigitalOcean, Gandi,
-Hetzner, Amazon Route 53) give the same kinds, named for themselves:
+Hetzner, Amazon Route 53, Azure DNS, Google Cloud DNS) give the same kinds, named for themselves:
 *"<host> refused the credential"* (revoked, expired, or missing a permission:
 for Route 53 also a wrong secret or a clock more than five minutes off, which
 AWS reports as `SignatureDoesNotMatch`), *"reaches no zone"*, and a row the
 host refused. Hetzner applies changes asynchronously, so a DNS page reloaded
 straight after publishing may still list them for a few seconds. DigitalOcean
-hosts no TLSA records; publish those elsewhere.
+and Azure DNS host no TLSA records; publish those elsewhere. For Azure, *"refused
+the credential (AADSTS7000215 …)"* is a wrong or expired client secret,
+`AADSTS700016` a wrong application ID, `AADSTS90002` a wrong tenant, and
+`AuthorizationFailed` a missing DNS Zone Contributor role; *"reaches no zone"*
+usually means another resource group. For Google, *"Invalid JWT Signature"* is
+a deleted or disabled key, and a 403 that the Cloud DNS API has not been used
+in the project means enabling it there.
 
 - *"Cloudflare refused the token"*: it was revoked, expired, or lacks
   Zone / DNS / Edit on the zone. Create a new one and replace it on the entity's

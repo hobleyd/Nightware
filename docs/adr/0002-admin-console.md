@@ -586,10 +586,24 @@ Where the build refined the decisions above:
   from its name, type and a hash of the value, so a plan's fingerprint is stable,
   and change one value per write (read the set, change it, write it back; Hetzner
   with its add/set/remove actions). Route 53 takes `KEYID:SECRET` (61 characters,
-  within the 79 the attribute allows); Azure DNS and Google Cloud DNS need
-  credentials (a service principal, a JSON key) that do not fit one attribute and
-  are not offered. Their formats are **unverified** against the live APIs
-  (WireMock only; Route 53's signing matches AWS's published test vectors).
+  within the 79 the attribute allows). Their formats are **unverified** against
+  the live APIs (WireMock only; Route 53's signing matches AWS's published test
+  vectors).
+- **Azure DNS and Google Cloud DNS (amended).** Their credentials are longer than
+  one attribute value: an Azure service principal
+  (`TENANT:CLIENT:SUBSCRIPTION:RESOURCEGROUP:SECRET`) and a Google service
+  account's key (kept as JSON with the project, address, key ID and private key
+  only, up to 4096 characters). A sealed credential longer than 255 characters is
+  stored as the attribute's numbered values `00:…`, `01:…` (sealed text is
+  base64url, so a colon marks a chunk), and one that fits is one plain value as
+  before, so existing entities read unchanged. Each signs in for a short-lived
+  access token (client credentials at Entra ID; an RS256 JWT exchanged at
+  Google's token endpoint, never the key's own `token_uri`), cached in memory per
+  credential hash. Azure zones are read by name in the given resource group, so
+  DNS Zone Contributor on the zone is enough; writes are guarded by the set's
+  etag; api-version 2018-05-01 has no TLSA. Google writes create, patch or
+  delete one record set, so no deletion must match exactly. Both are
+  **unverified** against the live APIs (WireMock only).
 - **Verified end to end** on an isolated stack (Keycloak 26.8.2, Stalwart 1.1.0,
   Nextcloud 35): MFA sign-in, entity and domain creation (DNS records shown),
   linking existing users, creating a user who then signs in to NightMail and

@@ -14,9 +14,9 @@ namespace Nightware.Adapters.DnsHosts.Administration;
 public static class DnsHostsAdministrationServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers an <see cref="IDnsHosting"/> for each DNS host besides Cloudflare: DigitalOcean, Gandi, Hetzner and
-    /// Amazon Route 53. Configuration (<c>DnsHosts</c>) is optional and carries no credential: every call uses the
-    /// entity's own.
+    /// Registers an <see cref="IDnsHosting"/> for each DNS host besides Cloudflare: DigitalOcean, Gandi, Hetzner,
+    /// Amazon Route 53, Azure DNS and Google Cloud DNS. Configuration (<c>DnsHosts</c>) is optional and carries no
+    /// credential: every call uses the entity's own.
     /// </summary>
     public static IServiceCollection AddDnsHostsAdministration(this IServiceCollection services, IConfiguration configuration)
     {
@@ -27,6 +27,7 @@ public static class DnsHostsAdministrationServiceCollectionExtensions
             .ValidateOnStart();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DnsHostsOptions>, DnsHostsOptionsValidator>());
         services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<AccessTokenCache>();
 
         services.AddHttpClient<IDnsHostClient, DnsHostClient>(static http => http.Timeout = Timeout.InfiniteTimeSpan)
             // Pooled handlers are shared: no cookie jar, and no redirects (which would carry the credential elsewhere).
@@ -55,6 +56,8 @@ public static class DnsHostsAdministrationServiceCollectionExtensions
         services.TryAddEnumerable(ServiceDescriptor.Scoped<IDnsHosting, GandiDnsHosting>());
         services.TryAddEnumerable(ServiceDescriptor.Scoped<IDnsHosting, HetznerDnsHosting>());
         services.TryAddEnumerable(ServiceDescriptor.Scoped<IDnsHosting, Route53DnsHosting>());
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<IDnsHosting, AzureDnsHosting>());
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<IDnsHosting, GoogleCloudDnsHosting>());
         return services;
     }
 

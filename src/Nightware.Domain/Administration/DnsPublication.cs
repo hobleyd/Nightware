@@ -7,18 +7,22 @@ using Nightware.Domain.Kernel;
 namespace Nightware.Domain.Administration;
 
 /// <summary>
-/// The credential for an entity's DNS host: an API token, or for <see cref="DnsProvider.Route53"/> an AWS access
-/// key as <c>KEYID:SECRET</c>. Held only for the length of a request: the console stores it sealed and never shows
-/// it back. <see cref="ToString"/> redacts.
+/// The credential for an entity's DNS host: an API token; for <see cref="DnsProvider.Route53"/> an AWS access key as
+/// <c>KEYID:SECRET</c>; for <see cref="DnsProvider.AzureDns"/> a service principal as
+/// <c>TENANT:CLIENT:SUBSCRIPTION:RESOURCEGROUP:SECRET</c>; for <see cref="DnsProvider.GoogleCloud"/> a service account's key, kept
+/// as JSON with only <c>project_id</c>, <c>client_email</c>, <c>private_key_id</c> and <c>private_key</c>. Held only
+/// for the length of a request: the console stores it sealed and never shows it back. <see cref="ToString"/> redacts.
 /// </summary>
 public sealed record DnsProviderToken
 {
     /// <summary>
-    /// Longest credential accepted. Cloudflare's tokens are 40 characters, DigitalOcean's 71, an AWS key pair 61. The
-    /// bound keeps the sealed form within the 255 characters of one Keycloak attribute value: Data Protection adds 84
-    /// bytes to the text padded to whole 16-byte blocks, so 79 characters seal to 180 bytes, 240 in base64url.
+    /// Longest single-word token or AWS key accepted. Cloudflare's tokens are 40 characters, DigitalOcean's 71, an AWS
+    /// key pair 61: this bound keeps their sealed form in one 255-character Keycloak attribute value, as it always was.
     /// </summary>
     public const int MaxLength = 79;
+
+    /// <summary>Longest Azure service principal or Google key accepted; stored sealed across several attribute values.</summary>
+    public const int MaxCredentialLength = 4096;
 
     private DnsProviderToken(string value) => Value = value;
 
@@ -27,9 +31,14 @@ public sealed record DnsProviderToken
     public static Result<DnsProviderToken> Parse(DnsProvider provider, string? value)
     {
         string text = value?.Trim() ?? string.Empty;
-        if (provider == DnsProvider.Route53)
+        switch (provider)
         {
-            return ParseAwsKey(text);
+            case DnsProvider.Route53:
+                return ParseAwsKey(text);
+            case DnsProvider.AzureDns:
+                return ParseAzurePrincipal(text);
+            case DnsProvider.GoogleCloud:
+                return ParseGoogleKey(text);
         }
 
         if (text.Length == 0)
@@ -61,6 +70,74 @@ public sealed record DnsProviderToken
         return valid
             ? new DnsProviderToken(text)
             : Error.Validation("That is not an AWS access key: enter it as KEYID:SECRET, the access key ID (AKIA…), a colon, then the secret access key.", "dnsToken");
+    }
+
+    /// <summary>
+    /// A directory (tenant) ID or name, an application (client) ID, a subscription ID, the resource group holding the
+    /// zones, and a client secret. Knowing the group, the console reads a zone directly, so the principal needs no
+    /// more than DNS Zone Contributor on the zone itself.
+    /// </summary>
+    private static Result<DnsProviderToken> ParseAzurePrincipal(string text)
+    {
+        string[] parts = [.. text.Split(':', 5).Select(static p => p.Trim())];
+        if (parts.Length != 5 || parts.Any(static p => p.Length == 0))
+        {
+            return Error.Validation("Enter the directory (tenant) ID, application (client) ID, subscription ID, resource group and client secret.", "dnsToken");
+        }
+
+        (string tenant, string client, string subscription, string group, string secret) = (parts[0], parts[1], parts[2], parts[3], parts[4]);
+        bool valid = text.Length <= MaxCredentialLength
+            && (Guid.TryParse(tenant, out _) || tenant.All(static c => char.IsAsciiLetterOrDigit(c) || c is '.' or '-'))
+            && Guid.TryParse(client, out _)
+            && Guid.TryParse(subscription, out _)
+            && group.Length <= 90 && group.All(static c => char.IsLetterOrDigit(c) || c is '-' or '_' or '.' or '(' or ')')
+            && secret.All(static c => c is > ' ' and < (char)127);
+        return valid
+            ? new DnsProviderToken($"{tenant.ToLowerInvariant()}:{client.ToLowerInvariant()}:{subscription.ToLowerInvariant()}:{group}:{secret}")
+            : Error.Validation("That is not an Azure service principal: the client and subscription IDs are GUIDs, the resource group a name, and the secret one word.", "dnsToken");
+    }
+
+    /// <summary>A service account's JSON key, as Google Cloud downloads it; only what signing in needs is kept.</summary>
+    private static Result<DnsProviderToken> ParseGoogleKey(string text)
+    {
+        const string Refused = "Paste the service account's JSON key (IAM → Service accounts → Keys → Add key → JSON).";
+        if (text.Length == 0 || text.Length > 3 * MaxCredentialLength)
+        {
+            return Error.Validation(Refused, "dnsToken");
+        }
+
+        try
+        {
+            using var key = System.Text.Json.JsonDocument.Parse(text);
+            System.Text.Json.JsonElement root = key.RootElement;
+            string? Field(string name) =>
+                root.ValueKind == System.Text.Json.JsonValueKind.Object && root.TryGetProperty(name, out System.Text.Json.JsonElement v) && v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() : null;
+
+            string? type = Field("type");
+            string? project = Field("project_id");
+            string? email = Field("client_email");
+            string? privateKey = Field("private_key");
+            if ((type is not null && type != "service_account")
+                || string.IsNullOrWhiteSpace(project)
+                || email is null || !email.Contains('@', StringComparison.Ordinal)
+                || privateKey is null || !privateKey.Contains("-----BEGIN PRIVATE KEY-----", StringComparison.Ordinal))
+            {
+                return Error.Validation("That is not a Google Cloud service account key: it needs project_id, client_email and private_key.", "dnsToken");
+            }
+
+            string kept = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string?>
+            {
+                ["project_id"] = project,
+                ["client_email"] = email,
+                ["private_key_id"] = Field("private_key_id"),
+                ["private_key"] = privateKey,
+            });
+            return kept.Length <= MaxCredentialLength ? new DnsProviderToken(kept) : Error.Validation("That key is too long to store.", "dnsToken");
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return Error.Validation(Refused, "dnsToken");
+        }
     }
 
     public override string ToString() => "DnsProviderToken { *** }";
