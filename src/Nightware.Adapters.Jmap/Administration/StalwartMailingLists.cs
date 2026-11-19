@@ -157,25 +157,41 @@ internal sealed partial class StalwartMailingLists(IStalwartManagementClient cli
             return scripts.Error;
         }
 
-        StalwartSieveScript? script = scripts.Value.List.FirstOrDefault(static s => string.Equals(s.Name, ListSenderScript.Name, StringComparison.Ordinal));
-        string contents = ListSenderScript.With(script?.Contents, list, rule);
-        if (script is { IsActive: true } && string.Equals(script.Contents, contents, StringComparison.Ordinal))
+        // Both scripts change together: the one for signed-in senders, and the one that refuses everyone else.
+        var create = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
+        var update = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
+        foreach ((string name, bool unauthenticated) in new[] { (ListSenderScript.Name, false), (ListSenderScript.UnauthenticatedName, true) })
+        {
+            StalwartSieveScript? script = scripts.Value.List.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.Ordinal));
+            string contents = ListSenderScript.With(script?.Contents, list, rule, unauthenticated);
+            if (script is null)
+            {
+                create[name] = new JsonObject
+                {
+                    ["name"] = name,
+                    ["description"] = unauthenticated ? "Lists closed to senders who did not sign in (Nightware console)" : "Who may send to each list (Nightware console)",
+                    ["isActive"] = true,
+                    ["contents"] = contents,
+                };
+            }
+            else if (script.IsActive != true || !string.Equals(script.Contents, contents, StringComparison.Ordinal))
+            {
+                update[script.Id] = new JsonObject { ["contents"] = contents, ["isActive"] = true };
+            }
+        }
+
+        if (create.Count == 0 && update.Count == 0)
         {
             return Result.Success();
         }
 
-        // Written and reloaded in one request: the rule applies from the next RCPT (step 0 c).
+        // Written and reloaded in one request: the rules apply from the next RCPT (step 0 c).
         var write = new JmapRequestBuilder();
-        StalwartSetRequest change = script is null
-            ? new StalwartSetRequest
-            {
-                Create = new Dictionary<string, JsonObject>
-                {
-                    ["s"] = new JsonObject { ["name"] = ListSenderScript.Name, ["description"] = "Who may send to each list (Nightware console)", ["isActive"] = true, ["contents"] = contents },
-                },
-            }
-            : new StalwartSetRequest { Update = new Dictionary<string, JsonObject> { [script.Id] = new JsonObject { ["contents"] = contents, ["isActive"] = true } } };
-        var set = write.Add(StalwartMethods.SieveSystemScriptSet, change);
+        var set = write.Add(StalwartMethods.SieveSystemScriptSet, new StalwartSetRequest
+        {
+            Create = create.Count > 0 ? create : null,
+            Update = update.Count > 0 ? update : null,
+        });
         var reload = write.Add(StalwartMethods.ActionSet, StalwartMailDomains.ReloadSettings());
         Result<JmapResponse> response = await client.SendAsync(write, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccess)
@@ -183,7 +199,7 @@ internal sealed partial class StalwartMailingLists(IStalwartManagementClient cli
             return response.Error;
         }
 
-        Result written = response.Value.Get(set).Match(r => script is null ? r.Created("s").ToResult() : r.Updated(script.Id), static e => Result.Failure(e));
+        Result written = response.Value.Get(set).Match(static r => r.AllSucceeded(), static e => Result.Failure(e));
         if (!written.IsSuccess)
         {
             return written;

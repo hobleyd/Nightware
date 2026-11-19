@@ -2,7 +2,7 @@
   <PropertyGroup>
     <!-- The release, shown beside "Nightware console". .githooks/pre-commit adds one to the last number on every
          commit; bump the middle number by hand for a feature (the hook then leaves it). -->
-    <Version>1.2.3</Version>
+    <Version>1.2.4</Version>
     <TargetFramework>net11.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>

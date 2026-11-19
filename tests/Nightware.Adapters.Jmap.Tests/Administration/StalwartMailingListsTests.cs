@@ -130,45 +130,60 @@ public sealed class StalwartMailingListsTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task The_first_sender_rule_creates_the_script_and_reloads()
+    public async Task The_first_sender_rule_creates_both_scripts_and_reloads()
     {
         _host.Stub("x:SieveSystemScript/query", """[["x:SieveSystemScript/query",{"ids":[],"position":0,"queryState":"q"},"c0"],["x:SieveSystemScript/get",{"list":[],"notFound":[]},"c1"]]""");
-        _host.Stub("x:SieveSystemScript/set", """[["x:SieveSystemScript/set",{"created":{"s":{"id":"jp1"}}},"c0"],["x:Action/set",{"created":{"r":{"id":"r1"}}},"c1"]]""");
+        _host.Stub("x:SieveSystemScript/set", """[["x:SieveSystemScript/set",{"created":{"nightware-lists":{"id":"jp1"},"nightware-lists-unauthenticated":{"id":"jp2"}}},"c0"],["x:Action/set",{"created":{"r":{"id":"r1"}}},"c1"]]""");
         SenderRule rule = new([Address("finance@acme.example")], ["bob@acme.example"], []);
 
         (await Lists().SetSenderRuleAsync(Address("finance@acme.example"), rule, Ct)).IsSuccess.ShouldBeTrue();
 
-        var created = _host.Calls("x:SieveSystemScript/set").Single()[1]!["create"]!["s"]!;
-        created["name"]!.GetValue<string>().ShouldBe("nightware-lists");
-        created["isActive"]!.GetValue<bool>().ShouldBeTrue();
-        created["contents"]!.GetValue<string>().ShouldContain("""not envelope :is "from" ["bob@acme.example"]""");
+        var created = _host.Calls("x:SieveSystemScript/set").Single()[1]!["create"]!;
+        created["nightware-lists"]!["name"]!.GetValue<string>().ShouldBe("nightware-lists");
+        created["nightware-lists"]!["isActive"]!.GetValue<bool>().ShouldBeTrue();
+        created["nightware-lists"]!["contents"]!.GetValue<string>().ShouldContain("""not envelope :is "from" ["bob@acme.example"]""");
+        created["nightware-lists-unauthenticated"]!["contents"]!.GetValue<string>().ShouldContain("accepts mail from signed-in senders only");
         _host.Calls("x:Action/set").Single()[1]!["create"]!["r"]!["@type"]!.GetValue<string>().ShouldBe("ReloadSettings");
+    }
+
+    private void StubScripts(SenderRule? rule)
+    {
+        MailAddress finance = Address("finance@acme.example");
+        string signedIn = System.Text.Json.JsonSerializer.Serialize(new { id = "jp1", name = "nightware-lists", isActive = true, contents = ListSenderScript.With(null, finance, rule) });
+        string others = System.Text.Json.JsonSerializer.Serialize(new { id = "jp2", name = "nightware-lists-unauthenticated", isActive = true, contents = ListSenderScript.With(null, finance, rule, unauthenticated: true) });
+        _host.Stub("x:SieveSystemScript/query", $$"""[["x:SieveSystemScript/query",{"ids":["jp1","jp2"],"position":0,"queryState":"q"},"c0"],["x:SieveSystemScript/get",{"list":[{{signedIn}},{{others}}],"notFound":[]},"c1"]]""");
     }
 
     [Fact]
     public async Task An_unchanged_rule_writes_nothing()
     {
         SenderRule rule = new([Address("finance@acme.example")], ["bob@acme.example"], []);
-        string contents = ListSenderScript.With(null, Address("finance@acme.example"), rule);
-        string script = System.Text.Json.JsonSerializer.Serialize(new { id = "jp1", name = "nightware-lists", isActive = true, contents });
-        _host.Stub("x:SieveSystemScript/query", $$"""[["x:SieveSystemScript/query",{"ids":["jp1"],"position":0,"queryState":"q"},"c0"],["x:SieveSystemScript/get",{"list":[{{script}}],"notFound":[]},"c1"]]""");
+        StubScripts(rule);
 
         (await Lists().SetSenderRuleAsync(Address("finance@acme.example"), rule, Ct)).IsSuccess.ShouldBeTrue();
         _host.Calls("x:SieveSystemScript/set").ShouldBeEmpty();
     }
 
     [Fact]
-    public async Task Removing_a_rule_updates_the_existing_script()
+    public async Task Removing_a_rule_updates_both_scripts()
     {
-        SenderRule rule = new([Address("finance@acme.example")], ["bob@acme.example"], []);
-        string contents = ListSenderScript.With(null, Address("finance@acme.example"), rule);
-        string script = System.Text.Json.JsonSerializer.Serialize(new { id = "jp1", name = "nightware-lists", isActive = true, contents });
-        _host.Stub("x:SieveSystemScript/query", $$"""[["x:SieveSystemScript/query",{"ids":["jp1"],"position":0,"queryState":"q"},"c0"],["x:SieveSystemScript/get",{"list":[{{script}}],"notFound":[]},"c1"]]""");
-        _host.Stub("x:SieveSystemScript/set", """[["x:SieveSystemScript/set",{"updated":{"jp1":null}},"c0"],["x:Action/set",{"created":{"r":{"id":"r1"}}},"c1"]]""");
+        StubScripts(new SenderRule([Address("finance@acme.example")], ["bob@acme.example"], []));
+        _host.Stub("x:SieveSystemScript/set", """[["x:SieveSystemScript/set",{"updated":{"jp1":null,"jp2":null}},"c0"],["x:Action/set",{"created":{"r":{"id":"r1"}}},"c1"]]""");
 
         (await Lists().SetSenderRuleAsync(Address("finance@acme.example"), null, Ct)).IsSuccess.ShouldBeTrue();
 
-        _host.Calls("x:SieveSystemScript/set").Single()[1]!["update"]!["jp1"]!["contents"]!.GetValue<string>().ShouldNotContain("finance@acme.example");
+        var update = _host.Calls("x:SieveSystemScript/set").Single()[1]!["update"]!;
+        update["jp1"]!["contents"]!.GetValue<string>().ShouldNotContain("finance@acme.example");
+        update["jp2"]!["contents"]!.GetValue<string>().ShouldNotContain("finance@acme.example");
+    }
+
+    [Fact]
+    public async Task A_script_the_server_refuses_fails_the_rule()
+    {
+        StubScripts(null);
+        _host.Stub("x:SieveSystemScript/set", """[["x:SieveSystemScript/set",{"notUpdated":{"jp1":{"type":"invalidProperties","properties":["contents"]}},"updated":{"jp2":null}},"c0"],["x:Action/set",{"created":{"r":{"id":"r1"}}},"c1"]]""");
+
+        (await Lists().SetSenderRuleAsync(Address("finance@acme.example"), new SenderRule([Address("finance@acme.example")], [], []), Ct)).IsSuccess.ShouldBeFalse();
     }
 }
 
@@ -236,6 +251,19 @@ public sealed class ListSenderScriptTests
         removed.ShouldNotContain("finance@acme.example");
         removed.ShouldContain("carol@acme.example");
         ListSenderScript.With(removed, Address("board@acme.example"), null).ShouldBe("require [\"envelope\", \"reject\"];\n# hand-written note\n");
+    }
+
+    [Fact]
+    public void The_rule_for_senders_who_did_not_sign_in_refuses_them_all()
+    {
+        SenderRule rule = new([Address("finance@acme.example"), Address("accounts@acme.example")], ["bob@acme.example"], [Domain("acme.example")]);
+
+        string script = ListSenderScript.With(null, Address("finance@acme.example"), rule, unauthenticated: true);
+
+        script.ShouldContain("""if allof (envelope :is "to" ["finance@acme.example", "accounts@acme.example"]) {""");
+        script.ShouldContain("reject \"550 5.7.1 finance@acme.example accepts mail from signed-in senders only\";");
+        script.ShouldNotContain("bob@acme.example");
+        ListSenderScript.With(script, Address("finance@acme.example"), null, unauthenticated: true).ShouldBe("require [\"envelope\", \"reject\"];\n");
     }
 
     [Fact]

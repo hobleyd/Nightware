@@ -15,8 +15,9 @@
 #   5. web admin sign-in through Keycloak: the web admin's client id pinned,
 #      its code built and patched here (stalwart/webui), Stalwart's Admin role
 #      for STALWART_ADMIN_ACCOUNTS
-#   6. who may send to each group's list: the system Sieve script
-#      nightware-lists, run at RCPT (the console writes its contents)
+#   6. mail claiming our domains only signed-in or from the trusted network;
+#      who may send to each group's list: the system Sieve scripts
+#      nightware-lists(-unauthenticated), run at RCPT (the console writes them)
 #   7. ReloadSettings
 #
 # Authenticates as the recovery administrator (STALWART_RECOVERY_ADMIN).
@@ -350,26 +351,47 @@ if [[ -n "$ADMINS" ]]; then
   done
 fi
 
-# ------------------------------------------- 6. list sender rules (phase 9)
-# The console keeps one system Sieve script, nightware-lists, with a block per
-# group list that refuses senders the group's policy does not allow (550 5.7.1
-# at RCPT). Stalwart runs it for every recipient once MtaStageRcpt.script names
-# it; an empty script (just its require line) accepts everything. Created here,
-# so the RCPT stage never names a script that does not exist; its contents are
-# the console's and are never touched again here.
-LIST_SCRIPT=nightware-lists
-script_id=$(call '[["x:SieveSystemScript/query",{},"q"],["x:SieveSystemScript/get",{"#ids":{"resultOf":"q","name":"x:SieveSystemScript/query","path":"/ids"},"properties":["name"]},"g"]]' \
-  | jq -r --arg n "$LIST_SCRIPT" '.methodResponses[1][1].list[]? | select(.name==$n) | .id' | head -n1)
-if [[ -z "$script_id" ]]; then
-  log "Stalwart: creating the list sender script ${LIST_SCRIPT}"
-  call "$(jq -cn --arg n "$LIST_SCRIPT" '[["x:SieveSystemScript/set",{"create":{"s":{name:$n,description:"Who may send to each list (Nightware console)",isActive:true,contents:"require [\"envelope\", \"reject\"];\n"}}},"c"]]')" \
-    | jq -e '.methodResponses[0][1].created.s' >/dev/null \
-    || echo "Stalwart: WARNING could not create the list sender script; lists accept mail from anyone" >&2
+# --------------------------- 6. own-domain senders and list rules (ADR 0003 D5)
+# "Trusted" is the stack's own Docker network (Keycloak's and Nextcloud's mail
+# arrive from it unauthenticated) plus MAIL_TRUSTED_NETWORKS (space-separated
+# CIDRs, e.g. a scanner or another host that sends as our domains).
+TRUSTED_NETS="${SUBNET} ${MAIL_TRUSTED_NETWORKS:-}"
+TRUSTED=$(for n in $TRUSTED_NETS; do printf "is_ip_in_cidr(remote_ip, '%s') || " "$n"; done)
+TRUSTED="(${TRUSTED% || })"
+
+# 6a. Mail that claims one of our own domains must come from a signed-in sender
+# or the trusted network: Stalwart's SPF/DMARC checks are relaxed (they score,
+# never refuse), so without this anyone could send as a colleague. Stalwart's
+# default spam-block clause is kept.
+SENDER_ALLOWED="(!is_empty(authenticated_as) || !key_exists('spam-block', sender_domain)) && (!is_empty(authenticated_as) || ${TRUSTED} || !is_local_domain(sender_domain))"
+current=$(call '[["x:MtaStageMail/get",{"ids":["singleton"],"properties":["isSenderAllowed"]},"c"]]' | jq -r '.methodResponses[0][1].list[0].isSenderAllowed.else')
+if [[ "$current" != "$SENDER_ALLOWED" ]]; then
+  log "Stalwart: unauthenticated mail claiming our domains only from ${TRUSTED_NETS% }"
+  call "$(jq -cn --arg e "$SENDER_ALLOWED" '[["x:MtaStageMail/set",{"update":{"singleton":{isSenderAllowed:{match:{},else:$e}}}},"c"]]')" \
+    | jq -e '.methodResponses[0][1].updated' >/dev/null \
+    || echo "Stalwart: WARNING could not restrict own-domain senders" >&2
 fi
+
+# 6b. Who may send to each group's list. The console keeps two system Sieve
+# scripts with a block per restricted list: nightware-lists (the list's policy,
+# for signed-in senders and the trusted network) and
+# nightware-lists-unauthenticated (refuses everyone else, 550 5.7.1 at RCPT).
+# Created here empty (just the require line, which accepts everything), so the
+# RCPT stage never names a missing script; their contents are the console's.
+scripts=$(call '[["x:SieveSystemScript/query",{},"q"],["x:SieveSystemScript/get",{"#ids":{"resultOf":"q","name":"x:SieveSystemScript/query","path":"/ids"},"properties":["name"]},"g"]]')
+for name in nightware-lists nightware-lists-unauthenticated; do
+  if ! jq -e --arg n "$name" '.methodResponses[1][1].list[]? | select(.name==$n)' <<<"$scripts" >/dev/null; then
+    log "Stalwart: creating the list sender script ${name}"
+    call "$(jq -cn --arg n "$name" '[["x:SieveSystemScript/set",{"create":{"s":{name:$n,description:"List sender rules (Nightware console)",isActive:true,contents:"require [\"envelope\", \"reject\"];\n"}}},"c"]]')" \
+      | jq -e '.methodResponses[0][1].created.s' >/dev/null \
+      || echo "Stalwart: WARNING could not create ${name}; lists accept mail from anyone" >&2
+  fi
+done
+wanted=$(jq -cn --arg t "is_empty(authenticated_as) && !${TRUSTED}" \
+  '{match:{"0":{if:$t,then:"\u0027nightware-lists-unauthenticated\u0027"}},else:"\u0027nightware-lists\u0027"}')
 rcpt_script=$(call '[["x:MtaStageRcpt/get",{"ids":["singleton"],"properties":["script"]},"c"]]' | jq -c '.methodResponses[0][1].list[0].script')
-wanted=$(jq -cn --arg n "$LIST_SCRIPT" '{match:{},else:("\u0027" + $n + "\u0027")}')
-if [[ "$rcpt_script" != "$wanted" ]]; then
-  log "Stalwart: RCPT runs ${LIST_SCRIPT} (was ${rcpt_script})"
+if [[ "$(jq -S . <<<"$rcpt_script")" != "$(jq -S . <<<"$wanted")" ]]; then
+  log "Stalwart: RCPT runs the list sender scripts"
   call "$(jq -cn --argjson w "$wanted" '[["x:MtaStageRcpt/set",{"update":{"singleton":{script:$w}}},"c"]]')" \
     | jq -e '.methodResponses[0][1].updated' >/dev/null \
     || echo "Stalwart: WARNING could not set the RCPT script; lists accept mail from anyone" >&2

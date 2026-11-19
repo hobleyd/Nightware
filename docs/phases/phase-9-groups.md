@@ -277,10 +277,8 @@ the group's user list shows her.
 - **G3** Moderation / held messages for `anyone` lists? Proposed: out of scope.
 - **G4** Expose groups to NightMail (`/groups`, recipient expansion) later —
   needs contract entries first.
-- **G6** Forged senders (ADR 0003 D5): Stalwart's SPF/DMARC checks are
-  `relaxed` (never refuse), so a members-only list can be posted to by an
-  outsider forging a member's envelope address. Harden by refusing
-  unauthenticated mail claiming our own domains from outside the trusted
-  subnet, or by requiring `authenticated_as` in the list rule?
+- ~~**G6** Forged senders~~ — decided: both hardenings (ADR 0003 D5):
+  unauthenticated mail claiming our domains only from the trusted networks, and
+  restricted lists closed to unauthenticated senders.
 - ~~**G5** External recipients and SPF/DMARC~~ — decided: externals only on
   lists whose sender policy is `members` or `organization` (see Decisions).

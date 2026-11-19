@@ -90,16 +90,33 @@ if allof (envelope :is "to" ["finance@acme.example", "accounts@acme.example"],
 console rewrites only its list's block and reloads the settings in the same
 request. Members may send from their aliases too.
 
-**What the rule does not do.** It compares the envelope sender only. With
-Stalwart's defaults (`SenderAuth`: SPF, DMARC and reverse-IP checks `relaxed`
-on port 25, i.e. checked but never refused), an unauthenticated sender on the
-internet who claims a member's address passes the rule; the spam filter scores
-the message afterwards (SPF fails for our domains from a foreign IP). So
-"members only" keeps out casual and mistaken senders, not a determined forger.
-Hardening (open question G6 in the phase plan): refuse unauthenticated mail
-that claims one of our own domains from outside the trusted Docker subnet, or
-make the list rule also require `authenticated_as`. Read from the settings,
-not tested: every container on the stack's network is inside the trusted subnet.
+**Senders who did not sign in** (G6, decided 2026-11-19). Stalwart's SPF,
+DMARC and reverse-IP checks are `relaxed` (they score, never refuse), so an
+envelope sender alone proves nothing. Two rules close that, both set by
+`deploy/stalwart/configure.sh` and both treating the stack's Docker network
+(`DOCKER_SUBNET`) and `MAIL_TRUSTED_NETWORKS` as trusted:
+
+1. **Own domains need a signed-in sender.** At MAIL FROM, unauthenticated mail
+   from outside the trusted networks whose sender is on one of the server's own
+   domains is refused (`MtaStageMail.isSenderAllowed`, `550 5.7.1 Sender
+   address not allowed`). Nobody on the internet can send as a colleague, to a
+   list or to anyone else. Stalwart's default spam-block clause is kept.
+2. **Restricted lists need a signed-in sender.** The RCPT stage runs a second
+   script, `nightware-lists-unauthenticated`, for unauthenticated senders
+   outside the trusted networks; the console writes a block there for every
+   `members` or `organization` list that refuses all of them (`550 5.7.1 …
+   accepts mail from signed-in senders only`). `nightware-lists` (the policy
+   above) runs for everyone else.
+
+Verified on the local stack (an untrusted sender simulated by narrowing the
+trusted network): a forged colleague is refused at MAIL FROM, an outsider and
+bounces still pass; an unauthenticated sender is refused by a restricted list;
+a member's JMAP submission (NightMail's path) reaches the list. On the live VM
+inbound SMTP keeps the sender's real address (Docker publishes port 25 without
+the userland proxy), so the trusted network is only the stack's own.
+Consequence: a third party that sends as our domains from its own servers (a
+newsletter service, a scanner) must sign in or be added to
+`MAIL_TRUSTED_NETWORKS`.
 
 ### D6 — Outside recipients only on closed lists (G5)
 Stalwart 1.1 forwards without rewriting the envelope sender (no SRS). A copy
@@ -153,5 +170,4 @@ Nextcloud with groupfolders 23.0.1): step 0 in the phase plan, the live test
 `tests/Nightware.Integration.Tests/Administration/GroupsLiveTests.cs`, and the
 generated sender rules over SMTP from the trusted Docker subnet (non-members
 550 5.7.1 at RCPT; members, organisation senders and mail to ordinary
-addresses accepted). Not verified: behaviour for a forged sender from an
-untrusted address (D5).
+addresses accepted), and the G6 rules with an untrusted sender simulated (D5).

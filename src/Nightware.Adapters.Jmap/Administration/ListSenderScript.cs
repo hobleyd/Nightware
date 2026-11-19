@@ -5,8 +5,10 @@ using Nightware.Domain.Administration;
 namespace Nightware.Adapters.Jmap.Administration;
 
 /// <summary>
-/// The Sieve system script that enforces every list's <see cref="SenderRule"/> (phase 9 step 0 c). Stalwart runs it at
-/// RCPT (<c>MtaStageRcpt.script</c>, set once by <c>deploy/stalwart/configure.sh</c>), so a refused sender gets
+/// The Sieve system scripts that enforce every list's <see cref="SenderRule"/> (ADR 0003 D5). Stalwart runs one of them
+/// at RCPT (<c>MtaStageRcpt.script</c>, set by <c>deploy/stalwart/configure.sh</c>): <see cref="Name"/> for signed-in
+/// senders and the trusted Docker network, <see cref="UnauthenticatedName"/> for everyone else, which refuses every
+/// restricted list outright, since an unauthenticated envelope sender proves nothing. A refused sender gets
 /// <c>550 5.7.1</c> before any mail is accepted. One marked block per list, so the console rewrites one list's rule
 /// without touching the others; anything outside the blocks is kept as it is.
 /// </summary>
@@ -14,12 +16,17 @@ internal static class ListSenderScript
 {
     public const string Name = "nightware-lists";
 
+    public const string UnauthenticatedName = "nightware-lists-unauthenticated";
+
     private const string Require = "require [\"envelope\", \"reject\"];";
     private const string Begin = "# nightware-list ";
     private const string End = "# end nightware-list ";
 
-    /// <summary><paramref name="contents"/> with the block for <paramref name="list"/> replaced by <paramref name="rule"/>'s, or removed when it is null.</summary>
-    public static string With(string? contents, MailAddress list, SenderRule? rule)
+    /// <summary>
+    /// <paramref name="contents"/> with the block for <paramref name="list"/> replaced by <paramref name="rule"/>'s, or
+    /// removed when it is null. For <paramref name="unauthenticated"/> senders the block refuses every sender.
+    /// </summary>
+    public static string With(string? contents, MailAddress list, SenderRule? rule, bool unauthenticated = false)
     {
         ArgumentNullException.ThrowIfNull(list);
         (List<string> preamble, SortedDictionary<string, string> blocks) = Parse(contents);
@@ -29,7 +36,7 @@ internal static class ListSenderScript
         }
         else
         {
-            blocks[list.Value] = Block(list, rule);
+            blocks[list.Value] = unauthenticated ? Refusal(list, rule) : Block(list, rule);
         }
 
         var script = new StringBuilder();
@@ -68,6 +75,14 @@ internal static class ListSenderScript
             + "}\n"
             + $"{End}{list.Value}\n";
     }
+
+    /// <summary>The rule for senders who did not sign in: none of them may send to a restricted list.</summary>
+    internal static string Refusal(MailAddress list, SenderRule rule) =>
+        $"{Begin}{list.Value}\n"
+        + $"if allof (envelope :is \"to\" {Strings(rule.ListAddresses.Select(static a => a.Value))}) {{\n"
+        + $"    reject \"550 5.7.1 {list.Value} accepts mail from signed-in senders only\";\n"
+        + "}\n"
+        + $"{End}{list.Value}\n";
 
     private static (List<string> Preamble, SortedDictionary<string, string> Blocks) Parse(string? contents)
     {

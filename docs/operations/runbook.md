@@ -288,8 +288,18 @@ list); `deploy/stalwart/configure.sh` makes the RCPT stage run it. If every
 list accepts everything, check that `MtaStageRcpt.script` names
 `'nightware-lists'` and run the configure script again.
 
-The rule checks the envelope sender only: an outsider who forges a member's
-address is not refused there (ADR 0003 D5); the spam filter scores such mail.
+"…accepts mail from signed-in senders only" means the sender did not sign in
+and is outside the trusted networks: restricted lists take mail from signed-in
+senders only (ADR 0003 D5).
+
+## Mail refused with "550 5.7.1 Sender address not allowed"
+
+Unauthenticated mail that claims one of our own domains is refused unless it
+comes from the stack's Docker network or `MAIL_TRUSTED_NETWORKS` (ADR 0003 D5).
+A device or service that sends as our domains (scanner, website form,
+newsletter service) must either sign in to SMTP submission (587) with an
+account or app password, or have its address range added to
+`MAIL_TRUSTED_NETWORKS` in `deploy/.env` (then run `stalwart/configure.sh`).
 
 ## Rotating the admin console's credentials
 
