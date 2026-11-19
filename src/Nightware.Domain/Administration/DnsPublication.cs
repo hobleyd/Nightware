@@ -77,7 +77,7 @@ public sealed record DnsChange(DnsChangeKind Kind, DnsRecord? Desired, ZoneRecor
 /// <summary>
 /// What publishing a domain's records to its zone would do. <see cref="Warnings"/> name records left in the zone
 /// that still matter (another provider's MX). <see cref="Fingerprint"/> identifies the plan, so a publish applies
-/// only the plan the administrator saw.
+/// only the plan the administrator saw; it does not depend on the order the changes are listed in.
 /// </summary>
 public sealed record DnsPublicationPlan(DnsZone Zone, IReadOnlyList<DnsChange> Changes, IReadOnlyList<string> Warnings)
 {
@@ -90,16 +90,19 @@ public sealed record DnsPublicationPlan(DnsZone Zone, IReadOnlyList<DnsChange> C
         [.. Changes.Where(static c => c.Kind == DnsChangeKind.Remove && c.Current is { Record.Type: var t } && t.Trim().Equals("MX", StringComparison.OrdinalIgnoreCase))
             .Select(static c => c.Current!.Record.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries)[^1].TrimEnd('.'))];
 
+    /// <summary>One line per change, sorted: what <see cref="Fingerprint"/> hashes, and what to compare when two plans differ.</summary>
+    public IReadOnlyList<string> FingerprintLines =>
+        [.. Changes.Select(static change => $"{change.Kind}|{(change.Desired is { } d ? $"{d.Name}|{d.Type}|{d.Value}" : "-")}|{(change.Current is { } c ? $"{c.Id}|{c.Record.Value}|{c.Proxied}" : "-")}")
+            .Order(StringComparer.Ordinal)];
+
     public string Fingerprint
     {
         get
         {
             var text = new StringBuilder(Zone.Id).Append('\n');
-            foreach (DnsChange change in Changes)
+            foreach (string line in FingerprintLines)
             {
-                text.Append(change.Kind).Append('|')
-                    .Append(change.Desired is { } d ? $"{d.Name}|{d.Type}|{d.Value}" : "-").Append('|')
-                    .Append(change.Current is { } c ? $"{c.Id}|{c.Record.Value}|{c.Proxied}" : "-").Append('\n');
+                text.Append(line).Append('\n');
             }
 
             return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())))[..32];
@@ -114,7 +117,8 @@ public sealed record DnsPublicationPlan(DnsZone Zone, IReadOnlyList<DnsChange> C
 /// TLS-RPT) replace the zone's record of that kind at the name, and a duplicate of the kind is removed (two SPF
 /// records fail evaluation). Other types are sets: a missing value is added, others are left (MX and SRV by host
 /// keep their entry and correct its priority). CAA is added only where the name already has CAA records: a first
-/// CAA record restricts every certificate authority for the whole domain.
+/// CAA record restricts every certificate authority for the whole domain. The zone's records are taken in id
+/// order, so the same zone listed in another order gives the same plan (which duplicate is kept, which removed).
 /// </summary>
 public static class DnsPublicationPlanner
 {
@@ -123,6 +127,7 @@ public static class DnsPublicationPlanner
         ArgumentNullException.ThrowIfNull(zone);
         ArgumentNullException.ThrowIfNull(desired);
         ArgumentNullException.ThrowIfNull(existing);
+        existing = [.. existing.OrderBy(static r => r.Id, StringComparer.Ordinal)];
 
         string zoneName = Name(zone.Name);
         var claimed = new HashSet<string>(StringComparer.Ordinal);

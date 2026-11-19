@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 using Nightware.Application.Administration;
 using Nightware.Application.Administration.Entities;
@@ -13,8 +14,10 @@ namespace Nightware.Admin.Pages.Entities;
 /// offered here because it fixes exactly those two cases. The domain's SPF and DMARC records are the mail
 /// server's unless the entity chose its own, which a global administrator edits here. When the entity is connected
 /// to Cloudflare, a global administrator sees what publishing would change in the zone and publishes it here.
+/// Each plan read is logged line by line (public DNS data only), so a publish refused as stale can be compared
+/// with the plan the page showed.
 /// </summary>
-public sealed class DnsModel(
+public sealed partial class DnsModel(
     IAdminActor actor,
     GetEntity getEntity,
     GetEntityDnsRecords dns,
@@ -22,7 +25,8 @@ public sealed class DnsModel(
     SetDomainMailPolicy setMailPolicy,
     PlanDnsPublication planPublication,
     SuggestMailAuthentication suggest,
-    PublishDnsRecords publish) : ConsolePageModel(actor)
+    PublishDnsRecords publish,
+    ILogger<DnsModel> logger) : ConsolePageModel(actor)
 {
     [BindProperty(SupportsGet = true)]
     public string Id { get; set; } = string.Empty;
@@ -155,6 +159,8 @@ public sealed class DnsModel(
         DnsPublication outcome = published.Value;
         if (outcome.Stale)
         {
+            DnsPublicationPlan now = outcome.Preview.Plan;
+            LogStale(logger, Domain, PlanFingerprint, now.Fingerprint, now.FingerprintLines);
             ModelState.AddModelError(string.Empty, "The records or the Cloudflare zone changed since the page was loaded, so nothing was published. Check the changes below and publish again.");
             return await RenderAsync(cancellationToken);
         }
@@ -264,8 +270,18 @@ public sealed class DnsModel(
             // The plan just read, not the one posted: the hidden field would otherwise echo the posted value.
             ModelState.Remove(nameof(PlanFingerprint));
             PlanFingerprint = Publication?.Plan.Fingerprint;
+            if (Publication is { Plan: var plan })
+            {
+                LogPlan(logger, Domain, plan.Fingerprint, plan.FingerprintLines);
+            }
         }
 
         return Page();
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "DNS plan {Fingerprint} for {Domain}: {Lines}")]
+    private static partial void LogPlan(ILogger logger, string domain, string fingerprint, IReadOnlyList<string> lines);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "DNS publish for {Domain} refused as stale: the page showed plan {Expected}, the zone now gives {Fingerprint}: {Lines}")]
+    private static partial void LogStale(ILogger logger, string domain, string? expected, string fingerprint, IReadOnlyList<string> lines);
 }

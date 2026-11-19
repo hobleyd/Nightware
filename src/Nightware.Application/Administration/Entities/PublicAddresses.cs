@@ -12,7 +12,8 @@ public sealed record PublicAddressLookup(string? Host, IReadOnlyList<IPAddress> 
 /// Finds the server's public addresses: those of the configured public host (<see cref="AdministrationOptions.PublicHost"/>),
 /// from the entity's Cloudflare zone when the entity has a token and the host is in a zone it reaches, otherwise from
 /// public DNS. A host Cloudflare proxies (seen in the zone, or answering from <see cref="CloudflareEdge"/>) gives
-/// none, as do private addresses and failed lookups. Never fails: no address is an answer too.
+/// none, as do private addresses and failed lookups. Never fails: no address is an answer too. The addresses are
+/// sorted (IPv4 first), so records built from them do not change with the order DNS happened to answer in.
 /// </summary>
 public sealed class PublicAddresses(DnsTokenVault vault, IDnsHosting hosting, IPublicDns dns, AdministrationOptions options)
 {
@@ -26,7 +27,18 @@ public sealed class PublicAddresses(DnsTokenVault vault, IDnsHosting hosting, IP
         }
 
         (IReadOnlyList<IPAddress> addresses, PublicAddressSource source) = await AddressesAsync(entity, host, cancellationToken).ConfigureAwait(false);
-        return new PublicAddressLookup(host, addresses, source);
+        return new PublicAddressLookup(host, [.. addresses.Order(AddressOrder.Instance)], source);
+    }
+
+    /// <summary>IPv4 before IPv6, then by the address's bytes.</summary>
+    private sealed class AddressOrder : IComparer<IPAddress>
+    {
+        public static AddressOrder Instance { get; } = new();
+
+        public int Compare(IPAddress? x, IPAddress? y) =>
+            x is null || y is null ? Comparer<object>.Default.Compare(x, y)
+            : x.AddressFamily != y.AddressFamily ? x.AddressFamily.CompareTo(y.AddressFamily)
+            : x.GetAddressBytes().AsSpan().SequenceCompareTo(y.GetAddressBytes());
     }
 
     private async Task<(IReadOnlyList<IPAddress>, PublicAddressSource)> AddressesAsync(Entity entity, string host, CancellationToken cancellationToken)

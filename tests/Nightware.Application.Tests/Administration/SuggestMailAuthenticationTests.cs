@@ -66,6 +66,21 @@ public sealed class SuggestMailAuthenticationTests
     }
 
     [Fact]
+    public async Task The_addresses_are_the_same_whatever_order_dns_answers_in()
+    {
+        IPAddress[] answer = [IPAddress.Parse("2a01:4f8:c0c:1::1"), IPAddress.Parse("81.2.69.162"), IPAddress.Parse("81.2.69.160")];
+        PublicAddresses addresses = new(new DnsTokenVault(_bed.Entities, new PrefixSealer()), _hosting, _dns, _bed.Options);
+
+        _dns.ResolveAsync(default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<IPAddress>>.Success(answer));
+        PublicAddressLookup first = await addresses.FindAsync(AdminTestBed.AcmeEntity, Ct);
+        _dns.ResolveAsync(default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<IPAddress>>.Success([.. answer.Reverse()]));
+        PublicAddressLookup second = await addresses.FindAsync(AdminTestBed.AcmeEntity, Ct);
+
+        first.Addresses.Select(static a => a.ToString()).ShouldBe(["81.2.69.160", "81.2.69.162", "2a01:4f8:c0c:1::1"]);
+        second.Addresses.ShouldBe(first.Addresses);
+    }
+
+    [Fact]
     public async Task A_host_cloudflare_proxies_names_no_addresses_and_does_not_fall_through_to_public_dns()
     {
         WithCloudflare(new ZoneRecord("r1", new DnsRecord(Host, "A", 1, "81.2.69.161"), Proxied: true));

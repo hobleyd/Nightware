@@ -59,7 +59,8 @@ public sealed class DnsPublicationTests
             Z("dup", "acme.example", "TXT", "\"v=spf1 a -all\""),
         ]);
 
-        plan.Changes.Select(static c => (c.Kind, c.Current?.Id)).ShouldBe([(DnsChangeKind.Update, "old"), (DnsChangeKind.Remove, "dup")]);
+        // Neither SPF record is right, so the first by id is corrected and the other removed.
+        plan.Changes.Select(static c => (c.Kind, c.Current?.Id)).ShouldBe([(DnsChangeKind.Update, "dup"), (DnsChangeKind.Remove, "old")]);
     }
 
     [Fact]
@@ -187,5 +188,31 @@ public sealed class DnsPublicationTests
 
         token.ToString().ShouldNotContain("secret");
         $"{token}".ShouldNotContain("secret");
+    }
+
+    [Fact]
+    public void The_same_records_and_zone_listed_in_another_order_give_the_same_plan()
+    {
+        DnsRecord[] desired =
+        [
+            R("acme.example", "MX", "10 mail.acme.example"),
+            R("acme.example", "TXT", "v=spf1 mx -all"),
+            R("_dmarc.acme.example", "TXT", "v=DMARC1; p=reject"),
+            R("mail.acme.example", "A", "81.2.69.160"),
+        ];
+        ZoneRecord[] existing =
+        [
+            Z("a", "acme.example", "TXT", "v=spf1 include:_spf.google.com ~all"),
+            Z("b", "acme.example", "TXT", "v=spf1 a -all"),
+            Z("c", "acme.example", "MX", "10 aspmx.l.google.com"),
+            Z("d", "_dmarc.acme.example", "TXT", "v=DMARC1; p=none"),
+        ];
+
+        DnsPublicationPlan plan = DnsPublicationPlanner.Plan(Zone, desired, existing);
+        DnsPublicationPlan reordered = DnsPublicationPlanner.Plan(Zone, [.. desired.Reverse()], [.. existing.Reverse()]);
+
+        reordered.Fingerprint.ShouldBe(plan.Fingerprint);
+        reordered.FingerprintLines.ShouldBe(plan.FingerprintLines);
+        plan.Changes.Single(c => c.Kind == DnsChangeKind.Remove && c.Current!.Record.Type == "TXT").Current!.Id.ShouldBe("b");
     }
 }
