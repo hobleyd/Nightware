@@ -98,8 +98,8 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
             side.ShouldContain($"<a href=\"/entities/{id}#domains\">Domains</a>");
         }
 
-        side.IndexOf(">DNS hosting</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">Administrators</a>", StringComparison.Ordinal));
-        side.IndexOf(">Administrators</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">Domains</a>", StringComparison.Ordinal));
+        side.IndexOf(">Administrators</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">DNS hosting</a>", StringComparison.Ordinal));
+        side.IndexOf(">DNS hosting</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">Domains</a>", StringComparison.Ordinal));
         side.IndexOf(">Domains</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">acme.example</a>", StringComparison.Ordinal));
 
         string html = await GetAsync(url);

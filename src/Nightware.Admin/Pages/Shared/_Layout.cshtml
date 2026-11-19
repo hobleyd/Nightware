@@ -96,13 +96,13 @@
                         {
                             var on = e.Id == entityId;
                             var current = on && below.Count == 0;
-                            // The entity's own pages are entries under it; a domain's DNS records are an entry under Domains,
+                            // The entity's own pages are entries under it, in alphabetical order; a domain's DNS records are an entry under Domains,
                             // so on that page the domain is the current one and Domains is on the trail.
                             var domains = e.Domains.Select(d => (Name: d, Href: Url.Page("/Entities/Dns", new { id = e.Id, domain = d }))).ToList();
                             var parts = new[]
                             {
-                                (Text: "DNS hosting", Href: Url.Page("/Entities/DnsHosting", new { id = e.Id })),
                                 (Text: "Administrators", Href: Url.Page("/Entities/Admins", new { id = e.Id })),
+                                (Text: "DNS hosting", Href: Url.Page("/Entities/DnsHosting", new { id = e.Id })),
                                 (Text: "Domains", Href: Url.Page("/Entities/Detail", new { id = e.Id }) + "#domains"),
                             }.Select(p => (p.Text, p.Href,
                                 Here: on && below.Count == 1 && string.Equals(p.Href, self, StringComparison.OrdinalIgnoreCase),
