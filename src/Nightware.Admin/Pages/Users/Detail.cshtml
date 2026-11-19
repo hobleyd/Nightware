@@ -56,6 +56,16 @@
     {
         <p class="hint">@Systems.TellOperator</p>
     }
+    @if (Model.Groups is { Count: > 0 } groups)
+    {
+        <h2>Groups</h2>
+        <ul class="plain">
+            @foreach (var g in groups)
+            {
+                <li><a asp-page="/Entities/Groups/Detail" asp-route-id="@g.EntityId" asp-route-groupId="@g.Id">@g.Name</a>@if (g.Mail is { } mail) { <span class="hint"> @mail.Address</span> }</li>
+            }
+        </ul>
+    }
     @if (offLimits is not null)
     {
         <p><strong>@offLimits</strong> The console shows this account but never changes it, so it offers no actions here.</p>

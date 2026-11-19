@@ -1,0 +1,30 @@
+@page "/entities/{id}/groups/{groupId}/delete-folder"
+@model Nightware.Admin.Pages.Entities.Groups.DeleteFolderModel
+@{
+    var detail = Model.Detail as Nightware.Application.Administration.Groups.GroupDetail;
+    ViewData["Title"] = "Delete team folder";
+    ViewData["Crumbs"] = new (string, string?)[]
+    {
+        ("Entities", Url.Page("/Entities/Index")),
+        (detail?.Entity.Name ?? "Entity", Url.Page("/Entities/Detail", new { id = Model.Id })),
+        ("Groups", Url.Page("/Entities/Groups/Index", new { id = Model.Id })),
+        (detail?.Group.Name ?? "Group", Url.Page("/Entities/Groups/Detail", new { id = Model.Id, groupId = Model.GroupId })),
+    };
+    ViewData["EntityId"] = Model.Id;
+}
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
+@{ var group = Model.Detail.Group; }
+<section class="panel danger">
+    <h1>Delete the team folder <small>@group.Name</small></h1>
+    <partial name="_Messages" />
+    @if (group.Files is { TeamFolder: true })
+    {
+        <p>Deletes the team folder <strong>@group.Name</strong> and <strong>every file in it</strong>, for everyone. This cannot be undone.</p>
+        <p>Kept: the group, its members, its list, and its Nextcloud group (files shared with the group elsewhere stay shared).</p>
+        <form method="post">
+            <label>Type the group's name, <strong>@group.Name</strong>, to confirm <input name="confirmation" autocomplete="off" required></label>
+            <button type="submit">Delete the team folder and its files</button>
+        </form>
+    }
+    <p><a asp-page="/Entities/Groups/Detail" asp-route-id="@Model.Id" asp-route-groupId="@Model.GroupId">Back to the group</a></p>
+</section>

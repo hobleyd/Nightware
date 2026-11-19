@@ -84,10 +84,17 @@ internal sealed partial class StalwartMailDomains(IStalwartManagementClient clie
         Result<DestroyOutcome> outcome = await DestroyRequestAsync(id, [], cancellationToken).ConfigureAwait(false);
         if (outcome.IsSuccess && outcome.Value.Linked is { } links)
         {
-            int others = links.Count(static l => l.Object != "DkimSignature");
-            if (others > 0)
+            int lists = links.Count(static l => l.Object == "MailingList");
+            int others = links.Count(static l => l.Object is not "DkimSignature" and not "MailingList");
+            if (others > 0 || lists > 0)
             {
-                return Error.Conflict($"The mail server still has {others} account(s) with an address or alias on {domain.Name}; remove them first.", "domain");
+                string what = (others, lists) switch
+                {
+                    (0, _) => $"{lists} list(s)",
+                    (_, 0) => $"{others} account(s)",
+                    _ => $"{others} account(s) and {lists} list(s)",
+                };
+                return Error.Conflict($"The mail server still has {what} with an address or alias on {domain.Name}; remove them first.", "domain");
             }
 
             if (links.Count == 0)

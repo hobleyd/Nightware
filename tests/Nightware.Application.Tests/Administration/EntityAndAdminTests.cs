@@ -79,7 +79,7 @@ public sealed class EntityAndAdminTests
 
         (await new CreateEntity(_bed.Actor, _bed.Entities, _bed.DomainProvisioning(), _bed.Audit).ExecuteAsync("B", "beta", "beta.example", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         (await new AddEntityDomain(_bed.Actor, _bed.Entities, _bed.DomainProvisioning(), _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
-        (await new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        (await new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.Groups, _bed.MailDomains, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         await _bed.Entities.DidNotReceiveWithAnyArgs().CreateAsync(default!, Ct);
     }
 
@@ -142,7 +142,7 @@ public sealed class EntityAndAdminTests
     {
         _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success(
             [new IdentityAccount("u", "c", "c@acme.org", true), new IdentityAccount("v", "d", "d@acme.example", true) { Aliases = ["x@acme.example"] }]));
-        var remove = new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.Audit);
+        var remove = new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.Groups, _bed.MailDomains, _bed.Audit);
         _bed.Entities.RemoveDomainAsync(default!, default!, Ct).ReturnsForAnyArgs(AdminTestBed.AcmeEntity);
 
         _bed.MailDomains.DestroyAsync(default!, Ct).ReturnsForAnyArgs(Result.Success());
@@ -153,13 +153,33 @@ public sealed class EntityAndAdminTests
     }
 
     [Fact]
+    public async Task A_domain_a_group_s_list_uses_cannot_be_removed_and_the_group_is_named()
+    {
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        _bed.Groups.ListAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<Group>>.Success(
+        [
+            new Group("g1", AdminTestBed.Acme, GroupSyncTests.Key("finance"), "Finance")
+            {
+                Mail = new GroupMail(AdminTestBed.Address("finance@acme.example"), SenderPolicy.Members) { Aliases = [AdminTestBed.Address("accounts@acme.org")] },
+            },
+            new Group("g2", AdminTestBed.Acme, GroupSyncTests.Key("board"), "Board"),
+        ]));
+
+        Error error = (await new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.Groups, _bed.MailDomains, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct)).Error!;
+
+        error.Kind.ShouldBe(ErrorKind.Conflict);
+        error.Message.ShouldStartWith("The group(s) Finance have addresses on acme.org");
+        await _bed.MailDomains.DidNotReceiveWithAnyArgs().DestroyAsync(default!, Ct);
+    }
+
+    [Fact]
     public async Task Removing_a_domain_destroys_it_on_the_mail_server_before_keycloak()
     {
         _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
         _bed.Entities.RemoveDomainAsync(default!, default!, Ct).ReturnsForAnyArgs(AdminTestBed.AcmeEntity);
         _bed.MailDomains.DestroyAsync(default!, Ct).ReturnsForAnyArgs(Result.Success());
 
-        (await new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct)).IsSuccess.ShouldBeTrue();
+        (await new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.Groups, _bed.MailDomains, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct)).IsSuccess.ShouldBeTrue();
 
         Received.InOrder(() =>
         {
@@ -179,7 +199,7 @@ public sealed class EntityAndAdminTests
         _bed.Entities.RemoveDomainAsync(default!, default!, Ct).ReturnsForAnyArgs(AdminTestBed.AcmeEntity);
         _bed.MailDomains.DestroyAsync(default!, Ct).ReturnsForAnyArgs(Error.NotFound("gone"));
 
-        (await new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct)).IsSuccess.ShouldBeTrue();
+        (await new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.Groups, _bed.MailDomains, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct)).IsSuccess.ShouldBeTrue();
 
         await _bed.Entities.Received(1).RemoveDomainAsync(AdminTestBed.Acme, AdminTestBed.Domain("acme.org"), Arg.Any<CancellationToken>());
         await _bed.MailDomains.Received(1).ReloadSettingsAsync(Arg.Any<CancellationToken>());
@@ -192,7 +212,7 @@ public sealed class EntityAndAdminTests
         _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
         _bed.MailDomains.DestroyAsync(default!, Ct).ReturnsForAnyArgs(Error.Conflict("The mail server still has 1 account(s) with an address or alias on acme.org; remove them first."));
 
-        Result<Entity> removed = await new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct);
+        Result<Entity> removed = await new RemoveEntityDomain(_bed.Actor, _bed.Entities, _bed.Groups, _bed.MailDomains, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.org", Ct);
 
         removed.Error!.Kind.ShouldBe(ErrorKind.Conflict);
         await _bed.Entities.DidNotReceiveWithAnyArgs().RemoveDomainAsync(default!, default!, Ct);

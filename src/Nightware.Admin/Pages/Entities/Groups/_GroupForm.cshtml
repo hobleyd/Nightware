@@ -1,0 +1,55 @@
+@using Nightware.Admin.Pages.Entities.Groups
+@using Nightware.Domain.Administration
+@model (GroupInput Input, Entity Entity, Group? Existing)
+@* The group form's fields, for a new group (Existing null) and for changing one. No script: every switch is a plain checkbox. *@
+@{
+    var input = Model.Input;
+    var existing = Model.Existing;
+    var fixedAddress = existing?.Mail?.Address;
+}
+<label>Name <input name="Input.Name" value="@input.Name" maxlength="80" required autocomplete="off"></label>
+@if (existing is null)
+{
+    <label>Key <input name="Input.Key" value="@input.Key" maxlength="40" placeholder="finance" autocomplete="off"><span class="hint">Optional. Lower-case letters, digits and hyphens; it names the Nextcloud group (@(Model.Entity.Alias)-<em>key</em>) and never changes. Leave empty to make one from the name.</span></label>
+}
+else
+{
+    <p class="hint">Key <code>@existing.Key</code> (Nextcloud group <code>@existing.Key.GroupwareId(Model.Entity.Alias)</code>)</p>
+}
+<fieldset>
+    <legend>E-mail</legend>
+    <label class="choice"><input type="checkbox" name="Input.Mail" value="true" @(input.Mail ? "checked" : null)> A distribution list: mail to the group's address reaches every member</label>
+    @if (fixedAddress is not null)
+    {
+        <p>Address <strong>@fixedAddress</strong> <span class="hint">(an address never changes; add an alias instead)</span></p>
+    }
+    else
+    {
+        <div class="row">
+            <label>Address, before the @@ <input name="Input.LocalPart" value="@input.LocalPart" placeholder="finance" autocomplete="off"></label>
+            <label>Domain
+                <select name="Input.Domain">
+                    @foreach (var d in Model.Entity.Domains)
+                    {
+                        <option value="@d.Name" selected="@(string.Equals(d.Name, input.Domain, StringComparison.OrdinalIgnoreCase))">@d.Name</option>
+                    }
+                </select>
+            </label>
+        </div>
+    }
+    <label>Other addresses (aliases) <input name="Input.Aliases" value="@input.Aliases" autocomplete="off"><span class="hint">Optional. Separate with commas; each must be on one of this entity's domains.</span></label>
+    <p>Who may send to it</p>
+    <label class="choice"><input type="radio" name="Input.Senders" value="@SenderPolicy.Members" @(input.Senders == SenderPolicy.Members ? "checked" : null)> Its members only</label>
+    <label class="choice"><input type="radio" name="Input.Senders" value="@SenderPolicy.Organization" @(input.Senders == SenderPolicy.Organization ? "checked" : null)> Anyone with an address at @string.Join(" or ", Model.Entity.Domains.Select(d => d.Name))</label>
+    <label class="choice"><input type="radio" name="Input.Senders" value="@SenderPolicy.Anyone" @(input.Senders == SenderPolicy.Anyone ? "checked" : null)> Anyone, including the internet</label>
+    <label>Outside recipients <input name="Input.ExternalRecipients" value="@input.ExternalRecipients" placeholder="accountant@example.net" autocomplete="off"><span class="hint">Optional. People outside @Model.Entity.Name who also receive the list's mail; they cannot send to it. Only on a list closed to outside senders: forwarded mail must come from your own domains to pass the receiver's checks.</span></label>
+</fieldset>
+<fieldset>
+    <legend>Files</legend>
+    <label class="choice"><input type="checkbox" name="Input.Files" value="true" @(input.Files ? "checked" : null)> A Nextcloud group: people can share files and folders with the group</label>
+    <label class="choice"><input type="checkbox" name="Input.TeamFolder" value="true" @(input.TeamFolder ? "checked" : null)> Also a team folder only the group can see (needs the Nextcloud group)</label>
+    @if (existing?.Files is { TeamFolder: true })
+    {
+        <p class="hint">The team folder stays while the group has one; deleting it, and its files, is a separate step below.</p>
+    }
+</fieldset>

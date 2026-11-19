@@ -5,11 +5,11 @@ namespace Nightware.Application.Administration.Entities;
 
 /// <summary>
 /// Removes a domain from an entity: destroys it on the mail server, then removes it in Keycloak. Refused while any
-/// member has an address on it, and while any mail account does (the mail server refuses). The mail server goes
+/// member or group has an address on it, and while any mail account or list does (the mail server refuses). The mail server goes
 /// first so that a failure leaves the domain on the entity, where removing it can be tried again; the other way
 /// round, the mail server would go on treating a domain no entity shows as its own, refusing mail sent to it.
 /// </summary>
-public sealed class RemoveEntityDomain(IAdminActor actor, IEntityRegistry entities, IMailDomains mailDomains, IAuditLog audit)
+public sealed class RemoveEntityDomain(IAdminActor actor, IEntityRegistry entities, IEntityGroups groups, IMailDomains mailDomains, IAuditLog audit)
 {
     public async Task<Result<Entity>> ExecuteAsync(string entityId, string domain, CancellationToken cancellationToken)
     {
@@ -35,6 +35,19 @@ public sealed class RemoveEntityDomain(IAdminActor actor, IEntityRegistry entiti
         if (inUse > 0)
         {
             return Error.Conflict($"{inUse} user(s) of this entity have addresses on {mailDomain}; change them first.", "domain");
+        }
+
+        // A group's list is named here, before the mail server refuses it as one more thing on the domain.
+        Result<IReadOnlyList<Group>> entityGroups = await groups.ListAsync(entityId, cancellationToken).ConfigureAwait(false);
+        if (!entityGroups.IsSuccess)
+        {
+            return entityGroups.Error;
+        }
+
+        string[] lists = [.. entityGroups.Value.Where(g => g.Mail is { } mail && mail.Addresses.Any(a => a.Domain == mailDomain)).Select(static g => g.Name)];
+        if (lists.Length > 0)
+        {
+            return Error.Conflict($"The group(s) {string.Join(", ", lists)} have addresses on {mailDomain}; change or delete them first.", "domain");
         }
 
         // Already gone from the mail server (removed by hand, or an earlier attempt failed in Keycloak): carry on.

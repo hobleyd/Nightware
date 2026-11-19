@@ -1,0 +1,38 @@
+@page "/entities/{id}/groups"
+@model Nightware.Admin.Pages.Entities.Groups.IndexModel
+@{
+    ViewData["Title"] = "Groups";
+    ViewData["Crumbs"] = new (string, string?)[]
+    {
+        ("Entities", Url.Page("/Entities/Index")),
+        ((Model.Entity as Entity)?.Name ?? "Entity", Url.Page("/Entities/Detail", new { id = Model.Id })),
+    };
+    ViewData["EntityId"] = Model.Id;
+}
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
+<section class="panel">
+    <h1>Groups <small>@Model.Entity.Name</small></h1>
+    <partial name="_Messages" />
+    <p class="hint">A group is a list of this entity's users. It can be a distribution list (mail to its address reaches every member), a Nextcloud group (files shared with it reach every member), or both.</p>
+    @if (Model.Groups.Count == 0)
+    {
+        <p>None yet.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Name</th><th>Address</th><th>Files</th></tr></thead>
+            <tbody>
+                @foreach (var g in Model.Groups)
+                {
+                    <tr>
+                        <td data-label="Name"><a asp-page="/Entities/Groups/Detail" asp-route-id="@Model.Id" asp-route-groupId="@g.Id">@g.Name</a></td>
+                        <td data-label="Address">@(g.Mail?.Address.Value ?? "–")</td>
+                        <td data-label="Files">@(g.Files is null ? "–" : g.Files.TeamFolder ? "Group and team folder" : "Group")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    <p><a class="button" asp-page="/Entities/Groups/New" asp-route-id="@Model.Id">New group</a></p>
+</section>

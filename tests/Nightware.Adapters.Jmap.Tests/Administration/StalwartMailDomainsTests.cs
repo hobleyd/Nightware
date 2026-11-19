@@ -255,6 +255,18 @@ public sealed class StalwartMailDomainsTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_domain_a_list_still_uses_is_a_conflict_naming_lists()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d7", "acme.example")));
+        _host.Stub("x:Domain/set", $$$$$"""[["x:Domain/set",{"notDestroyed":{"d7":{"type":"objectIsLinked","linkedObjects":[{"object":"Account","id":"c"},{"object":"MailingList","id":"b"},{"object":"DkimSignature","id":"k1"}]}}},"c0"],{{{{{Reloaded}}}}}]""");
+
+        var destroyed = await Domains().DestroyAsync(Acme, Ct);
+
+        destroyed.Error!.Message.ShouldContain("1 account(s) and 1 list(s) with an address or alias on acme.example");
+        _host.Calls("x:DkimSignature/set").ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task A_domain_still_linked_after_its_keys_went_is_refused_without_a_third_try()
     {
         _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d7", "acme.example")));
