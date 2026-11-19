@@ -294,7 +294,7 @@ public sealed class KeycloakEntityRegistryTests : IDisposable
 
         (await registry.GetSealedDnsTokenAsync(OrgId, Ct)).Value.ShouldBeNull();
         (await registry.GetAsync(OrgId, Ct)).Value.HasDnsToken.ShouldBeFalse();
-        (await registry.SetSealedDnsTokenAsync(OrgId, "CfDJ8-sealed", Ct)).IsSuccess.ShouldBeTrue();
+        (await registry.SetSealedDnsTokenAsync(OrgId, new SealedDnsToken(DnsProvider.Cloudflare, "CfDJ8-sealed"), Ct)).IsSuccess.ShouldBeTrue();
 
         JsonObject body = JsonNode.Parse(_keycloak.Admin("PUT", $"/organizations/{OrgId}").Single().Body!)!.AsObject();
         body["attributes"]!["nightware_dns_token:cloudflare"]!.AsArray().Single()!.GetValue<string>().ShouldBe("CfDJ8-sealed");
@@ -302,15 +302,40 @@ public sealed class KeycloakEntityRegistryTests : IDisposable
     }
 
     [Fact]
-    public async Task An_entity_with_a_sealed_token_says_so_and_returns_it()
+    public async Task Storing_another_hosts_credential_forgets_the_cloudflare_one()
+    {
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, """{"id":"0b7f3a52-9c41-4d6e-8a2f-5e1c9d3b7a10","name":"Nightware","alias":"nightware","domains":[{"name":"nightware.localhost"}],"attributes":{"nightware_dns_token:cloudflare":["CfDJ8-sealed"]}}""");
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 204, method: "PUT");
+        await using AdapterHost host = Host();
+
+        (await host.Scoped<IEntityRegistry>().SetSealedDnsTokenAsync(OrgId, new SealedDnsToken(DnsProvider.Hetzner, "CfDJ8-hetzner"), Ct)).IsSuccess.ShouldBeTrue();
+
+        JsonObject attributes = JsonNode.Parse(_keycloak.Admin("PUT", $"/organizations/{OrgId}").Single().Body!)!["attributes"]!.AsObject();
+        attributes.Select(static a => a.Key).ShouldBe(["nightware_dns_token:hetzner"]);
+        attributes["nightware_dns_token:hetzner"]!.AsArray().Single()!.GetValue<string>().ShouldBe("CfDJ8-hetzner");
+    }
+
+    [Fact]
+    public async Task An_entity_stored_with_another_host_reads_as_that_host()
+    {
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, """{"id":"0b7f3a52-9c41-4d6e-8a2f-5e1c9d3b7a10","name":"Nightware","alias":"nightware","domains":[{"name":"nightware.localhost"}],"attributes":{"nightware_dns_token:route53":["CfDJ8-aws"]}}""");
+        await using AdapterHost host = Host();
+        IEntityRegistry registry = host.Scoped<IEntityRegistry>();
+
+        (await registry.GetAsync(OrgId, Ct)).Value.DnsHost.ShouldBe(DnsProvider.Route53);
+        (await registry.GetSealedDnsTokenAsync(OrgId, Ct)).Value.ShouldBe(new SealedDnsToken(DnsProvider.Route53, "CfDJ8-aws"));
+    }
+
+    [Fact]
+    public async Task An_entity_with_the_cloudflare_attribute_stored_before_other_hosts_is_still_a_cloudflare_one()
     {
         _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, """{"id":"0b7f3a52-9c41-4d6e-8a2f-5e1c9d3b7a10","name":"Nightware","alias":"nightware","domains":[{"name":"nightware.localhost"}],"attributes":{"nightware_dns_token:cloudflare":["CfDJ8-sealed"]}}""");
         _keycloak.GivenAdmin($"/organizations/{OrgId}", 204, method: "PUT");
         await using AdapterHost host = Host();
         IEntityRegistry registry = host.Scoped<IEntityRegistry>();
 
-        (await registry.GetAsync(OrgId, Ct)).Value.HasDnsToken.ShouldBeTrue();
-        (await registry.GetSealedDnsTokenAsync(OrgId, Ct)).Value.ShouldBe("CfDJ8-sealed");
+        (await registry.GetAsync(OrgId, Ct)).Value.DnsHost.ShouldBe(DnsProvider.Cloudflare);
+        (await registry.GetSealedDnsTokenAsync(OrgId, Ct)).Value.ShouldBe(new SealedDnsToken(DnsProvider.Cloudflare, "CfDJ8-sealed"));
         (await registry.SetSealedDnsTokenAsync(OrgId, null, Ct)).IsSuccess.ShouldBeTrue();
         JsonNode.Parse(_keycloak.Admin("PUT", $"/organizations/{OrgId}").Single().Body!)!["attributes"]!.AsObject().Count.ShouldBe(0);
     }
@@ -320,7 +345,7 @@ public sealed class KeycloakEntityRegistryTests : IDisposable
     {
         await using AdapterHost host = Host();
 
-        Result result = await host.Scoped<IEntityRegistry>().SetSealedDnsTokenAsync(OrgId, new string('x', 256), Ct);
+        Result result = await host.Scoped<IEntityRegistry>().SetSealedDnsTokenAsync(OrgId, new SealedDnsToken(DnsProvider.Cloudflare, new string('x', 256)), Ct);
 
         result.Error!.Target.ShouldBe("dnsToken");
         _keycloak.Admin("PUT", $"/organizations/{OrgId}").ShouldBeEmpty();

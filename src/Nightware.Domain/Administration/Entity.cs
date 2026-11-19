@@ -16,10 +16,13 @@ public sealed record Entity(string Id, string Alias, string Name, IReadOnlyList<
     public IReadOnlyDictionary<MailDomain, DomainMailPolicy> MailPolicies { get; init; } = NoPolicies;
 
     /// <summary>
-    /// Whether the entity has a DNS host token (Cloudflare) the console can publish its domains' records with.
-    /// Filled when one entity is read, like <see cref="MailPolicies"/>.
+    /// The DNS host the entity has given the console a credential for, to publish its domains' records with; null
+    /// when it has none. Filled when one entity is read, like <see cref="MailPolicies"/>.
     /// </summary>
-    public bool HasDnsToken { get; init; }
+    public DnsProvider? DnsHost { get; init; }
+
+    /// <summary>Whether the entity has a DNS host credential (<see cref="DnsHost"/>).</summary>
+    public bool HasDnsToken => DnsHost is not null;
 
     public DomainMailPolicy MailPolicyFor(MailDomain domain) =>
         MailPolicies.TryGetValue(domain, out DomainMailPolicy? policy) ? policy : DomainMailPolicy.MailServerDefault;

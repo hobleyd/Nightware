@@ -7,15 +7,16 @@ using Nightware.Domain.Kernel;
 namespace Nightware.Domain.Administration;
 
 /// <summary>
-/// An API token for an entity's DNS host (Cloudflare). Held only for the length of a request: the console stores
-/// it sealed and never shows it back. <see cref="ToString"/> redacts.
+/// The credential for an entity's DNS host: an API token, or for <see cref="DnsProvider.Route53"/> an AWS access
+/// key as <c>KEYID:SECRET</c>. Held only for the length of a request: the console stores it sealed and never shows
+/// it back. <see cref="ToString"/> redacts.
 /// </summary>
 public sealed record DnsProviderToken
 {
     /// <summary>
-    /// Longest token accepted. Cloudflare's are 40 characters. The bound keeps the sealed form within the 255
-    /// characters of one Keycloak attribute value: Data Protection adds 84 bytes to the text padded to whole
-    /// 16-byte blocks, so 79 characters seal to 180 bytes, 240 in base64url.
+    /// Longest credential accepted. Cloudflare's tokens are 40 characters, DigitalOcean's 71, an AWS key pair 61. The
+    /// bound keeps the sealed form within the 255 characters of one Keycloak attribute value: Data Protection adds 84
+    /// bytes to the text padded to whole 16-byte blocks, so 79 characters seal to 180 bytes, 240 in base64url.
     /// </summary>
     public const int MaxLength = 79;
 
@@ -23,24 +24,50 @@ public sealed record DnsProviderToken
 
     public string Value { get; }
 
-    public static Result<DnsProviderToken> Parse(string? value)
+    public static Result<DnsProviderToken> Parse(DnsProvider provider, string? value)
     {
         string text = value?.Trim() ?? string.Empty;
+        if (provider == DnsProvider.Route53)
+        {
+            return ParseAwsKey(text);
+        }
+
         if (text.Length == 0)
         {
-            return Error.Validation("Paste the Cloudflare API token.", "dnsToken");
+            return Error.Validation($"Paste the {provider.Name()} API token.", "dnsToken");
         }
 
         if (text.Length > MaxLength || !text.All(static c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.'))
         {
-            return Error.Validation("That is not a Cloudflare API token: one is a single word of letters, digits, '-' and '_'.", "dnsToken");
+            return Error.Validation($"That is not a {provider.Name()} API token: one is a single word of letters, digits, '-' and '_'.", "dnsToken");
         }
 
         return new DnsProviderToken(text);
     }
 
+    /// <summary>An AWS access key ID (upper-case letters and digits) and its secret (base64), joined by a colon.</summary>
+    private static Result<DnsProviderToken> ParseAwsKey(string text)
+    {
+        if (text.Length == 0)
+        {
+            return Error.Validation("Enter the AWS access key ID and secret access key as KEYID:SECRET.", "dnsToken");
+        }
+
+        string[] parts = text.Split(':');
+        bool valid = text.Length <= MaxLength
+            && parts.Length == 2
+            && parts[0].Length >= 16 && parts[0].All(static c => char.IsAsciiLetterUpper(c) || char.IsAsciiDigit(c))
+            && parts[1].Length >= 16 && parts[1].All(static c => char.IsAsciiLetterOrDigit(c) || c is '/' or '+' or '=');
+        return valid
+            ? new DnsProviderToken(text)
+            : Error.Validation("That is not an AWS access key: enter it as KEYID:SECRET, the access key ID (AKIA…), a colon, then the secret access key.", "dnsToken");
+    }
+
     public override string ToString() => "DnsProviderToken { *** }";
 }
+
+/// <summary>An entity's DNS host and the credential the console reaches it with.</summary>
+public sealed record DnsConnection(DnsProvider Provider, DnsProviderToken Token);
 
 /// <summary>A DNS zone at the entity's DNS host.</summary>
 public sealed record DnsZone(string Id, string Name);
@@ -177,7 +204,7 @@ public static class DnsPublicationPlanner
         {
             if (atName.FirstOrDefault(static r => Type(r) != "CNAME") is { } blocker)
             {
-                yield return new DnsChange(DnsChangeKind.Skip, wanted, blocker, $"{wanted.Name} already has a {Type(blocker)} record, and a CNAME cannot sit beside other records. Remove it at Cloudflare to publish this one.");
+                yield return new DnsChange(DnsChangeKind.Skip, wanted, blocker, $"{wanted.Name} already has a {Type(blocker)} record, and a CNAME cannot sit beside other records. Remove it at the DNS host to publish this one.");
                 yield break;
             }
 

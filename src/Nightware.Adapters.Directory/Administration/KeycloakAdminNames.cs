@@ -1,3 +1,5 @@
+using Nightware.Adapters.Directory.Core.Admin;
+using Nightware.Application.Administration;
 using Nightware.Domain.Administration;
 
 namespace Nightware.Adapters.Directory.Administration;
@@ -34,10 +36,20 @@ internal static class KeycloakAdminNames
     public static string DmarcAttribute(MailDomain domain) => "nightware_dmarc:" + domain.Name;
 
     /// <summary>
-    /// Organization attribute: the entity's Cloudflare API token, sealed by the console (ASP.NET Data Protection).
-    /// Never the token itself: Keycloak keeps organization representations in its admin events.
+    /// Organization attribute <c>nightware_dns_token:&lt;provider&gt;</c>: the entity's credential for that DNS host,
+    /// sealed by the console (ASP.NET Data Protection); <c>nightware_dns_token:cloudflare</c> for Cloudflare, as before
+    /// other hosts existed. Never the credential itself: Keycloak keeps organization representations in its admin events.
     /// </summary>
-    public const string DnsTokenAttribute = "nightware_dns_token:cloudflare";
+    public static string DnsTokenAttribute(DnsProvider provider) => "nightware_dns_token:" + provider.Key();
+
+    /// <summary>
+    /// The entity's DNS host: the first provider (in <see cref="DnsProvider"/> order, so Cloudflare before any other)
+    /// with a sealed credential. The console keeps only one; the order decides only if one was added by hand.
+    /// </summary>
+    public static SealedDnsToken? DnsToken(KeycloakOrganization organization) =>
+        DnsProviders.All
+            .Select(provider => organization.Attribute(DnsTokenAttribute(provider)) is { Length: > 0 } sealedToken ? new SealedDnsToken(provider, sealedToken) : null)
+            .FirstOrDefault(static t => t is not null);
 
     /// <summary>Keycloak's credential type for a passkey or security key used as a second factor.</summary>
     public const string PasskeyCredentialType = "webauthn";

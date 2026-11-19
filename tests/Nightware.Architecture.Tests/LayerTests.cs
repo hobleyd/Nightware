@@ -23,7 +23,7 @@ public sealed class LayerTests
     private const string AnyAdministrationAdapter = @"^Nightware\.Adapters\.[^.]+\.Administration(\..*)?$";
     private const string AnyAdapter = @"^Nightware\.Adapters(\..*)?$";
 
-    private static readonly string[] Adapters = ["Nightware.Adapters.Jmap", "Nightware.Adapters.Dav", "Nightware.Adapters.Directory", "Nightware.Adapters.Cloudflare"];
+    private static readonly string[] Adapters = ["Nightware.Adapters.Jmap", "Nightware.Adapters.Dav", "Nightware.Adapters.Directory", "Nightware.Adapters.Cloudflare", "Nightware.Adapters.DnsHosts"];
 
     private static readonly ArchArchitecture Architecture = new ArchLoader()
         .LoadAssemblies(
@@ -33,6 +33,7 @@ public sealed class LayerTests
             typeof(Nightware.Adapters.Dav.DavAdapterServiceCollectionExtensions).Assembly,
             typeof(Nightware.Adapters.Directory.DirectoryAdapterServiceCollectionExtensions).Assembly,
             typeof(Nightware.Adapters.Cloudflare.Administration.CloudflareAdministrationServiceCollectionExtensions).Assembly,
+            typeof(Nightware.Adapters.DnsHosts.Administration.DnsHostsAdministrationServiceCollectionExtensions).Assembly,
             typeof(Nightware.Api.Composition.NightwareComposition).Assembly,
             typeof(Nightware.Hosting.HostingDefaultsServiceCollectionExtensions).Assembly,
             typeof(Nightware.Admin.Composition.AdminComposition).Assembly)
@@ -77,6 +78,7 @@ public sealed class LayerTests
     [InlineData("Nightware.Adapters.Dav")]
     [InlineData("Nightware.Adapters.Directory")]
     [InlineData("Nightware.Adapters.Cloudflare")]
+    [InlineData("Nightware.Adapters.DnsHosts")]
     public void Adapters_depend_neither_on_the_api_nor_on_each_other(string adapter)
     {
         IArchRule rule = Types().That().ResideInNamespaceOrBelow(adapter).Should().NotDependOnAny(InNamespace(Api));

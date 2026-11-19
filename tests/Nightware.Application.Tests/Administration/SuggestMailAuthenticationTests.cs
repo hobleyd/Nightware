@@ -25,15 +25,15 @@ public sealed class SuggestMailAuthenticationTests
     {
         _bed.Options.PublicHost = Host;
         _dns.ResolveAsync(default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<IPAddress>>.Success([IPAddress.Parse("81.2.69.160")]));
-        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<string?>.Success("sealed:" + Token));
+        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<SealedDnsToken?>.Success(new SealedDnsToken(DnsProvider.Cloudflare, "sealed:" + Token)));
         _hosting.FindZoneAsync(default!, default!, Ct).ReturnsForAnyArgs(OperatorZone);
     }
 
-    private SuggestMailAuthentication Suggest() => new(_bed.Actor, _bed.Entities, new PublicAddresses(new DnsTokenVault(_bed.Entities, new PrefixSealer()), _hosting, _dns, _bed.Options));
+    private SuggestMailAuthentication Suggest() => new(_bed.Actor, _bed.Entities, new PublicAddresses(new DnsHosts(new DnsTokenVault(_bed.Entities, new PrefixSealer()), [_hosting]), _dns, _bed.Options));
 
     private void WithCloudflare(params ZoneRecord[] records)
     {
-        _bed.Entities.GetAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(AdminTestBed.AcmeEntity with { HasDnsToken = true });
+        _bed.Entities.GetAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(AdminTestBed.AcmeEntity with { DnsHost = DnsProvider.Cloudflare });
         _hosting.ListRecordsAsync(default!, default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<ZoneRecord>>.Success(records));
     }
 
@@ -61,7 +61,7 @@ public sealed class SuggestMailAuthenticationTests
         MailAuthenticationSuggestion suggestion = (await Suggest().ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Value;
 
         suggestion.Spf.Value.ShouldBe("v=spf1 ip4:81.2.69.161 ip6:2a01:4f8:c0c:1::1 -all");
-        suggestion.Source.ShouldBe(PublicAddressSource.Cloudflare);
+        suggestion.Source.ShouldBe(PublicAddressSource.Zone);
         await _dns.DidNotReceiveWithAnyArgs().ResolveAsync(default!, Ct);
     }
 
@@ -69,7 +69,7 @@ public sealed class SuggestMailAuthenticationTests
     public async Task The_addresses_are_the_same_whatever_order_dns_answers_in()
     {
         IPAddress[] answer = [IPAddress.Parse("2a01:4f8:c0c:1::1"), IPAddress.Parse("81.2.69.162"), IPAddress.Parse("81.2.69.160")];
-        PublicAddresses addresses = new(new DnsTokenVault(_bed.Entities, new PrefixSealer()), _hosting, _dns, _bed.Options);
+        PublicAddresses addresses = new(new DnsHosts(new DnsTokenVault(_bed.Entities, new PrefixSealer()), [_hosting]), _dns, _bed.Options);
 
         _dns.ResolveAsync(default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<IPAddress>>.Success(answer));
         PublicAddressLookup first = await addresses.FindAsync(AdminTestBed.AcmeEntity, Ct);

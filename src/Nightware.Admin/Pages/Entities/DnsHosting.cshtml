@@ -10,34 +10,53 @@
     ViewData["EntityId"] = Model.Id;
 }
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
-@{ var entity = Model.Entity.Entity; }
+@{
+    var entity = Model.Entity.Entity;
+    string? host = entity.DnsHost is { } connected ? Nightware.Domain.Administration.DnsProviders.Name(connected) : null;
+}
 <section class="panel">
     <h1>DNS hosting <small>@entity.Name</small></h1>
     <partial name="_Messages" />
     @if (Model.Actor.IsGlobal)
     {
-        <p>@(entity.HasDnsToken
-            ? "Connected to Cloudflare. Publish each domain's records from its DNS page."
-            : "Not connected. Connect the entity's Cloudflare account to publish its domains' records from their DNS pages.")</p>
+        <p>@(host is not null
+            ? $"Connected to {host}. Publish each domain's records from its DNS page."
+            : "Not connected. Connect the entity's DNS host to publish its domains' records from their DNS pages.")</p>
         <form method="post" asp-page-handler="DnsToken">
-            <label>@(entity.HasDnsToken ? "Replace the Cloudflare API token" : "Cloudflare API token")
+            <label>DNS host
+                <select name="dnsProvider">
+                    @foreach (var provider in Model.Providers)
+                    {
+                        <option value="@Nightware.Domain.Administration.DnsProviders.Key(provider)" selected="@(provider == Model.Selected)">@Nightware.Domain.Administration.DnsProviders.Name(provider)</option>
+                    }
+                </select>
+            </label>
+            <label>@(host is not null ? "Replace the API credential" : "API credential")
                 <input type="password" name="dnsToken" autocomplete="off" spellcheck="false" required aria-describedby="dns-token-hint">
             </label>
-            <p id="dns-token-hint" class="hint">In Cloudflare, create an API token from the "Edit zone DNS" template, limited to this entity's zones. The console checks it with Cloudflare, stores it encrypted, and never shows it again.</p>
-            <button type="submit" class="secondary">@(entity.HasDnsToken ? "Replace token" : "Connect")</button>
+            <div id="dns-token-hint" class="hint">
+                <p>The console checks the credential with the DNS host, stores it encrypted, and never shows it again.@(host is not null ? $" Choosing another host replaces the {host} connection; records already published at {host} stay there." : "")</p>
+                <ul>
+                    @foreach (var provider in Model.Providers)
+                    {
+                        <li><strong>@Nightware.Domain.Administration.DnsProviders.Name(provider)</strong>: @Nightware.Admin.Pages.Entities.DnsHostingModel.Hint(provider)</li>
+                    }
+                </ul>
+            </div>
+            <button type="submit" class="secondary">@(host is not null ? "Replace" : "Connect")</button>
         </form>
-        @if (entity.HasDnsToken)
+        @if (host is not null)
         {
             <form method="post" asp-page-handler="RemoveDnsToken" class="remove">
-                <label class="choice"><input type="checkbox" name="confirm" value="true" required> Forget the token; records already published stay in Cloudflare</label>
-                <button type="submit" class="secondary">Disconnect Cloudflare</button>
+                <label class="choice"><input type="checkbox" name="confirm" value="true" required> Forget the credential; records already published stay at @host</label>
+                <button type="submit" class="secondary">Disconnect @host</button>
             </form>
         }
     }
     else
     {
-        <p>@(entity.HasDnsToken
-            ? "Connected to Cloudflare: your Nightware operator publishes your domains' records there."
+        <p>@(host is not null
+            ? $"Connected to {host}: your Nightware operator publishes your domains' records there."
             : "Not connected: publish each domain's records at your DNS provider, as listed on its DNS page.")</p>
     }
 </section>

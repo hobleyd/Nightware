@@ -7,13 +7,14 @@ namespace Nightware.Application.Administration.Entities;
 public sealed record DnsTokenReach(IReadOnlyList<(MailDomain Domain, DnsZone Zone)> Reached, IReadOnlyList<MailDomain> Unreached);
 
 /// <summary>
-/// Gives an entity the Cloudflare API token its domains' records are published with, or (a blank token) removes
-/// it. The token is tried first: one Cloudflare refuses, or one that reaches none of the entity's domains, is not
-/// kept. Global administrators only, like every domain change. The token never reaches the audit trail.
+/// Connects an entity to a DNS host with the credential its domains' records are published with (replacing any
+/// host it had), or (a blank token) disconnects it. The credential is tried first: one the host refuses, or one
+/// that reaches none of the entity's domains, is not kept, and the entity stays as it was. Global administrators
+/// only, like every domain change. The credential never reaches the audit trail.
 /// </summary>
-public sealed class SetEntityDnsToken(IAdminActor actor, IEntityRegistry entities, IDnsHosting hosting, DnsTokenVault vault, IAuditLog audit)
+public sealed class SetEntityDnsToken(IAdminActor actor, IEntityRegistry entities, DnsHosts hosts, DnsTokenVault vault, IAuditLog audit)
 {
-    public async Task<Result<DnsTokenReach>> ExecuteAsync(string entityId, string? token, CancellationToken cancellationToken)
+    public async Task<Result<DnsTokenReach>> ExecuteAsync(string entityId, DnsProvider provider, string? token, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(entityId);
         Result allowed = AdminAuthorization.RequireGlobal(actor.Current);
@@ -31,11 +32,17 @@ public sealed class SetEntityDnsToken(IAdminActor actor, IEntityRegistry entitie
         if (string.IsNullOrWhiteSpace(token))
         {
             Result removed = await vault.StoreAsync(entityId, null, cancellationToken).ConfigureAwait(false);
-            Record("entity.dns-token.removed", entityId, removed.IsSuccess, null);
+            Record("entity.dns-token.removed", entityId, null, removed.IsSuccess, null);
             return removed.IsSuccess ? new DnsTokenReach([], []) : removed.Error;
         }
 
-        Result<DnsProviderToken> parsed = DnsProviderToken.Parse(token);
+        Result<IDnsHosting> hosting = hosts.For(provider);
+        if (!hosting.IsSuccess)
+        {
+            return hosting.Error;
+        }
+
+        Result<DnsProviderToken> parsed = DnsProviderToken.Parse(provider, token);
         if (!parsed.IsSuccess)
         {
             return parsed.Error;
@@ -45,7 +52,7 @@ public sealed class SetEntityDnsToken(IAdminActor actor, IEntityRegistry entitie
         var unreached = new List<MailDomain>();
         foreach (MailDomain domain in entity.Value.Domains)
         {
-            Result<DnsZone> zone = await hosting.FindZoneAsync(parsed.Value, domain, cancellationToken).ConfigureAwait(false);
+            Result<DnsZone> zone = await hosting.Value.FindZoneAsync(parsed.Value, domain, cancellationToken).ConfigureAwait(false);
             if (zone.IsSuccess)
             {
                 reached.Add((domain, zone.Value));
@@ -56,28 +63,28 @@ public sealed class SetEntityDnsToken(IAdminActor actor, IEntityRegistry entitie
             }
             else
             {
-                Record("entity.dns-token.set", entityId, false, null);
+                Record("entity.dns-token.set", entityId, provider, false, null);
                 return zone.Error;
             }
         }
 
         if (reached.Count == 0)
         {
-            Record("entity.dns-token.set", entityId, false, null);
+            Record("entity.dns-token.set", entityId, provider, false, null);
             return Error.Validation(
-                $"Cloudflare accepted the token, but it reaches none of {string.Join(", ", unreached)}. Give it the Zone / DNS / Edit permission on their zones.",
+                $"{provider.Name()} accepted the credential, but it reaches none of {string.Join(", ", unreached)}. Check that their zones are hosted there and that it may edit them.",
                 "dnsToken");
         }
 
-        Result stored = await vault.StoreAsync(entityId, parsed.Value, cancellationToken).ConfigureAwait(false);
-        Record("entity.dns-token.set", entityId, stored.IsSuccess, string.Join(',', reached.Select(static r => r.Item2.Name).Distinct()));
+        Result stored = await vault.StoreAsync(entityId, new DnsConnection(provider, parsed.Value), cancellationToken).ConfigureAwait(false);
+        Record("entity.dns-token.set", entityId, provider, stored.IsSuccess, string.Join(',', reached.Select(static r => r.Item2.Name).Distinct()));
         return stored.IsSuccess ? new DnsTokenReach(reached, unreached) : stored.Error;
     }
 
-    private void Record(string action, string entityId, bool succeeded, string? zones) =>
+    private void Record(string action, string entityId, DnsProvider? provider, bool succeeded, string? zones) =>
         audit.Record(new AuditEvent(action, actor.Current.UserId, succeeded)
         {
             EntityId = entityId,
-            Details = new Dictionary<string, string?> { ["provider"] = "cloudflare", ["zones"] = zones },
+            Details = new Dictionary<string, string?> { ["provider"] = provider?.Key(), ["zones"] = zones },
         });
 }

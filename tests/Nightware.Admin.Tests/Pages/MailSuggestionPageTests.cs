@@ -58,9 +58,9 @@ public sealed class MailSuggestionPageTests : IDisposable
     [Fact]
     public async Task With_cloudflare_the_suggestion_says_its_address_came_from_the_zone()
     {
-        _host.Entities.GetAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(ConsoleHost.AcmeEntity with { HasDnsToken = true });
+        _host.Entities.GetAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(ConsoleHost.AcmeEntity with { DnsHost = DnsProvider.Cloudflare });
         string sealedToken = await SealedTokenAsync();
-        _host.Entities.GetSealedDnsTokenAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Result<string?>.Success(sealedToken));
+        _host.Entities.GetSealedDnsTokenAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Result<SealedDnsToken?>.Success(new SealedDnsToken(DnsProvider.Cloudflare, sealedToken)));
         _host.DnsHosting.FindZoneAsync(default!, default!, Ct).ReturnsForAnyArgs(new DnsZone("z-op", "operator.example"));
         _host.DnsHosting.ListRecordsAsync(default!, default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<ZoneRecord>>.Success(
             [new ZoneRecord("r1", new DnsRecord(PublicHost, "A", 300, "81.2.69.161"))]));
@@ -68,14 +68,14 @@ public sealed class MailSuggestionPageTests : IDisposable
         string html = await GetAsync(DnsUrl);
 
         html.ShouldContain(FormField("Spf", "v=spf1 ip4:81.2.69.161 -all"));
-        html.ShouldContain("The address comes from the A/AAAA records for mail.operator.example in the entity's Cloudflare zone.");
+        html.ShouldContain("The address comes from the A/AAAA records for mail.operator.example in the entity's zone at its DNS host.");
     }
 
     [Fact]
     public async Task A_cloudflare_token_that_cannot_be_opened_falls_back_to_public_dns()
     {
-        _host.Entities.GetAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(ConsoleHost.AcmeEntity with { HasDnsToken = true });
-        _host.Entities.GetSealedDnsTokenAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Result<string?>.Success(null));
+        _host.Entities.GetAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(ConsoleHost.AcmeEntity with { DnsHost = DnsProvider.Cloudflare });
+        _host.Entities.GetSealedDnsTokenAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Result<SealedDnsToken?>.Success(null));
 
         (await GetAsync(DnsUrl)).ShouldContain("from public DNS for mail.operator.example");
     }
@@ -98,11 +98,11 @@ public sealed class MailSuggestionPageTests : IDisposable
         string? sealedValue = null;
         _host.Entities.SetSealedDnsTokenAsync(default!, default, Ct).ReturnsForAnyArgs(c =>
         {
-            sealedValue = c.ArgAt<string?>(1);
+            sealedValue = c.ArgAt<SealedDnsToken?>(1)?.Sealed;
             return Result.Success();
         });
         using IServiceScope scope = _host.Services.CreateScope();
-        (await scope.ServiceProvider.GetRequiredService<DnsTokenVault>().StoreAsync(ConsoleHost.Acme, DnsProviderToken.Parse("cf-token-0123456789abcdefghijklmnopqrstuv").Value, Ct)).IsSuccess.ShouldBeTrue();
+        (await scope.ServiceProvider.GetRequiredService<DnsTokenVault>().StoreAsync(ConsoleHost.Acme, new DnsConnection(DnsProvider.Cloudflare, DnsProviderToken.Parse(DnsProvider.Cloudflare, "cf-token-0123456789abcdefghijklmnopqrstuv").Value), Ct)).IsSuccess.ShouldBeTrue();
         return sealedValue!;
     }
 

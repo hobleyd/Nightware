@@ -21,7 +21,7 @@ public sealed class AttentionTests
         new ListEntities(_bed.Actor, _bed.Entities),
         new GetEntity(_bed.Actor, _bed.Entities, _bed.DomainProvisioning()),
         new ListUsers(_bed.Actor, _bed.Entities, _bed.UserAccess()),
-        new PlanDnsPublication(_bed.Actor, Records(), _hosting, Vault()));
+        new PlanDnsPublication(_bed.Actor, Records(), new DnsHosts(Vault(), [_hosting])));
 
     public AttentionTests()
     {
@@ -126,8 +126,8 @@ public sealed class AttentionTests
     private void ConnectToCloudflare(params ZoneRecord[] zone)
     {
         _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
-        _bed.Entities.GetAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(AdminTestBed.AcmeEntity with { HasDnsToken = true });
-        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<string?>.Success("sealed"));
+        _bed.Entities.GetAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(AdminTestBed.AcmeEntity with { DnsHost = DnsProvider.Cloudflare });
+        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<SealedDnsToken?>.Success(new SealedDnsToken(DnsProvider.Cloudflare, "sealed")));
         _bed.MailDomains.GetDnsRecordsAsync(default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<DnsRecord>>.Success(
         [
             new DnsRecord("acme.example", "MX", 3600, "10 mail.acme.example"),

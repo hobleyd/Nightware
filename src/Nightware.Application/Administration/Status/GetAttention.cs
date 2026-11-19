@@ -8,9 +8,9 @@ namespace Nightware.Application.Administration.Status;
 /// <summary>A user whose status needs an admin, in the entity they were found in.</summary>
 public sealed record UserNeedingAttention(UserDetail User, UserStatus Status, Entity Entity);
 
-/// <summary>A domain the mail server does not serve, or serves without signing keys, or whose records are not yet in its Cloudflare zone.</summary>
+/// <summary>A domain the mail server does not serve, or serves without signing keys, or whose records are not yet in its zone at the entity's DNS host.</summary>
 /// <param name="Unsafe">What in the domain's own SPF or DMARC lets anyone send as it; empty when nothing does.</param>
-/// <param name="DnsChanges">The changes publishing to the entity's Cloudflare zone would write; 0 when none, or when not compared.</param>
+/// <param name="DnsChanges">The changes publishing to the entity's DNS host would write; 0 when none, or when not compared.</param>
 public sealed record DomainNeedingAttention(DomainStatus Domain, Entity Entity, IReadOnlyList<MailAuthenticationWeakness> Unsafe, int DnsChanges = 0)
 {
     /// <summary>The mail server's side is what needs fixing (Repair), not the domain's own records.</summary>
@@ -31,7 +31,7 @@ public sealed record Attention(IReadOnlyList<UserNeedingAttention> Users, IReadO
 /// The dashboard's worklist: every user of the actor's entities whose offboarding is incomplete, who conflicts
 /// or who needs repair, and every domain not served properly. Read on each visit, stored nowhere (ADR 0002 D1);
 /// an entity above <see cref="ListUsers"/>' link limit is reported as not checked rather than half-read. For a
-/// global administrator, a served domain of an entity connected to Cloudflare is also compared with its zone, and
+/// global administrator, a served domain of an entity connected to a DNS host is also compared with its zone, and
 /// needs attention while publishing would change it (publishing is theirs alone); a zone that cannot be read leaves
 /// its entity not checked.
 /// </summary>
@@ -98,7 +98,7 @@ public sealed class GetAttention(IAdminActor actor, ListEntities entities, GetEn
     }
 
     /// <summary>
-    /// How many changes publishing the domain's records to the entity's Cloudflare zone would write; 0 when it is
+    /// How many changes publishing the domain's records to the entity's DNS host would write; 0 when it is
     /// not compared, null when the zone could not be read (the entity is then not checked; its DNS page says why).
     /// </summary>
     private async Task<int?> DnsChangesAsync(Entity entity, DomainStatus domain, CancellationToken cancellationToken)

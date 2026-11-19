@@ -40,7 +40,7 @@ public sealed class DetailModel(
 
     /// <summary>
     /// Removes a domain, confirmed in the row's pop-up. With <paramref name="cleanUpDns"/>, the domain's mail records
-    /// come out of its Cloudflare zone first (only those matching what the console publishes); if that fails, the
+    /// come out of its zone at the entity's DNS host first (only those matching what the console publishes); if that fails, the
     /// domain stays, so its records can still be found and cleaned up.
     /// </summary>
     public async Task<IActionResult> OnPostRemoveDomainAsync(string domain, bool confirm, bool cleanUpDns, CancellationToken cancellationToken)
@@ -56,16 +56,16 @@ public sealed class DetailModel(
             Result<DnsCleanUp> cleanUp = await removeDnsRecords.ExecuteAsync(Id, domain, cancellationToken);
             if (!cleanUp.IsSuccess)
             {
-                return Fail(cleanUp.Error) ?? await UnconfirmedAsync($"Nothing was removed: the mail records for {domain} could not be cleaned up at Cloudflare.", cancellationToken);
+                return Fail(cleanUp.Error) ?? await UnconfirmedAsync($"Nothing was removed: the mail records for {domain} could not be cleaned up at the DNS host.", cancellationToken);
             }
 
             if (cleanUp.Value.Failed.Count > 0)
             {
-                ModelState.AddModelError(string.Empty, $"{domain} was not removed: Cloudflare refused to delete {cleanUp.Value.Failed.Count} of its mail records ({cleanUp.Value.Failed[0].Error!.Message}). {cleanUp.Value.Removed} were deleted; try again.");
+                ModelState.AddModelError(string.Empty, $"{domain} was not removed: the DNS host refused to delete {cleanUp.Value.Failed.Count} of its mail records ({cleanUp.Value.Failed[0].Error!.Message}). {cleanUp.Value.Removed} were deleted; try again.");
                 return await RenderAsync(cancellationToken);
             }
 
-            cleaned = $" {cleanUp.Value.Removed} mail {(cleanUp.Value.Removed == 1 ? "record was" : "records were")} removed from Cloudflare"
+            cleaned = $" {cleanUp.Value.Removed} mail {(cleanUp.Value.Removed == 1 ? "record was" : "records were")} removed from the DNS host"
                 + (cleanUp.Value.Left > 0 ? $"; {cleanUp.Value.Left} that differ from what the console publishes were left." : ".");
         }
 

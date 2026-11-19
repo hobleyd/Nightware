@@ -37,7 +37,7 @@
 
 @{
     // Steps appear only when there is something to do: deciding SPF and DMARC while the domain has not, or on Edit;
-    // publishing while Cloudflare differs. Otherwise the page is the records as they stand, read-only.
+    // publishing while the DNS host differs. Otherwise the page is the records as they stand, read-only.
     var global = Model.Actor.IsGlobal;
     var plan = Model.Publication?.Plan;
     var showPolicy = global && Model.ShowPolicyForm;
@@ -56,10 +56,10 @@
 @if (showPublish)
 {
     <section class="panel">
-        <h2>@(numbered ? "2. " : "")Publish to Cloudflare</h2>
+        <h2>@(numbered ? "2. " : "")Publish to @Model.DnsHostName</h2>
         @if (Model.PublicationUnread is not null)
         {
-            <div class="warning"><p>The Cloudflare zone could not be compared: @Model.PublicationUnread.Message</p></div>
+            <div class="warning"><p>The @Model.DnsHostName zone could not be compared: @Model.PublicationUnread.Message</p></div>
         }
         else if (plan is not null)
         {
@@ -68,7 +68,7 @@
             <p>Zone @plan.Zone.Name. @(published == 1 ? "1 record is" : $"{published} records are") already published as needed.</p>
             <table class="dns changes">
                 <colgroup><col class="change"><col class="type"><col class="name"><col class="value"><col class="value"></colgroup>
-                <thead><tr><th>Change</th><th>Type</th><th>Name</th><th>Value</th><th>In Cloudflare now</th></tr></thead>
+                <thead><tr><th>Change</th><th>Type</th><th>Name</th><th>Value</th><th>At @Model.DnsHostName now</th></tr></thead>
                 <tbody>
                 @foreach (var c in shown)
                 {
@@ -78,7 +78,7 @@
                         <td data-label="Type">@record.Type</td>
                         <td data-label="Name">@record.Name</td>
                         <td data-label="Value">@if (c.Desired is not null) { <textarea readonly rows="@Systems.ValueRows(c.Desired.Value)" aria-label="@($"{record.Type} value to publish at {record.Name}")">@c.Desired.Value</textarea> } else { <text>—</text> }</td>
-                        <td data-label="In Cloudflare now">@if (c.Current is not null) { <textarea readonly rows="@Systems.ValueRows(c.Current.Record.Value)" aria-label="@($"{record.Type} value in Cloudflare now at {record.Name}")">@c.Current.Record.Value</textarea> } else { <text>—</text> }</td>
+                        <td data-label="@($"At {Model.DnsHostName} now")">@if (c.Current is not null) { <textarea readonly rows="@Systems.ValueRows(c.Current.Record.Value)" aria-label="@($"{record.Type} value at {Model.DnsHostName} now at {record.Name}")">@c.Current.Record.Value</textarea> } else { <text>—</text> }</td>
                     </tr>
                 }
                 </tbody>
@@ -114,11 +114,11 @@ else
         <h2>@(showPolicy ? "In use now (before you save)" : $"Records for {Model.Domain}")</h2>
         @if (global && plan is { HasWork: false })
         {
-            <p><span class="chip linked">Published</span> Cloudflare zone @plan.Zone.Name has every record @Model.Domain needs.</p>
+            <p><span class="chip linked">Published</span> @Model.DnsHostName zone @plan.Zone.Name has every record @Model.Domain needs.</p>
         }
         else if (global && !Model.Entity.Entity.HasDnsToken)
         {
-            <p class="hint">Publish these at your DNS provider so mail for @Model.Domain is delivered here and passes SPF, DKIM and DMARC checks. Select a value to copy it. To publish from here instead, connect @Model.Entity.Entity.Name's Cloudflare account on its <a asp-page="/Entities/DnsHosting" asp-route-id="@Model.Id">DNS hosting</a> page.</p>
+            <p class="hint">Publish these at your DNS provider so mail for @Model.Domain is delivered here and passes SPF, DKIM and DMARC checks. Select a value to copy it. To publish from here instead, connect @Model.Entity.Entity.Name's DNS host on its <a asp-page="/Entities/DnsHosting" asp-route-id="@Model.Id">DNS hosting</a> page.</p>
         }
         else if (!global)
         {

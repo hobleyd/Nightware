@@ -575,6 +575,21 @@ Where the build refined the decisions above:
   own project (`Nightware.Adapters.Cloudflare`): reads retried, writes never.
   Its data format (SRV/CAA/TLSA `data`, TXT as quoted ≤255-character strings)
   is **unverified** against the live API (WireMock only).
+- **Other DNS hosts (amended).** An entity's DNS host may instead be
+  DigitalOcean, Gandi LiveDNS, Hetzner (the Cloud API's zones; its DNS API closed
+  in May 2026) or Amazon Route 53, one `IDnsHosting` each in
+  `Nightware.Adapters.DnsHosts`, chosen on its DNS hosting page. The host is
+  which `nightware_dns_token:<host>` attribute it has (one at a time; storing one
+  removes the others), sealed for `dns-token:<host>:<entity id>`, so entities
+  connected to Cloudflare before this kept their attribute, purpose and plans
+  unchanged. Record-set hosts (Gandi, Hetzner, Route 53) give each value an id
+  from its name, type and a hash of the value, so a plan's fingerprint is stable,
+  and change one value per write (read the set, change it, write it back; Hetzner
+  with its add/set/remove actions). Route 53 takes `KEYID:SECRET` (61 characters,
+  within the 79 the attribute allows); Azure DNS and Google Cloud DNS need
+  credentials (a service principal, a JSON key) that do not fit one attribute and
+  are not offered. Their formats are **unverified** against the live APIs
+  (WireMock only; Route 53's signing matches AWS's published test vectors).
 - **Verified end to end** on an isolated stack (Keycloak 26.8.2, Stalwart 1.1.0,
   Nextcloud 35): MFA sign-in, entity and domain creation (DNS records shown),
   linking existing users, creating a user who then signs in to NightMail and

@@ -44,7 +44,7 @@ public static class Systems
         _ => state.ToString(),
     };
 
-    /// <summary>A planned change to a Cloudflare zone, as the DNS page lists it.</summary>
+    /// <summary>A planned change to a zone at the entity's DNS host, as the DNS page lists it.</summary>
     public static string DnsChangeLabel(DnsChangeKind kind) => kind switch
     {
         DnsChangeKind.Create => "Add",

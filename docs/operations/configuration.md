@@ -135,7 +135,7 @@ from `deploy/.env`.
 | `Admin:ActionEmailLifespan` | `3.00:00:00` | Validity of a set-password e-mail link. |
 | `Admin:AccessTokenLifespan` | `00:15:00` | Keep equal to the realm's `accessTokenLifespan`; the console tells the admin an offboarding is fully effective after this long. |
 | `Admin:ScopeCacheLifetime` | `00:01:00` | How long an admin's rights, read from Keycloak, are reused. |
-| `Admin:PublicHost` | — (compose: `PUBLIC_HOST`) | The host the stack is served at. The DNS page suggests an SPF record naming its public addresses: the A/AAAA records in the entity's Cloudflare zone when the entity has a token and the host is in a zone it reaches, otherwise public DNS (Cloudflare's resolver, never the container's). Unset, or with no public address, the suggestion names the MX hosts. |
+| `Admin:PublicHost` | — (compose: `PUBLIC_HOST`) | The host the stack is served at. The DNS page suggests an SPF record naming its public addresses: the A/AAAA records in the entity's zone at its DNS host when the entity has a credential and the host is in a zone it reaches, otherwise public DNS (Cloudflare's resolver, never the container's). Unset, or with no public address, the suggestion names the MX hosts. |
 | `Admin:KeycloakAdminUrl` / `Admin:StalwartAdminUrl` / `Admin:NextcloudAdminUrl` | — (compose: under `PUBLIC_HOST`) | Each system's own admin console, linked from the dashboard's Systems panel for global admins (new tab). Absolute http(s) URLs; unset hides that link. Point them where the admin can reach them (in production Keycloak's and Stalwart's are LAN/VPN only). |
 | `Admin:GlobalAdminsAdministerServers` | `false` (compose: `ADMIN_GLOBAL_ADMINS_ADMINISTER_SERVERS`, default `true`) | Global admins also administer Keycloak's realm (`realm-admin`, a composite of their role, from `keycloak/configure-console.sh`), Stalwart and Nextcloud: granting or revoking global admin sets their mailbox's `Admin` role, which needs the console's own Stalwart account to be an administrator (`stalwart/configure.sh`), and their Nextcloud account's membership of the `admin` group (Keycloak-signed-in accounts only, never a local one). A global admin may then manage another global admin; other Keycloak, Stalwart or Nextcloud administrators (sub-administrators included) and service accounts stay off-limits (ADR 0002 D6). |
 | `Admin:GrafanaUrl` | — (compose: `https://${PUBLIC_HOST}/grafana/`) | Grafana, the stack's telemetry, linked from the dashboard's Systems panel for global admins (new tab), with its status. Absolute http(s) URL; unset hides the link. |
@@ -153,12 +153,14 @@ from `deploy/.env`.
 | `Cloudflare:ApiBaseUrl` | `https://api.cloudflare.com/client/v4/` | Cloudflare's API, for publishing an entity's DNS records. No credential here: each entity's own token is entered on its page and kept sealed in Keycloak. |
 | `Cloudflare:RequestTimeout` / `AttemptTimeout` / `MaxRetryAttempts` | `00:00:30` / `00:00:10` / `2` | Per call; reads are retried, writes never. |
 | `Cloudflare:RecordPageSize` / `MaxRecords` | `500` / `10000` | Zone read in pages; a larger zone is refused rather than planned against in part. |
+| `DnsHosts:DigitalOceanApiBaseUrl` / `GandiApiBaseUrl` / `HetznerApiBaseUrl` / `Route53ApiBaseUrl` | `https://api.digitalocean.com/v2/` / `https://api.gandi.net/v5/livedns/` / `https://api.hetzner.cloud/v1/` / `https://route53.amazonaws.com/2013-04-01/` | The other DNS hosts an entity can be connected to instead of Cloudflare. No credential here either: each entity's own is entered on its DNS hosting page and kept sealed in Keycloak. |
+| `DnsHosts:RequestTimeout` / `AttemptTimeout` / `MaxRetryAttempts` / `MaxRecords` | `00:00:30` / `00:00:10` / `2` / `10000` | As for Cloudflare, shared by those hosts. |
 
-Publishing to Cloudflare needs the console to trust public certificate authorities: set
+Publishing to any DNS host needs the console to trust public certificate authorities: set
 `NIGHTWARE_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt`. With the default (Caddy's local root only) the
-DNS page says the console does not trust Cloudflare's certificate.
+DNS page says the console does not trust the host's certificate.
 
-The console's Data Protection key ring (`admin-keys` volume) encrypts its cookies and the entities' Cloudflare
-tokens. Its application name is fixed (`Nightware.Admin`). Back the volume up with Keycloak's database: losing
+The console's Data Protection key ring (`admin-keys` volume) encrypts its cookies and the entities' DNS host
+credentials. Its application name is fixed (`Nightware.Admin`). Back the volume up with Keycloak's database: losing
 it signs everyone out and makes stored tokens unreadable (re-enter them on each entity's page).
 

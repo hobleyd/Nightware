@@ -34,11 +34,11 @@ public interface IEntityRegistry
     /// <summary>Stores the domain's SPF and DMARC choice (a null record returns it to the mail server's default). NotFound when the entity lacks the domain.</summary>
     Task<Result<Entity>> SetMailPolicyAsync(string entityId, MailDomain domain, DomainMailPolicy policy, CancellationToken cancellationToken);
 
-    /// <summary>The entity's sealed DNS host token (<see cref="ISecretSealer"/>), or null when it has none.</summary>
-    Task<Result<string?>> GetSealedDnsTokenAsync(string entityId, CancellationToken cancellationToken);
+    /// <summary>The entity's sealed DNS host credential (<see cref="ISecretSealer"/>) and its host, or null when it has none.</summary>
+    Task<Result<SealedDnsToken?>> GetSealedDnsTokenAsync(string entityId, CancellationToken cancellationToken);
 
-    /// <summary>Stores the entity's sealed DNS host token, or with null removes it.</summary>
-    Task<Result> SetSealedDnsTokenAsync(string entityId, string? sealedToken, CancellationToken cancellationToken);
+    /// <summary>Stores the entity's sealed DNS host credential, forgetting any other host's; with null removes every one.</summary>
+    Task<Result> SetSealedDnsTokenAsync(string entityId, SealedDnsToken? token, CancellationToken cancellationToken);
 
     Task<Result<IReadOnlyList<IdentityAccount>>> ListMembersAsync(string entityId, CancellationToken cancellationToken);
 
@@ -254,12 +254,18 @@ public interface ISecretSealer
     bool TryUnseal(string purpose, string sealedSecret, out string secret);
 }
 
+/// <summary>An entity's DNS host credential as stored: sealed (<see cref="ISecretSealer"/>), with the host it is for.</summary>
+public sealed record SealedDnsToken(DnsProvider Provider, string Sealed);
+
 /// <summary>
-/// An entity's DNS host (Cloudflare), reached with the entity's own token. A token the host refuses is a
-/// <see cref="ErrorKind.Validation"/> error with target <c>dnsToken</c>.
+/// One DNS host (<see cref="Provider"/>; one implementation each), reached with the entity's own credential. A
+/// credential the host refuses is a <see cref="ErrorKind.Validation"/> error with target <c>dnsToken</c>. Zone
+/// records carry ids that stay the same while the record does, since a plan's fingerprint includes them.
 /// </summary>
 public interface IDnsHosting
 {
+    DnsProvider Provider { get; }
+
     /// <summary>The zone holding <paramref name="domain"/>: the domain's own or its closest parent the token can see; NotFound when none.</summary>
     Task<Result<DnsZone>> FindZoneAsync(DnsProviderToken token, MailDomain domain, CancellationToken cancellationToken);
 

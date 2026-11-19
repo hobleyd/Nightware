@@ -15,6 +15,8 @@ namespace Nightware.Adapters.Cloudflare.Administration;
 /// </summary>
 internal sealed class CloudflareDnsHosting(ICloudflareClient cloudflare, IOptions<CloudflareOptions> options) : IDnsHosting
 {
+    public DnsProvider Provider => DnsProvider.Cloudflare;
+
     public async Task<Result<DnsZone>> FindZoneAsync(DnsProviderToken token, MailDomain domain, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(token);

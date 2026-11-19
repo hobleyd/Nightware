@@ -218,7 +218,16 @@ management API. Use the documented fallback in `.env`
 and `docker compose --profile api up -d nightware-admin`. The fallback is a
 full-access credential; see deploy/README.md "Admin console".
 
-## Admin console: publishing to Cloudflare fails
+## Admin console: publishing to a DNS host fails
+
+The messages below are Cloudflare's; the other hosts (DigitalOcean, Gandi,
+Hetzner, Amazon Route 53) give the same kinds, named for themselves:
+*"<host> refused the credential"* (revoked, expired, or missing a permission:
+for Route 53 also a wrong secret or a clock more than five minutes off, which
+AWS reports as `SignatureDoesNotMatch`), *"reaches no zone"*, and a row the
+host refused. Hetzner applies changes asynchronously, so a DNS page reloaded
+straight after publishing may still list them for a few seconds. DigitalOcean
+hosts no TLSA records; publish those elsewhere.
 
 - *"Cloudflare refused the token"*: it was revoked, expired, or lacks
   Zone / DNS / Edit on the zone. Create a new one and replace it on the entity's
@@ -239,8 +248,11 @@ full-access credential; see deploy/README.md "Admin console".
   CNAME that clashes with an existing A record. Remove the clashing record in
   Cloudflare and publish again; everything else was already written.
 
-To rotate an entity's token, replace it on the entity's page. *Disconnect
-Cloudflare* forgets it. Revoke the old token in Cloudflare either way.
+To rotate an entity's credential, replace it on its DNS hosting page (the host
+offered is the one it is connected to). Choosing another host there moves the
+entity to it and forgets the old credential; records already published stay at
+the old host. *Disconnect* forgets it. Revoke the old credential at the host
+either way.
 
 ## Rotating the admin console's credentials
 

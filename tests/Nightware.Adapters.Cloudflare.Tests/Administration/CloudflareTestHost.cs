@@ -41,7 +41,7 @@ internal sealed class CloudflareTestHost : IDisposable
         _provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
     }
 
-    public static DnsProviderToken Token { get; } = DnsProviderToken.Parse(TokenValue).Value;
+    public static DnsProviderToken Token { get; } = DnsProviderToken.Parse(DnsProvider.Cloudflare, TokenValue).Value;
 
     public WireMockServer Server { get; }
 

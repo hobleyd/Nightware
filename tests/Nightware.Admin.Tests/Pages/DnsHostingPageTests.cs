@@ -20,6 +20,7 @@ public sealed partial class DnsHostingPageTests : IDisposable
 
     private readonly ConsoleHost _host = new();
     private string? _stored;
+    private DnsProvider _storedHost;
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -33,10 +34,11 @@ public sealed partial class DnsHostingPageTests : IDisposable
     {
         _host.Entities.SetSealedDnsTokenAsync(default!, default, Ct).ReturnsForAnyArgs(c =>
         {
-            _stored = c.ArgAt<string?>(1);
+            _stored = c.ArgAt<SealedDnsToken?>(1)?.Sealed;
+            _storedHost = c.ArgAt<SealedDnsToken?>(1)?.Provider ?? default;
             return Result.Success();
         });
-        _host.Entities.GetSealedDnsTokenAsync(default!, Ct).ReturnsForAnyArgs(_ => Result<string?>.Success(_stored));
+        _host.Entities.GetSealedDnsTokenAsync(default!, Ct).ReturnsForAnyArgs(_ => Result<SealedDnsToken?>.Success(_stored is null ? null : new SealedDnsToken(_storedHost, _stored)));
         _host.DnsHosting.FindZoneAsync(default!, default!, Ct).ReturnsForAnyArgs(AcmeZone);
         _host.DnsHosting.ListRecordsAsync(default!, default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<ZoneRecord>>.Success(
             [new ZoneRecord("r-spf", new DnsRecord("acme.example", "TXT", null, "v=spf1 -all"))]));
@@ -53,7 +55,7 @@ public sealed partial class DnsHostingPageTests : IDisposable
 
     private void GivenConnected()
     {
-        _host.Entities.GetAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(ConsoleHost.AcmeEntity with { HasDnsToken = true });
+        _host.Entities.GetAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(ConsoleHost.AcmeEntity with { DnsHost = DnsProvider.Cloudflare });
         _stored = _host.Services.GetRequiredService<ISecretSealer>().Seal("dns-token:cloudflare:" + ConsoleHost.Acme, Token);
     }
 
@@ -75,6 +77,48 @@ public sealed partial class DnsHostingPageTests : IDisposable
         string entityAdmin = await GetAsync(HostingUrl, ConsoleHost.EntityAdmin);
         entityAdmin.ShouldContain("Not connected: publish each domain");
         entityAdmin.ShouldNotContain("handler=DnsToken");
+    }
+
+    [Fact]
+    public async Task Every_host_is_offered_and_a_connected_entitys_own_is_selected_so_a_new_token_keeps_it()
+    {
+        GivenConnected();
+
+        string html = await GetAsync(HostingUrl);
+
+        html.ShouldContain("Connected to Cloudflare.");
+        html.ShouldContain("<option value=\"cloudflare\" selected=\"selected\">Cloudflare</option>");
+        foreach (string other in new[] { "digitalocean", "gandi", "hetzner", "route53" })
+        {
+            html.ShouldContain($"<option value=\"{other}\">");
+        }
+
+        html.ShouldContain("Choosing another host replaces the Cloudflare connection");
+        html.ShouldContain("<strong>Amazon Route 53</strong>: IAM: an access key");
+    }
+
+    [Fact]
+    public async Task Connecting_another_host_stores_the_credential_for_that_host()
+    {
+        _host.DnsHosting.Provider.Returns(DnsProvider.Hetzner);
+
+        using HttpResponseMessage response = await PostAsync(HostingUrl, "DnsToken", new() { ["dnsProvider"] = "hetzner", ["dnsToken"] = Token });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        _storedHost.ShouldBe(DnsProvider.Hetzner);
+        _stored.ShouldNotBeNullOrEmpty();
+        _host.Services.GetRequiredService<ISecretSealer>().TryUnseal("dns-token:hetzner:" + ConsoleHost.Acme, _stored, out string opened).ShouldBeTrue();
+        opened.ShouldBe(Token);
+    }
+
+    [Fact]
+    public async Task An_unknown_host_is_refused_without_a_call()
+    {
+        using HttpResponseMessage response = await PostAsync(HostingUrl, "DnsToken", new() { ["dnsProvider"] = "godaddy", ["dnsToken"] = Token });
+
+        (await response.Content.ReadAsStringAsync(Ct)).ShouldContain("Choose a DNS host from the list.");
+        _stored.ShouldBeNull();
+        await _host.DnsHosting.DidNotReceiveWithAnyArgs().FindZoneAsync(default!, default!, Ct);
     }
 
     [Fact]
@@ -133,7 +177,7 @@ public sealed partial class DnsHostingPageTests : IDisposable
     {
         string html = await GetAsync(DnsUrl);
 
-        html.ShouldContain($"connect Acme Pty's Cloudflare account on its <a href=\"{HostingUrl}\">DNS hosting</a> page.");
+        html.ShouldContain($"connect Acme Pty's DNS host on its <a href=\"{HostingUrl}\">DNS hosting</a> page.");
         await _host.DnsHosting.DidNotReceiveWithAnyArgs().FindZoneAsync(default!, default!, Ct);
     }
 
@@ -314,7 +358,7 @@ public sealed partial class DnsHostingPageTests : IDisposable
 
         string html = await (await PostAsync(EntityUrl, "RemoveDomain", new() { ["domain"] = "acme.example", ["confirm"] = "true", ["cleanUpDns"] = "true" })).Content.ReadAsStringAsync(Ct);
 
-        html.ShouldContain("acme.example was not removed: Cloudflare refused to delete 1 of its mail records (Cloudflare refused it.)");
+        html.ShouldContain("acme.example was not removed: the DNS host refused to delete 1 of its mail records (Cloudflare refused it.)");
         await _host.Entities.DidNotReceiveWithAnyArgs().RemoveDomainAsync(default!, default!, Ct);
     }
 

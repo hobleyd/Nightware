@@ -50,7 +50,7 @@ public static class CloudflareAdministrationServiceCollectionExtensions
                 pipeline.AddTimeout(options.AttemptTimeout);
             });
 
-        services.TryAddScoped<IDnsHosting, CloudflareDnsHosting>();
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<IDnsHosting, CloudflareDnsHosting>());
 
         // No resilience pipeline: one short attempt, so a slow resolver never holds up the page that asks.
         services.AddHttpClient<IPublicDns, CloudflarePublicDns>(static (provider, http) =>

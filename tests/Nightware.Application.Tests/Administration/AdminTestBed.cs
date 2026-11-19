@@ -150,7 +150,7 @@ internal sealed class AdminTestBed
     public DomainProvisioning DomainProvisioning() => new(MailDomains);
 
     /// <summary>The server's public addresses, found through <see cref="PublicDns"/> (no entity's Cloudflare token is readable here).</summary>
-    public PublicAddresses PublicAddresses() => new(new DnsTokenVault(Entities, Substitute.For<ISecretSealer>()), Substitute.For<IDnsHosting>(), PublicDns, Options);
+    public PublicAddresses PublicAddresses() => new(new DnsHosts(new DnsTokenVault(Entities, Substitute.For<ISecretSealer>()), [Substitute.For<IDnsHosting>()]), PublicDns, Options);
 
     public DeletionGuard DeletionGuard() => new(Actor, UserAccess(), Options, Time);
 

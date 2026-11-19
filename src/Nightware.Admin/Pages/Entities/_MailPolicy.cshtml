@@ -40,8 +40,8 @@
                 <p id="spf-suggested" class="suggested">Suggested, not in use until you save: only @(s.Addresses.Count > 0 ? "this server's public " + (s.Addresses.Count == 1 ? "address" : "addresses") : "the domain's MX hosts") may send, and other senders are refused.
                     @switch (s.Source)
                     {
-                        case Nightware.Application.Administration.Entities.PublicAddressSource.Cloudflare:
-                            <text>The address comes from the A/AAAA records for @s.Host in the entity's Cloudflare zone.</text>
+                        case Nightware.Application.Administration.Entities.PublicAddressSource.Zone:
+                            <text>The address comes from the A/AAAA records for @s.Host in the entity's zone at its DNS host.</text>
                             break;
                         case Nightware.Application.Administration.Entities.PublicAddressSource.PublicDns:
                             <text>The address comes from public DNS for @s.Host. Behind NAT, mail can leave from a different address: check it.</text>

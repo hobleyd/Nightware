@@ -140,17 +140,17 @@ internal sealed class KeycloakEntityRegistry(IKeycloakAdminClient keycloak, Keyc
         return owned ? KeycloakAdministrationMapper.ToEntity(updated.Value) : Error.NotFound($"The entity has no domain {domain}.", "domain");
     }
 
-    public async Task<Result<string?>> GetSealedDnsTokenAsync(string entityId, CancellationToken cancellationToken)
+    public async Task<Result<SealedDnsToken?>> GetSealedDnsTokenAsync(string entityId, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(entityId);
         Result<KeycloakOrganization> organization = await keycloak.GetOrganizationAsync(entityId, cancellationToken).ConfigureAwait(false);
-        return organization.Map(static o => o.Attribute(KeycloakAdminNames.DnsTokenAttribute) is { Length: > 0 } sealedToken ? sealedToken : null);
+        return organization.Map(KeycloakAdminNames.DnsToken);
     }
 
-    public async Task<Result> SetSealedDnsTokenAsync(string entityId, string? sealedToken, CancellationToken cancellationToken)
+    public async Task<Result> SetSealedDnsTokenAsync(string entityId, SealedDnsToken? token, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(entityId);
-        if (sealedToken is { Length: > MaxAttributeLength })
+        if (token is { Sealed.Length: > MaxAttributeLength })
         {
             // Keycloak stores an attribute value in 255 characters and answers a longer one with a 500.
             return Error.Validation("That token is too long to store.", "dnsToken");
@@ -158,7 +158,17 @@ internal sealed class KeycloakEntityRegistry(IKeycloakAdminClient keycloak, Keyc
 
         Result<KeycloakOrganization> updated = await keycloak.UpdateOrganizationAsync(
                 entityId,
-                representation => SetAttribute(representation, KeycloakAdminNames.DnsTokenAttribute, sealedToken),
+                representation =>
+                {
+                    // One host at a time: every other provider's credential goes.
+                    bool changed = false;
+                    foreach (DnsProvider provider in DnsProviders.All)
+                    {
+                        changed |= SetAttribute(representation, KeycloakAdminNames.DnsTokenAttribute(provider), provider == token?.Provider ? token.Sealed : null);
+                    }
+
+                    return changed;
+                },
                 cancellationToken)
             .ConfigureAwait(false);
         return updated.IsSuccess ? Result.Success() : updated.Error;

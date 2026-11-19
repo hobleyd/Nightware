@@ -4,32 +4,38 @@ using Nightware.Domain.Kernel;
 namespace Nightware.Application.Administration.Entities;
 
 /// <summary>
-/// An entity's DNS host token, sealed at rest (<see cref="ISecretSealer"/>, purpose bound to the entity, so a
-/// sealed token copied to another entity does not open) and kept by the <see cref="IEntityRegistry"/>.
+/// An entity's DNS host credential, sealed at rest (<see cref="ISecretSealer"/>, purpose bound to the host and the
+/// entity, so a sealed credential copied to another entity or host does not open) and kept by the
+/// <see cref="IEntityRegistry"/>. An entity has at most one: storing one forgets any other host's.
 /// </summary>
 public sealed class DnsTokenVault(IEntityRegistry entities, ISecretSealer sealer)
 {
-    internal static string Purpose(string entityId) => "dns-token:cloudflare:" + entityId;
+    /// <summary><c>dns-token:cloudflare:&lt;id&gt;</c> for Cloudflare, as tokens stored before other hosts existed were sealed.</summary>
+    internal static string Purpose(DnsProvider provider, string entityId) => $"dns-token:{provider.Key()}:{entityId}";
 
-    public Task<Result> StoreAsync(string entityId, DnsProviderToken? token, CancellationToken cancellationToken) =>
-        entities.SetSealedDnsTokenAsync(entityId, token is null ? null : sealer.Seal(Purpose(entityId), token.Value), cancellationToken);
+    public Task<Result> StoreAsync(string entityId, DnsConnection? connection, CancellationToken cancellationToken) =>
+        entities.SetSealedDnsTokenAsync(
+            entityId,
+            connection is null ? null : new SealedDnsToken(connection.Provider, sealer.Seal(Purpose(connection.Provider, entityId), connection.Token.Value)),
+            cancellationToken);
 
-    /// <summary>The entity's token; Validation (target <c>dnsToken</c>) when it has none or it can no longer be read.</summary>
-    public async Task<Result<DnsProviderToken>> OpenAsync(string entityId, CancellationToken cancellationToken)
+    /// <summary>The entity's host and credential; Validation (target <c>dnsToken</c>) when it has none or it can no longer be read.</summary>
+    public async Task<Result<DnsConnection>> OpenAsync(string entityId, CancellationToken cancellationToken)
     {
-        Result<string?> stored = await entities.GetSealedDnsTokenAsync(entityId, cancellationToken).ConfigureAwait(false);
+        Result<SealedDnsToken?> stored = await entities.GetSealedDnsTokenAsync(entityId, cancellationToken).ConfigureAwait(false);
         if (!stored.IsSuccess)
         {
             return stored.Error;
         }
 
-        if (stored.Value is null)
+        if (stored.Value is not { } sealedToken)
         {
-            return Error.Validation("The entity has no Cloudflare token. A global administrator adds one on the entity's page.", "dnsToken");
+            return Error.Validation("The entity has no DNS host connected. A global administrator connects one on the entity's DNS hosting page.", "dnsToken");
         }
 
-        return sealer.TryUnseal(Purpose(entityId), stored.Value, out string token) && DnsProviderToken.Parse(token) is { IsSuccess: true } parsed
-            ? parsed.Value
-            : Error.Validation("The entity's Cloudflare token can no longer be read (the console's encryption keys changed). Enter it again on the entity's page.", "dnsToken");
+        DnsProvider provider = sealedToken.Provider;
+        return sealer.TryUnseal(Purpose(provider, entityId), sealedToken.Sealed, out string token) && DnsProviderToken.Parse(provider, token) is { IsSuccess: true } parsed
+            ? new DnsConnection(provider, parsed.Value)
+            : Error.Validation($"The entity's {provider.Name()} credential can no longer be read (the console's encryption keys changed). Enter it again on the entity's DNS hosting page.", "dnsToken");
     }
 }

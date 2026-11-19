@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 using Nightware.Adapters.Cloudflare.Administration;
+using Nightware.Adapters.DnsHosts.Administration;
 using Nightware.Adapters.Dav.Administration;
 using Nightware.Adapters.Directory;
 using Nightware.Adapters.Directory.Administration;
@@ -26,7 +27,7 @@ public static partial class AdminComposition
     public const string LivenessPath = "/healthz/live";
 
     /// <summary>
-    /// Fixed, so the key ring keeps opening what it sealed (cookies, and entities' Cloudflare tokens) wherever the
+    /// Fixed, so the key ring keeps opening what it sealed (cookies, and entities' DNS host credentials) wherever the
     /// app is deployed; by default it would be derived from the content root.
     /// </summary>
     internal const string DataProtectionApplicationName = "Nightware.Admin";
@@ -151,7 +152,8 @@ public static partial class AdminComposition
             .AddKeycloakAdministration()
             .AddStalwartAdministration(configuration)
             .AddNextcloudAdministration(configuration)
-            .AddCloudflareAdministration(configuration);
+            .AddCloudflareAdministration(configuration)
+            .AddDnsHostsAdministration(configuration);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Admin console: multi-factor sign-in is OFF (Admin:AcceptedAcrValues / ADMIN_REQUIRED_ACR is empty). Only acceptable on a loopback development stack.")]
     private static partial void LogMfaOff(ILogger logger);

@@ -83,7 +83,7 @@
                         {
                             !served ? $"the mail server does not serve it ({Systems.StateLabel(d.Domain.Mail.State)})" : served && !d.Domain.DkimPresent ? "no signing (DKIM) keys" : null,
                             d.Unsafe.Count > 0 ? "its SPF lets any server send mail as it" : null,
-                            d.DnsChanges > 0 ? $"{d.DnsChanges} DNS {(d.DnsChanges == 1 ? "change" : "changes")} not yet published to Cloudflare" : null,
+                            d.DnsChanges > 0 ? $"{d.DnsChanges} DNS {(d.DnsChanges == 1 ? "change" : "changes")} not yet published to the DNS host" : null,
                         }.Where(static x => x is not null))
                         @if (Model.Actor.IsGlobal && d.Unsafe.Count > 0)
                         {
@@ -107,7 +107,7 @@
         }
         @if (Model.Attention.NotChecked.Count > 0)
         {
-            <p class="hint">Not checked: @string.Join(", ", Model.Attention.NotChecked.Select(e => e.Name)). Too many users to read here, or a system (or a Cloudflare zone) could not be reached; open the entity to look.</p>
+            <p class="hint">Not checked: @string.Join(", ", Model.Attention.NotChecked.Select(e => e.Name)). Too many users to read here, or a system (or a DNS host's zone) could not be reached; open the entity to look.</p>
         }
     }
 </section>

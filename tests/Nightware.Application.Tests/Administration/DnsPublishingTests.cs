@@ -22,7 +22,7 @@ public sealed class DnsPublishingTests
     public DnsPublishingTests()
     {
         _bed.Entities.SetSealedDnsTokenAsync(default!, default, default).ReturnsForAnyArgs(Result.Success());
-        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<string?>.Success(Sealed));
+        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<SealedDnsToken?>.Success(new SealedDnsToken(DnsProvider.Cloudflare, Sealed)));
         _bed.MailDomains.GetDnsRecordsAsync(default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<DnsRecord>>.Success(
         [
             new DnsRecord("acme.example", "MX", 3600, "10 mail.acme.example"),
@@ -36,13 +36,15 @@ public sealed class DnsPublishingTests
 
     private DnsTokenVault Vault() => new(_bed.Entities, _sealer);
 
-    private SetEntityDnsToken SetToken() => new(_bed.Actor, _bed.Entities, _hosting, Vault(), _bed.Audit);
+    private DnsHosts Hosts() => new(Vault(), [_hosting]);
 
-    private PlanDnsPublication Planner() => new(_bed.Actor, new GetEntityDnsRecords(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.PublicAddresses()), _hosting, Vault());
+    private SetEntityDnsToken SetToken() => new(_bed.Actor, _bed.Entities, Hosts(), Vault(), _bed.Audit);
 
-    private PublishDnsRecords Publisher() => new(_bed.Actor, Planner(), _hosting, _bed.Audit);
+    private PlanDnsPublication Planner() => new(_bed.Actor, new GetEntityDnsRecords(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.PublicAddresses()), Hosts());
 
-    private RemoveDomainDnsRecords CleanUp() => new(_bed.Actor, Planner(), _hosting, _bed.Audit);
+    private PublishDnsRecords Publisher() => new(_bed.Actor, Planner(), _bed.Audit);
+
+    private RemoveDomainDnsRecords CleanUp() => new(_bed.Actor, Planner(), _bed.Audit);
 
     [Fact]
     public async Task Cleaning_up_removes_only_the_records_that_match_what_the_console_publishes()
@@ -89,11 +91,11 @@ public sealed class DnsPublishingTests
     [Fact]
     public async Task A_token_that_reaches_the_entitys_zone_is_stored_sealed_for_that_entity()
     {
-        Result<DnsTokenReach> result = await SetToken().ExecuteAsync(AdminTestBed.Acme, $"  {Token} ", Ct);
+        Result<DnsTokenReach> result = await SetToken().ExecuteAsync(AdminTestBed.Acme, DnsProvider.Cloudflare, $"  {Token} ", Ct);
 
         result.Value.Reached.ShouldHaveSingleItem().Zone.ShouldBe(AcmeZone);
-        await _bed.Entities.Received(1).SetSealedDnsTokenAsync(AdminTestBed.Acme, Sealed, Arg.Any<CancellationToken>());
-        _sealer.Purposes.ShouldBe([DnsTokenVault.Purpose(AdminTestBed.Acme)]);
+        await _bed.Entities.Received(1).SetSealedDnsTokenAsync(AdminTestBed.Acme, new SealedDnsToken(DnsProvider.Cloudflare, Sealed), Arg.Any<CancellationToken>());
+        _sealer.Purposes.ShouldBe([DnsTokenVault.Purpose(DnsProvider.Cloudflare, AdminTestBed.Acme)]);
         AuditEvent audit = _bed.Audit.Single("entity.dns-token.set");
         audit.Succeeded.ShouldBeTrue();
         audit.Details.Values.ShouldNotContain(v => v != null && v.Contains(Token, StringComparison.Ordinal));
@@ -104,7 +106,7 @@ public sealed class DnsPublishingTests
     {
         _hosting.FindZoneAsync(default!, default!, Ct).ReturnsForAnyArgs(Error.Validation("Cloudflare refused the token.", "dnsToken"));
 
-        Result<DnsTokenReach> result = await SetToken().ExecuteAsync(AdminTestBed.Acme, Token, Ct);
+        Result<DnsTokenReach> result = await SetToken().ExecuteAsync(AdminTestBed.Acme, DnsProvider.Cloudflare, Token, Ct);
 
         result.Error!.Target.ShouldBe("dnsToken");
         await _bed.Entities.DidNotReceiveWithAnyArgs().SetSealedDnsTokenAsync(default!, default, Ct);
@@ -115,23 +117,23 @@ public sealed class DnsPublishingTests
     public async Task A_token_that_reaches_none_of_the_domains_is_not_stored_and_one_that_reaches_some_says_which_not()
     {
         _hosting.FindZoneAsync(default!, default!, Ct).ReturnsForAnyArgs(Error.NotFound("no zone"));
-        (await SetToken().ExecuteAsync(AdminTestBed.Acme, Token, Ct)).Error!.Message.ShouldContain("reaches none of acme.example");
+        (await SetToken().ExecuteAsync(AdminTestBed.Acme, DnsProvider.Cloudflare, Token, Ct)).Error!.Message.ShouldContain("reaches none of acme.example");
         await _bed.Entities.DidNotReceiveWithAnyArgs().SetSealedDnsTokenAsync(default!, default, Ct);
 
         _bed.Entities.GetAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(AdminTestBed.AcmeEntity with { Domains = [AdminTestBed.Domain("acme.example"), AdminTestBed.Domain("acme.org")] });
         _hosting.FindZoneAsync(Arg.Any<DnsProviderToken>(), AdminTestBed.Domain("acme.example"), Arg.Any<CancellationToken>()).Returns(AcmeZone);
-        Result<DnsTokenReach> partial = await SetToken().ExecuteAsync(AdminTestBed.Acme, Token, Ct);
+        Result<DnsTokenReach> partial = await SetToken().ExecuteAsync(AdminTestBed.Acme, DnsProvider.Cloudflare, Token, Ct);
         partial.Value.Unreached.ShouldBe([AdminTestBed.Domain("acme.org")]);
     }
 
     [Fact]
     public async Task A_blank_token_removes_the_stored_one_and_a_malformed_one_is_refused()
     {
-        (await SetToken().ExecuteAsync(AdminTestBed.Acme, " ", Ct)).IsSuccess.ShouldBeTrue();
+        (await SetToken().ExecuteAsync(AdminTestBed.Acme, DnsProvider.Cloudflare, " ", Ct)).IsSuccess.ShouldBeTrue();
         await _bed.Entities.Received(1).SetSealedDnsTokenAsync(AdminTestBed.Acme, null, Arg.Any<CancellationToken>());
         _bed.Audit.Single("entity.dns-token.removed").Succeeded.ShouldBeTrue();
 
-        (await SetToken().ExecuteAsync(AdminTestBed.Acme, "two words", Ct)).Error!.Target.ShouldBe("dnsToken");
+        (await SetToken().ExecuteAsync(AdminTestBed.Acme, DnsProvider.Cloudflare, "two words", Ct)).Error!.Target.ShouldBe("dnsToken");
         await _hosting.DidNotReceiveWithAnyArgs().FindZoneAsync(default!, default!, Ct);
     }
 
@@ -140,7 +142,7 @@ public sealed class DnsPublishingTests
     {
         _bed.ActAsEntityAdmin();
 
-        (await SetToken().ExecuteAsync(AdminTestBed.Acme, Token, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        (await SetToken().ExecuteAsync(AdminTestBed.Acme, DnsProvider.Cloudflare, Token, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         (await Planner().ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         (await Publisher().ExecuteAsync(AdminTestBed.Acme, "acme.example", "x", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         await _bed.Entities.DidNotReceiveWithAnyArgs().GetSealedDnsTokenAsync(default!, Ct);
@@ -163,13 +165,13 @@ public sealed class DnsPublishingTests
     [Fact]
     public async Task Without_a_readable_token_or_a_zone_there_is_no_plan()
     {
-        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<string?>.Success(null));
-        (await Planner().ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Error!.Message.ShouldContain("has no Cloudflare token");
+        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<SealedDnsToken?>.Success(null));
+        (await Planner().ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Error!.Message.ShouldContain("has no DNS host connected");
 
-        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<string?>.Success("sealed-with-a-lost-key"));
+        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<SealedDnsToken?>.Success(new SealedDnsToken(DnsProvider.Cloudflare, "sealed-with-a-lost-key")));
         (await Planner().ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Error!.Message.ShouldContain("can no longer be read");
 
-        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<string?>.Success(Sealed));
+        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<SealedDnsToken?>.Success(new SealedDnsToken(DnsProvider.Cloudflare, Sealed)));
         _hosting.FindZoneAsync(default!, default!, Ct).ReturnsForAnyArgs(Error.NotFound("no zone"));
         (await Planner().ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Error!.Message.ShouldContain("reaches no zone for acme.example");
     }
@@ -177,8 +179,8 @@ public sealed class DnsPublishingTests
     [Fact]
     public async Task A_token_sealed_for_another_entity_does_not_open()
     {
-        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<string?>.Success(Sealed));
-        _sealer.Refuse = DnsTokenVault.Purpose(AdminTestBed.Acme);
+        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<SealedDnsToken?>.Success(new SealedDnsToken(DnsProvider.Cloudflare, Sealed)));
+        _sealer.Refuse = DnsTokenVault.Purpose(DnsProvider.Cloudflare, AdminTestBed.Acme);
 
         (await Vault().OpenAsync(AdminTestBed.Acme, Ct)).Error!.Target.ShouldBe("dnsToken");
     }
@@ -225,6 +227,56 @@ public sealed class DnsPublishingTests
     }
 
     /// <summary>"Seals" by prefixing; refuses to open for <see cref="Refuse"/> or text it did not seal.</summary>
+    [Fact]
+    public void A_cloudflare_token_is_sealed_for_the_purpose_tokens_were_sealed_for_before_other_hosts_existed() =>
+        DnsTokenVault.Purpose(DnsProvider.Cloudflare, AdminTestBed.Acme).ShouldBe("dns-token:cloudflare:" + AdminTestBed.Acme);
+
+    [Fact]
+    public async Task Connecting_another_host_checks_and_seals_the_credential_with_that_host_only()
+    {
+        IDnsHosting hetzner = Substitute.For<IDnsHosting>();
+        hetzner.Provider.Returns(DnsProvider.Hetzner);
+        hetzner.FindZoneAsync(default!, default!, Ct).ReturnsForAnyArgs(AcmeZone);
+        var setToken = new SetEntityDnsToken(_bed.Actor, _bed.Entities, new DnsHosts(Vault(), [_hosting, hetzner]), Vault(), _bed.Audit);
+
+        (await setToken.ExecuteAsync(AdminTestBed.Acme, DnsProvider.Hetzner, Token, Ct)).IsSuccess.ShouldBeTrue();
+
+        await hetzner.Received(1).FindZoneAsync(Arg.Any<DnsProviderToken>(), AdminTestBed.Domain("acme.example"), Arg.Any<CancellationToken>());
+        await _hosting.DidNotReceiveWithAnyArgs().FindZoneAsync(default!, default!, Ct);
+        await _bed.Entities.Received(1).SetSealedDnsTokenAsync(AdminTestBed.Acme, new SealedDnsToken(DnsProvider.Hetzner, Sealed), Arg.Any<CancellationToken>());
+        _sealer.Purposes.ShouldBe(["dns-token:hetzner:" + AdminTestBed.Acme]);
+        _bed.Audit.Single("entity.dns-token.set").Details["provider"].ShouldBe("hetzner");
+    }
+
+    [Fact]
+    public async Task An_entitys_records_are_planned_and_published_at_its_own_host()
+    {
+        IDnsHosting hetzner = Substitute.For<IDnsHosting>();
+        hetzner.Provider.Returns(DnsProvider.Hetzner);
+        hetzner.FindZoneAsync(default!, default!, Ct).ReturnsForAnyArgs(AcmeZone);
+        hetzner.ListRecordsAsync(default!, default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<ZoneRecord>>.Success([]));
+        hetzner.ApplyAsync(default!, default!, default!, Ct).ReturnsForAnyArgs(Result.Success());
+        _bed.Entities.GetSealedDnsTokenAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<SealedDnsToken?>.Success(new SealedDnsToken(DnsProvider.Hetzner, Sealed)));
+        var planner = new PlanDnsPublication(_bed.Actor, new GetEntityDnsRecords(_bed.Actor, _bed.Entities, _bed.MailDomains, _bed.PublicAddresses()), new DnsHosts(Vault(), [_hosting, hetzner]));
+
+        DnsPublicationPreview preview = (await planner.ExecuteAsync(AdminTestBed.Acme, "acme.example", Ct)).Value;
+        DnsPublication published = (await new PublishDnsRecords(_bed.Actor, planner, _bed.Audit).ExecuteAsync(AdminTestBed.Acme, "acme.example", preview.Plan.Fingerprint, Ct)).Value;
+
+        preview.Provider.ShouldBe(DnsProvider.Hetzner);
+        published.Written.ShouldBe(3);
+        await hetzner.Received(3).ApplyAsync(Arg.Any<DnsProviderToken>(), AcmeZone, Arg.Any<DnsChange>(), Arg.Any<CancellationToken>());
+        await _hosting.DidNotReceiveWithAnyArgs().ListRecordsAsync(default!, default!, Ct);
+        _bed.Audit.Single("entity.domain.dns-published").Details["provider"].ShouldBe("hetzner");
+    }
+
+    [Fact]
+    public async Task A_host_this_console_cannot_reach_is_refused_before_anything_is_sent()
+    {
+        (await SetToken().ExecuteAsync(AdminTestBed.Acme, DnsProvider.Route53, "AKIAIOSFODNN7EXAMPLE:wJalrXUtnFEMI/K7MDENG", Ct)).Error!.Target.ShouldBe("dnsProvider");
+        Hosts().Available.ShouldBe([DnsProvider.Cloudflare]);
+        await _bed.Entities.DidNotReceiveWithAnyArgs().SetSealedDnsTokenAsync(default!, default, Ct);
+    }
+
     private sealed class FakeSealer : ISecretSealer
     {
         public List<string> Purposes { get; } = [];

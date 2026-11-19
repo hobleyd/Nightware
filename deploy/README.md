@@ -339,12 +339,13 @@ output: anything they cannot do is printed as a WARNING.
   SPF and DMARC are Stalwart's unless a global administrator sets the domain's
   own on that page (kept as Keycloak organization attributes); start DMARC at
   `p=none` while other services still send as the domain.
-- **Cloudflare.** A global administrator can connect an entity's Cloudflare
-  account on its page (an API token from the "Edit zone DNS" template, kept
-  sealed). Each DNS page then lists what publishing would add or correct in the
-  zone and publishes it. Needs
+- **DNS hosting.** A global administrator can connect an entity's DNS host on
+  its DNS hosting page: Cloudflare (an API token from the "Edit zone DNS"
+  template), DigitalOcean, Gandi, Hetzner or Amazon Route 53 (an access key as
+  `KEYID:SECRET`), kept sealed. Each DNS page then lists what publishing would
+  add or correct in the zone and publishes it. Needs
   `NIGHTWARE_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` so the console
-  trusts Cloudflare's certificate.
+  trusts the host's certificate.
 - **Its credentials** are its own:
   - Keycloak client `nightware-admin` (`NIGHTWARE_ADMIN_CLIENT_SECRET`); its
     service account holds `manage-users` and friends, the organization roles,

@@ -11,8 +11,8 @@ public enum PublicAddressSource
     /// <summary>No public host is configured, or nothing public was found for it: the MX hosts stand in.</summary>
     None,
 
-    /// <summary>The host's A/AAAA records in the entity's own Cloudflare zone.</summary>
-    Cloudflare,
+    /// <summary>The host's A/AAAA records in the entity's own zone at its DNS host.</summary>
+    Zone,
 
     /// <summary>Public DNS for the host.</summary>
     PublicDns,

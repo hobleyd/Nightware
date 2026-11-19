@@ -13,7 +13,7 @@ namespace Nightware.Admin.Pages.Entities;
 /// mail server does not serve, or serves without its signing keys, has no or incomplete records, and Repair is
 /// offered here because it fixes exactly those two cases. The domain's SPF and DMARC records are the mail
 /// server's unless the entity chose its own, which a global administrator edits here. When the entity is connected
-/// to Cloudflare, a global administrator sees what publishing would change in the zone and publishes it here.
+/// to a DNS host, a global administrator sees what publishing would change in the zone and publishes it here.
 /// Each plan read is logged line by line (public DNS data only), so a publish refused as stale can be compared
 /// with the plan the page showed.
 /// </summary>
@@ -93,6 +93,9 @@ public sealed partial class DnsModel(
 
     public EntityDetail Entity { get; private set; } = null!;
 
+    /// <summary>The entity's DNS host by name, as the page speaks of it.</summary>
+    public string DnsHostName => (Publication?.Provider ?? Entity.Entity.DnsHost) is { } host ? host.Name() : "the DNS host";
+
     /// <summary>
     /// The hardened SPF and DMARC offered (prefilled, not yet in use) where the domain has no record of its own;
     /// global administrators only, null otherwise.
@@ -105,10 +108,10 @@ public sealed partial class DnsModel(
     /// <summary>The DMARC field holds the suggestion rather than a record of the domain's own.</summary>
     public bool DmarcSuggested => Suggestion is not null && Policy.Dmarc is null && Dmarc == Suggestion.Dmarc.Value;
 
-    /// <summary>What publishing to Cloudflare would change; null when not offered or not readable (<see cref="PublicationUnread"/>).</summary>
+    /// <summary>What publishing to the entity's DNS host would change; null when not offered or not readable (<see cref="PublicationUnread"/>).</summary>
     public DnsPublicationPreview? Publication { get; private set; }
 
-    /// <summary>Why the Cloudflare zone could not be compared, shown in place of the preview.</summary>
+    /// <summary>Why the zone at the DNS host could not be compared, shown in place of the preview.</summary>
     public Error? PublicationUnread { get; private set; }
 
     /// <summary>The box confirming a plan that removes another server's MX, moving all of the domain's mail here.</summary>
@@ -161,18 +164,18 @@ public sealed partial class DnsModel(
         {
             DnsPublicationPlan now = outcome.Preview.Plan;
             LogStale(logger, Domain, PlanFingerprint, now.Fingerprint, now.FingerprintLines);
-            ModelState.AddModelError(string.Empty, "The records or the Cloudflare zone changed since the page was loaded, so nothing was published. Check the changes below and publish again.");
+            ModelState.AddModelError(string.Empty, $"The records or the {outcome.Preview.Provider.Name()} zone changed since the page was loaded, so nothing was published. Check the changes below and publish again.");
             return await RenderAsync(cancellationToken);
         }
 
-        string written = $"{outcome.Written} {(outcome.Written == 1 ? "change" : "changes")} published to Cloudflare for {Domain}.";
+        string written = $"{outcome.Written} {(outcome.Written == 1 ? "change" : "changes")} published to {outcome.Preview.Provider.Name()} for {Domain}.";
         if (outcome.Failed.Count == 0)
         {
             Notice = written;
             return RedirectToPage(new { id = Id, domain = Domain });
         }
 
-        ModelState.AddModelError(string.Empty, $"{written} Cloudflare refused {outcome.Failed.Count}:");
+        ModelState.AddModelError(string.Empty, $"{written} {outcome.Preview.Provider.Name()} refused {outcome.Failed.Count}:");
         foreach (DnsChangeOutcome failed in outcome.Failed)
         {
             DnsRecord? record = failed.Change.Desired ?? failed.Change.Current?.Record;
@@ -263,7 +266,7 @@ public sealed partial class DnsModel(
         Records = domainDns.Records;
         if (Actor.IsGlobal && entity.Entity.HasDnsToken && Records.Count > 0)
         {
-            // Never fails the page: the records are still worth showing when Cloudflare cannot be read.
+            // Never fails the page: the records are still worth showing when the DNS host cannot be read.
             Result<DnsPublicationPreview> preview = await planPublication.ExecuteAsync(Id, Domain, cancellationToken);
             Publication = preview.IsSuccess ? preview.Value : null;
             PublicationUnread = preview.IsSuccess ? null : preview.Error;

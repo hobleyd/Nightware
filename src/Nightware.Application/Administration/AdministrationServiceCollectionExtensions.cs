@@ -26,6 +26,7 @@ public static class AdministrationServiceCollectionExtensions
         services.TryAddScoped<CredentialIssuer>();
         services.TryAddScoped<DeletionGuard>();
         services.TryAddScoped<DnsTokenVault>();
+        services.TryAddScoped<DnsHosts>();
 
         services.TryAddScoped<ListEntities>();
         services.TryAddScoped<GetEntity>();

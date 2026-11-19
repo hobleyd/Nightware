@@ -10,12 +10,12 @@ public sealed record PublicAddressLookup(string? Host, IReadOnlyList<IPAddress> 
 
 /// <summary>
 /// Finds the server's public addresses: those of the configured public host (<see cref="AdministrationOptions.PublicHost"/>),
-/// from the entity's Cloudflare zone when the entity has a token and the host is in a zone it reaches, otherwise from
+/// from the entity's zone at its DNS host when the entity has a credential and the host is in a zone it reaches, otherwise from
 /// public DNS. A host Cloudflare proxies (seen in the zone, or answering from <see cref="CloudflareEdge"/>) gives
 /// none, as do private addresses and failed lookups. Never fails: no address is an answer too. The addresses are
 /// sorted (IPv4 first), so records built from them do not change with the order DNS happened to answer in.
 /// </summary>
-public sealed class PublicAddresses(DnsTokenVault vault, IDnsHosting hosting, IPublicDns dns, AdministrationOptions options)
+public sealed class PublicAddresses(DnsHosts hosts, IPublicDns dns, AdministrationOptions options)
 {
     public async Task<PublicAddressLookup> FindAsync(Entity entity, CancellationToken cancellationToken)
     {
@@ -45,7 +45,7 @@ public sealed class PublicAddresses(DnsTokenVault vault, IDnsHosting hosting, IP
     {
         if (entity.HasDnsToken && MailDomain.TryParse(host, out MailDomain? hostName))
         {
-            (IReadOnlyList<IPAddress> fromZone, bool proxied) = await FromCloudflareAsync(entity.Id, hostName, cancellationToken).ConfigureAwait(false);
+            (IReadOnlyList<IPAddress> fromZone, bool proxied) = await FromZoneAsync(entity.Id, hostName, cancellationToken).ConfigureAwait(false);
             if (proxied)
             {
                 // Public DNS would only return the same edge addresses.
@@ -54,7 +54,7 @@ public sealed class PublicAddresses(DnsTokenVault vault, IDnsHosting hosting, IP
 
             if (fromZone.Count > 0)
             {
-                return (fromZone, PublicAddressSource.Cloudflare);
+                return (fromZone, PublicAddressSource.Zone);
             }
         }
 
@@ -70,21 +70,21 @@ public sealed class PublicAddresses(DnsTokenVault vault, IDnsHosting hosting, IP
     }
 
     /// <summary>The host's unproxied public A/AAAA addresses in the entity's zone; nothing when the token cannot read it.</summary>
-    private async Task<(IReadOnlyList<IPAddress>, bool Proxied)> FromCloudflareAsync(string entityId, MailDomain host, CancellationToken cancellationToken)
+    private async Task<(IReadOnlyList<IPAddress>, bool Proxied)> FromZoneAsync(string entityId, MailDomain host, CancellationToken cancellationToken)
     {
-        Result<DnsProviderToken> token = await vault.OpenAsync(entityId, cancellationToken).ConfigureAwait(false);
-        if (!token.IsSuccess)
+        Result<DnsHostSession> dnsHost = await hosts.ConnectAsync(entityId, cancellationToken).ConfigureAwait(false);
+        if (!dnsHost.IsSuccess)
         {
             return ([], false);
         }
 
-        Result<DnsZone> zone = await hosting.FindZoneAsync(token.Value, host, cancellationToken).ConfigureAwait(false);
+        Result<DnsZone> zone = await dnsHost.Value.FindZoneAsync(host, cancellationToken).ConfigureAwait(false);
         if (!zone.IsSuccess)
         {
             return ([], false);
         }
 
-        Result<IReadOnlyList<ZoneRecord>> records = await hosting.ListRecordsAsync(token.Value, zone.Value, cancellationToken).ConfigureAwait(false);
+        Result<IReadOnlyList<ZoneRecord>> records = await dnsHost.Value.ListRecordsAsync(zone.Value, cancellationToken).ConfigureAwait(false);
         if (!records.IsSuccess)
         {
             return ([], false);

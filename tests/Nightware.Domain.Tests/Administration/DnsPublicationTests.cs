@@ -1,4 +1,5 @@
 using Nightware.Domain.Administration;
+using Nightware.Domain.Kernel;
 
 namespace Nightware.Domain.Tests.Administration;
 
@@ -178,13 +179,49 @@ public sealed class DnsPublicationTests
     [InlineData("quote\"", false)]
     [InlineData("  AbC123_-xyz0987654321AbC123_-xyz09876543  ", true)]
     public void A_token_is_one_word(string value, bool valid) =>
-        DnsProviderToken.Parse(value).IsSuccess.ShouldBe(valid);
+        DnsProviderToken.Parse(DnsProvider.Cloudflare, value).IsSuccess.ShouldBe(valid);
+
+    [Theory]
+    [InlineData("AKIAIOSFODNN7EXAMPLE:wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", true)]
+    [InlineData(" AKIAIOSFODNN7EXAMPLE:wJalrXUtnFEMI+K7MDENG=bPxRfiCYEXAMPLEKEY ", true)]
+    [InlineData("AKIAIOSFODNN7EXAMPLE", false)]
+    [InlineData("akiaiosfodnn7example:wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", false)]
+    [InlineData("AKIAIOSFODNN7EXAMPLE:secret with spaces in it", false)]
+    [InlineData("", false)]
+    public void An_aws_key_is_its_id_and_secret_joined_by_a_colon(string value, bool valid)
+    {
+        Result<DnsProviderToken> parsed = DnsProviderToken.Parse(DnsProvider.Route53, value);
+
+        parsed.IsSuccess.ShouldBe(valid);
+        if (!valid)
+        {
+            parsed.Error!.Target.ShouldBe("dnsToken");
+            parsed.Error.Message.ShouldContain("KEYID");
+        }
+    }
+
+    [Fact]
+    public void A_refused_token_names_its_host() =>
+        DnsProviderToken.Parse(DnsProvider.DigitalOcean, "two words").Error!.Message.ShouldContain("DigitalOcean API token");
+
+    [Fact]
+    public void Each_host_has_a_name_and_a_stable_key_and_cloudflare_comes_first()
+    {
+        DnsProviders.All[0].ShouldBe(DnsProvider.Cloudflare);
+        DnsProvider.Cloudflare.Key().ShouldBe("cloudflare");
+        DnsProviders.All.Select(static p => p.Key()).ShouldBe(["cloudflare", "digitalocean", "gandi", "hetzner", "route53"]);
+        DnsProvider.Route53.Name().ShouldBe("Amazon Route 53");
+        DnsProviders.TryParse(" Hetzner ", out DnsProvider hetzner).ShouldBeTrue();
+        hetzner.ShouldBe(DnsProvider.Hetzner);
+        DnsProviders.TryParse("godaddy", out _).ShouldBeFalse();
+        default(DnsProvider).ShouldBe(DnsProvider.Cloudflare);
+    }
 
     [Fact]
     public void A_token_is_bounded_and_never_printed()
     {
-        DnsProviderToken.Parse(new string('a', DnsProviderToken.MaxLength + 1)).IsSuccess.ShouldBeFalse();
-        DnsProviderToken token = DnsProviderToken.Parse("secret-token-value").Value;
+        DnsProviderToken.Parse(DnsProvider.Cloudflare, new string('a', DnsProviderToken.MaxLength + 1)).IsSuccess.ShouldBeFalse();
+        DnsProviderToken token = DnsProviderToken.Parse(DnsProvider.Cloudflare, "secret-token-value").Value;
 
         token.ToString().ShouldNotContain("secret");
         $"{token}".ShouldNotContain("secret");
