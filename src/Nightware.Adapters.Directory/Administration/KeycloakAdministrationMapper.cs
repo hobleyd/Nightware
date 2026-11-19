@@ -40,6 +40,7 @@ internal static class KeycloakAdministrationMapper
                 .OrderBy(static d => d.Name, StringComparer.Ordinal),
         ];
         Dictionary<MailDomain, DomainMailPolicy> policies = [];
+        Dictionary<MailDomain, string> catchAlls = [];
         foreach (MailDomain domain in domains)
         {
             DomainMailPolicy policy = MailPolicy(organization, domain);
@@ -47,13 +48,23 @@ internal static class KeycloakAdministrationMapper
             {
                 policies[domain] = policy;
             }
+
+            if (organization.Attribute(KeycloakAdminNames.CatchAllAttribute(domain)) is { Length: > 0 } userId)
+            {
+                catchAlls[domain] = userId;
+            }
         }
 
         Entity entity = new(organization.Id ?? string.Empty, organization.Alias ?? string.Empty, organization.Name, domains)
         {
             DnsHost = KeycloakAdminNames.DnsToken(organization)?.Provider,
         };
-        return policies.Count == 0 ? entity : entity with { MailPolicies = policies };
+        if (policies.Count > 0)
+        {
+            entity = entity with { MailPolicies = policies };
+        }
+
+        return catchAlls.Count == 0 ? entity : entity with { CatchAlls = catchAlls };
     }
 
     /// <summary>A record edited by hand in Keycloak's console that no longer parses counts as the mail server's default.</summary>

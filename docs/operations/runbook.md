@@ -297,6 +297,21 @@ and `.../mailFolders/inbox` must both answer 200 for the member. A 404 for a
 listed, enabled member means Stalwart does not have them as a member: check
 `memberGroupIds` on their account, then Repair.
 
+## Admin console: mail to unknown addresses
+
+An entity's page, *Mail to unknown addresses*, chooses per domain the user who
+receives mail sent to addresses no one has (ADR 0005); otherwise it is refused
+with `550 5.1.1`. A warning under a domain means:
+
+- "still refuses it" / "sends it to …, not …": the choice is saved but the mail
+  server has something else; **Save** again.
+- "set outside the console": the mail server has a catch-all with no choice in
+  the console; choose someone (or *No one*) and Save to manage it here.
+- "offboarded": mail is delivered but no one reads it; choose someone else.
+
+Deleting the catch-all user's mail is refused until someone else is chosen: the
+mail server would accept mail for a mailbox that no longer exists and bounce it.
+
 ## Admin console: mail to a group is refused (550 5.7.1)
 
 The list's sender policy refused the envelope sender (members only, or the

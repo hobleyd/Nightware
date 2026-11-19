@@ -18,8 +18,14 @@ internal sealed partial class StalwartMailDomains(IStalwartManagementClient clie
     public async Task<Result<MailDomainInfo>> FindAsync(MailDomain domain, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(domain);
-        Result<StalwartDomain> found = await FindDomainAsync(client, domain.Name, ["name"], cancellationToken).ConfigureAwait(false);
-        return found.IsSuccess ? await WithDkimAsync(domain, found.Value.Id, cancellationToken).ConfigureAwait(false) : found.Error;
+        Result<StalwartDomain> found = await FindDomainAsync(client, domain.Name, ["name", "catchAllAddress"], cancellationToken).ConfigureAwait(false);
+        if (!found.IsSuccess)
+        {
+            return found.Error;
+        }
+
+        Result<MailDomainInfo> info = await WithDkimAsync(domain, found.Value.Id, cancellationToken).ConfigureAwait(false);
+        return info.Map(i => i with { CatchAllAddress = string.IsNullOrEmpty(found.Value.CatchAllAddress) ? null : found.Value.CatchAllAddress });
     }
 
     public async Task<Result<MailDomainInfo>> CreateAsync(MailDomain domain, string description, CancellationToken cancellationToken)
@@ -123,6 +129,36 @@ internal sealed partial class StalwartMailDomains(IStalwartManagementClient clie
         }
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// <c>catchAllAddress</c> on the domain. Stalwart 1.1 applies it at the next RCPT without a reload (verified),
+    /// and does not check the address: one no account holds is accepted at RCPT and bounced afterwards, so the
+    /// caller only ever names a mailbox it has found.
+    /// </summary>
+    public async Task<Result> SetCatchAllAsync(MailDomain domain, MailAddress? address, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(domain);
+        Result<StalwartDomain> found = await FindDomainAsync(client, domain.Name, ["name"], cancellationToken).ConfigureAwait(false);
+        if (!found.IsSuccess)
+        {
+            return found.Error;
+        }
+
+        string id = found.Value.Id;
+        var request = new JmapRequestBuilder();
+        var set = request.Add(StalwartMethods.DomainSet, new StalwartSetRequest
+        {
+            Update = new Dictionary<string, JsonObject> { [id] = new JsonObject { ["catchAllAddress"] = address?.Value } },
+        });
+        Result<JmapResponse> response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        Result updated = response.Bind(r => r.Get(set)).Match(r => r.Updated(id), static e => Result.Failure(e));
+        if (updated.IsSuccess)
+        {
+            LogCatchAllSet(logger, domain.Name, address is not null);
+        }
+
+        return updated;
     }
 
     public async Task<Result> ReloadSettingsAsync(CancellationToken cancellationToken)
@@ -262,6 +298,9 @@ internal sealed partial class StalwartMailDomains(IStalwartManagementClient clie
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Stalwart destroyed domain {Domain} but ReloadSettings failed ({Kind})")]
     private static partial void LogDestroyedReloadFailed(ILogger logger, string domain, ErrorKind kind);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Set Stalwart domain {Domain}'s catch-all (now set: {Set})")]
+    private static partial void LogCatchAllSet(ILogger logger, string domain, bool set);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Stalwart ReloadSettings failed ({Kind})")]
     private static partial void LogReloadFailed(ILogger logger, ErrorKind kind);

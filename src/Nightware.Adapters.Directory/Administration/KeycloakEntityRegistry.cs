@@ -102,6 +102,7 @@ internal sealed class KeycloakEntityRegistry(IKeycloakAdminClient keycloak, Keyc
                     domains.RemoveAt(index);
                     SetAttribute(representation, KeycloakAdminNames.SpfAttribute(domain), null);
                     SetAttribute(representation, KeycloakAdminNames.DmarcAttribute(domain), null);
+                    SetAttribute(representation, KeycloakAdminNames.CatchAllAttribute(domain), null);
                     return true;
                 },
                 cancellationToken)
@@ -129,6 +130,29 @@ internal sealed class KeycloakEntityRegistry(IKeycloakAdminClient keycloak, Keyc
                     bool spf = SetAttribute(representation, KeycloakAdminNames.SpfAttribute(domain), policy.Spf?.Value);
                     bool dmarc = SetAttribute(representation, KeycloakAdminNames.DmarcAttribute(domain), policy.Dmarc?.Value);
                     return spf || dmarc;
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (!updated.IsSuccess)
+        {
+            return updated.Error;
+        }
+
+        return owned ? KeycloakAdministrationMapper.ToEntity(updated.Value) : Error.NotFound($"The entity has no domain {domain}.", "domain");
+    }
+
+    public async Task<Result<Entity>> SetCatchAllAsync(string entityId, MailDomain domain, string? userId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(entityId);
+        ArgumentNullException.ThrowIfNull(domain);
+
+        bool owned = false;
+        Result<KeycloakOrganization> updated = await keycloak.UpdateOrganizationAsync(
+                entityId,
+                representation =>
+                {
+                    owned = IndexOf(DomainsOf(representation), domain) >= 0;
+                    return owned && SetAttribute(representation, KeycloakAdminNames.CatchAllAttribute(domain), string.IsNullOrEmpty(userId) ? null : userId);
                 },
                 cancellationToken)
             .ConfigureAwait(false);

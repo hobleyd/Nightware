@@ -146,6 +146,9 @@ internal sealed record StalwartDomain
 
     /// <summary>Server-set "current DNS zone data for the domain" (Text; format not documented).</summary>
     public string? DnsZoneFile { get; init; }
+
+    /// <summary>"Catch-all email address that receives messages addressed to unknown local recipients"; null refuses them.</summary>
+    public string? CatchAllAddress { get; init; }
 }
 
 internal sealed record StalwartAlias(string Name, string DomainId);

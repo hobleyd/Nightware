@@ -55,6 +55,47 @@ public sealed class StalwartMailDomainsTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Finds_a_domains_catch_all_address()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup([("d7", "acme.example")], extra: ",\"catchAllAddress\":\"alice@acme.example\""));
+        StubDkim("k1");
+
+        (await Domains().FindAsync(Acme, Ct)).Value.CatchAllAddress.ShouldBe("alice@acme.example");
+        _host.Calls("x:Domain/get").Single()[1]!["properties"]!.AsArray().Select(p => p!.GetValue<string>()).ShouldContain("catchAllAddress");
+    }
+
+    [Fact]
+    public async Task Sets_and_clears_a_domains_catch_all_without_a_reload()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d7", "acme.example")));
+        _host.Stub("x:Domain/set", """[["x:Domain/set",{"updated":{"d7":null}},"c0"]]""");
+        MailAddress alice = MailAddress.TryParse("alice@acme.example", out MailAddress? a) ? a : throw new ArgumentException("alice");
+
+        (await Domains().SetCatchAllAsync(Acme, alice, Ct)).IsSuccess.ShouldBeTrue();
+        (await Domains().SetCatchAllAsync(Acme, null, Ct)).IsSuccess.ShouldBeTrue();
+
+        var sets = _host.Calls("x:Domain/set");
+        sets[0][1]!["update"]!["d7"]!["catchAllAddress"]!.GetValue<string>().ShouldBe("alice@acme.example");
+        sets[1][1]!["update"]!["d7"]!.AsObject().ContainsKey("catchAllAddress").ShouldBeTrue();
+        sets[1][1]!["update"]!["d7"]!["catchAllAddress"].ShouldBeNull();
+        _host.Calls("x:Action/set").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_catch_all_for_a_domain_the_mail_server_lacks_or_refuses_is_reported()
+    {
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup());
+
+        (await Domains().SetCatchAllAsync(Acme, null, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        _host.Calls("x:Domain/set").ShouldBeEmpty();
+
+        _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d7", "acme.example")));
+        _host.Stub("x:Domain/set", """[["x:Domain/set",{"notUpdated":{"d7":{"type":"forbidden","description":"no"}}},"c0"]]""");
+
+        (await Domains().SetCatchAllAsync(Acme, null, Ct)).IsSuccess.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task Only_an_exact_name_matches()
     {
         _host.Stub("x:Domain/query", StalwartManagementTestHost.DomainLookup(("d8", "mail.acme.example"), ("d9", "acme.example.org")));

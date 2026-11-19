@@ -336,7 +336,7 @@ admin choose a password:
      added to the `nightware-management` role; the Application policy, not
      Stalwart, is what gates it). This removes the mailbox and every message,
      the account's identities, Sieve scripts and its aliases; mail to the
-     address bounces afterwards (unless a domain catch-all exists). It does
+     address bounces afterwards (unless the domain has a catch-all, ADR 0005). It does
      **not** touch the Keycloak user (kept, disabled — so the address and
      username stay claimed and the audit trail stays attached to a person) or
      anything in Nextcloud.

@@ -7,7 +7,7 @@ namespace Nightware.Application.Administration.Entities;
 public sealed record EntityDetail(Entity Entity, IReadOnlyList<DomainStatus> Domains);
 
 /// <summary>The mail-server side of an entity's domains: status, and an idempotent "ensure it exists".</summary>
-public sealed class DomainProvisioning(IMailDomains domains)
+public sealed class DomainProvisioning(IMailDomains domains, IIdentityAccounts identities)
 {
     public async Task<DomainStatus> StatusAsync(MailDomain domain, CancellationToken cancellationToken)
     {
@@ -17,7 +17,9 @@ public sealed class DomainProvisioning(IMailDomains domains)
 
     /// <summary>
     /// Creates the domain (with DKIM keys) on the mail server unless it is already there. A domain that is there
-    /// without DKIM keys (created, but the reload that loads its keys failed) gets that reload now.
+    /// without DKIM keys (created, but the reload that loads its keys failed) gets that reload now. A catch-all the
+    /// entity records is sent again when the mail server's differs (a domain created anew has none). One the mail
+    /// server has without a record (set outside the console) is left alone.
     /// </summary>
     public async Task<DomainStatus> EnsureAsync(Entity entity, MailDomain domain, CancellationToken cancellationToken)
     {
@@ -36,7 +38,27 @@ public sealed class DomainProvisioning(IMailDomains domains)
                 : Error.BackendUnavailable($"The mail server serves {domain.Name} without DKIM keys and did not reload its settings ({reloaded.Error!.Message}).");
         }
 
+        if (found.IsSuccess && entity.CatchAllFor(domain) is { } userId)
+        {
+            found = found.Value with { CatchAllAddress = await RestoreCatchAllAsync(domain, userId, found.Value.CatchAllAddress, cancellationToken).ConfigureAwait(false) };
+        }
+
         return ToStatus(domain, found);
+    }
+
+    /// <summary>The mail server's catch-all after sending the recorded user's address, when it differs and can be found.</summary>
+    private async Task<string?> RestoreCatchAllAsync(MailDomain domain, string userId, string? current, CancellationToken cancellationToken)
+    {
+        Result<IdentityAccount> user = await identities.GetAsync(userId, cancellationToken).ConfigureAwait(false);
+        if (!user.IsSuccess
+            || string.Equals(current, user.Value.Email, StringComparison.OrdinalIgnoreCase)
+            || !MailAddress.TryParse(user.Value.Email, out MailAddress? address))
+        {
+            return current;
+        }
+
+        Result set = await domains.SetCatchAllAsync(domain, address, cancellationToken).ConfigureAwait(false);
+        return set.IsSuccess ? address.Value : current;
     }
 
     public async Task<EntityDetail> DetailAsync(Entity entity, CancellationToken cancellationToken)
@@ -50,7 +72,10 @@ public sealed class DomainProvisioning(IMailDomains domains)
     {
         if (found.IsSuccess)
         {
-            return new DomainStatus(domain, new BackendLink(BackendKind.Mail, LinkState.Linked, "Served by the mail server.", found.Value.Id), found.Value.DkimPresent);
+            return new DomainStatus(domain, new BackendLink(BackendKind.Mail, LinkState.Linked, "Served by the mail server.", found.Value.Id), found.Value.DkimPresent)
+            {
+                CatchAllAddress = found.Value.CatchAllAddress,
+            };
         }
 
         BackendLink link = found.Error.Kind == ErrorKind.NotFound

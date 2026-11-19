@@ -82,3 +82,52 @@
     }
 </section>
 
+@if (Model.Entity.Domains.Count > 0)
+{
+    <section class="panel">
+        <h2 id="catch-all">Mail to unknown addresses</h2>
+        <p class="hint">Mail sent to an address no one has on a domain is refused, unless you choose a user to receive it (a catch-all). Their own mailbox gets it, and spam aimed at made-up addresses with it.</p>
+        <table>
+            <thead><tr><th>Domain</th><th>Goes to</th></tr></thead>
+            <tbody>
+            @foreach (var d in Model.Entity.Domains)
+            {
+                var holder = Model.CatchAllHolder(d.Domain);
+                <tr>
+                    <td>@d.Domain</td>
+                    <td data-label="Goes to">
+                        @if (d.Mail.State != LinkState.Linked)
+                        {
+                            <text>—</text><span class="hint detail">The mail server does not serve @d.Domain yet.</span>
+                        }
+                        else
+                        {
+                            <form method="post" asp-page-handler="CatchAll" class="row">
+                                <input type="hidden" name="domain" value="@d.Domain.Name">
+                                <label><span class="visually-hidden">Mail to unknown addresses on @d.Domain goes to</span>
+                                    <select name="userId">
+                                        <option value="">No one: refuse it</option>
+                                        @if (holder is not null && !Model.CatchAllCandidates.Contains(holder))
+                                        {
+                                            <option value="@holder.User.Identity.Id" selected>@holder.User.Identity.DisplayName (@holder.User.Identity.Email)</option>
+                                        }
+                                        @foreach (var u in Model.CatchAllCandidates)
+                                        {
+                                            <option value="@u.User.Identity.Id" selected="@(u == holder)">@u.User.Identity.DisplayName (@u.User.Identity.Email)</option>
+                                        }
+                                    </select>
+                                </label>
+                                <button type="submit" class="secondary">Save</button>
+                            </form>
+                            @if (Model.CatchAllProblem(d) is { } problem)
+                            {
+                                <p class="warning">@problem</p>
+                            }
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </section>
+}

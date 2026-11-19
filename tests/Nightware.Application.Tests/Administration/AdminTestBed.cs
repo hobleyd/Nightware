@@ -60,6 +60,7 @@ internal sealed class AdminTestBed
 
         MailDomains.FindAsync(default!, default).ReturnsForAnyArgs(Error.NotFound("no domain"));
         MailDomains.ReloadSettingsAsync(default).ReturnsForAnyArgs(Result.Success());
+        MailDomains.SetCatchAllAsync(default!, default, default).ReturnsForAnyArgs(Result.Success());
         MailDomains.CreateAsync(default!, default!, default).ReturnsForAnyArgs(c => c.Arg<MailDomain?>() is { } d ? Result<MailDomainInfo>.Success(new MailDomainInfo("d-new", d, true)) : default);
 
         Groupware.FindAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Error.NotFound("no user"));
@@ -208,12 +209,12 @@ internal sealed class AdminTestBed
 
     public CredentialIssuer Credentials() => new(Identities, Passwords, Options);
 
-    public DomainProvisioning DomainProvisioning() => new(MailDomains);
+    public DomainProvisioning DomainProvisioning() => new(MailDomains, Identities);
 
     /// <summary>The server's public addresses, found through <see cref="PublicDns"/> (no entity's Cloudflare token is readable here).</summary>
     public PublicAddresses PublicAddresses() => new(new DnsHosts(new DnsTokenVault(Entities, Substitute.For<ISecretSealer>()), [Substitute.For<IDnsHosting>()]), PublicDns, Options);
 
-    public DeletionGuard DeletionGuard() => new(Actor, UserAccess(), Options, Time);
+    public DeletionGuard DeletionGuard() => new(Actor, UserAccess(), Entities, Options, Time);
 
     public AccessHistoryRecorder History() => new(Actor, Identities, Time);
 

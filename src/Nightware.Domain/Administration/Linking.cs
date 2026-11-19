@@ -80,7 +80,11 @@ public sealed record TemporaryCredential(string Password)
 public sealed record DnsRecord(string Name, string Type, int? Ttl, string Value);
 
 /// <summary>A domain of an entity as the mail server sees it.</summary>
-public sealed record DomainStatus(MailDomain Domain, BackendLink Mail, bool DkimPresent);
+public sealed record DomainStatus(MailDomain Domain, BackendLink Mail, bool DkimPresent)
+{
+    /// <summary>Where the mail server sends mail to unknown addresses on the domain; null when it refuses it.</summary>
+    public string? CatchAllAddress { get; init; }
+}
 
 public enum DeletionTarget
 {

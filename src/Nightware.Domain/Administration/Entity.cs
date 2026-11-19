@@ -9,6 +9,8 @@ public sealed record Entity(string Id, string Alias, string Name, IReadOnlyList<
     /// <summary>Shared, so entities without choices still compare equal.</summary>
     private static readonly IReadOnlyDictionary<MailDomain, DomainMailPolicy> NoPolicies = new Dictionary<MailDomain, DomainMailPolicy>();
 
+    private static readonly IReadOnlyDictionary<MailDomain, string> NoCatchAlls = new Dictionary<MailDomain, string>();
+
     /// <summary>
     /// The SPF and DMARC choices of domains not left at the mail server's default. Filled when one entity is
     /// read; a listing of entities may leave it empty.
@@ -23,6 +25,19 @@ public sealed record Entity(string Id, string Alias, string Name, IReadOnlyList<
 
     /// <summary>Whether the entity has a DNS host credential (<see cref="DnsHost"/>).</summary>
     public bool HasDnsToken => DnsHost is not null;
+
+    /// <summary>
+    /// The user (by id) each domain's mail to unknown addresses goes to, for domains that have one; mail to an
+    /// unknown address on any other domain is refused. Filled when one entity is read, like <see cref="MailPolicies"/>.
+    /// </summary>
+    public IReadOnlyDictionary<MailDomain, string> CatchAlls { get; init; } = NoCatchAlls;
+
+    /// <summary>The id of the user who receives <paramref name="domain"/>'s mail to unknown addresses, or null when it is refused.</summary>
+    public string? CatchAllFor(MailDomain domain) => CatchAlls.GetValueOrDefault(domain);
+
+    /// <summary>The domains whose mail to unknown addresses goes to <paramref name="userId"/>.</summary>
+    public IReadOnlyList<MailDomain> CatchAllsOf(string userId) =>
+        [.. CatchAlls.Where(c => string.Equals(c.Value, userId, StringComparison.Ordinal)).Select(static c => c.Key).OrderBy(static d => d.Name, StringComparer.Ordinal)];
 
     public DomainMailPolicy MailPolicyFor(MailDomain domain) =>
         MailPolicies.TryGetValue(domain, out DomainMailPolicy? policy) ? policy : DomainMailPolicy.MailServerDefault;

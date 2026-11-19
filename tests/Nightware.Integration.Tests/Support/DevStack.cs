@@ -94,6 +94,9 @@ internal sealed class DevStack : IDisposable
     /// <summary>A value from <c>deploy/.env</c>.</summary>
     public string Env(string key) => _env[key];
 
+    /// <summary>Whether <c>deploy/.env</c> sets <paramref name="key"/>.</summary>
+    public bool Has(string key) => _env.ContainsKey(key);
+
     /// <summary>
     /// The in-process façade's settings for this stack, every backend on its public URL (as a façade outside the
     /// Docker network sees them); a host adds or overrides its own.

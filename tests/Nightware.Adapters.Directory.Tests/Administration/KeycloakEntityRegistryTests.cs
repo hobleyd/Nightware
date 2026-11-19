@@ -218,7 +218,7 @@ public sealed class KeycloakEntityRegistryTests : IDisposable
     [Fact]
     public async Task Removing_a_domain_forgets_its_spf_and_dmarc_choice()
     {
-        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, """{"id":"0b7f3a52-9c41-4d6e-8a2f-5e1c9d3b7a10","name":"Nightware","alias":"nightware","domains":[{"name":"nightware.localhost"},{"name":"second.example"}],"attributes":{"billing":["internal"],"nightware_spf:second.example":["v=spf1 -all"],"nightware_dmarc:second.example":["v=DMARC1; p=none"],"nightware_spf:nightware.localhost":["v=spf1 mx -all"]}}""");
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, """{"id":"0b7f3a52-9c41-4d6e-8a2f-5e1c9d3b7a10","name":"Nightware","alias":"nightware","domains":[{"name":"nightware.localhost"},{"name":"second.example"}],"attributes":{"billing":["internal"],"nightware_spf:second.example":["v=spf1 -all"],"nightware_dmarc:second.example":["v=DMARC1; p=none"],"nightware_catch_all:second.example":["u-1"],"nightware_spf:nightware.localhost":["v=spf1 mx -all"]}}""");
         _keycloak.GivenAdmin($"/organizations/{OrgId}", 204, method: "PUT");
         await using AdapterHost host = Host();
 
@@ -281,6 +281,48 @@ public sealed class KeycloakEntityRegistryTests : IDisposable
 
         result.Error!.Kind.ShouldBe(ErrorKind.NotFound);
         result.Error.Target.ShouldBe("domain");
+        _keycloak.Admin("PUT", $"/organizations/{OrgId}").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Records_and_clears_a_domains_catch_all_user_as_an_organization_attribute()
+    {
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, Fixture.Load("organization-nightware.json"));
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 204, method: "PUT");
+        await using AdapterHost host = Host();
+
+        Entity entity = (await host.Scoped<IEntityRegistry>().SetCatchAllAsync(OrgId, Domain("nightware.localhost"), "u-1", Ct)).Value;
+
+        entity.CatchAllFor(Domain("nightware.localhost")).ShouldBe("u-1");
+        JsonObject body = JsonNode.Parse(_keycloak.Admin("PUT", $"/organizations/{OrgId}").Single().Body!)!.AsObject();
+        body["attributes"]!["nightware_catch_all:nightware.localhost"]!.AsArray().Single()!.GetValue<string>().ShouldBe("u-1");
+        body["attributes"]!["billing"].ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task Clearing_a_catch_all_removes_its_attribute_and_one_never_set_writes_nothing()
+    {
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, """{"id":"0b7f3a52-9c41-4d6e-8a2f-5e1c9d3b7a10","name":"Nightware","alias":"nightware","domains":[{"name":"nightware.localhost"},{"name":"second.example"}],"attributes":{"nightware_catch_all:nightware.localhost":["u-1"]}}""");
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 204, method: "PUT");
+        await using AdapterHost host = Host();
+        IEntityRegistry registry = host.Scoped<IEntityRegistry>();
+
+        (await registry.SetCatchAllAsync(OrgId, Domain("second.example"), null, Ct)).Value.CatchAllFor(Domain("nightware.localhost")).ShouldBe("u-1");
+        _keycloak.Admin("PUT", $"/organizations/{OrgId}").ShouldBeEmpty();
+
+        (await registry.SetCatchAllAsync(OrgId, Domain("nightware.localhost"), null, Ct)).Value.CatchAlls.ShouldBeEmpty();
+        JsonNode.Parse(_keycloak.Admin("PUT", $"/organizations/{OrgId}").Single().Body!)!["attributes"]!.AsObject().Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task A_catch_all_for_a_domain_the_entity_lacks_is_not_found_without_a_write()
+    {
+        _keycloak.GivenAdmin($"/organizations/{OrgId}", 200, Fixture.Load("organization-nightware.json"));
+        await using AdapterHost host = Host();
+
+        Result<Entity> result = await host.Scoped<IEntityRegistry>().SetCatchAllAsync(OrgId, Domain("other.example"), "u-1", Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.NotFound);
         _keycloak.Admin("PUT", $"/organizations/{OrgId}").ShouldBeEmpty();
     }
 

@@ -37,6 +37,7 @@ public static class AdministrationServiceCollectionExtensions
         services.TryAddScoped<RemoveEntityDomain>();
         services.TryAddScoped<GetEntityDnsRecords>();
         services.TryAddScoped<SetDomainMailPolicy>();
+        services.TryAddScoped<SetDomainCatchAll>();
         services.TryAddScoped<SetEntityDnsToken>();
         services.TryAddScoped<PlanDnsPublication>();
         services.TryAddScoped<RemoveDomainDnsRecords>();

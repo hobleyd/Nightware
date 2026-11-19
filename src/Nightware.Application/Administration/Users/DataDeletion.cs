@@ -10,7 +10,7 @@ public sealed record DeletionOutcome(bool AlreadyAbsent, long? BytesDeleted);
 /// account, a disabled target, a fresh and strong sign-in, the retyped address, and a downstream account
 /// that provably belongs to this user. Checked in the use case, so a forged POST meets the same rules.
 /// </summary>
-public sealed class DeletionGuard(IAdminActor actor, UserAccess users, AdministrationOptions options, TimeProvider time)
+public sealed class DeletionGuard(IAdminActor actor, UserAccess users, IEntityRegistry entities, AdministrationOptions options, TimeProvider time)
 {
     public async Task<Result<UserDetail>> LoadAsync(string userId, CancellationToken cancellationToken)
     {
@@ -51,6 +51,49 @@ public sealed class DeletionGuard(IAdminActor actor, UserAccess users, Administr
         return fresh.IsSuccess ? AdminAuthorization.RequireTypedConfirmation(typedAddress, user.User.Identity.Email) : fresh;
     }
 
+    /// <summary>
+    /// Refuses while the user receives a domain's mail to unknown addresses: the mail server would go on accepting
+    /// it for a mailbox that no longer exists and bounce every message afterwards.
+    /// </summary>
+    public async Task<Result> RequireNoCatchAllAsync(UserDetail user, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        if (user.User.EntityId is not { } entityId)
+        {
+            return Result.Success();
+        }
+
+        Result<Entity> entity = await entities.GetAsync(entityId, cancellationToken).ConfigureAwait(false);
+        if (!entity.IsSuccess)
+        {
+            return entity.Error;
+        }
+
+        IReadOnlyList<MailDomain> domains = entity.Value.CatchAllsOf(user.User.Identity.Id);
+        return domains.Count == 0
+            ? Result.Success()
+            : Error.Conflict($"{user.User.Identity.Email} receives the mail to unknown addresses on {string.Join(", ", domains.Select(static d => d.Name))}; choose someone else for it on the entity's page first.");
+    }
+
+    /// <summary>Who receives mail to <paramref name="address"/> once its mailbox is gone: the domain's catch-all user, or null when it bounces.</summary>
+    public async Task<string?> CatchAllAfterAsync(UserDetail user, string address, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        if (user.User.EntityId is not { } entityId || !MailAddress.TryParse(address, out MailAddress? parsed))
+        {
+            return null;
+        }
+
+        Result<Entity> entity = await entities.GetAsync(entityId, cancellationToken).ConfigureAwait(false);
+        if (!entity.IsSuccess || entity.Value.CatchAllFor(parsed.Domain) is not { } holderId)
+        {
+            return null;
+        }
+
+        Result<ManagedUser> holder = await users.LoadAsync(holderId, cancellationToken).ConfigureAwait(false);
+        return holder.IsSuccess ? holder.Value.Identity.Email : "the domain's catch-all user";
+    }
+
     public static Error? RefuseConflict(BackendLink link) =>
         link.State is LinkState.Conflict or LinkState.Error
             ? Error.Conflict($"Not deleted: {link.Detail} The console only deletes an account it can prove is this user's.")
@@ -80,12 +123,15 @@ public sealed class GetDeletionPreview(DeletionGuard guard, IMailAccounts mail)
                 bytes = usage.IsSuccess ? usage.Value : null;
             }
 
+            string afterwards = await guard.CatchAllAfterAsync(user, identity.Email, cancellationToken).ConfigureAwait(false) is { } catchAll
+                ? $"Mail sent to {identity.Email} afterwards goes to {catchAll}, who receives the domain's mail to unknown addresses"
+                : $"Mail sent to {identity.Email} afterwards bounces";
             return new DeletionPreview(
                 user.User,
                 target,
                 mailbox.State == LinkState.Missing,
                 bytes,
-                [$"The mailbox {identity.Email} and every message in it", "Its aliases, identities, filters and vacation reply", $"Mail sent to {identity.Email} afterwards bounces"],
+                [$"The mailbox {identity.Email} and every message in it", "Its aliases, identities, filters and vacation reply", afterwards],
                 [$"Their sign-in account {identity.Username} (disabled)", "Their files, calendars, contacts and tasks"]);
         }
 
@@ -122,6 +168,13 @@ public sealed class DeleteUserMail(IAdminActor actor, DeletionGuard guard, IMail
         {
             Record(loaded.Value, false, "refused:" + mailbox.State, null);
             return conflict;
+        }
+
+        Result catchAll = await guard.RequireNoCatchAllAsync(loaded.Value, cancellationToken).ConfigureAwait(false);
+        if (!catchAll.IsSuccess)
+        {
+            Record(loaded.Value, false, "refused:catch-all", null);
+            return catchAll.Error;
         }
 
         if (mailbox.State == LinkState.Missing)

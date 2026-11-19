@@ -28,11 +28,17 @@ public interface IEntityRegistry
     /// <summary>Conflict when another entity owns the domain; adding a domain the entity has is a no-op.</summary>
     Task<Result<Entity>> AddDomainAsync(string entityId, MailDomain domain, CancellationToken cancellationToken);
 
-    /// <summary>Also forgets the domain's SPF and DMARC choice.</summary>
+    /// <summary>Also forgets the domain's SPF and DMARC choice and its catch-all.</summary>
     Task<Result<Entity>> RemoveDomainAsync(string entityId, MailDomain domain, CancellationToken cancellationToken);
 
     /// <summary>Stores the domain's SPF and DMARC choice (a null record returns it to the mail server's default). NotFound when the entity lacks the domain.</summary>
     Task<Result<Entity>> SetMailPolicyAsync(string entityId, MailDomain domain, DomainMailPolicy policy, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Records the user (by id) who receives the domain's mail to unknown addresses; with null, that mail is refused.
+    /// NotFound when the entity lacks the domain.
+    /// </summary>
+    Task<Result<Entity>> SetCatchAllAsync(string entityId, MailDomain domain, string? userId, CancellationToken cancellationToken);
 
     /// <summary>The entity's sealed DNS host credential (<see cref="ISecretSealer"/>) and its host, or null when it has none.</summary>
     Task<Result<SealedDnsToken?>> GetSealedDnsTokenAsync(string entityId, CancellationToken cancellationToken);
@@ -163,7 +169,11 @@ public interface IMailAccounts
     Task<Result> DestroyAsync(string accountId, CancellationToken cancellationToken);
 }
 
-public sealed record MailDomainInfo(string Id, MailDomain Domain, bool DkimPresent);
+public sealed record MailDomainInfo(string Id, MailDomain Domain, bool DkimPresent)
+{
+    /// <summary>Where the mail server sends mail to unknown addresses on the domain; null when it refuses it.</summary>
+    public string? CatchAllAddress { get; init; }
+}
 
 /// <summary>Domains on the mail server (Stalwart).</summary>
 public interface IMailDomains
@@ -179,6 +189,12 @@ public interface IMailDomains
     /// already gone; Conflict, with nothing destroyed, while any account has an address or alias on it.
     /// </summary>
     Task<Result> DestroyAsync(MailDomain domain, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Sends mail to unknown addresses on the domain to <paramref name="address"/>, or with null refuses it again.
+    /// Takes effect at once. NotFound when the mail server does not serve the domain.
+    /// </summary>
+    Task<Result> SetCatchAllAsync(MailDomain domain, MailAddress? address, CancellationToken cancellationToken);
 
     /// <summary>Reloads the mail server's settings, which loads the DKIM keys of a domain created without a reload.</summary>
     Task<Result> ReloadSettingsAsync(CancellationToken cancellationToken);

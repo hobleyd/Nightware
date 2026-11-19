@@ -8,14 +8,18 @@ using Nightware.Domain.Kernel;
 
 namespace Nightware.Admin.Pages.Entities;
 
-/// <summary>One entity: its domains (with repair and removal) and a way to its users. Its DNS hosting and administrators are pages of their own.</summary>
+/// <summary>
+/// One entity: its domains (with repair and removal), who receives each domain's mail to unknown addresses, and a
+/// way to its users. Its DNS hosting and administrators are pages of their own.
+/// </summary>
 public sealed class DetailModel(
     IAdminActor actor,
     GetEntity getEntity,
     ListUsers listUsers,
     AddEntityDomain addDomain,
     RemoveEntityDomain removeDomain,
-    RemoveDomainDnsRecords removeDnsRecords) : ConsolePageModel(actor)
+    RemoveDomainDnsRecords removeDnsRecords,
+    SetDomainCatchAll setCatchAll) : ConsolePageModel(actor)
 {
     [BindProperty(SupportsGet = true)]
     public string Id { get; set; } = string.Empty;
@@ -28,12 +32,52 @@ public sealed class DetailModel(
     public int AddressesOn(MailDomain domain) =>
         Members.Sum(m => m.User.Identity.Aliases.Prepend(m.User.Identity.Email).Count(a => a.EndsWith("@" + domain.Name, StringComparison.OrdinalIgnoreCase)));
 
+    /// <summary>The users who may receive a domain's mail to unknown addresses: enabled, with a mailbox of their own.</summary>
+    public IReadOnlyList<UserDetail> CatchAllCandidates =>
+        [.. Members.Where(static m => m.User.Identity.Enabled && m.For(BackendKind.Mail).State == LinkState.Linked).OrderBy(static m => m.User.Identity.DisplayName, StringComparer.CurrentCultureIgnoreCase)];
+
+    /// <summary>The user the entity records as receiving <paramref name="domain"/>'s mail to unknown addresses, when they are one of its users.</summary>
+    public UserDetail? CatchAllHolder(MailDomain domain) =>
+        Entity.Entity.CatchAllFor(domain) is { } userId ? Members.FirstOrDefault(m => m.User.Identity.Id == userId) : null;
+
+    /// <summary>What is wrong with a served domain's catch-all, or null: the record and the mail server disagree, or its user cannot read it.</summary>
+    public string? CatchAllProblem(DomainStatus status)
+    {
+        ArgumentNullException.ThrowIfNull(status);
+        string? recorded = Entity.Entity.CatchAllFor(status.Domain);
+        string? server = status.CatchAllAddress;
+        if (recorded is null)
+        {
+            return server is null ? null : $"The mail server sends it to {server}, set outside the console. Choose someone and Save to manage it here.";
+        }
+
+        if (CatchAllHolder(status.Domain) is not { } holder)
+        {
+            return "It goes to a user who is no longer one of this entity's. Choose someone else.";
+        }
+
+        IdentityAccount identity = holder.User.Identity;
+        if (!string.Equals(server, identity.Email, StringComparison.OrdinalIgnoreCase))
+        {
+            return server is null
+                ? $"The mail server still refuses it rather than sending it to {identity.Email}. Save again."
+                : $"The mail server sends it to {server}, not {identity.Email}. Save again.";
+        }
+
+        return identity.Enabled ? null : $"{identity.DisplayName} is offboarded, so no one reads this mail. Choose someone else.";
+    }
+
     public Task<IActionResult> OnGetAsync(CancellationToken cancellationToken) => RenderAsync(cancellationToken);
 
     public async Task<IActionResult> OnPostAddDomainAsync(string domain, CancellationToken cancellationToken) =>
         await AfterAsync(await addDomain.ExecuteAsync(Id, domain, cancellationToken), s => s.Mail.State == LinkState.Linked
             ? $"{s.Domain} added. Publish its DNS records."
             : $"{s.Domain} added in Keycloak; the mail server does not serve it yet ({s.Mail.Detail}). Try Repair.", cancellationToken);
+
+    public async Task<IActionResult> OnPostCatchAllAsync(string domain, string? userId, CancellationToken cancellationToken) =>
+        await AfterAsync(await setCatchAll.ExecuteAsync(Id, domain, userId, cancellationToken), address => address is null
+            ? $"Mail to unknown addresses on {domain} is refused."
+            : $"Mail to unknown addresses on {domain} now goes to {address}.", cancellationToken);
 
     public async Task<IActionResult> OnPostRepairDomainAsync(string domain, CancellationToken cancellationToken) =>
         await AfterAsync(await addDomain.ExecuteAsync(Id, domain, cancellationToken), Systems.DomainRepairNotice, cancellationToken);

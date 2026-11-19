@@ -35,6 +35,9 @@ internal static class KeycloakAdminNames
     /// <summary>Organization attribute <c>nightware_dmarc:&lt;domain&gt;</c>: the domain's chosen DMARC record.</summary>
     public static string DmarcAttribute(MailDomain domain) => "nightware_dmarc:" + domain.Name;
 
+    /// <summary>Organization attribute <c>nightware_catch_all:&lt;domain&gt;</c>: the id of the user who receives the domain's mail to unknown addresses.</summary>
+    public static string CatchAllAttribute(MailDomain domain) => "nightware_catch_all:" + domain.Name;
+
     /// <summary>
     /// Organization attribute <c>nightware_dns_token:&lt;provider&gt;</c>: the entity's credential for that DNS host,
     /// sealed by the console (ASP.NET Data Protection); <c>nightware_dns_token:cloudflare</c> for Cloudflare, as before

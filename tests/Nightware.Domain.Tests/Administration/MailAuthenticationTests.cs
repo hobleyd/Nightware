@@ -184,4 +184,20 @@ public sealed class MailAuthenticationTests
         MailDomain[] domains = [Acme];
         new Entity("e", "acme", "Acme", domains).ShouldBe(new Entity("e", "acme", "Acme", domains));
     }
+
+    [Fact]
+    public void An_entity_names_the_user_receiving_each_domains_mail_to_unknown_addresses()
+    {
+        MailDomain other = MailDomain.TryParse("other.example", out MailDomain? o) ? o : throw new InvalidOperationException();
+        MailDomain third = MailDomain.TryParse("a.example", out MailDomain? t) ? t : throw new InvalidOperationException();
+        Entity entity = new("e", "acme", "Acme", [Acme, other, third]);
+        entity.CatchAllFor(Acme).ShouldBeNull();
+        entity.CatchAllsOf("u-1").ShouldBeEmpty();
+
+        Entity chosen = entity with { CatchAlls = new Dictionary<MailDomain, string> { [Acme] = "u-1", [other] = "u-2", [third] = "u-1" } };
+
+        chosen.CatchAllFor(Acme).ShouldBe("u-1");
+        chosen.CatchAllFor(other).ShouldBe("u-2");
+        chosen.CatchAllsOf("u-1").ShouldBe([third, Acme]);
+    }
 }
