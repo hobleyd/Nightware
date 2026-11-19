@@ -2,13 +2,10 @@
 @model Nightware.Admin.Pages.Entities.IndexModel
 @{ ViewData["Title"] = "Entities"; }
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
-@* The menu names the page; the heading stays for screen readers so the panes start level, as on the dashboard. *@
-<h1 class="visually-hidden">Entities</h1>
-<partial name="_Messages" />
-
 <section class="panel">
-<h2>All entities</h2>
-<table>
+<h1>Entities</h1>
+<partial name="_Messages" />
+<table aria-label="All entities">
     <thead><tr><th>Entity</th><th>Short name</th><th>Domains</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
     <tbody>
     @foreach (var e in Model.Entities)
