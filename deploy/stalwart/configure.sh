@@ -13,7 +13,8 @@
 #      requests per account (default 32), public DNSSEC-validating resolver,
 #      TLS certificate from files (STALWART_TLS_CERT/KEY)
 #   5. web admin sign-in through Keycloak: the web admin's client id pinned,
-#      Stalwart's Admin role for STALWART_ADMIN_ACCOUNTS
+#      its code built and patched here (stalwart/webui), Stalwart's Admin role
+#      for STALWART_ADMIN_ACCOUNTS
 #   6. ReloadSettings
 #
 # Authenticates as the recovery administrator (STALWART_RECOVERY_ADMIN).
@@ -283,7 +284,7 @@ fi
 # sign-in server also knows, and keycloak/configure-console.sh creates the
 # Keycloak client of that name. The page carries the id from a restart on.
 WEBUI_CLIENT="${PUBLIC_URL}/admin/oauth-client.json"
-apps=$(call '[["x:Application/query",{},"q"],["x:Application/get",{"#ids":{"resultOf":"q","name":"x:Application/query","path":"/ids"},"properties":["description","urlPrefix","oauthClientId"]},"g"]]' \
+apps=$(call '[["x:Application/query",{},"q"],["x:Application/get",{"#ids":{"resultOf":"q","name":"x:Application/query","path":"/ids"},"properties":["description","urlPrefix","oauthClientId","resourceUrl"]},"g"]]' \
   | jq -c '[.methodResponses[1][1].list[]? | select(.urlPrefix | has("/admin"))]')
 APP_ID=$(jq -r '.[0].id // empty' <<<"$apps")
 if [[ -z "$APP_ID" ]]; then
@@ -294,6 +295,36 @@ elif [[ "$(jq -r '.[0].oauthClientId // empty' <<<"$apps")" != "$WEBUI_CLIENT" ]
     | jq -e --arg id "$APP_ID" '.methodResponses[0][1].updated | has($id)' >/dev/null \
     || echo "Stalwart: WARNING could not set the web admin's client id" >&2
   RESTART_STALWART=1
+fi
+
+# The web admin's own code: ours, built by stalwart/webui/build.sh (upstream's,
+# pinned, with patches: its sign-in page takes ?login_hint=, so the console's
+# link signs an admin in through Keycloak without typing), when it builds and
+# the container sees it at /opt/webui (docker-compose.yml mounts
+# stalwart/webui); upstream's release otherwise, or with STALWART_WEBUI_PATCHED=false.
+# UpdateApps makes Stalwart re-read it; a restart alone keeps its unpacked copy.
+WEBUI_UPSTREAM=https://github.com/stalwartlabs/webui/releases/download/v2/webui.zip
+WEBUI_URL="$WEBUI_UPSTREAM"
+if [[ -n "$APP_ID" && "${STALWART_WEBUI_PATCHED:-true}" == true ]]; then
+  if ! "$DEPLOY_DIR/stalwart/webui/build.sh"; then
+    echo "Stalwart: WARNING could not build the patched web admin; keeping upstream's" >&2
+  elif ! dc exec -T stalwart test -s /opt/webui/webui.zip; then
+    echo "Stalwart: WARNING the container has no /opt/webui/webui.zip (mount stalwart/webui there); keeping upstream's web admin" >&2
+  else
+    WEBUI_URL=file:///opt/webui/webui.zip
+  fi
+fi
+if [[ -n "$APP_ID" ]]; then
+  if [[ "$(jq -r '.[0].resourceUrl // empty' <<<"$apps")" != "$WEBUI_URL" ]]; then
+    log "Stalwart: the web admin's code comes from ${WEBUI_URL}"
+    call "$(jq -cn --arg id "$APP_ID" --arg u "$WEBUI_URL" '[["x:Application/set",{"update":{($id):{resourceUrl:$u}}},"c"]]')" \
+      | jq -e --arg id "$APP_ID" '.methodResponses[0][1].updated | has($id)' >/dev/null \
+      || echo "Stalwart: WARNING could not set the web admin's resource URL" >&2
+  fi
+  if [[ "$WEBUI_URL" == file://* ]]; then
+    call '[["x:Action/set",{"create":{"u":{"@type":"UpdateApps"}}},"c"]]' | jq -e '.methodResponses[0][1].created.u' >/dev/null \
+      || echo "Stalwart: WARNING could not make Stalwart re-read the web admin" >&2
+  fi
 fi
 
 # STALWART_ADMIN_ACCOUNTS: local parts (at MAIL_DOMAIN) that hold Stalwart's

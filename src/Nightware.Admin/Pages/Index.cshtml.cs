@@ -39,10 +39,20 @@ public sealed class IndexModel(
             : backend switch
             {
                 BackendKind.Identity => console.Value.KeycloakAdminUrl,
-                BackendKind.Mail => console.Value.StalwartAdminUrl,
+                BackendKind.Mail => StalwartSignIn(console.Value.StalwartAdminUrl),
                 BackendKind.Groupware => console.Value.NextcloudAdminUrl,
                 _ => null,
             } is { } url && !string.IsNullOrWhiteSpace(url) ? url : null;
+
+    /// <summary>
+    /// Stalwart's web admin decides where an account signs in from the address typed on its sign-in page (a bare
+    /// username stays on its own password page). Its sign-in page, patched (deploy/stalwart/webui), takes the
+    /// admin's address as <c>login_hint</c> and goes straight on, so the Keycloak session signs them in.
+    /// </summary>
+    private string? StalwartSignIn(string? webAdmin) =>
+        string.IsNullOrWhiteSpace(webAdmin) || User.FindFirst("email")?.Value is not { Length: > 0 } email
+            ? webAdmin
+            : $"{webAdmin.TrimEnd('/')}/login?login_hint={Uri.EscapeDataString(email)}";
 
     /// <summary>Grafana, the stack's telemetry, for a global administrator when it is configured; null otherwise.</summary>
     public string? GrafanaUrl =>

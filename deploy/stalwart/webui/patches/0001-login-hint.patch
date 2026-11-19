@@ -1,0 +1,44 @@
+--- a/src/pages/LoginPage.tsx
++++ b/src/pages/LoginPage.tsx
+@@ -4,7 +4,7 @@
+  * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-SEL
+  */
+ 
+-import { type FormEvent, useState } from 'react';
++import { type FormEvent, useEffect, useRef, useState } from 'react';
+ import { useLocation } from 'react-router-dom';
+ import { useTranslation } from 'react-i18next';
+ import { ArrowRight, Loader2 } from 'lucide-react';
+@@ -21,7 +21,10 @@
+   const { t } = useTranslation();
+   const location = useLocation();
+   const originalPath = (location.state as { from?: string } | null)?.from ?? null;
+-  const [username, setUsername] = useState('');
++  // Nightware: ?login_hint=<address> (the admin console's link) fills in the account and starts signing in at
++  // once. Which server signs it in still comes from /api/discover, so the hint can send no one elsewhere.
++  const hint = new URLSearchParams(location.search).get('login_hint')?.trim() ?? '';
++  const [username, setUsername] = useState(hint);
+   const [error, setError] = useState<string | null>(null);
+   const [loading, setLoading] = useState(false);
+   const sessionExpired = useAuthStore((s) => s.sessionExpired);
+@@ -30,7 +33,19 @@
+ 
+   async function handleSubmit(e: FormEvent) {
+     e.preventDefault();
+-    const trimmed = username.trim();
++    await signIn(username.trim());
++  }
++
++  // Once per page: a sign-in that fails shows its error instead of starting again.
++  const hinted = useRef(false);
++  useEffect(() => {
++    if (!hint || hinted.current) return;
++    hinted.current = true;
++    void signIn(hint);
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [hint]);
++
++  async function signIn(trimmed: string) {
+     if (!trimmed) return;
+ 
+     setError(null);

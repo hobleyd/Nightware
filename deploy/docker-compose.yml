@@ -168,6 +168,8 @@ services:
     volumes:
       - stalwart-etc:/etc/stalwart
       - stalwart-data:/var/lib/stalwart
+      # Its web admin, patched (stalwart/webui/build.sh, run by stalwart/configure.sh).
+      - ./stalwart/webui:/opt/webui:ro
     networks: [nightware]
 
   # --------------------------------------------------------------- Nextcloud

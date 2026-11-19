@@ -517,6 +517,20 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
     }
 
     [Fact]
+    public async Task The_stalwart_link_opens_its_sign_in_page_with_the_admins_address()
+    {
+        _host.Settings["Admin:StalwartAdminUrl"] = "https://mail.example/admin/";
+        HttpClient client = _host.ClientAs(ConsoleHost.GlobalAdmin);
+        client.DefaultRequestHeaders.Add(ConsoleHost.TestAuthHandler.EmailHeader, "gina+ops@acme.example");
+
+        string html = await (await client.GetAsync(new Uri("/", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain("href=\"https://mail.example/admin/login?login_hint=gina%2Bops%40acme.example\"");
+        // Without an address in the sign-in, the link is the web admin as configured.
+        (await GetAsync("/")).ShouldContain("href=\"https://mail.example/admin/\"");
+    }
+
+    [Fact]
     public async Task Without_configured_admin_consoles_no_status_is_a_link() =>
         (await GetAsync("/")).ShouldNotContain("<a class=\"chip");
 

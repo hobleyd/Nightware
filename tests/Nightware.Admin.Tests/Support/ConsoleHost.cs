@@ -226,6 +226,7 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
         public const string SubHeader = "X-Test-Sub";
         public const string AuthAgeHeader = "X-Test-Auth-Age";
         public const string AcrHeader = "X-Test-Acr";
+        public const string EmailHeader = "X-Test-Email";
 
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
@@ -244,6 +245,11 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
             if (Request.Headers.TryGetValue(AcrHeader, out var acr))
             {
                 claims.Add(new Claim(AdminAuthentication.AcrClaim, acr.ToString()));
+            }
+
+            if (Request.Headers.TryGetValue(EmailHeader, out var email))
+            {
+                claims.Add(new Claim("email", email.ToString()));
             }
 
             var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, SchemeName, "preferred_username", "role"));
