@@ -34,6 +34,14 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
         _host.Entities.ListMembersAsync(ConsoleHost.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success(members));
 
     [Fact]
+    public async Task The_console_names_its_version_beside_its_name()
+    {
+        string top = Regex.Match(await GetAsync("/"), "<header class=\"top\">(.*?)</header>", RegexOptions.Singleline).Groups[1].Value;
+
+        top.ShouldContain($"Nightware console <span class=\"version\">v{ConsoleVersion.Current}</span></a>");
+    }
+
+    [Fact]
     public async Task The_dashboard_and_sections_sit_in_a_left_menu()
     {
         string html = await GetAsync("/");

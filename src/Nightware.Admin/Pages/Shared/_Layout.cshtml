@@ -58,7 +58,7 @@
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <header class="top">
-    <a class="brand" asp-page="/Index"><img src="~/img/mark.png" width="28" height="28" alt="">Nightware console</a>
+    <a class="brand" asp-page="/Index"><img src="~/img/mark.png" width="28" height="28" alt="">Nightware console <span class="version">v@(Nightware.Admin.Hosting.ConsoleVersion.Current)</span></a>
     @if (sections)
     {
         <form method="get" asp-page="/Users/Find" class="find" role="search">

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Adds one to the last number of <Version> in Directory.Build.props on every commit, so each commit is a release
+# the console can name. A commit that already changes the version (a hand bump for a feature) is left alone, as is
+# an amend (the commit it replaces already carries its bump). Enable once per clone:
+#   git config core.hooksPath .githooks
+set -euo pipefail
+
+props=Directory.Build.props
+pattern='<Version>[0-9]+\.[0-9]+\.[0-9]+</Version>'
+
+if ps -o command= -p "$PPID" 2>/dev/null | grep -q -- '--amend'; then
+  exit 0
+fi
+
+# Nothing staged, nothing to version (git refuses the commit anyway).
+if git diff --cached --quiet; then
+  exit 0
+fi
+
+if git diff --cached -U0 -- "$props" | grep -Eq "^[-+].*$pattern"; then
+  exit 0
+fi
+
+staged=$(git show ":$props")
+current=$(printf '%s\n' "$staged" | grep -Eo "$pattern" | head -n 1 | sed -E 's:</?Version>::g')
+if [ -z "$current" ]; then
+  echo "pre-commit: no <Version>x.y.z</Version> in $props; not bumping." >&2
+  exit 0
+fi
+
+IFS=. read -r major minor patch <<<"$current"
+next="$major.$minor.$((patch + 1))"
+
+# Bump the staged copy (so unstaged edits to the file stay out of the commit), then the working copy to match.
+blob=$(printf '%s\n' "$staged" | sed -E "s:<Version>$current</Version>:<Version>$next</Version>:" | git hash-object -w --stdin)
+git update-index --cacheinfo "$(git ls-files -s -- "$props" | cut -d' ' -f1)" "$blob" "$props"
+sed -i.bak -E "s:<Version>$current</Version>:<Version>$next</Version>:" "$props" && rm -f "$props.bak"
+
+echo "pre-commit: version $current -> $next"

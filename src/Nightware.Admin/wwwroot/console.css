@@ -55,6 +55,7 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; }
 .top { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; padding: 10px 16px; background: var(--night); color: var(--night-text); }
 .top .brand { display: flex; gap: 10px; align-items: center; font-weight: 700; text-decoration: none; color: var(--night-text); }
 .top .brand img { border-radius: 6px; }
+.top .brand .version { font-weight: 400; font-size: 0.8em; color: var(--night-muted); }
 .top a, .top button.link { color: var(--night-link); }
 .top :focus-visible { outline-color: var(--night-link); }
 .who { color: var(--muted); }
