@@ -15,6 +15,8 @@ internal sealed partial class KeycloakAdminClient
 {
     private const string OrganizationNotFound = "The entity was not found in the directory.";
 
+    private const string GroupNotFound = "The group was not found in the directory.";
+
     public Task<Result<IReadOnlyList<KeycloakOrganization>>> ListOrganizationsAsync(CancellationToken cancellationToken) =>
         ListAllAsync<KeycloakOrganization>(static paging => "organizations?briefRepresentation=true&" + paging, cancellationToken);
 
@@ -120,6 +122,51 @@ internal sealed partial class KeycloakAdminClient
             cancellationToken,
             mapError: NotFoundAs(OrganizationNotFound));
     }
+
+    public Task<Result<IReadOnlyList<KeycloakGroup>>> ListOrganizationGroupChildrenAsync(string organizationId, string parentId, CancellationToken cancellationToken)
+    {
+        string path = $"{OrganizationPath(organizationId)}/groups/{Segment(parentId)}/children?briefRepresentation=true&";
+        return ListAllAsync<KeycloakGroup>(paging => path + paging, cancellationToken);
+    }
+
+    public Task<Result<KeycloakGroup>> GetOrganizationGroupAsync(string organizationId, string groupId, CancellationToken cancellationToken)
+    {
+        string path = $"{OrganizationPath(organizationId)}/groups/{Segment(groupId)}";
+        return SendAsync(
+            () => new HttpRequestMessage(HttpMethod.Get, Url(path)),
+            ReadJsonAsync<KeycloakGroup>,
+            cancellationToken,
+            mapError: NotFoundAs(GroupNotFound));
+    }
+
+    public Task<Result<string>> CreateOrganizationSubGroupAsync(string organizationId, string parentId, string name, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        string path = $"{OrganizationPath(organizationId)}/groups/{Segment(parentId)}/children";
+        string body = new JsonObject { ["name"] = name }.ToJsonString();
+        return SendAsync(
+            () => new HttpRequestMessage(HttpMethod.Post, Url(path)) { Content = JsonBody(body) },
+            ReadCreatedIdAsync,
+            cancellationToken,
+            mapError: NotFoundAs(GroupNotFound));
+    }
+
+    public Task<Result> UpdateOrganizationGroupAsync(string organizationId, string groupId, string name, IReadOnlyDictionary<string, IReadOnlyList<string>> attributes, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(attributes);
+        var values = new JsonObject();
+        foreach ((string key, IReadOnlyList<string> list) in attributes)
+        {
+            values[key] = new JsonArray([.. list.Select(static v => (JsonNode?)JsonValue.Create(v))]);
+        }
+
+        string body = new JsonObject { ["name"] = name, ["attributes"] = values }.ToJsonString();
+        return WriteAsync(HttpMethod.Put, $"{OrganizationPath(organizationId)}/groups/{Segment(groupId)}", () => JsonBody(body), cancellationToken, mapError: NotFoundAs(GroupNotFound));
+    }
+
+    public Task<Result> DeleteOrganizationGroupAsync(string organizationId, string groupId, CancellationToken cancellationToken) =>
+        WriteAsync(HttpMethod.Delete, $"{OrganizationPath(organizationId)}/groups/{Segment(groupId)}", static () => null, cancellationToken, mapError: NotFoundAs(GroupNotFound));
 
     public Task<Result<IReadOnlyList<KeycloakUser>>> ListOrganizationGroupMembersAsync(string organizationId, string groupId, CancellationToken cancellationToken)
     {

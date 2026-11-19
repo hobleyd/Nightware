@@ -163,6 +163,30 @@ public interface IKeycloakAdminClient
     /// <summary><c>POST /organizations/{id}/groups</c> — a new top-level organization group; returns its id. 409 → Conflict (name taken).</summary>
     Task<Result<string>> CreateOrganizationGroupAsync(string organizationId, string name, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// <c>GET /organizations/{id}/groups/{parentId}/children</c> (all pages): the parent's direct subgroups, without
+    /// their attributes (Keycloak 26.8 leaves them out even with <c>briefRepresentation=false</c>).
+    /// </summary>
+    Task<Result<IReadOnlyList<KeycloakGroup>>> ListOrganizationGroupChildrenAsync(string organizationId, string parentId, CancellationToken cancellationToken);
+
+    /// <summary><c>GET /organizations/{id}/groups/{groupId}</c>, with attributes. 404 → NotFound.</summary>
+    Task<Result<KeycloakGroup>> GetOrganizationGroupAsync(string organizationId, string groupId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// <c>POST /organizations/{id}/groups/{parentId}/children</c> — a new subgroup; returns its id. Attributes sent
+    /// here are ignored, so they are written with <see cref="UpdateOrganizationGroupAsync"/>. 409 → Conflict (name taken).
+    /// </summary>
+    Task<Result<string>> CreateOrganizationSubGroupAsync(string organizationId, string parentId, string name, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// <c>PUT /organizations/{id}/groups/{groupId}</c> with the name and every attribute (a <c>PUT</c> without
+    /// <c>attributes</c> keeps them; with them, replaces them). 404 → NotFound.
+    /// </summary>
+    Task<Result> UpdateOrganizationGroupAsync(string organizationId, string groupId, string name, IReadOnlyDictionary<string, IReadOnlyList<string>> attributes, CancellationToken cancellationToken);
+
+    /// <summary><c>DELETE /organizations/{id}/groups/{groupId}</c>. 404 → NotFound.</summary>
+    Task<Result> DeleteOrganizationGroupAsync(string organizationId, string groupId, CancellationToken cancellationToken);
+
     /// <summary><c>GET /organizations/{id}/groups/{groupId}/members</c> (all pages, full representations).</summary>
     Task<Result<IReadOnlyList<KeycloakUser>>> ListOrganizationGroupMembersAsync(string organizationId, string groupId, CancellationToken cancellationToken);
 

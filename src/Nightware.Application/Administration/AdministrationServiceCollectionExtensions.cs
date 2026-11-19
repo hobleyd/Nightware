@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 using Nightware.Application.Administration.Admins;
 using Nightware.Application.Administration.Entities;
+using Nightware.Application.Administration.Groups;
 using Nightware.Application.Administration.Status;
 using Nightware.Application.Administration.Users;
 
@@ -64,6 +65,19 @@ public static class AdministrationServiceCollectionExtensions
         services.TryAddScoped<GetDeletionPreview>();
         services.TryAddScoped<DeleteUserMail>();
         services.TryAddScoped<DeleteUserGroupwareData>();
+
+        services.TryAddScoped<GroupSync>();
+        services.TryAddScoped<GroupAccess>();
+        services.TryAddScoped<ListGroups>();
+        services.TryAddScoped<GetGroup>();
+        services.TryAddScoped<ListUserGroups>();
+        services.TryAddScoped<CreateGroup>();
+        services.TryAddScoped<UpdateGroup>();
+        services.TryAddScoped<AddGroupMember>();
+        services.TryAddScoped<RemoveGroupMember>();
+        services.TryAddScoped<RepairGroup>();
+        services.TryAddScoped<DeleteGroup>();
+        services.TryAddScoped<DeleteTeamFolder>();
 
         services.TryAddScoped<GetSystemStatus>();
         return services;

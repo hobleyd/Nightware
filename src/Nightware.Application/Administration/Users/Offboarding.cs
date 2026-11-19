@@ -1,3 +1,4 @@
+using Nightware.Application.Administration.Groups;
 using Nightware.Domain.Administration;
 using Nightware.Domain.Kernel;
 
@@ -10,7 +11,7 @@ namespace Nightware.Application.Administration.Users;
 /// the console could not take or could not check is a failure, never a skip: the admin must be able to trust
 /// that a successful offboarding shut every way in. Running it again on a disabled user finishes the job.
 /// </summary>
-public sealed class OffboardUser(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IMailAccounts mail, IGroupwareAccounts groupware, IAuditLog audit, AccessHistoryRecorder history)
+public sealed class OffboardUser(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IMailAccounts mail, IGroupwareAccounts groupware, IAuditLog audit, AccessHistoryRecorder history, GroupSync groups)
 {
     public async Task<Result<UserDetail>> ExecuteAsync(string userId, CancellationToken cancellationToken)
     {
@@ -49,6 +50,13 @@ public sealed class OffboardUser(IAdminActor actor, UserAccess users, IIdentityA
         if (await ShutAsync("Nextcloud", loaded.Value.For(BackendKind.Groupware), () => groupware.SetEnabledAsync(username, false, cancellationToken)).ConfigureAwait(false) is { } cloudFailure)
         {
             failures.Add(cloudFailure);
+        }
+
+        // Out of every list and Nextcloud group they are in (their membership is kept, for a reinstatement).
+        Result grouped = await groups.ApplyForUserAsync(userId, cancellationToken).ConfigureAwait(false);
+        if (!grouped.IsSuccess)
+        {
+            failures.Add(grouped.Error.Message);
         }
 
         audit.Record(new AuditEvent("user.offboarded", actor.Current.UserId, failures.Count == 0) { TargetUserId = userId, EntityId = loaded.Value.User.EntityId });
@@ -102,7 +110,7 @@ public sealed class OffboardUser(IAdminActor actor, UserAccess users, IIdentityA
 /// as a new, empty Nextcloud user. Reopening access is the security-critical direction, so it needs the same
 /// fresh, strong sign-in as granting global administrator rights.
 /// </summary>
-public sealed class ReinstateUser(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IMailAccounts mail, IGroupwareAccounts groupware, IAuditLog audit, AdministrationOptions options, TimeProvider time, AccessHistoryRecorder history)
+public sealed class ReinstateUser(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IMailAccounts mail, IGroupwareAccounts groupware, IAuditLog audit, AdministrationOptions options, TimeProvider time, AccessHistoryRecorder history, GroupSync groups)
 {
     public async Task<Result<UserDetail>> ExecuteAsync(string userId, bool recreateMailbox, CancellationToken cancellationToken)
     {
@@ -158,6 +166,12 @@ public sealed class ReinstateUser(IAdminActor actor, UserAccess users, IIdentity
             Result<MailAccount> created = await mail.CreateAsync(address, identity.Username, cancellationToken).ConfigureAwait(false);
             result = created.IsSuccess ? await identities.SetDeletionMarkerAsync(userId, DeletionTarget.Mail, null, cancellationToken).ConfigureAwait(false) : created.Error;
             recreated = created.IsSuccess;
+        }
+
+        // Back into the lists and Nextcloud groups they were in.
+        if (result.IsSuccess)
+        {
+            result = await groups.ApplyForUserAsync(userId, cancellationToken).ConfigureAwait(false);
         }
 
         audit.Record(new AuditEvent("user.reinstated", actor.Current.UserId, result.IsSuccess)

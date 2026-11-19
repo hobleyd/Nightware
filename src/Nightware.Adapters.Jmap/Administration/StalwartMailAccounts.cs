@@ -87,7 +87,9 @@ internal sealed partial class StalwartMailAccounts(
         var request = new JmapRequestBuilder();
         var set = request.Add(StalwartMethods.AccountSet, new StalwartSetRequest { Create = new Dictionary<string, JsonObject> { ["a"] = account } });
         Result<JmapResponse> response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        Result<StalwartCreated> created = response.Bind(r => r.Get(set)).Bind(r => r.Created("a"));
+        // An address a list (or another account) holds comes back as primaryKeyViolation: a Conflict naming the holder.
+        Result<StalwartCreated> created = response.Bind(r => r.Get(set)).Bind(static r =>
+            r.NotCreated?.TryGetValue("a", out SetError? refused) == true ? StalwartMethods.FromSetError(refused, "a") : r.Created("a"));
         if (!created.IsSuccess)
         {
             return created.Error;
@@ -164,7 +166,9 @@ internal sealed partial class StalwartMailAccounts(
             Update = new Dictionary<string, JsonObject> { [accountId] = new JsonObject { ["aliases"] = list } },
         });
         Result<JmapResponse> response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        Result updated = response.Bind(r => r.Get(set)).Match(r => r.Updated(accountId), static e => Result.Failure(e));
+        Result updated = response.Bind(r => r.Get(set)).Match(
+            r => r.NotUpdated?.TryGetValue(accountId, out SetError? refused) == true ? StalwartMethods.FromSetError(refused, accountId) : r.Updated(accountId),
+            static e => Result.Failure(e));
         if (updated.IsSuccess)
         {
             LogAliasesSet(logger, accountId, aliases.Count);

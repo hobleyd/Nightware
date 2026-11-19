@@ -18,6 +18,8 @@ using Nightware.Admin.Auth;
 using Nightware.Admin.Hosting;
 using Nightware.Application.Administration;
 using Nightware.Domain.Administration;
+
+using Group = Nightware.Domain.Administration.Group;
 using Nightware.Domain.Kernel;
 
 namespace Nightware.Admin.Tests.Support;
@@ -73,6 +75,32 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
         Groupware.PreProvisionAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
         Groupware.SetEnabledAsync(default!, default, default).ReturnsForAnyArgs(Result.Success());
 
+        Groups.ListAsync(default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<Group>>.Success([]));
+        Groups.GetAsync(default!, default!, default).ReturnsForAnyArgs(Error.NotFound("no group"));
+        Groups.ListMembersAsync(default!, default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        Groups.ListUserGroupsAsync(default!, default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<Group>>.Success([]));
+        Groups.CreateAsync(default!, default!, default).ReturnsForAnyArgs(c =>
+            c.Arg<NewGroup?>() is { } g ? Result<Group>.Success(new Group("g-new", c.Arg<string>(), g.Key, g.Name) { Mail = g.Mail, Files = g.Files }) : default);
+        Groups.UpdateAsync(default!, default).ReturnsForAnyArgs(c => c.Arg<Group?>() is { } g ? Result<Group>.Success(g) : default);
+        Groups.DeleteAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        Groups.AddMemberAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        Groups.RemoveMemberAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        Lists.FindByAddressAsync(default!, default).ReturnsForAnyArgs(Error.NotFound("no list"));
+        Lists.CreateAsync(default!, default!, default!, default!, default).ReturnsForAnyArgs(c => c.Arg<MailAddress?>() is { } a ? Result<MailingList>.Success(new MailingList("l-new", a.Value)) : default);
+        Lists.UpdateAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        Lists.DestroyAsync(default!, default).ReturnsForAnyArgs(Result.Success());
+        Lists.SetSenderRuleAsync(default!, default, default).ReturnsForAnyArgs(Result.Success());
+        GroupwareGroups.FindAsync(default!, default).ReturnsForAnyArgs(Error.NotFound("no group"));
+        GroupwareGroups.CreateAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        GroupwareGroups.SetDisplayNameAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        GroupwareGroups.AddMemberAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        GroupwareGroups.RemoveMemberAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        GroupwareGroups.DeleteAsync(default!, default).ReturnsForAnyArgs(Result.Success());
+        GroupwareGroups.FindFolderAsync(default, default).ReturnsForAnyArgs(Error.NotFound("no folder"));
+        GroupwareGroups.CreateFolderAsync(default!, default).ReturnsForAnyArgs(c => c.Arg<string?>() is { } m ? Result<TeamFolder>.Success(new TeamFolder(7, m, new HashSet<string>())) : default);
+        GroupwareGroups.GrantFolderAsync(default, default!, default).ReturnsForAnyArgs(Result.Success());
+        GroupwareGroups.DeleteFolderAsync(default, default).ReturnsForAnyArgs(Result.Success());
+
         foreach (BackendKind kind in Enum.GetValues<BackendKind>())
         {
             IBackendStatus status = Substitute.For<IBackendStatus>();
@@ -103,6 +131,12 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
     public IMailDomains MailDomains { get; } = Substitute.For<IMailDomains>();
 
     public IGroupwareAccounts Groupware { get; } = Substitute.For<IGroupwareAccounts>();
+
+    public IEntityGroups Groups { get; } = Substitute.For<IEntityGroups>();
+
+    public IMailingLists Lists { get; } = Substitute.For<IMailingLists>();
+
+    public IGroupwareGroups GroupwareGroups { get; } = Substitute.For<IGroupwareGroups>();
 
     public IDnsHosting DnsHosting { get; } = Substitute.For<IDnsHosting>();
 
@@ -205,6 +239,7 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Time);
             services.AddSingleton(Entities).AddSingleton(Identities).AddSingleton(Scopes).AddSingleton(Mail).AddSingleton(MailDomains).AddSingleton(Groupware).AddSingleton(DnsHosting).AddSingleton(PublicDns);
+            services.AddSingleton(Groups).AddSingleton(Lists).AddSingleton(GroupwareGroups);
             services.RemoveAll<IGrafanaStatus>();
             services.AddSingleton(Grafana);
             services.RemoveAll<IBackendStatus>();

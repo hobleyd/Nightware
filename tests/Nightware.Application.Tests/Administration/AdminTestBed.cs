@@ -2,6 +2,7 @@ using Microsoft.Extensions.Time.Testing;
 
 using Nightware.Application.Administration;
 using Nightware.Application.Administration.Entities;
+using Nightware.Application.Administration.Groups;
 using Nightware.Application.Administration.Users;
 using Nightware.Domain.Administration;
 using Nightware.Domain.Kernel;
@@ -65,6 +66,36 @@ internal sealed class AdminTestBed
         Groupware.SetEnabledAsync(default!, default, default).ReturnsForAnyArgs(Result.Success());
         Groupware.DeleteAsync(default!, default).ReturnsForAnyArgs(Result.Success());
 
+        Groups.ListAsync(default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<Group>>.Success([]));
+        Groups.GetAsync(default!, default!, default).ReturnsForAnyArgs(Error.NotFound("no group"));
+        Groups.ListMembersAsync(default!, default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        Groups.ListUserGroupsAsync(default!, default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<Group>>.Success([]));
+        Groups.CreateAsync(default!, default!, default).ReturnsForAnyArgs(c =>
+            c.Arg<NewGroup?>() is { } g ? Result<Group>.Success(new Group("g-new", c.Arg<string>(), g.Key, g.Name) { Mail = g.Mail, Files = g.Files }) : default);
+        Groups.UpdateAsync(default!, default).ReturnsForAnyArgs(c => c.Arg<Group?>() is { } g ? Result<Group>.Success(g) : default);
+        Groups.DeleteAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        Groups.AddMemberAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        Groups.RemoveMemberAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
+
+        Lists.FindByAddressAsync(default!, default).ReturnsForAnyArgs(Error.NotFound("no list"));
+        Lists.CreateAsync(default!, default!, default!, default!, default).ReturnsForAnyArgs(c =>
+            c.Arg<MailAddress?>() is { } a ? Result<MailingList>.Success(new MailingList("l-new", a.Value) { Recipients = c.ArgAt<IReadOnlyList<string>>(2) }) : default);
+        Lists.UpdateAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        Lists.DestroyAsync(default!, default).ReturnsForAnyArgs(Result.Success());
+        Lists.SetSenderRuleAsync(default!, default, default).ReturnsForAnyArgs(Result.Success());
+
+        GroupwareGroups.FindAsync(default!, default).ReturnsForAnyArgs(Error.NotFound("no group"));
+        GroupwareGroups.CreateAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        GroupwareGroups.SetDisplayNameAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        GroupwareGroups.AddMemberAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        GroupwareGroups.RemoveMemberAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        GroupwareGroups.DeleteAsync(default!, default).ReturnsForAnyArgs(Result.Success());
+        GroupwareGroups.FindFolderAsync(default, default).ReturnsForAnyArgs(Error.NotFound("no folder"));
+        GroupwareGroups.CreateFolderAsync(default!, default).ReturnsForAnyArgs(c =>
+            c.Arg<string?>() is { } m ? Result<TeamFolder>.Success(new TeamFolder(7, m, new HashSet<string>())) : default);
+        GroupwareGroups.GrantFolderAsync(default, default!, default).ReturnsForAnyArgs(Result.Success());
+        GroupwareGroups.DeleteFolderAsync(default, default).ReturnsForAnyArgs(Result.Success());
+
         Passwords.Generate().Returns(new TemporaryCredential("Generated-Pass-1"));
         ActAsGlobal();
     }
@@ -86,6 +117,12 @@ internal sealed class AdminTestBed
     public IGroupwareAccounts Groupware { get; } = Substitute.For<IGroupwareAccounts>();
 
     public IPasswordGenerator Passwords { get; } = Substitute.For<IPasswordGenerator>();
+
+    public IEntityGroups Groups { get; } = Substitute.For<IEntityGroups>();
+
+    public IMailingLists Lists { get; } = Substitute.For<IMailingLists>();
+
+    public IGroupwareGroups GroupwareGroups { get; } = Substitute.For<IGroupwareGroups>();
 
     public RecordingAuditLog Audit { get; } = new();
 
@@ -155,6 +192,10 @@ internal sealed class AdminTestBed
     public DeletionGuard DeletionGuard() => new(Actor, UserAccess(), Options, Time);
 
     public AccessHistoryRecorder History() => new(Actor, Identities, Time);
+
+    public GroupSync GroupSync() => new(Entities, Groups, Lists, GroupwareGroups, Groupware);
+
+    public GroupAccess GroupAccess() => new(Actor, Entities, Groups, Identities, Mail, Lists, GroupSync(), Options);
 
     private sealed class MutableActor : IAdminActor
     {

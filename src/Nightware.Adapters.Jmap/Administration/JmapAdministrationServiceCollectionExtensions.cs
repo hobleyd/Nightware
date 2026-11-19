@@ -34,6 +34,7 @@ public static class JmapAdministrationServiceCollectionExtensions
 
         services.TryAddScoped<IMailAccounts, StalwartMailAccounts>();
         services.TryAddScoped<IMailDomains, StalwartMailDomains>();
+        services.TryAddScoped<IMailingLists, StalwartMailingLists>();
         services.TryAddEnumerable(ServiceDescriptor.Scoped<IBackendStatus, StalwartBackendStatus>());
         return services;
     }

@@ -404,4 +404,18 @@ public sealed class StalwartMailAccountsTests : IAsyncDisposable
         account.Enabled.ShouldBeFalse();
         account.IsPrivileged.ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task An_address_a_list_holds_is_a_conflict_on_create_and_on_aliases()
+    {
+        StubAcme();
+        _host.Stub("x:Account/set", """[["x:Account/set",{"notCreated":{"a":{"type":"primaryKeyViolation","properties":["email"],"objectId":{"object":"MailingList","id":"b"}}},"notUpdated":{"a3":{"type":"primaryKeyViolation","properties":["email"],"objectId":{"object":"MailingList","id":"b"}}}},"c0"]]""");
+
+        Error created = (await Accounts().CreateAsync(Address("finance@acme.example"), "x", Ct)).Error!;
+        Error aliased = (await Accounts().SetAliasesAsync("a3", [Address("finance@acme.example")], Ct)).Error!;
+
+        created.Kind.ShouldBe(ErrorKind.Conflict);
+        created.Message.ShouldContain("a list");
+        aliased.Kind.ShouldBe(ErrorKind.Conflict);
+    }
 }

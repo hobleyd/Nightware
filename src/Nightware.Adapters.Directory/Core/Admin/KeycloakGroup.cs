@@ -20,6 +20,10 @@ public sealed record KeycloakGroup
     /// </summary>
     [JsonPropertyName("parentId")]
     public string? ParentId { get; init; }
+
+    /// <summary>Present when one group is read (<c>GET …/groups/{id}</c>); listings of children leave it out.</summary>
+    [JsonPropertyName("attributes")]
+    public IReadOnlyDictionary<string, IReadOnlyList<string>>? Attributes { get; init; }
 }
 
 /// <summary>

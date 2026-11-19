@@ -39,6 +39,7 @@ public static class DavAdministrationServiceCollectionExtensions
                 DavResilience.Configure(builder, context.ServiceProvider.GetRequiredService<IOptions<NextcloudProvisioningOptions>>().Value.ToResilienceOptions()));
 
         services.TryAddTransient<IGroupwareAccounts, NextcloudGroupwareAccounts>();
+        services.TryAddTransient<IGroupwareGroups, NextcloudGroupwareGroups>();
         services.TryAddEnumerable(ServiceDescriptor.Transient<IBackendStatus, NextcloudBackendStatus>());
         return services;
     }

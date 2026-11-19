@@ -219,6 +219,101 @@ public interface IGroupwareAccounts
     Task<Result> DeleteAsync(string uid, CancellationToken cancellationToken);
 }
 
+/// <summary>An entity's groups (phase 9), kept in the identity provider (Keycloak organization groups) as the record.</summary>
+public interface IEntityGroups
+{
+    Task<Result<IReadOnlyList<Group>>> ListAsync(string entityId, CancellationToken cancellationToken);
+
+    /// <summary>NotFound when the entity has no such group.</summary>
+    Task<Result<Group>> GetAsync(string entityId, string groupId, CancellationToken cancellationToken);
+
+    /// <summary>Conflict when the entity has a group with that key.</summary>
+    Task<Result<Group>> CreateAsync(string entityId, NewGroup group, CancellationToken cancellationToken);
+
+    /// <summary>Stores the name and both facets; the key never changes.</summary>
+    Task<Result<Group>> UpdateAsync(Group group, CancellationToken cancellationToken);
+
+    /// <summary>NotFound when already gone.</summary>
+    Task<Result> DeleteAsync(string entityId, string groupId, CancellationToken cancellationToken);
+
+    Task<Result<IReadOnlyList<IdentityAccount>>> ListMembersAsync(string entityId, string groupId, CancellationToken cancellationToken);
+
+    /// <summary>Idempotent.</summary>
+    Task<Result> AddMemberAsync(string entityId, string groupId, string userId, CancellationToken cancellationToken);
+
+    /// <summary>Idempotent.</summary>
+    Task<Result> RemoveMemberAsync(string entityId, string groupId, string userId, CancellationToken cancellationToken);
+
+    /// <summary>The groups of <paramref name="entityId"/> that <paramref name="userId"/> belongs to.</summary>
+    Task<Result<IReadOnlyList<Group>>> ListUserGroupsAsync(string entityId, string userId, CancellationToken cancellationToken);
+}
+
+/// <summary>A distribution list on the mail server: the addresses it answers to and the addresses it delivers to.</summary>
+public sealed record MailingList(string Id, string Address)
+{
+    public IReadOnlyList<string> Aliases { get; init; } = [];
+
+    public IReadOnlyList<string> Recipients { get; init; } = [];
+}
+
+/// <summary>Distribution lists on the mail server (Stalwart), and who may send to them.</summary>
+public interface IMailingLists
+{
+    /// <summary>The list whose address is <paramref name="address"/>; NotFound when none.</summary>
+    Task<Result<MailingList>> FindByAddressAsync(MailAddress address, CancellationToken cancellationToken);
+
+    /// <summary>Conflict, naming the holder, when a mailbox, alias or other list has any of the addresses.</summary>
+    Task<Result<MailingList>> CreateAsync(MailAddress address, IReadOnlyList<MailAddress> aliases, IReadOnlyList<string> recipients, string description, CancellationToken cancellationToken);
+
+    /// <summary>Replaces the aliases and recipients. Conflict, naming the holder, when an alias is taken.</summary>
+    Task<Result> UpdateAsync(string listId, IReadOnlyList<MailAddress> aliases, IReadOnlyList<string> recipients, CancellationToken cancellationToken);
+
+    /// <summary>NotFound when already gone.</summary>
+    Task<Result> DestroyAsync(string listId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Makes the mail server refuse mail to <paramref name="list"/> from senders <paramref name="rule"/> does not allow;
+    /// with null, lets anyone send. Takes effect at once (the server's settings are reloaded). Idempotent.
+    /// </summary>
+    Task<Result> SetSenderRuleAsync(MailAddress list, SenderRule? rule, CancellationToken cancellationToken);
+}
+
+public sealed record GroupwareGroup(string Id, string? DisplayName, IReadOnlyList<string> MemberUids);
+
+/// <param name="Groups">The groups the folder is shared with, by groupware group id.</param>
+public sealed record TeamFolder(int Id, string MountPoint, IReadOnlySet<string> Groups);
+
+/// <summary>Groups and team folders on the groupware server (Nextcloud), managed with the console's own credential.</summary>
+public interface IGroupwareGroups
+{
+    /// <summary>NotFound when there is no group with that id.</summary>
+    Task<Result<GroupwareGroup>> FindAsync(string groupId, CancellationToken cancellationToken);
+
+    /// <summary>Conflict when the id is taken.</summary>
+    Task<Result> CreateAsync(string groupId, string displayName, CancellationToken cancellationToken);
+
+    Task<Result> SetDisplayNameAsync(string groupId, string displayName, CancellationToken cancellationToken);
+
+    /// <summary>NotFound when there is no user <paramref name="uid"/> (not signed in yet, and not pre-provisioned).</summary>
+    Task<Result> AddMemberAsync(string groupId, string uid, CancellationToken cancellationToken);
+
+    Task<Result> RemoveMemberAsync(string groupId, string uid, CancellationToken cancellationToken);
+
+    /// <summary>Team folders shared with the group are kept, shared with no one. NotFound when already gone.</summary>
+    Task<Result> DeleteAsync(string groupId, CancellationToken cancellationToken);
+
+    /// <summary>NotFound when there is no team folder with that id.</summary>
+    Task<Result<TeamFolder>> FindFolderAsync(int folderId, CancellationToken cancellationToken);
+
+    Task<Result<TeamFolder>> CreateFolderAsync(string mountPoint, CancellationToken cancellationToken);
+
+    /// <summary>Shares the folder with the group to read, change, add and delete (not re-share). Idempotent.</summary>
+    Task<Result> GrantFolderAsync(int folderId, string groupId, CancellationToken cancellationToken);
+
+    /// <summary>Deletes the folder and every file in it. NotFound when already gone.</summary>
+    Task<Result> DeleteFolderAsync(int folderId, CancellationToken cancellationToken);
+}
+
 public sealed record BackendHealth(BackendKind Backend, bool Healthy, string? Detail = null);
 
 /// <summary>Whether the console can reach and authenticate to one backend (one implementation per backend).</summary>
