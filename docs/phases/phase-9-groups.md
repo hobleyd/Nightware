@@ -1,9 +1,12 @@
 # Phase 9 — Groups (distribution lists and document access)
 
-> **Status (2026-11-19): draft; step 0 done.** Nothing built. Decisions below
-> were taken with the owner on 2026-11-19. Step 0 ran against the local stack
-> the same day; its results are under "Step 0 findings" and override anything
-> above them.
+> **Status (2026-11-19): implemented.** Decisions are recorded in
+> [ADR 0003](../adr/0003-groups.md), which overrides this plan where they
+> differ — notably the Keycloak subgroup is **named by the key** and the display
+> name is the attribute `nightware_name` (Keycloak keeps subgroup names unique,
+> and child listings carry no attributes). Step 0 results are under "Step 0
+> findings". Not done: an admin live suite beyond `GroupsLiveTests` (SMTP sender
+> rules were checked by hand), and NightMail surfacing groups (G4).
 
 **Goal:** an entity administrator manages the entity's groups in the console.
 A group is one list of people that can be an **e-mail distribution list**
@@ -29,13 +32,15 @@ from OQ6; shared mailboxes stay in OQ6.
   attributes (all admin-only):
   | Attribute | Meaning |
   |---|---|
-  | `nightware_group_key` | immutable slug, unique within the entity (`finance`) |
+  | (subgroup name) | the key: immutable slug, unique within the entity (`finance`) |
+  | `nightware_name` | display name |
   | `nightware_list_address` | primary list address, or absent (no mail facet) |
   | `nightware_list_aliases` | multivalued |
   | `nightware_external_recipients` | multivalued external addresses (mail facet only) |
   | `nightware_senders` | `members` \| `organization` \| `anyone` |
   | `nightware_files` | `true` when the files facet is on |
   | `nightware_team_folder` | `true` when a Team folder is wanted |
+  | `nightware_team_folder_id` | the folder's id once created |
 - **Members are entity users only; external addresses are recipients, not
   members.** Externals go to the Stalwart list's `recipients` and nowhere
   else; Nextcloud never sees them.

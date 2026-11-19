@@ -260,6 +260,34 @@ entity to it and forgets the old credential; records already published stay at
 the old host. *Disconnect* forgets it. Revoke the old credential at the host
 either way.
 
+## Admin console: a group is "out of step", or a member cannot see its folder
+
+A group's page shows a chip per system: Members (Keycloak, the record), List
+(Stalwart) and Nextcloud group. "Out of step" names what differs; **Repair**
+writes the list's recipients, the Nextcloud group's members and the team
+folder's share from the members on the page (ADR 0003 D3). Things that are not
+faults:
+
+- A member who has never signed in to Nextcloud cannot be in a Nextcloud group
+  yet; the page says so and Repair adds them after their first sign-in.
+- An offboarded member stays listed (so reinstating restores them) but is in
+  neither the list nor the Nextcloud group.
+
+A folder the group should see but nobody does: the group was deleted and
+recreated, or the folder was unshared in Nextcloud — Repair shares it again.
+A folder whose group was deleted is kept, shared with no one; a Nextcloud
+administrator sees it under *Administration settings → Team folders*.
+
+## Admin console: mail to a group is refused (550 5.7.1)
+
+The list's sender policy refused the envelope sender (members only, or the
+entity's domains only; ADR 0003 D5). Check the group's page; a member sending
+from an address that is not theirs in Keycloak is refused too. The rules are
+the Sieve system script `nightware-lists` in Stalwart (one marked block per
+list); `deploy/stalwart/configure.sh` makes the RCPT stage run it. If every
+list accepts everything, check that `MtaStageRcpt.script` names
+`'nightware-lists'` and run the configure script again.
+
 ## Rotating the admin console's credentials
 
 Clear the value in `deploy/.env`, run `scripts/init-env.sh`, then the

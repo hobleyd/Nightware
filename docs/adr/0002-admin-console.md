@@ -640,7 +640,7 @@ Where the build refined the decisions above:
   and remove other entity admins of their own entity (not themselves). Prefer
   global-only?
 - **OQ6 — v2 candidates**: shared mailboxes (Stalwart `Group` accounts with
-  `memberGroupIds`), mailing lists, rooms (only `occ`; no OCS API), quotas
+  `memberGroupIds`), mailing lists (done: ADR 0003, groups), rooms (only `occ`; no OCS API), quotas
   (`Account.quotas.maxDiskQuota`, Nextcloud `quota`), live DNS verification,
   Keycloak admin-event viewer, FGAP V2 per-organization `manage` grants as a
   second enforcement layer inside Keycloak.
