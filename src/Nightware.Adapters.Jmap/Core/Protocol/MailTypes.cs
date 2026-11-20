@@ -68,6 +68,9 @@ internal sealed record Mailbox
     public MailboxRights? MyRights { get; init; }
 
     public bool? IsSubscribed { get; init; }
+
+    /// <summary>Shared per-mailbox JSON by namespace (<c>urn:ietf:params:jmap:metadata</c>).</summary>
+    public JsonObject? Metadata { get; init; }
 }
 
 /// <summary>Mailbox/query filter condition (RFC 8621 §2.3).</summary>

@@ -79,6 +79,14 @@ internal static class JmapMethods
     public static JmapMethod<SetRequest<Email>, SetResponse<Email>> EmailSet { get; } =
         new("Email/set", JmapMethodKind.Set, MailCaps, Json.SetRequestEmail, Json.SetResponseEmail);
 
+    /// <summary><c>Mailbox/get</c> asking for <c>metadata</c>: only for an account that advertises it.</summary>
+    public static JmapMethod<GetRequest, GetResponse<Mailbox>> MailboxGetWithMetadata { get; } =
+        new("Mailbox/get", JmapMethodKind.Get, MailMetadataCaps, Json.GetRequest, Json.GetResponseMailbox);
+
+    /// <summary><c>Mailbox/set</c> writing <c>metadata</c>.</summary>
+    public static JmapMethod<MailboxSetRequest, SetResponse<Mailbox>> MailboxSetWithMetadata { get; } =
+        new("Mailbox/set", JmapMethodKind.Set, MailMetadataCaps, Json.MailboxSetRequest, Json.SetResponseMailbox);
+
     /// <summary><c>Email/get</c> asking for <c>metadata</c>: only for an account that advertises it (<c>JmapAccount.SupportsMetadata</c>).</summary>
     public static JmapMethod<EmailGetRequest, GetResponse<Email>> EmailGetWithMetadata { get; } =
         new("Email/get", JmapMethodKind.Get, MailMetadataCaps, Json.EmailGetRequest, Json.GetResponseEmail);

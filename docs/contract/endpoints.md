@@ -323,8 +323,8 @@ operation:
 | Phase 5A — Directory, contacts, people | 6 |
 | Phase 5B — Tasks, mailbox settings, files, threat submission | 14 |
 | Phase 11 — JSON batching (Graph parity) | 2 |
-| Phase 12 — Mail (Graph parity) | 4 |
-| **Total** | **82** |
+| Phase 12 — Mail (Graph parity) | 9 |
+| **Total** | **87** |
 
 ### Phase 2 — Mail, read side
 
@@ -1263,6 +1263,11 @@ operation:
 | [`mail.messages.update-categories`](#mailmessagesupdate-categories) | PATCH | v1.0 | `{mailbox}/messages/{messageId}` | none |
 | [`mail.messages.update-importance`](#mailmessagesupdate-importance) | PATCH | v1.0 | `{mailbox}/messages/{messageId}` | none |
 | [`mail.messages.copy`](#mailmessagescopy) | POST | v1.0 | `{mailbox}/messages/{messageId}/copy` | none |
+| [`mail.master-categories.list`](#mailmaster-categorieslist) | GET | v1.0 | `{mailbox}/outlook/masterCategories` | none |
+| [`mail.master-categories.get`](#mailmaster-categoriesget) | GET | v1.0 | `{mailbox}/outlook/masterCategories/{categoryId}` | none |
+| [`mail.master-categories.create`](#mailmaster-categoriescreate) | POST | v1.0 | `{mailbox}/outlook/masterCategories` | none |
+| [`mail.master-categories.update`](#mailmaster-categoriesupdate) | PATCH | v1.0 | `{mailbox}/outlook/masterCategories/{categoryId}` | none |
+| [`mail.master-categories.delete`](#mailmaster-categoriesdelete) | DELETE | v1.0 | `{mailbox}/outlook/masterCategories/{categoryId}` | none |
 
 #### `mail.messages.update-flag`
 
@@ -1303,5 +1308,51 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-copy
 - Notes: A distinct message (Email/import of the blob) with its own id, carrying read state, flag, categories and importance. Location header as Graph.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.messages.copy.json`
+
+#### `mail.master-categories.list`
+
+**GET v1.0 `{mailbox}/outlook/masterCategories`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].displayName`, `value[].color`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/outlookcategory
+- Notes: Kept in the Inbox's JMAP metadata (nightware.ms/masterCategories). A mailbox that never wrote a list has Outlook's six defaults, with ids derived from their names.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.master-categories.list.json`
+
+#### `mail.master-categories.get`
+
+**GET v1.0 `{mailbox}/outlook/masterCategories/{categoryId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `displayName`, `color`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/outlookcategory
+- Notes: Id compared ignoring case.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.master-categories.get.json`
+
+#### `mail.master-categories.create`
+
+**POST v1.0 `{mailbox}/outlook/masterCategories`** — forms: me, users; success: 201; paging: none
+
+- Request body: `displayName`; `color?`
+- Client reads: `id`, `displayName`, `color`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/outlookcategory
+- Notes: Names are unique ignoring case (409 otherwise); colour none or preset0-24. About 80 categories fit Stalwart's 8 KB namespace; beyond that, 400. Location header as Graph.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.master-categories.create.json`
+
+#### `mail.master-categories.update`
+
+**PATCH v1.0 `{mailbox}/outlook/masterCategories/{categoryId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `color`
+- Client reads: `id`, `displayName`, `color`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/outlookcategory
+- Notes: Only the colour changes; a different displayName is 400.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.master-categories.update.json`
+
+#### `mail.master-categories.delete`
+
+**DELETE v1.0 `{mailbox}/outlook/masterCategories/{categoryId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/outlookcategory
+- Notes: Messages keep the name; it only leaves the list.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.master-categories.delete.json`
 
 <!-- END GENERATED -->

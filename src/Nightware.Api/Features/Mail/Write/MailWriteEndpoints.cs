@@ -10,6 +10,7 @@ public static class MailWriteEndpoints
         MessageWriteEndpoints.Map(graph);
         MessageSendEndpoints.Map(graph);
         FolderWriteEndpoints.Map(graph);
+        Categories.MasterCategoryEndpoints.Map(graph);
         return graph;
     }
 }

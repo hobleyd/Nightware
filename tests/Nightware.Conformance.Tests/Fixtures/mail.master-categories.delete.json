@@ -1,0 +1,19 @@
+{
+  "operationId": "mail.master-categories.delete",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "DELETE",
+    "path": "/v1.0/me/outlook/masterCategories/00000000-0000-0000-0000-000000000010",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 204,
+    "headers": {},
+    "body": null
+  }
+}

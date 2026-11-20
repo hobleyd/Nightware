@@ -3665,5 +3665,180 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/message-copy",
     "notes": "A distinct message (Email/import of the blob) with its own id, carrying read state, flag, categories and importance. Location header as Graph."
+  },
+  {
+    "id": "mail.master-categories.list",
+    "phase": 12,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/outlook/masterCategories",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].displayName",
+      "value[].color"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/outlookcategory",
+    "notes": "Kept in the Inbox's JMAP metadata (nightware.ms/masterCategories). A mailbox that never wrote a list has Outlook's six defaults, with ids derived from their names."
+  },
+  {
+    "id": "mail.master-categories.get",
+    "phase": 12,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/outlook/masterCategories/{categoryId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "displayName",
+      "color"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/outlookcategory",
+    "notes": "Id compared ignoring case."
+  },
+  {
+    "id": "mail.master-categories.create",
+    "phase": 12,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/outlook/masterCategories",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "displayName",
+        "color?"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "displayName",
+      "color"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/outlookcategory",
+    "notes": "Names are unique ignoring case (409 otherwise); colour none or preset0-24. About 80 categories fit Stalwart's 8 KB namespace; beyond that, 400. Location header as Graph."
+  },
+  {
+    "id": "mail.master-categories.update",
+    "phase": 12,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/outlook/masterCategories/{categoryId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "color"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "displayName",
+      "color"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/outlookcategory",
+    "notes": "Only the colour changes; a different displayName is 400."
+  },
+  {
+    "id": "mail.master-categories.delete",
+    "phase": 12,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/outlook/masterCategories/{categoryId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/outlookcategory",
+    "notes": "Messages keep the name; it only leaves the list."
   }
 ]
