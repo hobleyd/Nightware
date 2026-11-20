@@ -138,3 +138,18 @@ Departures from the plan:
 - Categories and flag dates use JMAP metadata, not keywords.
 - Upload chunks are staged in Stalwart, not Nextcloud.
 - `headerContains` and `assignCategories` are not available in rules (501).
+
+## Limits found while testing
+- **Stalwart's temporary-blob quota.** By default an account may hold 1,000
+  uploaded files or 50,000,000 bytes not yet attached to anything, per window.
+  Every upload chunk, and the rebuilt draft on the last chunk, counts against
+  it.
+  - In practice an upload session handles files up to about half of
+    `maxSizeUpload` before the server answers 429 (`TooManyRequests`).
+  - Raise the quota on the server (`jmap.upload.quota`) for larger
+    attachments.
+  - Chunks are merged only when the metadata list would overflow, so merging
+    rarely adds to the count.
+- **Draft edits drop the draft's metadata.** A draft PATCH or attachment change
+  rebuilds the message, so categories set on a draft are lost at its next
+  edit. Graph clients categorise received mail, so this is accepted.
