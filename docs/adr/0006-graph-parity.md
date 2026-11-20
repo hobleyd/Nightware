@@ -71,28 +71,33 @@ Each phase starts with **Step 0**: probe the local stack and write the findings
 into the phase doc before contracting operations (as phase 10 did).
 
 ### D5 — Mail
-- **flag / categories / importance on any message** (PATCH). These are stored as
-  JMAP keywords, not by rewriting the message, so the id is kept (ADR 0001 §1):
-  - `$flagged`, plus `$nightware-flag-complete` for `flagStatus: complete`;
-  - one `$nwcat-<base64url(name)>` per category;
-  - `$nwimp-high` / `$nwimp-low` override the `Importance` header on read.
+*Amended after Step 0 (2026-11-21). The findings are in the phase 12 doc.*
 
-  A PATCH that also touches draft-only fields keeps today's draft path. Flag
-  dates are kept only if Step 0 finds a per-email store; otherwise they are
-  ignored and the phase doc says so.
+- **flag, categories and importance on any message** (PATCH). These never
+  rewrite the message, so the id is kept (ADR 0001 §1):
+  - `flagged` is the `$flagged` keyword.
+  - `complete`, the flag dates, categories and importance go in the message's
+    shared `metadata` under the `nightware.ms` namespace
+    (`urn:ietf:params:jmap:metadata`).
+
+  Stalwart lower-cases keywords and caps them at 128 characters, so names
+  cannot live there. A PATCH that also touches draft-only fields keeps today's
+  draft path.
 - **`copy`** makes a distinct message: `Email/import` of the blob into the
-  target mailbox. JMAP "add a mailbox id" would give one id two parent folders.
-- **`masterCategories`** are stored per account in Stalwart's
-  `urn:ietf:params:jmap:metadata` if Step 0 shows it can hold a JSON value.
-  Otherwise they go in a Keycloak user attribute `nightware_categories`, which
-  needs a realm user-profile declaration (§29) and an ansible change.
-- **`messageRules`** become one JMAP `SieveScript` named `nightware-rules`
-  (Stalwart advertises `urn:ietf:params:jmap:sieve`). Each rule's Graph JSON is
-  kept in a comment block and the Sieve is generated from it.
-  - The supported conditions and actions are listed in the phase doc. A rule
-    using anything else gets `400 notSupported` naming the field.
-  - If another script is active, Step 0 decides between including it and
-    refusing.
+  target mailbox, plus that message's metadata in the same request (import
+  drops it). JMAP "add a mailbox id" would give one id two parent folders.
+- **`masterCategories`** live in the Inbox mailbox's `metadata/nightware.ms`
+  (8 KB, about 80 categories; beyond that, 400).
+- **`messageRules`** and **automatic replies** share one Nightware-owned Sieve
+  script, `nightware-rules`.
+  - Stalwart runs one active script per account, and `VacationResponse`
+    enabling its own script would switch the rules off.
+  - The script holds the auto-reply block first, in Stalwart's own shape so
+    behaviour does not change, then the rules.
+  - Its state is base64 JSON in comments. Every write is validated first.
+  - Moving off `VacationResponse` is in the phase 12 doc.
+  - A rule using an unsupported condition or action gets `400 notSupported`
+    naming the field.
 - **Large attachments.** `createUploadSession` returns a self-authorising URL
   (§39, its own key purpose, bound to the draft id).
   - Chunks are staged with Nextcloud chunking v2, as To Do attachments are.
@@ -102,7 +107,6 @@ into the phase doc before contracting operations (as phase 10 did).
   layering as ADR 0001 §6–8.
 - **Cut (501):** Focused Inbox (`inferenceClassification`), open and schema
   extensions, and `singleValueExtendedProperties`/`multiValueExtendedProperties`.
-  These need a per-item data store, and JMAP emails are immutable.
 
 ### D6 — Calendar
 - **Calendars.** `calendars` are the caller's CalDAV collections that support
@@ -203,5 +207,4 @@ Required:
 - The contract roughly doubles. NightMail fixtures and behaviour are unchanged.
 - The capture tool needs a Microsoft 365 test mailbox and, for notifications, a
   public HTTPS tunnel.
-- Phases 12 (master categories, maybe) and 16 (option A) need deploy and
-  ansible changes.
+- Phase 16 (option A) needs deploy and ansible changes. Phase 12 needs none.
