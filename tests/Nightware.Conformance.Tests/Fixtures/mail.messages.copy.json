@@ -1,0 +1,81 @@
+{
+  "operationId": "mail.messages.copy",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/messages/AAMk-id-0002=/copy",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "destinationId": "AAMk-parentFolderId-0001="
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8",
+      "Location": "https://graph.microsoft.com/v1.0/users('22222222-2222-2222-2222-222222222222')/messages('AAMk-id-0003=')"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/messages/$entity",
+      "@odata.etag": "W/\"AAMk-changeKey-0004=\"",
+      "id": "AAMk-id-0003=",
+      "createdDateTime": "2026-11-20T22:31:44Z",
+      "lastModifiedDateTime": "2026-11-20T22:31:47Z",
+      "changeKey": "AAMk-changeKey-0004=",
+      "categories": [
+        "Nightware eb09af"
+      ],
+      "receivedDateTime": "2026-11-20T22:31:44Z",
+      "sentDateTime": "2026-11-20T22:31:42Z",
+      "hasAttachments": false,
+      "internetMessageId": "<AAMk-internetMessageId-0001=>",
+      "subject": "Nightware capture eb09af",
+      "bodyPreview": "Nightware capture message eb09af.",
+      "importance": "high",
+      "parentFolderId": "AAMk-parentFolderId-0001=",
+      "conversationId": "AAMk-conversationId-0001=",
+      "conversationIndex": "AQHdeT7r0hz7Yw9lM0uHcjpwUofybA==",
+      "isDeliveryReceiptRequested": false,
+      "isReadReceiptRequested": false,
+      "isRead": false,
+      "isDraft": false,
+      "webLink": "https://outlook.office365.com/owa/?ItemID=AAMk-ref-0005=&exvsurl=1&viewmodel=ReadMessageItem",
+      "inferenceClassification": "focused",
+      "body": {
+        "contentType": "text",
+        "content": "Nightware capture message eb09af."
+      },
+      "sender": {
+        "emailAddress": {
+          "name": "Me Example",
+          "address": "me@example.com"
+        }
+      },
+      "from": {
+        "emailAddress": {
+          "name": "Me Example",
+          "address": "me@example.com"
+        }
+      },
+      "toRecipients": [
+        {
+          "emailAddress": {
+            "name": "Me Example",
+            "address": "me@example.com"
+          }
+        }
+      ],
+      "ccRecipients": [],
+      "bccRecipients": [],
+      "replyTo": [],
+      "flag": {
+        "flagStatus": "flagged"
+      }
+    }
+  }
+}

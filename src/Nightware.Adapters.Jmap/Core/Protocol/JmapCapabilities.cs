@@ -10,4 +10,5 @@ internal static class JmapCapabilities
     public const string Sieve = "urn:ietf:params:jmap:sieve";
     public const string Blob = "urn:ietf:params:jmap:blob";
     public const string Quota = "urn:ietf:params:jmap:quota";
+    public const string Metadata = "urn:ietf:params:jmap:metadata";
 }

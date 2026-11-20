@@ -45,6 +45,7 @@ internal static class JmapMethods
     private static readonly string[] MailCaps = [JmapCapabilities.Mail];
     private static readonly string[] SubmissionCaps = [JmapCapabilities.Mail, JmapCapabilities.Submission];
     private static readonly string[] VacationCaps = [JmapCapabilities.VacationResponse];
+    private static readonly string[] MailMetadataCaps = [JmapCapabilities.Mail, JmapCapabilities.Metadata];
 
     private static JmapJsonContext Json => JmapJsonContext.Default;
 
@@ -77,6 +78,14 @@ internal static class JmapMethods
 
     public static JmapMethod<SetRequest<Email>, SetResponse<Email>> EmailSet { get; } =
         new("Email/set", JmapMethodKind.Set, MailCaps, Json.SetRequestEmail, Json.SetResponseEmail);
+
+    /// <summary><c>Email/get</c> asking for <c>metadata</c>: only for an account that advertises it (<c>JmapAccount.SupportsMetadata</c>).</summary>
+    public static JmapMethod<EmailGetRequest, GetResponse<Email>> EmailGetWithMetadata { get; } =
+        new("Email/get", JmapMethodKind.Get, MailMetadataCaps, Json.EmailGetRequest, Json.GetResponseEmail);
+
+    /// <summary><c>Email/set</c> writing <c>metadata</c>.</summary>
+    public static JmapMethod<SetRequest<Email>, SetResponse<Email>> EmailSetWithMetadata { get; } =
+        new("Email/set", JmapMethodKind.Set, MailMetadataCaps, Json.SetRequestEmail, Json.SetResponseEmail);
 
     public static JmapMethod<EmailImportRequest, EmailImportResponse> EmailImport { get; } =
         new("Email/import", JmapMethodKind.Other, MailCaps, Json.EmailImportRequest, Json.EmailImportResponse);

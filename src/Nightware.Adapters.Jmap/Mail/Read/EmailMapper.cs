@@ -23,6 +23,7 @@ internal static class EmailMapper
     {
         ArgumentNullException.ThrowIfNull(email);
         var keywords = email.Keywords ?? new Dictionary<string, bool>();
+        var metadata = MessageMetadata.Read(email.Metadata);
         var receivedAt = email.ReceivedAt;
         return new MailMessage(MailItemId.For(email).ToMessageId())
         {
@@ -37,17 +38,18 @@ internal static class EmailMapper
             Body = email.BodyValues is null ? null : Body(email, preferredBody),
             IsRead = Has(keywords, Keywords.Seen),
             IsDraft = Has(keywords, Keywords.Draft),
-            Flag = Has(keywords, Keywords.Flagged) ? new FollowUpFlag(FlagStatus.Flagged) : FollowUpFlag.NotFlagged,
+            Flag = FlagOf(keywords, metadata.Flag),
             ReceivedDateTime = receivedAt,
             SentDateTime = email.SentAt ?? receivedAt,
             CreatedDateTime = receivedAt,
             LastModifiedDateTime = receivedAt,
-            Importance = ImportanceOf(email),
+            Importance = metadata.Importance ?? ImportanceOf(email),
             ConversationId = email.ThreadId,
             HasAttachments = email.HasAttachment ?? false,
             ParentFolderId = ParentFolderOf(email.MailboxIds, folderId) is { } parent ? new FolderId(parent) : null,
             InternetMessageId = email.MessageId is [var messageId, ..] ? InternetMessageIds.StripBrackets(messageId) : null,
-            Categories = [.. keywords.Where(static k => k.Value && !k.Key.StartsWith('$')).Select(static k => k.Key).Order(StringComparer.Ordinal)],
+            Categories = metadata.Categories
+                ?? [.. keywords.Where(static k => k.Value && !k.Key.StartsWith('$')).Select(static k => k.Key).Order(StringComparer.Ordinal)],
             InternetMessageHeaders = Headers(email.Headers),
             Attachments = email.Attachments is null ? [] : MimeParts.Attachments(email),
             CalendarPart = MimeParts.CalendarPartOf(email.BodyStructure),
@@ -154,6 +156,16 @@ internal static class EmailMapper
 
         return builder.ToString().Trim();
     }
+
+    /// <summary>
+    /// <c>$flagged</c> decides whether a message is flagged, as every IMAP client sees it; the metadata adds
+    /// what a keyword cannot hold: completion and the dates. A flag cleared elsewhere therefore reads as
+    /// not flagged even if stale metadata still says otherwise.
+    /// </summary>
+    private static FollowUpFlag FlagOf(IReadOnlyDictionary<string, bool> keywords, FollowUpFlag? stored) =>
+        Has(keywords, Keywords.Flagged)
+            ? stored is { Status: FlagStatus.Flagged } ? stored : new FollowUpFlag(FlagStatus.Flagged)
+            : stored is { Status: FlagStatus.Complete } ? stored : FollowUpFlag.NotFlagged;
 
     /// <summary><c>Importance:</c> first, then the de-facto <c>X-Priority:</c> (1–2 high, 4–5 low).</summary>
     private static Importance ImportanceOf(Email email)

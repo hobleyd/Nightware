@@ -95,6 +95,28 @@ public sealed class DraftAndMessageUseCaseTests
     }
 
     [Fact]
+    public async Task Copy_rereads_the_copy_under_its_own_id()
+    {
+        var destination = new FolderRef.ById(new FolderId("f"));
+        var copyId = new MessageId("e.2");
+        var copy = new MailMessage(copyId);
+        _writer.CopyAsync(Me, Id, destination, Arg.Any<CancellationToken>()).Returns(copyId);
+        _reader.GetAsync(Me, copyId, MessageFetch.Default, Arg.Any<CancellationToken>()).Returns(copy);
+
+        (await new CopyMessage(_writer, _reader).ExecuteAsync(Me, Id, destination, Ct)).Value.ShouldBe(copy);
+    }
+
+    [Fact]
+    public async Task Copy_failures_are_returned()
+    {
+        var destination = new FolderRef.ById(new FolderId("f"));
+        _writer.CopyAsync(Me, Id, destination, Arg.Any<CancellationToken>()).Returns(Boom);
+
+        (await new CopyMessage(_writer, _reader).ExecuteAsync(Me, Id, destination, Ct)).Error.ShouldBe(Boom);
+        await Should.ThrowAsync<ArgumentNullException>(() => new CopyMessage(_writer, _reader).ExecuteAsync(Me, Id, null!, Ct));
+    }
+
+    [Fact]
     public async Task Delete_and_permanent_delete_pass_through()
     {
         _writer.SoftDeleteAsync(Me, Id, Arg.Any<CancellationToken>()).Returns(Result.Success());

@@ -1,3 +1,4 @@
+using Nightware.Domain.Calendar;
 using Nightware.Domain.Kernel;
 
 namespace Nightware.Domain.Mail;
@@ -24,9 +25,16 @@ public enum BodyType
 
 public sealed record ItemBody(BodyType ContentType, string Content);
 
+/// <summary>Graph <c>followupFlag</c>. The dates are optional and mean nothing on a not-flagged message.</summary>
 public sealed record FollowUpFlag(FlagStatus Status)
 {
     public static FollowUpFlag NotFlagged { get; } = new(FlagStatus.NotFlagged);
+
+    public DateTimeTimeZone? StartDateTime { get; init; }
+
+    public DateTimeTimeZone? DueDateTime { get; init; }
+
+    public DateTimeTimeZone? CompletedDateTime { get; init; }
 }
 
 public sealed record InternetHeader(string Name, string Value);

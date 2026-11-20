@@ -1,4 +1,6 @@
 using Nightware.Adapters.Jmap.Core.Protocol;
+using Nightware.Adapters.Jmap.Core.Requests;
+using Nightware.Adapters.Jmap.Core.Session;
 using Nightware.Application.Mail;
 
 namespace Nightware.Adapters.Jmap.Mail.Read;
@@ -12,6 +14,8 @@ namespace Nightware.Adapters.Jmap.Mail.Read;
 internal static class EmailProperties
 {
     public const string ContentTypeHeader = "Content-Type";
+
+    public const string MetadataProperty = "metadata";
 
     public static readonly string ImportanceProperty = EmailHeaders.Property("Importance", HeaderForm.Text);
     public static readonly string PriorityProperty = EmailHeaders.Property("X-Priority", HeaderForm.Text);
@@ -44,17 +48,38 @@ internal static class EmailProperties
         return fetch.Select?.Any(static s => string.Equals(s, "internetMessageHeaders", StringComparison.OrdinalIgnoreCase)) == true;
     }
 
-    public static EmailGetRequest ListRequest(string accountId, IReadOnlyList<string>? ids = null) => new(accountId)
+    public static EmailGetRequest ListRequest(string accountId, IReadOnlyList<string>? ids = null, bool metadata = false) => new(accountId)
     {
         Ids = ids,
-        Properties = List,
+        Properties = metadata ? [.. List, MetadataProperty] : List,
         BodyProperties = BodyParts,
     };
 
-    public static EmailGetRequest FullRequest(string accountId, string id, MessageFetch fetch) => new(accountId)
+    /// <summary>The list projection, plus <c>metadata</c> where the account keeps it (ADR 0006 D5).</summary>
+    public static EmailGetRequest ListRequest(JmapAccount account, IReadOnlyList<string>? ids = null)
+    {
+        ArgumentNullException.ThrowIfNull(account);
+        return ListRequest(account.AccountId, ids, account.SupportsMetadata);
+    }
+
+    /// <summary>A single message, plus <c>metadata</c> where the account keeps it.</summary>
+    public static EmailGetRequest FullRequest(JmapAccount account, string id, MessageFetch fetch)
+    {
+        ArgumentNullException.ThrowIfNull(account);
+        return FullRequest(account.AccountId, id, fetch, account.SupportsMetadata);
+    }
+
+    /// <summary>The <c>Email/get</c> descriptor for <paramref name="account"/>: it declares the metadata capability when it is used.</summary>
+    public static JmapMethod<EmailGetRequest, GetResponse<Email>> Get(JmapAccount account)
+    {
+        ArgumentNullException.ThrowIfNull(account);
+        return account.SupportsMetadata ? JmapMethods.EmailGetWithMetadata : JmapMethods.EmailGet;
+    }
+
+    public static EmailGetRequest FullRequest(string accountId, string id, MessageFetch fetch, bool metadata = false) => new(accountId)
     {
         Ids = [id],
-        Properties = Full(fetch),
+        Properties = metadata ? [.. Full(fetch), MetadataProperty] : Full(fetch),
         BodyProperties = BodyParts,
         FetchHtmlBodyValues = true,
         FetchTextBodyValues = true,

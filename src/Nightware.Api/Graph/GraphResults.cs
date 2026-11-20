@@ -33,6 +33,17 @@ public static class GraphResults
         EntityWithStatus(StatusCodes.Status201Created, dto, contextFragment, select, null);
 
     /// <summary>
+    /// A created entity with Graph's <c>Location</c> header: <paramref name="location"/> is the new entity's
+    /// path below the version root, e.g. <c>users('a%40b')/messages('id')</c>.
+    /// </summary>
+    public static IResult CreatedAt(object dto, string contextFragment, string location, IReadOnlySet<string>? select = null)
+    {
+        ArgumentNullException.ThrowIfNull(location);
+        var entity = EntityWithStatus(StatusCodes.Status201Created, dto, contextFragment, select, null);
+        return new GraphJsonResult(StatusCodes.Status201Created, entity.Build, http => $"{Links(http).VersionRoot(http.Request)}/{location}");
+    }
+
+    /// <summary>
     /// A collection page. When <paramref name="skipToken"/> is set an <c>@odata.nextLink</c> is emitted that
     /// repeats the request's own query options plus <c>$skiptoken</c> (see <see cref="GraphLinkBuilder.NextLink"/>).
     /// </summary>
@@ -181,15 +192,22 @@ public static class GraphResults
 }
 
 /// <summary>Writes a JSON node built per request (so links can use the request's host).</summary>
-public sealed class GraphJsonResult(int statusCode, Func<HttpContext, JsonNode> build) : IResult, IStatusCodeHttpResult
+public sealed class GraphJsonResult(int statusCode, Func<HttpContext, JsonNode> build, Func<HttpContext, string>? location = null) : IResult, IStatusCodeHttpResult
 {
     public int? StatusCode => statusCode;
+
+    internal Func<HttpContext, JsonNode> Build => build;
 
     public async Task ExecuteAsync(HttpContext httpContext)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
         var body = build(httpContext);
         httpContext.Response.StatusCode = statusCode;
+        if (location is not null)
+        {
+            httpContext.Response.Headers.Location = location(httpContext);
+        }
+
         httpContext.Response.ContentType = "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8";
         await JsonSerializer.SerializeAsync(httpContext.Response.Body, body, GraphJson.Options, httpContext.RequestAborted).ConfigureAwait(false);
     }

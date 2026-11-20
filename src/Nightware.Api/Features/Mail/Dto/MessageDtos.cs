@@ -34,6 +34,16 @@ public sealed record FollowupFlagDto
 {
     /// <summary><c>notFlagged</c>, <c>flagged</c> or <c>complete</c>.</summary>
     public string? FlagStatus { get; init; }
+
+    // Graph omits the dates when unset (captured, mail.messages.update-flag).
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTimeTimeZoneDto? StartDateTime { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTimeTimeZoneDto? DueDateTime { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTimeTimeZoneDto? CompletedDateTime { get; init; }
 }
 
 /// <summary>Graph <c>internetMessageHeader</c>.</summary>

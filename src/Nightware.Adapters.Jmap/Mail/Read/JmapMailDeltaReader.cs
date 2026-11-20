@@ -70,7 +70,7 @@ internal sealed class JmapMailDeltaReader(IJmapClient jmap) : IMailDeltaReader
             Limit = pageSize,
             CalculateTotal = true,
         });
-        var get = request.Add(JmapMethods.EmailGet, EmailProperties.ListRequest(account.AccountId), query.Ref("ids", JmapPaths.Ids));
+        var get = request.Add(EmailProperties.Get(account), EmailProperties.ListRequest(account), query.Ref("ids", JmapPaths.Ids));
         var response = await jmap.SendAsync(request, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccess)
         {
@@ -121,8 +121,8 @@ internal sealed class JmapMailDeltaReader(IJmapClient jmap) : IMailDeltaReader
     {
         var request = new JmapRequestBuilder();
         var changes = request.Add(JmapMethods.EmailChanges, new ChangesRequest(account.AccountId, cursor.State!) { MaxChanges = pageSize });
-        var created = request.Add(JmapMethods.EmailGet, EmailProperties.ListRequest(account.AccountId), changes.Ref("ids", JmapPaths.Created));
-        var updated = request.Add(JmapMethods.EmailGet, EmailProperties.ListRequest(account.AccountId), changes.Ref("ids", JmapPaths.Updated));
+        var created = request.Add(EmailProperties.Get(account), EmailProperties.ListRequest(account), changes.Ref("ids", JmapPaths.Created));
+        var updated = request.Add(EmailProperties.Get(account), EmailProperties.ListRequest(account), changes.Ref("ids", JmapPaths.Updated));
         var response = await jmap.SendAsync(request, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccess)
         {

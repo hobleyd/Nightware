@@ -45,6 +45,10 @@ internal sealed partial class JmapSession
 
     public bool HasCapability(string capability) => Document.Capabilities.ContainsKey(capability);
 
+    /// <summary>Whether the account advertises <paramref name="capability"/> in its own capability list.</summary>
+    public bool HasAccountCapability(string accountId, string capability) =>
+        Document.Accounts.TryGetValue(accountId, out var account) && account.AccountCapabilities.ContainsKey(capability);
+
     /// <summary>An account-level capability object (e.g. <see cref="MailAccountCapability"/>), or null when absent.</summary>
     public T? AccountCapability<T>(string accountId, string capability, JsonTypeInfo<T> type)
         where T : class

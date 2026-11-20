@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace Nightware.Adapters.Jmap.Core.Protocol;
@@ -169,6 +170,9 @@ internal sealed record Email
     public DateTimeOffset? SentAt { get; init; }
 
     public IReadOnlyList<EmailHeaderValue>? Headers { get; init; }
+
+    /// <summary>Shared per-message JSON by namespace (<c>urn:ietf:params:jmap:metadata</c>).</summary>
+    public JsonObject? Metadata { get; init; }
 
     public EmailBodyPart? BodyStructure { get; init; }
 

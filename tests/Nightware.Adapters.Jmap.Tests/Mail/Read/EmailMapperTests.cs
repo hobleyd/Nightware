@@ -167,4 +167,38 @@ public sealed class EmailMapperTests
         EmailMapper.ParentFolderOf(ids, folder).ShouldBe(expected);
         EmailMapper.ParentFolderOf(null, folder).ShouldBeNull();
     }
+
+    private static Email Keyed(string keywords, string? metadata = null) => new()
+    {
+        Id = "eaaaaab",
+        Keywords = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(keywords),
+        Metadata = metadata is null ? null : System.Text.Json.Nodes.JsonNode.Parse(metadata)!.AsObject(),
+    };
+
+    [Fact]
+    public void Flag_dates_completion_categories_and_importance_come_from_the_metadata()
+    {
+        var message = EmailMapper.ToMessage(Keyed("""{"$flagged":true,"legacy":true}""",
+            """{"nightware.ms":{"flag":{"status":"flagged","due":{"dateTime":"2026-11-25T17:00:00.0000000","timeZone":"UTC"}},"categories":["Blue category"],"importance":"high"}}"""));
+
+        message.Flag.Status.ShouldBe(FlagStatus.Flagged);
+        message.Flag.DueDateTime.ShouldBe(new Nightware.Domain.Calendar.DateTimeTimeZone(new DateTime(2026, 11, 25, 17, 0, 0), "UTC"));
+        message.Categories.ShouldBe(["Blue category"]);
+        message.Importance.ShouldBe(Importance.High);
+    }
+
+    [Fact]
+    public void Flagged_follows_the_keyword_and_complete_the_metadata()
+    {
+        // Unflagged by an IMAP client after Graph flagged it: the stale metadata does not resurrect it.
+        EmailMapper.ToMessage(Keyed("{}", """{"nightware.ms":{"flag":{"status":"flagged"}}}""")).Flag.ShouldBe(FollowUpFlag.NotFlagged);
+        EmailMapper.ToMessage(Keyed("{}", """{"nightware.ms":{"flag":{"status":"complete"}}}""")).Flag.Status.ShouldBe(FlagStatus.Complete);
+        EmailMapper.ToMessage(Keyed("""{"$flagged":true}""")).Flag.ShouldBe(new FollowUpFlag(FlagStatus.Flagged));
+    }
+
+    [Fact]
+    public void Without_metadata_categories_are_the_message_s_plain_keywords()
+    {
+        EmailMapper.ToMessage(Keyed("""{"$seen":true,"work":true,"home":true}""")).Categories.ShouldBe(["home", "work"]);
+    }
 }

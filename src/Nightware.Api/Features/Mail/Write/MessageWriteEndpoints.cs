@@ -25,6 +25,7 @@ internal static class MessageWriteEndpoints
             scope.MapPost("/messages", CreateDraftAsync);
             scope.MapDelete("/messages/{messageId}", DeleteAsync);
             scope.MapPost("/messages/{messageId}/move", MoveAsync);
+            scope.MapPost("/messages/{messageId}/copy", CopyAsync);
             scope.MapPost("/messages/{messageId}/permanentDelete", PermanentDeleteAsync);
             scope.MapPost("/mailFolders/{folderId}/messages", ImportAsync);
             scope.MapPost("/messages/{messageId}/attachments", AddAttachmentAsync);
@@ -61,6 +62,20 @@ internal static class MessageWriteEndpoints
 
     private static async Task<IResult> DeleteAsync(Mailbox mailbox, string messageId, DeleteMessage useCase, CancellationToken cancellationToken) =>
         GraphResults.Match(await useCase.ExecuteAsync(mailbox.Ref, new MessageId(messageId), cancellationToken));
+
+    private static async Task<IResult> CopyAsync(
+        Mailbox mailbox, string messageId, [FromBody] MoveRequestDto? body, CopyMessage useCase, CancellationToken cancellationToken)
+    {
+        var destination = WriteFolders.Parse(body?.DestinationId, "destinationId");
+        if (!destination.IsSuccess)
+        {
+            return GraphResults.Error(destination.Error);
+        }
+
+        var copied = await useCase.ExecuteAsync(mailbox.Ref, new MessageId(messageId), destination.Value, cancellationToken);
+        return GraphResults.Match(copied, m => GraphResults.CreatedAt(
+            MessageDtoMapper.ToDto(m), Messages(mailbox), $"{mailbox.ContextSegment}/messages('{Uri.EscapeDataString(m.Id.Value)}')"));
+    }
 
     private static async Task<IResult> MoveAsync(
         Mailbox mailbox, string messageId, [FromBody] MoveRequestDto? body, MoveMessage useCase, CancellationToken cancellationToken)

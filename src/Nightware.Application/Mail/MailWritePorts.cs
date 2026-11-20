@@ -13,6 +13,12 @@ public interface IMailMessageWriter
     /// <summary>Moves a message; the id is preserved.</summary>
     Task<Result<MessageId>> MoveAsync(MailboxRef mailbox, MessageId id, FolderRef destination, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Graph <c>POST messages/{id}/copy</c>: a distinct message in <paramref name="destination"/>, with its own
+    /// id, carrying the original's read state, flag, categories and importance.
+    /// </summary>
+    Task<Result<MessageId>> CopyAsync(MailboxRef mailbox, MessageId id, FolderRef destination, CancellationToken cancellationToken);
+
     /// <summary>Graph <c>DELETE messages/{id}</c>: moves to Deleted Items (or destroys when already there).</summary>
     Task<Result> SoftDeleteAsync(MailboxRef mailbox, MessageId id, CancellationToken cancellationToken);
 

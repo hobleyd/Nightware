@@ -86,6 +86,20 @@ internal sealed class JmapTestHost : IAsyncDisposable
         return document.ToJsonString();
     }
 
+    /// <summary>The Alice session with <c>urn:ietf:params:jmap:metadata</c> advertised for her account, as Stalwart 1.1 does.</summary>
+    public static string SessionWithMetadata()
+    {
+        var document = JsonNode.Parse(Fixtures.AliceSession)!.AsObject();
+        const string metadata = "urn:ietf:params:jmap:metadata";
+        document["capabilities"]![metadata] = new JsonObject();
+        foreach (var (_, account) in document["accounts"]!.AsObject())
+        {
+            account!["accountCapabilities"]![metadata] = new JsonObject();
+        }
+
+        return document.ToJsonString();
+    }
+
     /// <summary>Answers every API POST with <paramref name="methodResponses"/> (a JSON array literal).</summary>
     public void StubApi(string methodResponses, string sessionState = "3e25b2a0", string? createdIds = null) =>
         Server.Given(Request.Create().WithPath("/jmap/").UsingPost())

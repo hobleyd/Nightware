@@ -126,6 +126,63 @@ public sealed class MessageWriteEndpointTests : MailWriteEndpointTestBase
 
     [Theory]
     [MemberData(nameof(Forms))]
+    public async Task Copy_is_201_with_the_copy_under_its_own_id(string prefix, string address)
+    {
+        Writer.CopyAsync(Box(address), new MessageId(Id), new FolderRef.ById(new FolderId("mbx-7")), Arg.Any<CancellationToken>()).Returns(new MessageId("e.m2"));
+        Reader.GetAsync(Box(address), new MessageId("e.m2"), MessageFetch.Default, Arg.Any<CancellationToken>()).Returns(Message("e.m2"));
+
+        var response = await SendAsync(HttpMethod.Post, $"{prefix}/messages/{Id}/copy", """{"destinationId":"mbx-7"}""");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        (await response.ReadObjectAsync())["id"]!.GetValue<string>().ShouldBe("e.m2");
+        response.Headers.Location!.ToString().ShouldBe($"{TestHost.GraphBase}/users('{Uri.EscapeDataString(address)}')/messages('e.m2')");
+    }
+
+    [Fact]
+    public async Task Copy_without_a_destination_is_400()
+    {
+        (await SendAsync(HttpMethod.Post, $"/v1.0/me/messages/{Id}/copy", "{}")).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        await Writer.DidNotReceiveWithAnyArgs().CopyAsync(default, default, null!, Ct);
+    }
+
+    [Fact]
+    public async Task A_flag_with_dates_categories_and_importance_reach_the_writer_and_come_back()
+    {
+        Writer.PatchAsync(default, default, null!, Ct).ReturnsForAnyArgs(Result.Success());
+        var due = new Nightware.Domain.Calendar.DateTimeTimeZone(new DateTime(2026, 11, 25, 17, 0, 0), "UTC");
+        Reader.GetAsync(default, default, null!, Ct).ReturnsForAnyArgs(Message(Id) with
+        {
+            Flag = new FollowUpFlag(FlagStatus.Flagged) { DueDateTime = due },
+            Categories = ["Red category"],
+            Importance = Importance.High,
+        });
+
+        var response = await SendAsync(HttpMethod.Patch, $"/v1.0/me/messages/{Id}",
+            """{"flag":{"flagStatus":"flagged","dueDateTime":{"dateTime":"2026-11-25T17:00:00","timeZone":"UTC"}},"categories":["Red category"],"importance":"high"}""");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await response.ReadObjectAsync();
+        body["flag"]!.ToJsonString().ShouldBe("""{"flagStatus":"flagged","dueDateTime":{"dateTime":"2026-11-25T17:00:00.0000000","timeZone":"UTC"}}""");
+        body["importance"]!.GetValue<string>().ShouldBe("high");
+        await Writer.Received(1).PatchAsync(Box(TestHost.UserEmail), new MessageId(Id), Arg.Is<MessagePatch>(p =>
+            p.Flag!.Status == FlagStatus.Flagged && p.Flag.DueDateTime == due && p.Flag.StartDateTime == null
+            && p.Categories!.SequenceEqual(new[] { "Red category" }) && p.Importance == Importance.High), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_cleared_flag_drops_any_dates_sent_with_it()
+    {
+        Writer.PatchAsync(default, default, null!, Ct).ReturnsForAnyArgs(Result.Success());
+        Reader.GetAsync(default, default, null!, Ct).ReturnsForAnyArgs(Message(Id));
+
+        await SendAsync(HttpMethod.Patch, $"/v1.0/me/messages/{Id}",
+            """{"flag":{"flagStatus":"notFlagged","dueDateTime":{"dateTime":"2026-11-25T17:00:00","timeZone":"UTC"}}}""");
+
+        await Writer.Received(1).PatchAsync(Box(TestHost.UserEmail), new MessageId(Id), Arg.Is<MessagePatch>(p => p.Flag == FollowUpFlag.NotFlagged), Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [MemberData(nameof(Forms))]
     public async Task Move_is_201_with_the_moved_message(string prefix, string address)
     {
         Writer.MoveAsync(Box(address), new MessageId(Id), new FolderRef.WellKnown(WellKnownFolder.DeletedItems), Arg.Any<CancellationToken>()).Returns(new MessageId(Id));

@@ -71,13 +71,13 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
     public async Task<Result<MailMessage>> GetAsync(MailboxRef mailbox, MessageId id, MessageFetch fetch, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(fetch);
-        var found = await FetchAsync(mailbox, id, (accountId, jmapId) => EmailProperties.FullRequest(accountId, jmapId, fetch), cancellationToken).ConfigureAwait(false);
+        var found = await FetchAsync(mailbox, id, (account, jmapId) => EmailProperties.FullRequest(account, jmapId, fetch), cancellationToken).ConfigureAwait(false);
         return found.Map(f => EmailMapper.ToMessage(f.Email, preferredBody: fetch.PreferredBodyType));
     }
 
     public async Task<Result<BlobContent>> GetRawAsync(MailboxRef mailbox, MessageId id, CancellationToken cancellationToken)
     {
-        var found = await FetchAsync(mailbox, id, static (accountId, jmapId) => new EmailGetRequest(accountId) { Ids = [jmapId], Properties = ["id", "blobId"] }, cancellationToken).ConfigureAwait(false);
+        var found = await FetchAsync(mailbox, id, static (account, jmapId) => new EmailGetRequest(account.AccountId) { Ids = [jmapId], Properties = ["id", "blobId"] }, cancellationToken).ConfigureAwait(false);
         if (!found.IsSuccess)
         {
             return found.Error;
@@ -151,7 +151,7 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
             Limit = limit,
             CalculateTotal = plan.Paged ? true : null,
         });
-        var get = request.Add(JmapMethods.EmailGet, EmailProperties.ListRequest(account.AccountId), emailQuery.Ref("ids", JmapPaths.Ids));
+        var get = request.Add(EmailProperties.Get(account), EmailProperties.ListRequest(account), emailQuery.Ref("ids", JmapPaths.Ids));
         var response = await jmap.SendAsync(request, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccess)
         {
@@ -202,7 +202,7 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
         }
 
         var emailRequest = new JmapRequestBuilder();
-        var emailGet = emailRequest.Add(JmapMethods.EmailGet, EmailProperties.ListRequest(account.AccountId, emailIds));
+        var emailGet = emailRequest.Add(EmailProperties.Get(account), EmailProperties.ListRequest(account, emailIds));
         var emails = (await jmap.SendAsync(emailRequest, cancellationToken).ConfigureAwait(false)).Bind(r => r.Get(emailGet));
         if (!emails.IsSuccess)
         {
@@ -219,7 +219,7 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
     }
 
     private async Task<Result<(JmapAccount Account, Email Email)>> FetchAsync(
-        MailboxRef mailbox, MessageId id, Func<string, string, EmailGetRequest> build, CancellationToken cancellationToken)
+        MailboxRef mailbox, MessageId id, Func<JmapAccount, string, EmailGetRequest> build, CancellationToken cancellationToken)
     {
         var account = await jmap.ResolveAccountAsync(mailbox, cancellationToken).ConfigureAwait(false);
         if (!account.IsSuccess)
@@ -234,7 +234,7 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
         }
 
         var request = new JmapRequestBuilder();
-        var get = request.Add(JmapMethods.EmailGet, build(account.Value.AccountId, jmapId.Value));
+        var get = request.Add(EmailProperties.Get(account.Value), build(account.Value, jmapId.Value));
         var emails = (await jmap.SendAsync(request, cancellationToken).ConfigureAwait(false)).Bind(r => r.Get(get));
         if (!emails.IsSuccess)
         {
@@ -273,7 +273,7 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
         return blobs.DownloadAsync(account.AccountId, part.BlobId!, attachment.Name, type, cancellationToken);
     }
 
-    private static EmailGetRequest AttachmentsRequest(string accountId, string jmapId) => new(accountId)
+    private static EmailGetRequest AttachmentsRequest(JmapAccount account, string jmapId) => new(account.AccountId)
     {
         Ids = [jmapId],
         Properties = AttachmentProperties,

@@ -326,7 +326,8 @@ def collect_ids(node, found: dict[str, str]) -> None:
     if isinstance(node, dict):
         for key, value in node.items():
             if isinstance(value, str) and ID_KEYS.match(key) and len(value) >= 8:
-                found.setdefault(value, key)
+                # A Message-ID keeps its angle brackets: only what is inside them identifies anything.
+                found.setdefault(value.strip("<>") if key == "internetMessageId" else value, key)
             collect_ids(value, found)
     elif isinstance(node, list):
         for item in node:

@@ -323,7 +323,8 @@ operation:
 | Phase 5A — Directory, contacts, people | 6 |
 | Phase 5B — Tasks, mailbox settings, files, threat submission | 14 |
 | Phase 11 — JSON batching (Graph parity) | 2 |
-| **Total** | **78** |
+| Phase 12 — Mail (Graph parity) | 4 |
+| **Total** | **82** |
 
 ### Phase 2 — Mail, read side
 
@@ -1253,5 +1254,54 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/json-batching
 - Notes: dependsOn chain whose first request fails: the dependant is answered 424 FailedDependency without running, with no headers.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/batch.post-depends-on.json`
+
+### Phase 12 — Mail (Graph parity)
+
+| Id | Method | Ver | Path | Paging |
+|---|---|---|---|---|
+| [`mail.messages.update-flag`](#mailmessagesupdate-flag) | PATCH | v1.0 | `{mailbox}/messages/{messageId}` | none |
+| [`mail.messages.update-categories`](#mailmessagesupdate-categories) | PATCH | v1.0 | `{mailbox}/messages/{messageId}` | none |
+| [`mail.messages.update-importance`](#mailmessagesupdate-importance) | PATCH | v1.0 | `{mailbox}/messages/{messageId}` | none |
+| [`mail.messages.copy`](#mailmessagescopy) | POST | v1.0 | `{mailbox}/messages/{messageId}/copy` | none |
+
+#### `mail.messages.update-flag`
+
+**PATCH v1.0 `{mailbox}/messages/{messageId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `flag.flagStatus`; `flag.startDateTime?`; `flag.dueDateTime?`; `flag.completedDateTime?`
+- Client reads: `id`, `flag.flagStatus`, `flag.startDateTime?`, `flag.dueDateTime?`, `flag.completedDateTime?`, `categories`, `importance`, `parentFolderId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-update
+- Notes: Any message, not only drafts. flagged is the $flagged keyword; complete and the dates live in the message's JMAP metadata (ADR 0006 D5). The id is kept. Shares its route with mail.messages.update-read-state and mail.drafts.update.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.messages.update-flag.json`
+
+#### `mail.messages.update-categories`
+
+**PATCH v1.0 `{mailbox}/messages/{messageId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `categories`
+- Client reads: `id`, `flag.flagStatus`, `flag.startDateTime?`, `flag.dueDateTime?`, `flag.completedDateTime?`, `categories`, `importance`, `parentFolderId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-update
+- Notes: Names need not be master categories. Kept in the message's shared metadata (nightware.ms), up to 8 KB.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.messages.update-categories.json`
+
+#### `mail.messages.update-importance`
+
+**PATCH v1.0 `{mailbox}/messages/{messageId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `importance`
+- Client reads: `id`, `flag.flagStatus`, `flag.startDateTime?`, `flag.dueDateTime?`, `flag.completedDateTime?`, `categories`, `importance`, `parentFolderId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-update
+- Notes: Overrides the Importance header on read; normal clears the override.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.messages.update-importance.json`
+
+#### `mail.messages.copy`
+
+**POST v1.0 `{mailbox}/messages/{messageId}/copy`** — forms: me, users; success: 201; paging: none
+
+- Request body: `destinationId`
+- Client reads: `id`, `flag.flagStatus`, `flag.startDateTime?`, `flag.dueDateTime?`, `flag.completedDateTime?`, `categories`, `importance`, `parentFolderId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-copy
+- Notes: A distinct message (Email/import of the blob) with its own id, carrying read state, flag, categories and importance. Location header as Graph.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.messages.copy.json`
 
 <!-- END GENERATED -->

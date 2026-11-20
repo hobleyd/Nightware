@@ -79,7 +79,13 @@ public static class MessageDtoMapper
             CcRecipients = message.CcRecipients.Select(ToRecipientDto).ToList(),
             BccRecipients = message.BccRecipients.Select(ToRecipientDto).ToList(),
             ReplyTo = message.ReplyTo.Select(ToRecipientDto).ToList(),
-            Flag = new FollowupFlagDto { FlagStatus = ToGraph(message.Flag.Status) },
+            Flag = new FollowupFlagDto
+            {
+                FlagStatus = ToGraph(message.Flag.Status),
+                StartDateTime = ToDto(message.Flag.StartDateTime),
+                DueDateTime = ToDto(message.Flag.DueDateTime),
+                CompletedDateTime = ToDto(message.Flag.CompletedDateTime),
+            },
             InternetMessageHeaders = includeHeaders
                 ? message.InternetMessageHeaders.Select(static h => new InternetMessageHeaderDto { Name = h.Name, Value = h.Value }).ToList()
                 : null,
@@ -149,6 +155,9 @@ public static class MessageDtoMapper
         Importance.High => "high",
         _ => "normal",
     };
+
+    private static DateTimeTimeZoneDto? ToDto(Domain.Calendar.DateTimeTimeZone? value) =>
+        value is null ? null : new DateTimeTimeZoneDto { DateTime = value.DateTime, TimeZone = value.TimeZone };
 
     public static string ToGraph(FlagStatus status) => status switch
     {

@@ -3490,5 +3490,180 @@
       "responses[].body.error.code"
     ],
     "notes": "dependsOn chain whose first request fails: the dependant is answered 424 FailedDependency without running, with no headers."
+  },
+  {
+    "id": "mail.messages.update-flag",
+    "phase": 12,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "flag.flagStatus",
+        "flag.startDateTime?",
+        "flag.dueDateTime?",
+        "flag.completedDateTime?"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "flag.flagStatus",
+      "flag.startDateTime?",
+      "flag.dueDateTime?",
+      "flag.completedDateTime?",
+      "categories",
+      "importance",
+      "parentFolderId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-update",
+    "notes": "Any message, not only drafts. flagged is the $flagged keyword; complete and the dates live in the message's JMAP metadata (ADR 0006 D5). The id is kept. Shares its route with mail.messages.update-read-state and mail.drafts.update."
+  },
+  {
+    "id": "mail.messages.update-categories",
+    "phase": 12,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "categories"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "flag.flagStatus",
+      "flag.startDateTime?",
+      "flag.dueDateTime?",
+      "flag.completedDateTime?",
+      "categories",
+      "importance",
+      "parentFolderId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-update",
+    "notes": "Names need not be master categories. Kept in the message's shared metadata (nightware.ms), up to 8 KB."
+  },
+  {
+    "id": "mail.messages.update-importance",
+    "phase": 12,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "importance"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "flag.flagStatus",
+      "flag.startDateTime?",
+      "flag.dueDateTime?",
+      "flag.completedDateTime?",
+      "categories",
+      "importance",
+      "parentFolderId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-update",
+    "notes": "Overrides the Importance header on read; normal clears the override."
+  },
+  {
+    "id": "mail.messages.copy",
+    "phase": 12,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages/{messageId}/copy",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "destinationId"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "flag.flagStatus",
+      "flag.startDateTime?",
+      "flag.dueDateTime?",
+      "flag.completedDateTime?",
+      "categories",
+      "importance",
+      "parentFolderId"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-copy",
+    "notes": "A distinct message (Email/import of the blob) with its own id, carrying read state, flag, categories and importance. Location header as Graph."
   }
 ]

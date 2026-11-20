@@ -4,7 +4,11 @@ using Nightware.Domain.Kernel;
 namespace Nightware.Adapters.Jmap.Core.Session;
 
 /// <summary>A JMAP account resolved for a mailbox, with the session it belongs to.</summary>
-internal sealed record JmapAccount(string AccountId, string Name, bool IsPrimary, bool IsReadOnly, JmapSession Session);
+internal sealed record JmapAccount(string AccountId, string Name, bool IsPrimary, bool IsReadOnly, JmapSession Session)
+{
+    /// <summary>Per-object JSON (<c>urn:ietf:params:jmap:metadata</c>), where Graph-only message state lives (ADR 0006 D5).</summary>
+    public bool SupportsMetadata => Session.HasAccountCapability(AccountId, JmapCapabilities.Metadata);
+}
 
 /// <summary>
 /// Maps a <see cref="MailboxRef"/> (SMTP address) to a JMAP account in a session.

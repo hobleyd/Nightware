@@ -231,13 +231,29 @@ public static class MailWriteRequestMapper
         _ => Error.Validation($"'{importance}' is not an importance (low, normal or high).", "importance"),
     };
 
-    private static Result<FollowUpFlag> ToFlag(FollowupFlagDto flag) => flag.FlagStatus?.Trim().ToUpperInvariant() switch
+    private static Result<FollowUpFlag> ToFlag(FollowupFlagDto flag)
     {
-        "NOTFLAGGED" => FollowUpFlag.NotFlagged,
-        "FLAGGED" => new FollowUpFlag(FlagStatus.Flagged),
-        "COMPLETE" => new FollowUpFlag(FlagStatus.Complete),
-        _ => Error.Validation($"'{flag.FlagStatus}' is not a flag status.", "flag.flagStatus"),
-    };
+        Result<FollowUpFlag> status = flag.FlagStatus?.Trim().ToUpperInvariant() switch
+        {
+            "NOTFLAGGED" => FollowUpFlag.NotFlagged,
+            "FLAGGED" => new FollowUpFlag(FlagStatus.Flagged),
+            "COMPLETE" => new FollowUpFlag(FlagStatus.Complete),
+            _ => Error.Validation($"'{flag.FlagStatus}' is not a flag status.", "flag.flagStatus"),
+        };
+
+        // Dates mean nothing on a message that is not flagged.
+        return status.Map(f => f.Status == FlagStatus.NotFlagged
+            ? f
+            : f with
+            {
+                StartDateTime = ToDomain(flag.StartDateTime),
+                DueDateTime = ToDomain(flag.DueDateTime),
+                CompletedDateTime = ToDomain(flag.CompletedDateTime),
+            });
+    }
+
+    private static Domain.Calendar.DateTimeTimeZone? ToDomain(DateTimeTimeZoneDto? value) =>
+        value is null ? null : new(value.DateTime, string.IsNullOrWhiteSpace(value.TimeZone) ? "UTC" : value.TimeZone);
 
     private static Result<IReadOnlyList<NewAttachment>> ToAttachments(IReadOnlyList<AttachmentDto>? attachments)
     {
