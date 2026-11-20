@@ -16,7 +16,7 @@
         @* A form cannot sit inside a table row, so the new row's field joins it through its form attribute. *@
         <form id="add-domain" method="post" asp-page-handler="AddDomain"></form>
     }
-    <table class="@(Model.Actor.IsGlobal ? "adds" : null)">
+    <table class="domains@(Model.Actor.IsGlobal ? " adds" : null)">
         <thead><tr><th>Domain</th><th>Mail server</th><th>Signing (DKIM)</th><th>SPF</th><th>DMARC</th><th>Fallback</th><th><span class="visually-hidden">Actions</span></th>@if (Model.Actor.IsGlobal) { <th><span class="visually-hidden">Remove</span></th> }</tr></thead>
         <tbody>
         @foreach (var d in Model.Entity.Domains)

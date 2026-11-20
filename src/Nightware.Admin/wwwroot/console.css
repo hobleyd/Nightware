@@ -155,6 +155,13 @@ th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); v
 tr.disabled td { color: var(--muted); }
 .actions { white-space: nowrap; }
 .actions a + form.inline { margin-left: 8px; }
+/* A form inside a row is sized to the row's text: one line, the control and its button no taller than a chip. */
+td > form.row { flex-wrap: nowrap; align-items: center; gap: 8px; margin: 0; }
+td > form.row label { flex: 0 1 auto; margin: 0; }
+td > form.row select { width: auto; max-width: 100%; height: auto; padding: 1px 6px; }
+td > form.row button { padding: 1px 10px; }
+td > form.row + .warning { margin: 4px 0 0; }
+table.domains td { vertical-align: middle; }
 .plan tr.conflict td { color: var(--bad); }
 /* Fixed columns so the value columns, not the names, get the width. */
 table.dns { table-layout: fixed; }
