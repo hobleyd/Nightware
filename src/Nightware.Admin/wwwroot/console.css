@@ -217,13 +217,15 @@ ul.plain { list-style: none; padding: 0; }
   td { border: none; padding: 4px 0; }
   td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); }
   tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
-  /* The pinned row stays short on a phone: the name on its own line, then short name, domain and the button. */
+  /* The pinned row stays short on a phone: its fields share lines with the button (a wide field takes a line of its
+     own), and its hint is left out. */
   table.adds tfoot { display: block; padding: 8px 0; background: var(--panel); box-shadow: 0 -1px 0 var(--line); }
-  table.adds tfoot tr { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; border-bottom: none; }
-  table.adds tfoot td { padding: 0; box-shadow: none; }
-  table.adds tfoot td:first-child { grid-column: 1 / -1; }
+  table.adds tfoot tr { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-bottom: none; }
+  table.adds tfoot td { flex: 1 1 0; min-width: 0; padding: 0; box-shadow: none; }
+  table.adds tfoot td.wide { flex-basis: 100%; }
+  table.adds tfoot td.hint { display: none; }
   table.adds tfoot td[data-label]::before { content: none; }
-  td.add-cell { width: auto; }
+  table.adds tfoot td.add-cell { flex: 0 0 auto; width: auto; }
 }
 
 .undo, .remove, .block { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }

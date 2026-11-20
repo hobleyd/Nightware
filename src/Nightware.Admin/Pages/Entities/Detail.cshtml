@@ -11,7 +11,12 @@
 <partial name="_Messages" />
 <p><a asp-page="/Users/Index" asp-route-entity="@entity.Id">@Model.Members.Count @(Model.Members.Count == 1 ? "user" : "users")</a> · <a asp-page="/Users/New" asp-route-entity="@entity.Id">Add or link a user</a></p>
     <h2 id="domains">Mail domains</h2>
-    <table>
+    @if (Model.Actor.IsGlobal)
+    {
+        @* A form cannot sit inside a table row, so the new row's field joins it through its form attribute. *@
+        <form id="add-domain" method="post" asp-page-handler="AddDomain"></form>
+    }
+    <table class="@(Model.Actor.IsGlobal ? "adds" : null)">
         <thead><tr><th>Domain</th><th>Mail server</th><th>Signing (DKIM)</th><th>SPF</th><th>DMARC</th><th><span class="visually-hidden">Actions</span></th>@if (Model.Actor.IsGlobal) { <th><span class="visually-hidden">Remove</span></th> }</tr></thead>
         <tbody>
         @foreach (var d in Model.Entity.Domains)
@@ -67,18 +72,21 @@
             </tr>
         }
         </tbody>
+        @if (Model.Actor.IsGlobal)
+        {
+            <tfoot>
+                <tr class="add-row">
+                    <td><input name="domain" form="add-domain" aria-label="Domain to add" placeholder="acme.org" autocomplete="off" required></td>
+                    <td colspan="5" class="hint">Adds the domain on the mail server, with signing (DKIM) keys.</td>
+                    @* Adding the first domain is what a new entity is waiting for; after that it is a panel-local change. *@
+                    <td class="add-cell"><button type="submit" form="add-domain" class="icon@(Model.Entity.Domains.Count == 0 ? null : " secondary")" title="Add domain" aria-label="Add domain">&#x2B;</button></td>
+                </tr>
+            </tfoot>
+        }
     </table>
     @if (!Model.Actor.IsGlobal && Model.Entity.Domains.Any(d => d.Mail.State != LinkState.Linked || !d.DkimPresent))
     {
         <p class="hint">Only your Nightware operator can repair a domain the mail server does not serve or lacks its signing keys.</p>
-    }
-    @if (Model.Actor.IsGlobal)
-    {
-        <form method="post" asp-page-handler="AddDomain" class="row">
-            <label>Add domain <input name="domain" placeholder="acme.org" autocomplete="off" required></label>
-            @* Adding the first domain is what a new entity is waiting for; after that it is a panel-local change. *@
-            <button type="submit" class="@(Model.Entity.Domains.Count == 0 ? null : "secondary")">Add</button>
-        </form>
     }
 </section>
 

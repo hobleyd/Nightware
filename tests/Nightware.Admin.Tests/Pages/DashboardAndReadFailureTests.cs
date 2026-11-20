@@ -515,7 +515,7 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
     {
         string html = await GetAsync("/entities/" + ConsoleHost.Acme);
 
-        html.ShouldContain("<button type=\"submit\" class=\"secondary\">Add</button>");
+        html.ShouldContain("<button type=\"submit\" form=\"add-domain\" class=\"icon secondary\" title=\"Add domain\" aria-label=\"Add domain\">");
         html.ShouldNotContain("<button type=\"submit\">Connect</button>");
     }
 

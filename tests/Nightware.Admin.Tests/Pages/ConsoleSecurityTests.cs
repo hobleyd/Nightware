@@ -126,6 +126,28 @@ public sealed class ConsoleSecurityTests : IDisposable
     }
 
     [Fact]
+    public async Task A_global_admin_adds_a_domain_from_the_domain_tables_last_row()
+    {
+        string html = await (await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri($"/entities/{ConsoleHost.Acme}", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain($"<form id=\"add-domain\" method=\"post\" action=\"/entities/{ConsoleHost.Acme}?handler=AddDomain\">");
+        string footer = html[html.IndexOf("<tfoot>", StringComparison.Ordinal)..html.IndexOf("</tfoot>", StringComparison.Ordinal)];
+        footer.ShouldContain("<input name=\"domain\" form=\"add-domain\"");
+        footer.ShouldContain("<button type=\"submit\" form=\"add-domain\" class=\"icon secondary\" title=\"Add domain\" aria-label=\"Add domain\">", Case.Sensitive, "the entity has a domain, so adding another is not the page's primary action");
+        html.ShouldNotContain("<label>Add domain");
+    }
+
+    [Fact]
+    public async Task An_entity_admin_has_no_row_to_add_a_domain()
+    {
+        string html = await (await _host.ClientAs(ConsoleHost.EntityAdmin).GetAsync(new Uri($"/entities/{ConsoleHost.Acme}", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldContain("<h2 id=\"domains\">Mail domains</h2>");
+        html.ShouldNotContain("<tfoot>");
+        html.ShouldNotContain("add-domain");
+    }
+
+    [Fact]
     public async Task A_global_admin_creates_an_entity()
     {
         _host.Entities.CreateAsync(Arg.Any<NewEntity>(), Arg.Any<CancellationToken>()).Returns(new Entity("e-beta", "beta", "Beta", [ConsoleHost.Domain("beta.example")]));
