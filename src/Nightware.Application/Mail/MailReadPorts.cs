@@ -52,6 +52,13 @@ public interface IMailMessageReader
     Task<Result<BlobContent>> GetAttachmentContentAsync(MailboxRef mailbox, MessageId id, AttachmentId attachment, CancellationToken cancellationToken);
 }
 
+/// <summary>The folder hierarchy's delta feed (Graph <c>mailFolders/delta</c>, ADR 0006 D5).</summary>
+public interface IMailFolderDeltaReader
+{
+    /// <param name="token">Null starts an initial sync: every folder, then a token for what changes after.</param>
+    Task<Result<DeltaPage<MailFolder>>> DeltaAsync(MailboxRef mailbox, DeltaToken? token, DeltaRequest request, CancellationToken cancellationToken);
+}
+
 public interface IMailDeltaReader
 {
     /// <param name="token">Null starts an initial sync; otherwise a token from a previous page.</param>

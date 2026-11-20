@@ -323,8 +323,8 @@ operation:
 | Phase 5A — Directory, contacts, people | 6 |
 | Phase 5B — Tasks, mailbox settings, files, threat submission | 14 |
 | Phase 11 — JSON batching (Graph parity) | 2 |
-| Phase 12 — Mail (Graph parity) | 9 |
-| **Total** | **87** |
+| Phase 12 — Mail (Graph parity) | 11 |
+| **Total** | **89** |
 
 ### Phase 2 — Mail, read side
 
@@ -1268,6 +1268,8 @@ operation:
 | [`mail.master-categories.create`](#mailmaster-categoriescreate) | POST | v1.0 | `{mailbox}/outlook/masterCategories` | none |
 | [`mail.master-categories.update`](#mailmaster-categoriesupdate) | PATCH | v1.0 | `{mailbox}/outlook/masterCategories/{categoryId}` | none |
 | [`mail.master-categories.delete`](#mailmaster-categoriesdelete) | DELETE | v1.0 | `{mailbox}/outlook/masterCategories/{categoryId}` | none |
+| [`mail.folders.delta`](#mailfoldersdelta) | GET | v1.0 | `{mailbox}/mailFolders/delta` | deltaLink |
+| [`mail.folders.delta-changes`](#mailfoldersdelta-changes) | GET | v1.0 | `{mailbox}/mailFolders/delta` | deltaLink |
 
 #### `mail.messages.update-flag`
 
@@ -1354,5 +1356,27 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/outlookcategory
 - Notes: Messages keep the name; it only leaves the list.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.master-categories.delete.json`
+
+#### `mail.folders.delta`
+
+**GET v1.0 `{mailbox}/mailFolders/delta`** — forms: me, users; success: 200; paging: deltaLink
+
+- Query: `$select` (always): `displayName,parentFolderId`
+- Client reads: `value[].id`, `value[].displayName`, `value[].parentFolderId`, `@odata.nextLink`, `@odata.deltaLink`
+- On error: 410 syncStateNotFound: resync from an initial request.
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/mailfolder-delta
+- Notes: Initial sync: every folder, parents first. Built on Mailbox/get + Mailbox/changes; $select frozen into the link (ADR 0001 §7).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.delta.json`
+
+#### `mail.folders.delta-changes`
+
+**GET v1.0 `{mailbox}/mailFolders/delta`** — forms: me, users; success: 200; paging: deltaLink
+
+- Query: `$deltatoken`: `<from deltaLink>`
+- Client reads: `value[].id`, `value[].displayName`, `value[].parentFolderId`, `value[].@removed`, `@odata.deltaLink`
+- On error: 410 syncStateNotFound: resync from an initial request.
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/mailfolder-delta
+- Notes: After a change: created/updated folders as upserts (a rename, move or count change), destroyed ones as @removed deleted.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.delta-changes.json`
 
 <!-- END GENERATED -->

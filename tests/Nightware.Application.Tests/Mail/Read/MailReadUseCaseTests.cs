@@ -75,6 +75,18 @@ public sealed class MailReadUseCaseTests
     }
 
     [Fact]
+    public async Task Sync_folders_reads_one_page_and_rejects_a_non_positive_page_size()
+    {
+        var folders = Substitute.For<IMailFolderDeltaReader>();
+        var page = DeltaPage<MailFolder>.Done([], new DeltaToken("t"));
+        folders.DeltaAsync(Mailbox, null, Arg.Any<DeltaRequest>(), Ct).Returns(page);
+
+        (await new SyncFolders(folders).ExecuteAsync(Mailbox, null, new DeltaRequest(10), Ct)).Value.ShouldBeSameAs(page);
+        (await new SyncFolders(folders).ExecuteAsync(Mailbox, null, new DeltaRequest(0), Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        await Should.ThrowAsync<ArgumentNullException>(() => new SyncFolders(folders).ExecuteAsync(Mailbox, null, null!, Ct));
+    }
+
+    [Fact]
     public async Task Get_message_mime_reads_the_raw_message()
     {
         var blob = Blob();

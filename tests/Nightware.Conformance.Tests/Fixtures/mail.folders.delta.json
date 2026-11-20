@@ -1,0 +1,88 @@
+{
+  "operationId": "mail.folders.delta",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/mailFolders/delta",
+    "query": {
+      "$select": "displayName,parentFolderId"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(mailFolder)",
+      "value": [
+        {
+          "@odata.type": "#microsoft.graph.mailFolder",
+          "id": "AAMk-id-0012=",
+          "displayName": "Archive",
+          "parentFolderId": "AAMk-parentFolderId-0002="
+        },
+        {
+          "@odata.type": "#microsoft.graph.mailFolder",
+          "id": "AAMk-id-0013=",
+          "displayName": "Conversation History",
+          "parentFolderId": "AAMk-parentFolderId-0002="
+        },
+        {
+          "@odata.type": "#microsoft.graph.mailFolder",
+          "id": "AAMk-id-0014=",
+          "displayName": "Deleted Items",
+          "parentFolderId": "AAMk-parentFolderId-0002="
+        },
+        {
+          "@odata.type": "#microsoft.graph.mailFolder",
+          "id": "AAMk-id-0015=",
+          "displayName": "Drafts",
+          "parentFolderId": "AAMk-parentFolderId-0002="
+        },
+        {
+          "@odata.type": "#microsoft.graph.mailFolder",
+          "id": "AAMk-id-0001=",
+          "displayName": "Inbox",
+          "parentFolderId": "AAMk-parentFolderId-0002="
+        },
+        {
+          "@odata.type": "#microsoft.graph.mailFolder",
+          "id": "AAMk-id-0016=",
+          "displayName": "Projects",
+          "parentFolderId": "AAMk-id-0001="
+        },
+        {
+          "@odata.type": "#microsoft.graph.mailFolder",
+          "id": "AAMk-id-0017=",
+          "displayName": "Receipts",
+          "parentFolderId": "AAMk-id-0001="
+        },
+        {
+          "@odata.type": "#microsoft.graph.mailFolder",
+          "id": "AAMk-id-0018=",
+          "displayName": "Junk Email",
+          "parentFolderId": "AAMk-parentFolderId-0002="
+        },
+        {
+          "@odata.type": "#microsoft.graph.mailFolder",
+          "id": "AAMk-parentFolderId-0001=",
+          "displayName": "nw-capture-eb09af",
+          "parentFolderId": "AAMk-parentFolderId-0002="
+        },
+        {
+          "@odata.type": "#microsoft.graph.mailFolder",
+          "id": "AAMk-id-0019=",
+          "displayName": "Outbox",
+          "parentFolderId": "AAMk-parentFolderId-0002="
+        }
+      ],
+      "@odata.nextLink": "https://graph.microsoft.com/v1.0/me/mailFolders/delta?$skiptoken={token}"
+    }
+  }
+}

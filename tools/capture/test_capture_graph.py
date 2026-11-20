@@ -111,6 +111,8 @@ class OpaqueIdTests(unittest.TestCase):
 
         self.assertEqual(opaque(url), "https://outlook.office365.com/api/x?authtoken={token}&x=1")
         self.assertEqual(opaque("Bearer eyJhbGciOiJSUzI1NiJ9.eyJ0aWQiOiIwMTIifQ.c2ln"), "Bearer {jwt}")
+        self.assertEqual(opaque("https://graph.microsoft.com/v1.0/me/mailFolders/delta?$skiptoken=b9658zLYx7ag_Wb.8Zgy"),
+                         "https://graph.microsoft.com/v1.0/me/mailFolders/delta?$skiptoken={token}")
 
 
 class PickTests(unittest.TestCase):

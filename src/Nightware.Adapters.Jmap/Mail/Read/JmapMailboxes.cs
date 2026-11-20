@@ -15,9 +15,16 @@ internal sealed class JmapMailboxes
 {
     private static readonly string[] Properties = ["id", "name", "parentId", "role", "sortOrder", "totalEmails", "unreadEmails"];
 
-    private JmapMailboxes(IReadOnlyList<Mailbox> all) => All = all;
+    private JmapMailboxes(IReadOnlyList<Mailbox> all, string? state = null)
+    {
+        All = all;
+        State = state;
+    }
 
     public IReadOnlyList<Mailbox> All { get; }
+
+    /// <summary>The Mailbox state the list was read at (for <c>Mailbox/changes</c>).</summary>
+    public string? State { get; }
 
     public static async Task<Result<JmapMailboxes>> LoadAsync(IJmapClient jmap, JmapAccount account, CancellationToken cancellationToken)
     {
@@ -26,7 +33,7 @@ internal sealed class JmapMailboxes
         var request = new JmapRequestBuilder();
         var get = request.Add(JmapMethods.MailboxGet, new GetRequest(account.AccountId) { Properties = Properties });
         var response = await jmap.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        return response.Bind(r => r.Get(get)).Map(static r => new JmapMailboxes(r.List));
+        return response.Bind(r => r.Get(get)).Map(static r => new JmapMailboxes(r.List, r.State));
     }
 
     internal static JmapMailboxes From(IReadOnlyList<Mailbox> all) => new(all);
@@ -43,6 +50,23 @@ internal sealed class JmapMailboxes
             _ => null,
         };
         return mailbox is null ? Error.NotFound("The specified folder could not be found in the store.", "folderId") : mailbox;
+    }
+
+    /// <summary>Every mailbox, parents before their children, siblings in display order.</summary>
+    public IReadOnlyList<Mailbox> InTreeOrder()
+    {
+        var ordered = new List<Mailbox>(All.Count);
+        void Walk(string? parentId)
+        {
+            foreach (var child in ChildrenOf(parentId))
+            {
+                ordered.Add(child);
+                Walk(child.Id);
+            }
+        }
+
+        Walk(null);
+        return ordered;
     }
 
     /// <summary>Mailboxes directly under <paramref name="parentId"/> (null = top level), in display order.</summary>

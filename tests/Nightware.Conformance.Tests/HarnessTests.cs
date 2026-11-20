@@ -49,6 +49,17 @@ public sealed class HarnessTests
     }
 
     [Fact]
+    public void A_captured_token_placeholder_is_replaced_by_the_signed_token()
+    {
+        var fixture = new FixtureRequest("GET", "/v1.0/me/mailFolders/delta", new Dictionary<string, string> { ["$deltatoken"] = ConformanceRunner.TokenPlaceholder },
+            new Dictionary<string, string>(), null);
+
+        using var request = ConformanceRunner.BuildRequest(fixture, "abc.def+/");
+
+        request.RequestUri!.OriginalString.ShouldBe("/v1.0/me/mailFolders/delta?$deltatoken=abc.def%2B%2F");
+    }
+
+    [Fact]
     public void Normaliser_drops_opaque_annotations_and_masks_links_and_correlation()
     {
         var node = JsonNode.Parse("""

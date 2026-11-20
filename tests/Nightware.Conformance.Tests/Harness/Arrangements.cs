@@ -3,6 +3,8 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
+using Nightware.Domain.Kernel;
+
 namespace Nightware.Conformance.Tests.Harness;
 
 /// <summary>
@@ -22,6 +24,16 @@ public sealed record ConformanceArrangement(string OperationId, Action<PortFakes
 
     /// <summary>Harness self-tests only: extra endpoints for an example fixture. Feature fixtures never use this.</summary>
     public Action<RouteGroupBuilder>? MapEndpoints { get; init; }
+
+    /// <summary>
+    /// The adapter token a captured follow-up request stands for. Captures replace Graph's opaque
+    /// <c>$deltatoken</c>/<c>$skiptoken</c> with <c>{token}</c>; the harness signs this one with the host's own
+    /// <see cref="Nightware.Api.Graph.Json.DeltaLinkCodec"/> and puts it there.
+    /// </summary>
+    public DeltaToken? RequestToken { get; init; }
+
+    /// <summary>The <c>$select</c> frozen into <see cref="RequestToken"/>'s link, as Graph freezes the first request's.</summary>
+    public IReadOnlySet<string>? RequestTokenSelect { get; init; }
 
     /// <summary>Extra services (e.g. a fixed <see cref="TimeProvider"/>).</summary>
     public Action<IServiceCollection>? Services { get; init; }

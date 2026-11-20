@@ -14,6 +14,7 @@ internal static class JmapMailReadServiceCollectionExtensions
         services.TryAddScoped<IMailFolderReader, JmapMailFolderReader>();
         services.TryAddScoped<IMailMessageReader, JmapMailMessageReader>();
         services.TryAddScoped<IMailDeltaReader, JmapMailDeltaReader>();
+        services.TryAddScoped<IMailFolderDeltaReader, JmapMailFolderDeltaReader>();
         services.TryAddScoped<IRecentCorrespondents, JmapRecentCorrespondents>();
         return services;
     }

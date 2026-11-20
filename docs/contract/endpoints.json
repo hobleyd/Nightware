@@ -3840,5 +3840,86 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/resources/outlookcategory",
     "notes": "Messages keep the name; it only leaves the list."
+  },
+  {
+    "id": "mail.folders.delta",
+    "query": {
+      "select": [
+        [
+          "displayName",
+          "parentFolderId"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "responseFields": [
+      "value[].id",
+      "value[].displayName",
+      "value[].parentFolderId",
+      "@odata.nextLink",
+      "@odata.deltaLink"
+    ],
+    "paging": "deltaLink",
+    "notes": "Initial sync: every folder, parents first. Built on Mailbox/get + Mailbox/changes; $select frozen into the link (ADR 0001 §7).",
+    "phase": 12,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/delta",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "headers": {},
+    "requestBody": null,
+    "successStatus": 200,
+    "clientErrorHandling": "410 syncStateNotFound: resync from an initial request.",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/mailfolder-delta"
+  },
+  {
+    "id": "mail.folders.delta-changes",
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {
+        "$deltatoken": [
+          "<from deltaLink>"
+        ]
+      }
+    },
+    "responseFields": [
+      "value[].id",
+      "value[].displayName",
+      "value[].parentFolderId",
+      "value[].@removed",
+      "@odata.deltaLink"
+    ],
+    "paging": "deltaLink",
+    "notes": "After a change: created/updated folders as upserts (a rename, move or count change), destroyed ones as @removed deleted.",
+    "phase": 12,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/delta",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "headers": {},
+    "requestBody": null,
+    "successStatus": 200,
+    "clientErrorHandling": "410 syncStateNotFound: resync from an initial request.",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/mailfolder-delta"
   }
 ]

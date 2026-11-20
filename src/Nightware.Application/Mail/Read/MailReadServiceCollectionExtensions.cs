@@ -17,6 +17,7 @@ public static class MailReadServiceCollectionExtensions
         services.TryAddScoped<GetMessageAttachment>();
         services.TryAddScoped<GetMessageAttachmentContent>();
         services.TryAddScoped<SyncMessages>();
+        services.TryAddScoped<SyncFolders>();
         return services;
     }
 }

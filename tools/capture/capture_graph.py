@@ -400,6 +400,8 @@ NAME_KEYS = {"displayName", "givenName", "surname", "name"}
 EXCHANGE_ID = re.compile(r"A[AQ][MQ]kA(?:[A-Za-z0-9+/_=-]|%2[BbFf]|%3[Dd]){20,}")
 JWT = re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+")
 AUTHTOKEN = re.compile(r"(authtoken=)[^&\"'\s]+", re.IGNORECASE)
+# Graph's continuation tokens in @odata.nextLink/@odata.deltaLink: opaque, and they may encode mailbox state.
+LINK_TOKEN = re.compile(r"(\$(?:skip|delta)token=)[^&\"'\s]+", re.IGNORECASE)
 
 
 class OpaqueIds:
@@ -410,6 +412,7 @@ class OpaqueIds:
 
     def __call__(self, text: str) -> str:
         text = AUTHTOKEN.sub(r"\1{token}", text)
+        text = LINK_TOKEN.sub(r"\1{token}", text)
         text = JWT.sub("{jwt}", text)
         return EXCHANGE_ID.sub(self._replace, text)
 

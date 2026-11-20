@@ -2,6 +2,10 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Nodes;
 
+using Microsoft.Extensions.DependencyInjection;
+
+using Nightware.Api.Graph.Json;
+
 namespace Nightware.Conformance.Tests.Harness;
 
 /// <summary>Loads fixtures, replays one against the façade and compares the answer.</summary>
@@ -9,6 +13,9 @@ public static class ConformanceRunner
 {
     public const string FixturesFolder = "Fixtures";
     public const string ExamplesFolder = "Examples";
+
+    /// <summary>What captures put in place of a continuation token (tools/capture).</summary>
+    public const string TokenPlaceholder = "{token}";
 
     private static readonly HashSet<string> RequestHeadersNotReplayed = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -32,7 +39,10 @@ public static class ConformanceRunner
         await using var host = new ConformanceHost(fakes, arrangement);
         using var client = host.CreateClient(new() { AllowAutoRedirect = false, BaseAddress = new Uri("https://graph.microsoft.com") });
 
-        using var request = BuildRequest(fixture.Request);
+        var token = arrangement.RequestToken is { } adapterToken
+            ? host.Services.GetRequiredService<DeltaLinkCodec>().Encode(new DeltaLinkState(adapterToken, arrangement.RequestTokenSelect, null))
+            : null;
+        using var request = BuildRequest(fixture.Request, token);
         using var response = await client.SendAsync(request, cancellationToken);
         var actualBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
         var actualText = Encoding.UTF8.GetString(actualBytes);
@@ -78,9 +88,12 @@ public static class ConformanceRunner
             $"{fixture.OperationId}: body differs after normalisation.{Environment.NewLine}Expected: {expected.ToJsonString()}{Environment.NewLine}Actual:   {actual.ToJsonString()}");
     }
 
-    internal static HttpRequestMessage BuildRequest(FixtureRequest fixture)
+    /// <summary>The fixture's request; a <c>{token}</c> placeholder in its query becomes <paramref name="token"/>.</summary>
+    internal static HttpRequestMessage BuildRequest(FixtureRequest fixture, string? token = null)
     {
-        var request = new HttpRequestMessage(new HttpMethod(fixture.Method), fixture.Url);
+        var url = token is null ? fixture.Url : fixture.Url.Replace(Uri.EscapeDataString(TokenPlaceholder), Uri.EscapeDataString(token), StringComparison.Ordinal)
+            .Replace(TokenPlaceholder, Uri.EscapeDataString(token), StringComparison.Ordinal);
+        var request = new HttpRequestMessage(new HttpMethod(fixture.Method), url);
         foreach (var (name, value) in fixture.Headers.Where(static h => !RequestHeadersNotReplayed.Contains(h.Key)))
         {
             request.Headers.TryAddWithoutValidation(name, value);

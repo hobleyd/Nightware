@@ -37,6 +37,7 @@ public static class MailReadEndpoints
             scope.MapGet("/mailFolders/{folderId}/childFolders", ListChildFoldersAsync);
             scope.MapGet("/mailFolders/{folderId}/messages", ListFolderMessagesAsync);
             scope.MapGet("/mailFolders/{folderId}/messages/delta", DeltaAsync);
+            scope.MapGet("/mailFolders/delta", FolderDeltaAsync);
             scope.MapGet("/messages", ListMessagesAsync);
             scope.MapGet("/messages/{messageId}", GetMessageAsync);
             scope.MapGet("/messages/{messageId}/$value", GetMimeAsync);
@@ -87,6 +88,21 @@ public static class MailReadEndpoints
             mailbox.Ref, FolderReference.Parse(folderId), c.Token, new DeltaRequest(c.Top ?? DeltaRequest.DefaultPageSize, c.Select), cancellationToken);
         return GraphResults.Match(page, p => GraphResults.Delta(
             p, m => MessageDtoMapper.ToDto(m, new MessageMappingOptions(c.Select)), c, "message", "#microsoft.graph.message"));
+    }
+
+    /// <summary>The folder hierarchy's delta feed (phase 12, ADR 0006 D5).</summary>
+    private static async Task<IResult> FolderDeltaAsync(
+        Mailbox mailbox, ODataQuery odata, HttpRequest request, DeltaLinkCodec links, SyncFolders useCase, CancellationToken cancellationToken)
+    {
+        var cursor = links.ReadCursor(request.Query, odata.Query);
+        if (!cursor.IsSuccess)
+        {
+            return GraphResults.Error(cursor.Error);
+        }
+
+        var c = cursor.Value;
+        var page = await useCase.ExecuteAsync(mailbox.Ref, c.Token, new DeltaRequest(c.Top ?? DeltaRequest.DefaultPageSize, c.Select), cancellationToken);
+        return GraphResults.Match(page, p => GraphResults.Delta(p, f => MessageDtoMapper.ToDto(f), c, "mailFolder", "#microsoft.graph.mailFolder"));
     }
 
     private static async Task<IResult> GetMessageAsync(
