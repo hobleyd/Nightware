@@ -162,6 +162,8 @@ td > form.row select { width: auto; max-width: 100%; height: auto; padding: 1px 
 td > form.row button { padding: 1px 10px; }
 td > form.row + .warning { margin: 4px 0 0; }
 table.domains td { vertical-align: middle; }
+/* The note under the domains table explains one of its columns, so it spans the table. */
+table.domains + p.hint { max-width: none; }
 .plan tr.conflict td { color: var(--bad); }
 /* Fixed columns so the value columns, not the names, get the width. */
 table.dns { table-layout: fixed; }
