@@ -299,9 +299,10 @@ listed, enabled member means Stalwart does not have them as a member: check
 
 ## Admin console: mail to unknown addresses
 
-An entity's page, *Mail to unknown addresses*, chooses per domain the user who
-receives mail sent to addresses no one has (ADR 0005); otherwise it is refused
-with `550 5.1.1`. A warning under a domain means:
+On an entity's page, the *Fallback* column of the mail domains table chooses per
+domain the user who receives mail sent to addresses no one has (ADR 0005); by
+default (*No one: refuse it*) it is refused with `550 5.1.1`. A warning in a
+domain's Fallback cell means:
 
 - "still refuses it" / "sends it to …, not …": the choice is saved but the mail
   server has something else; **Save** again.

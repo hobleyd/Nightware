@@ -17,7 +17,7 @@
         <form id="add-domain" method="post" asp-page-handler="AddDomain"></form>
     }
     <table class="@(Model.Actor.IsGlobal ? "adds" : null)">
-        <thead><tr><th>Domain</th><th>Mail server</th><th>Signing (DKIM)</th><th>SPF</th><th>DMARC</th><th><span class="visually-hidden">Actions</span></th>@if (Model.Actor.IsGlobal) { <th><span class="visually-hidden">Remove</span></th> }</tr></thead>
+        <thead><tr><th>Domain</th><th>Mail server</th><th>Signing (DKIM)</th><th>SPF</th><th>DMARC</th><th>Fallback</th><th><span class="visually-hidden">Actions</span></th>@if (Model.Actor.IsGlobal) { <th><span class="visually-hidden">Remove</span></th> }</tr></thead>
         <tbody>
         @foreach (var d in Model.Entity.Domains)
         {
@@ -28,6 +28,37 @@
                 @{ var policy = entity.MailPolicyFor(d.Domain); }
                 <td data-label="SPF">@if (policy.Spf is null) { <text>Mail server's</text> } else { <partial name="_RecordStrength" model="MailAuthenticationWeaknesses.Spf(policy.Spf.Value)" /> }</td>
                 <td data-label="DMARC">@if (policy.Dmarc is null) { <text>Mail server's</text> } else { <partial name="_RecordStrength" model="MailAuthenticationWeaknesses.Dmarc(policy.Dmarc.Value)" /> }</td>
+                @{ var holder = Model.CatchAllHolder(d.Domain); }
+                <td data-label="Fallback">
+                    @if (d.Mail.State != LinkState.Linked)
+                    {
+                        <text>—</text>
+                    }
+                    else
+                    {
+                        <form method="post" asp-page-handler="CatchAll" class="row">
+                            <input type="hidden" name="domain" value="@d.Domain.Name">
+                            <label><span class="visually-hidden">Mail to unknown addresses on @d.Domain goes to</span>
+                                <select name="userId">
+                                    <option value="">No one: refuse it</option>
+                                    @if (holder is not null && !Model.CatchAllCandidates.Contains(holder))
+                                    {
+                                        <option value="@holder.User.Identity.Id" selected>@holder.User.Identity.DisplayName (@holder.User.Identity.Email)</option>
+                                    }
+                                    @foreach (var u in Model.CatchAllCandidates)
+                                    {
+                                        <option value="@u.User.Identity.Id" selected="@(u == holder)">@u.User.Identity.DisplayName (@u.User.Identity.Email)</option>
+                                    }
+                                </select>
+                            </label>
+                            <button type="submit" class="secondary">Save</button>
+                        </form>
+                        @if (Model.CatchAllProblem(d) is { } problem)
+                        {
+                            <p class="warning">@problem</p>
+                        }
+                    }
+                </td>
                 <td class="actions">
                     @if (Model.Actor.IsGlobal)
                     {
@@ -77,65 +108,19 @@
             <tfoot>
                 <tr class="add-row">
                     <td><input name="domain" form="add-domain" aria-label="Domain to add" placeholder="acme.org" autocomplete="off" required></td>
-                    <td colspan="5" class="hint">Adds the domain on the mail server, with signing (DKIM) keys.</td>
+                    <td colspan="6" class="hint">Adds the domain on the mail server, with signing (DKIM) keys.</td>
                     @* Adding the first domain is what a new entity is waiting for; after that it is a panel-local change. *@
                     <td class="add-cell"><button type="submit" form="add-domain" class="icon@(Model.Entity.Domains.Count == 0 ? null : " secondary")" title="Add domain" aria-label="Add domain">&#x2B;</button></td>
                 </tr>
             </tfoot>
         }
     </table>
+    @if (Model.Entity.Domains.Count > 0)
+    {
+        <p class="hint">Fallback: mail sent to an address no one has on a domain is refused, unless you choose a user to receive it (a catch-all). Their own mailbox gets it, and spam aimed at made-up addresses with it.</p>
+    }
     @if (!Model.Actor.IsGlobal && Model.Entity.Domains.Any(d => d.Mail.State != LinkState.Linked || !d.DkimPresent))
     {
         <p class="hint">Only your Nightware operator can repair a domain the mail server does not serve or lacks its signing keys.</p>
     }
 </section>
-
-@if (Model.Entity.Domains.Count > 0)
-{
-    <section class="panel">
-        <h2 id="catch-all">Mail to unknown addresses</h2>
-        <p class="hint">Mail sent to an address no one has on a domain is refused, unless you choose a user to receive it (a catch-all). Their own mailbox gets it, and spam aimed at made-up addresses with it.</p>
-        <table>
-            <thead><tr><th>Domain</th><th>Goes to</th></tr></thead>
-            <tbody>
-            @foreach (var d in Model.Entity.Domains)
-            {
-                var holder = Model.CatchAllHolder(d.Domain);
-                <tr>
-                    <td>@d.Domain</td>
-                    <td data-label="Goes to">
-                        @if (d.Mail.State != LinkState.Linked)
-                        {
-                            <text>—</text><span class="hint detail">The mail server does not serve @d.Domain yet.</span>
-                        }
-                        else
-                        {
-                            <form method="post" asp-page-handler="CatchAll" class="row">
-                                <input type="hidden" name="domain" value="@d.Domain.Name">
-                                <label><span class="visually-hidden">Mail to unknown addresses on @d.Domain goes to</span>
-                                    <select name="userId">
-                                        <option value="">No one: refuse it</option>
-                                        @if (holder is not null && !Model.CatchAllCandidates.Contains(holder))
-                                        {
-                                            <option value="@holder.User.Identity.Id" selected>@holder.User.Identity.DisplayName (@holder.User.Identity.Email)</option>
-                                        }
-                                        @foreach (var u in Model.CatchAllCandidates)
-                                        {
-                                            <option value="@u.User.Identity.Id" selected="@(u == holder)">@u.User.Identity.DisplayName (@u.User.Identity.Email)</option>
-                                        }
-                                    </select>
-                                </label>
-                                <button type="submit" class="secondary">Save</button>
-                            </form>
-                            @if (Model.CatchAllProblem(d) is { } problem)
-                            {
-                                <p class="warning">@problem</p>
-                            }
-                        }
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </table>
-    </section>
-}

@@ -49,7 +49,7 @@ public sealed class CatchAllPageTests : IDisposable
     {
         string html = await GetAsync(ConsoleHost.EntityAdmin);
 
-        html.ShouldContain("<h2 id=\"catch-all\">Mail to unknown addresses</h2>");
+        html.ShouldContain("<th>Fallback</th>");
         html.ShouldContain("<option value=\"\">No one: refuse it</option>");
         html.ShouldContain($"<option value=\"u-alice\">alice ({Alice})</option>");
         // dan has no mailbox of his own yet, so the mail would bounce.
