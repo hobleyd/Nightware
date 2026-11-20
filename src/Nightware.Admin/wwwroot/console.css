@@ -199,6 +199,11 @@ button.danger, .button.danger { background: var(--bad); border-color: var(--bad)
 button.danger.quiet { background: transparent; color: var(--bad); }
 button.icon { border: none; padding: 6px 10px; font-weight: 700; line-height: 1; min-width: 2.25em; min-height: 2.25em; }
 td.remove-cell { width: 1%; text-align: right; }
+/* A table whose last row adds to it: the row stays pinned to the bottom of the window while the rows above scroll
+   under it. Its line is a shadow because a collapsed border does not travel with a sticky cell. */
+table.adds tfoot { position: sticky; bottom: 0; z-index: 1; }
+table.adds tfoot td { background: var(--panel); border-bottom: none; box-shadow: inset 0 1px 0 var(--line); vertical-align: middle; }
+td.add-cell { width: 1%; text-align: right; }
 /* The one overlay: a removal's confirmation, opened by the browser's popover (no script). */
 .confirm[popover] { max-width: min(32rem, calc(100vw - 32px)); padding: 16px; border: 1px solid var(--bad); border-radius: 8px; background: var(--panel); color: var(--text); text-align: left; }
 .confirm[popover]::backdrop { background: rgb(12 14 34 / 0.45); }
@@ -212,6 +217,13 @@ ul.plain { list-style: none; padding: 0; }
   td { border: none; padding: 4px 0; }
   td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); }
   tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
+  /* The pinned row stays short on a phone: the name on its own line, then short name, domain and the button. */
+  table.adds tfoot { display: block; padding: 8px 0; background: var(--panel); box-shadow: 0 -1px 0 var(--line); }
+  table.adds tfoot tr { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; border-bottom: none; }
+  table.adds tfoot td { padding: 0; box-shadow: none; }
+  table.adds tfoot td:first-child { grid-column: 1 / -1; }
+  table.adds tfoot td[data-label]::before { content: none; }
+  td.add-cell { width: auto; }
 }
 
 .undo, .remove, .block { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }

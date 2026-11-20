@@ -5,7 +5,12 @@
 <section class="panel">
 <h1>Entities</h1>
 <partial name="_Messages" />
-<table aria-label="All entities">
+@if (Model.Actor.IsGlobal)
+{
+    @* A form cannot sit inside a table row, so the new row's fields join it through their form attribute. *@
+    <form id="new-entity" method="post"></form>
+}
+<table aria-label="All entities" class="adds">
     <thead><tr><th>Entity</th><th>Short name</th><th>Domains</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
     <tbody>
     @foreach (var e in Model.Entities)
@@ -18,19 +23,20 @@
         </tr>
     }
     </tbody>
+    @if (Model.Actor.IsGlobal)
+    {
+        <tfoot>
+            <tr class="add-row">
+                <td data-label="New entity"><input asp-for="Form.Name" form="new-entity" aria-label="New entity's name" placeholder="Acme Pty Ltd" autocomplete="off"></td>
+                <td data-label="Short name"><input asp-for="Form.Alias" form="new-entity" aria-label="New entity's short name" aria-describedby="new-entity-hint" placeholder="acme" autocomplete="off"></td>
+                <td data-label="Mail domain"><input asp-for="Form.Domain" form="new-entity" aria-label="New entity's mail domain" placeholder="acme.com.au" autocomplete="off"></td>
+                <td class="add-cell"><button type="submit" form="new-entity" class="icon" title="Create entity" aria-label="Create entity">&#x2B;</button></td>
+            </tr>
+        </tfoot>
+    }
 </table>
-</section>
-
 @if (Model.Actor.IsGlobal)
 {
-    <section class="panel">
-        <h2>New entity</h2>
-        <p class="hint">Creates the entity for sign-in and its mail domain, with signing (DKIM) keys, on the mail server. A domain can belong to one entity only.</p>
-        <form method="post">
-            <label>Name <input asp-for="Form.Name" placeholder="Acme Pty Ltd" autocomplete="off"></label>
-            <label>Short name <input asp-for="Form.Alias" placeholder="acme" autocomplete="off"><span class="hint">lower-case letters, digits and hyphens</span></label>
-            <label>Mail domain <input asp-for="Form.Domain" placeholder="acme.com.au" autocomplete="off"></label>
-            <button type="submit">Create entity</button>
-        </form>
-    </section>
+    <p class="hint" id="new-entity-hint">The last row creates an entity for sign-in and its mail domain, with signing (DKIM) keys, on the mail server. A short name is lower-case letters, digits and hyphens; a domain can belong to one entity only.</p>
 }
+</section>

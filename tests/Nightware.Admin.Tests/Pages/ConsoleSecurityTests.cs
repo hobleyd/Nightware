@@ -102,6 +102,30 @@ public sealed class ConsoleSecurityTests : IDisposable
     }
 
     [Fact]
+    public async Task A_global_admin_adds_an_entity_from_the_tables_last_row()
+    {
+        string html = await (await _host.ClientAs(ConsoleHost.GlobalAdmin).GetAsync(new Uri("/entities", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+
+        string footer = html[html.IndexOf("<tfoot>", StringComparison.Ordinal)..html.IndexOf("</tfoot>", StringComparison.Ordinal)];
+        footer.ShouldContain("name=\"Form.Name\"");
+        footer.ShouldContain("name=\"Form.Alias\"");
+        footer.ShouldContain("name=\"Form.Domain\"");
+        footer.ShouldContain("<button type=\"submit\" form=\"new-entity\" class=\"icon\" title=\"Create entity\" aria-label=\"Create entity\">");
+        footer.Split("form=\"new-entity\"").Length.ShouldBe(5, "every field and the button belong to the form outside the table");
+        html.ShouldContain("<form id=\"new-entity\" method=\"post\">");
+        html.ShouldNotContain("<h2>New entity</h2>");
+    }
+
+    [Fact]
+    public async Task An_entity_admin_has_no_row_to_add_an_entity()
+    {
+        string html = await (await _host.ClientAs(ConsoleHost.EntityAdmin).GetAsync(new Uri("/entities", UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
+
+        html.ShouldNotContain("<tfoot>");
+        html.ShouldNotContain("new-entity");
+    }
+
+    [Fact]
     public async Task A_global_admin_creates_an_entity()
     {
         _host.Entities.CreateAsync(Arg.Any<NewEntity>(), Arg.Any<CancellationToken>()).Returns(new Entity("e-beta", "beta", "Beta", [ConsoleHost.Domain("beta.example")]));
