@@ -1,0 +1,27 @@
+{
+  "operationId": "mail.attachments.upload-session-put-final",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed; request path is Nightware's own upload route (Graph's uploadUrl is on outlook.office365.com), body replaced by its length",
+  "request": {
+    "method": "PUT",
+    "path": "/v1.0/users/me@example.com/messages/AAMk-ref-0002=/attachmentSessions/AAMk-ref-0003=/content",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Content-Range": "bytes 1966080-3670015/3670016",
+      "Content-Type": "application/octet-stream"
+    },
+    "body": {
+      "$binary": {
+        "length": 1703936,
+        "sha256": "c618bdb6582e456bb65835701d187ea54b1357918d2a4946fe53cf8a806acd45"
+      }
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Location": "https://graph.microsoft.com/v1.0/users('me%40example.com')/messages('AAMk-ref-0002=')/attachments('AAMk-ref-0004=')"
+    },
+    "body": null
+  }
+}

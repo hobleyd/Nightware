@@ -1,6 +1,6 @@
 # Phase 12 — Mail parity
 
-> **Status (2026-11-20): planned.** Decisions: [ADR 0006](../adr/0006-graph-parity.md) D5.
+> **Status (2026-11-21): done.** Decisions: [ADR 0006](../adr/0006-graph-parity.md) D5.
 
 **Goal:** flags, categories, importance, copy, inbox rules, master categories,
 large attachments and folder delta work as on Exchange Online.
@@ -119,5 +119,22 @@ Anything else is `501` naming the field:
 - Flag, categorise and mark important a received message: the id is unchanged
   and NightMail's own list still projects it.
 - A rule "subject contains X → move to folder" files a live delivery.
-- A 10 MB attachment uploaded in chunks arrives on the sent message.
+- A 10 MB attachment uploaded in chunks arrives on the draft byte for byte
+  (`DraftUploadLiveTests`).
 - Folder delta reports a rename as an update.
+
+## Built
+All five slices: flag/categories/importance and copy, master categories,
+folder delta, Inbox rules shared with auto-replies, and upload sessions. Each
+is checked against the Microsoft 365 captures (conformance) and on the local
+stack:
+- `MailParityLiveTests`
+- `MasterCategoryLiveTests`
+- `FolderDeltaLiveTests`
+- `MessageRuleLiveTests`
+- `DraftUploadLiveTests`
+
+Departures from the plan:
+- Categories and flag dates use JMAP metadata, not keywords.
+- Upload chunks are staged in Stalwart, not Nextcloud.
+- `headerContains` and `assignCategories` are not available in rules (501).

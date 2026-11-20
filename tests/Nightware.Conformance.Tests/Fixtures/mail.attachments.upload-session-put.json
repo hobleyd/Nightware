@@ -1,0 +1,33 @@
+{
+  "operationId": "mail.attachments.upload-session-put",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed; request path is Nightware's own upload route (Graph's uploadUrl is on outlook.office365.com), body replaced by its length",
+  "request": {
+    "method": "PUT",
+    "path": "/v1.0/users/me@example.com/messages/AAMk-ref-0002=/attachmentSessions/AAMk-ref-0003=/content",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Content-Range": "bytes 0-1966079/3670016",
+      "Content-Type": "application/octet-stream"
+    },
+    "body": {
+      "$binary": {
+        "length": 1966080,
+        "sha256": "92fd45c62bf2641e0dd33eb05d215c9c15b5c5856aaa4a758bcde6d65ea16e4f"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://outlook.office365.com/api/gv1.0/$metadata#users('22222222-2222-2222-2222-222222222222%4011111111-1111-1111-1111-111111111111')/messages('AAMk-ref-0002=')/attachmentSessions/$entity",
+      "expirationDateTime": "2026-11-21T00:31:51.2091831Z",
+      "nextExpectedRanges": [
+        "1966080"
+      ]
+    }
+  }
+}

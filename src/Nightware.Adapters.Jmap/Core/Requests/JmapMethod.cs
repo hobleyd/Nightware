@@ -47,6 +47,7 @@ internal static class JmapMethods
     private static readonly string[] VacationCaps = [JmapCapabilities.VacationResponse];
     private static readonly string[] MailMetadataCaps = [JmapCapabilities.Mail, JmapCapabilities.Metadata];
     private static readonly string[] SieveCaps = [JmapCapabilities.Sieve];
+    private static readonly string[] BlobCaps = [JmapCapabilities.Blob];
 
     private static JmapJsonContext Json => JmapJsonContext.Default;
 
@@ -116,6 +117,10 @@ internal static class JmapMethods
 
     public static JmapMethod<EmailSubmissionSetRequest, SetResponse<EmailSubmission>> EmailSubmissionSet { get; } =
         new("EmailSubmission/set", JmapMethodKind.Set, SubmissionCaps, Json.EmailSubmissionSetRequest, Json.SetResponseEmailSubmission);
+
+    /// <summary>Makes a blob from others (RFC 9404); not safe to retry, like an upload.</summary>
+    public static JmapMethod<BlobUploadRequest, BlobUploadResponse> BlobUpload { get; } =
+        new("Blob/upload", JmapMethodKind.Other, BlobCaps, Json.BlobUploadRequest, Json.BlobUploadResponse);
 
     public static JmapMethod<GetRequest, GetResponse<SieveScript>> SieveScriptGet { get; } =
         new("SieveScript/get", JmapMethodKind.Get, SieveCaps, Json.GetRequest, Json.GetResponseSieveScript);

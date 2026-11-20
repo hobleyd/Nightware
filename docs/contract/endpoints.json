@@ -4129,5 +4129,125 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/resources/messagerule",
     "notes": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). "
+  },
+  {
+    "id": "mail.attachments.create-upload-session",
+    "method": "POST",
+    "path": "{mailbox}/messages/{messageId}/attachments/createUploadSession",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "AttachmentItem.attachmentType",
+        "AttachmentItem.name",
+        "AttachmentItem.size",
+        "AttachmentItem.contentType?",
+        "AttachmentItem.isInline?",
+        "AttachmentItem.contentId?"
+      ]
+    },
+    "responseFields": [
+      "uploadUrl",
+      "expirationDateTime",
+      "nextExpectedRanges"
+    ],
+    "successStatus": 201,
+    "notes": "Drafts only, up to 50,000,000 bytes (Stalwart's maxSizeUpload). The uploadUrl is self-authorising (ADR 0001 §39, its own key purpose) and bound to the draft and session; the session lives in the draft's JMAP metadata (ADR 0006 D5).",
+    "phase": 12,
+    "version": "v1.0",
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-createuploadsession",
+    "paging": "none"
+  },
+  {
+    "id": "mail.attachments.upload-session-put",
+    "method": "PUT",
+    "path": "{uploadUrl}",
+    "forms": [
+      "external"
+    ],
+    "headers": {
+      "Content-Range": [
+        "bytes first-last/total"
+      ]
+    },
+    "requestBody": {
+      "fields": [
+        "<bytes>"
+      ]
+    },
+    "responseFields": [
+      "expirationDateTime",
+      "nextExpectedRanges"
+    ],
+    "successStatus": 200,
+    "notes": "No bearer: the URL is the credential. Chunks must arrive in order; each is a Stalwart blob, merged with Blob/upload up to maxSizeBlobSet. nextExpectedRanges is the next byte, as Exchange answers.",
+    "phase": 12,
+    "version": "v1.0",
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-createuploadsession",
+    "paging": "none"
+  },
+  {
+    "id": "mail.attachments.upload-session-put-final",
+    "method": "PUT",
+    "path": "{uploadUrl}",
+    "forms": [
+      "external"
+    ],
+    "headers": {
+      "Content-Range": [
+        "bytes first-last/total"
+      ]
+    },
+    "requestBody": {
+      "fields": [
+        "<bytes>"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 201,
+    "notes": "The last chunk attaches the whole file to the draft (keeping its d. id): 201, Location of the attachment, no body.",
+    "phase": 12,
+    "version": "v1.0",
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-createuploadsession",
+    "paging": "none"
   }
 ]

@@ -14,6 +14,7 @@ internal static class JmapMailWriteServiceCollectionExtensions
         services.AddScoped<IDraftStore, JmapDraftStore>();
         services.AddScoped<IMailSender, JmapMailSender>();
         services.AddScoped<IMailImporter, JmapMailImporter>();
+        services.AddScoped<Application.Mail.Write.IDraftUploadStaging, JmapDraftUploadStaging>();
         services.AddScoped<Application.Mail.Categories.IMasterCategoryStore, Categories.JmapMasterCategoryStore>();
         services.TryAddScoped<Rules.NightwareSieve>();
         services.AddScoped<Application.Mail.Rules.IMessageRuleStore, Rules.JmapMessageRuleStore>();

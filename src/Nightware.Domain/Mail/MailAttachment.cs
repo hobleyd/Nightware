@@ -29,3 +29,20 @@ public sealed record NewAttachment(string Name, string ContentType, ReadOnlyMemo
 
     public string? ContentId { get; init; }
 }
+
+/// <summary>The file a draft attachment upload session was opened for (Graph <c>attachmentItem</c>).</summary>
+public sealed record DraftUploadFile(string Name, string ContentType, long Size)
+{
+    public bool IsInline { get; init; }
+
+    public string? ContentId { get; init; }
+}
+
+/// <summary>An open draft attachment upload: <see cref="Received"/> bytes of <see cref="File"/> have arrived.</summary>
+public sealed record DraftUploadState(string SessionId, DraftUploadFile File, long Received)
+{
+    public bool IsComplete => Received >= File.Size;
+}
+
+/// <summary>Where an upload stands after a chunk: the next byte wanted, or the attachment it became.</summary>
+public sealed record DraftUploadProgress(long NextExpected, MailAttachment? Completed);

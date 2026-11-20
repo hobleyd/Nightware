@@ -99,10 +99,15 @@ into the phase doc before contracting operations (as phase 10 did).
   - A rule using an unsupported condition or action gets `400 notSupported`
     naming the field.
 - **Large attachments.** `createUploadSession` returns a self-authorising URL
-  (§39, its own key purpose, bound to the draft id).
-  - Chunks are staged with Nextcloud chunking v2, as To Do attachments are.
-  - The final chunk assembles the file, uploads it as a JMAP blob and rebuilds
-    the draft, keeping its `d.` id.
+  (§39, its own key purpose, bound to the draft and session).
+  - Each chunk is a Stalwart blob. The session (the file, and its blobs in
+    order) is kept in the draft's metadata (`nightware.upload`), so mail
+    stays in the mail store.
+  - Consecutive chunks are merged with `Blob/upload` (RFC 9404) while the
+    result stays within `maxSizeBlobSet` (7.5 MB on Stalwart). This keeps the
+    list well inside 8 KB.
+  - The last chunk joins the blobs and attaches the file through the draft
+    store, keeping the draft's `d.` id.
 - **`mailFolders/delta`** is built on `Mailbox/changes`, with the same token
   layering as ADR 0001 §6–8.
 - **Cut (501):** Focused Inbox (`inferenceClassification`), open and schema

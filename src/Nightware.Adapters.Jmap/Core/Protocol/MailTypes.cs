@@ -392,6 +392,35 @@ internal sealed record SieveScriptValidateResponse
 /// <summary><c>SieveScript/validate</c> arguments.</summary>
 internal sealed record SieveScriptValidateRequest(string AccountId, string BlobId);
 
+/// <summary>One source of a <c>Blob/upload</c> (RFC 9404 §4.1): a range of an existing blob.</summary>
+internal sealed record BlobDataSource(string BlobId);
+
+/// <summary>A blob <c>Blob/upload</c> makes by concatenating <see cref="Data"/>.</summary>
+internal sealed record BlobUploadObject(IReadOnlyList<BlobDataSource> Data, string? Type);
+
+/// <summary><c>Blob/upload</c> arguments.</summary>
+internal sealed record BlobUploadRequest(string AccountId, IReadOnlyDictionary<string, BlobUploadObject> Create);
+
+/// <summary>A blob <c>Blob/upload</c> made.</summary>
+internal sealed record BlobUploaded(string Id, long Size);
+
+/// <summary><c>Blob/upload</c> response.</summary>
+internal sealed record BlobUploadResponse
+{
+    public string AccountId { get; init; } = string.Empty;
+
+    public Dictionary<string, BlobUploaded>? Created { get; init; }
+
+    public Dictionary<string, SetError>? NotCreated { get; init; }
+}
+
+/// <summary>The account's <c>urn:ietf:params:jmap:blob</c> capability (RFC 9404 §3).</summary>
+internal sealed record BlobAccountCapability
+{
+    /// <summary>The largest blob <c>Blob/upload</c> may make, concatenations included; null when unlimited.</summary>
+    public long? MaxSizeBlobSet { get; init; }
+}
+
 /// <summary>Response of a blob upload (RFC 8620 §6.1).</summary>
 internal sealed record UploadResponse(string AccountId, string BlobId, string Type, long Size);
 

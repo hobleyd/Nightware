@@ -100,10 +100,13 @@ class OpaqueIdTests(unittest.TestCase):
         url_safe = raw.replace("+", "-").replace("/", "_")
         encoded = raw.replace("+", "%2B").replace("/", "%2F")
 
-        placeholders = {opaque(f"messages('{v}')") for v in (raw, url_safe, encoded)}
+        placeholders = {opaque(f"messages('{v}')") for v in (url_safe, encoded)}
 
         self.assertEqual(placeholders, {"messages('AAMk-ref-0001=')"})
         self.assertEqual(opaque("AAMk-parentFolderId-0001="), "AAMk-parentFolderId-0001=")
+        # A raw '/' ends the id: the rest of a path survives.
+        self.assertEqual(opaque("/v1.0/me/messages/" + url_safe + "/attachments/createUploadSession"),
+                         "/v1.0/me/messages/AAMk-ref-0001=/attachments/createUploadSession")
 
     def test_embedded_credentials_are_removed(self):
         opaque = c.OpaqueIds()

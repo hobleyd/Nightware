@@ -11,6 +11,8 @@ public static class MailWriteServiceCollectionExtensions
             .AddScoped<CreateDraft>()
             .AddScoped<MoveMessage>()
             .AddScoped<CopyMessage>()
+            .AddScoped<BeginDraftAttachmentUpload>()
+            .AddScoped<UploadDraftAttachmentChunk>()
             .AddScoped<DeleteMessage>()
             .AddScoped<PermanentlyDeleteMessage>()
             .AddScoped<ImportMessage>()

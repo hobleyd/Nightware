@@ -49,6 +49,17 @@ public sealed class HarnessTests
     }
 
     [Fact]
+    public void Content_headers_travel_with_the_body()
+    {
+        var fixture = new FixtureRequest("PUT", "/v1.0/x", new Dictionary<string, string>(),
+            new Dictionary<string, string> { ["Content-Type"] = "application/octet-stream", ["Content-Range"] = "bytes 0-3/10" }, JsonValue.Create("abcd"));
+
+        using var request = ConformanceRunner.BuildRequest(fixture);
+
+        request.Content!.Headers.ContentRange!.ToString().ShouldBe("bytes 0-3/10");
+    }
+
+    [Fact]
     public void A_captured_token_placeholder_is_replaced_by_the_signed_token()
     {
         var fixture = new FixtureRequest("GET", "/v1.0/me/mailFolders/delta", new Dictionary<string, string> { ["$deltatoken"] = ConformanceRunner.TokenPlaceholder },

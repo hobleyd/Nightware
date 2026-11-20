@@ -323,8 +323,8 @@ operation:
 | Phase 5A — Directory, contacts, people | 6 |
 | Phase 5B — Tasks, mailbox settings, files, threat submission | 14 |
 | Phase 11 — JSON batching (Graph parity) | 2 |
-| Phase 12 — Mail (Graph parity) | 16 |
-| **Total** | **94** |
+| Phase 12 — Mail (Graph parity) | 19 |
+| **Total** | **97** |
 
 ### Phase 2 — Mail, read side
 
@@ -1275,6 +1275,9 @@ operation:
 | [`mail.rules.create`](#mailrulescreate) | POST | v1.0 | `{mailbox}/mailFolders/inbox/messageRules` | none |
 | [`mail.rules.update`](#mailrulesupdate) | PATCH | v1.0 | `{mailbox}/mailFolders/inbox/messageRules/{ruleId}` | none |
 | [`mail.rules.delete`](#mailrulesdelete) | DELETE | v1.0 | `{mailbox}/mailFolders/inbox/messageRules/{ruleId}` | none |
+| [`mail.attachments.create-upload-session`](#mailattachmentscreate-upload-session) | POST | v1.0 | `{mailbox}/messages/{messageId}/attachments/createUploadSession` | none |
+| [`mail.attachments.upload-session-put`](#mailattachmentsupload-session-put) | PUT | v1.0 | `{uploadUrl}` | none |
+| [`mail.attachments.upload-session-put-final`](#mailattachmentsupload-session-put-final) | PUT | v1.0 | `{uploadUrl}` | none |
 
 #### `mail.messages.update-flag`
 
@@ -1429,5 +1432,36 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/messagerule
 - Notes: Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). 
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.rules.delete.json`
+
+#### `mail.attachments.create-upload-session`
+
+**POST v1.0 `{mailbox}/messages/{messageId}/attachments/createUploadSession`** — forms: me, users; success: 201; paging: none
+
+- Request body: `AttachmentItem.attachmentType`; `AttachmentItem.name`; `AttachmentItem.size`; `AttachmentItem.contentType?`; `AttachmentItem.isInline?`; `AttachmentItem.contentId?`
+- Client reads: `uploadUrl`, `expirationDateTime`, `nextExpectedRanges`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession
+- Notes: Drafts only, up to 50,000,000 bytes (Stalwart's maxSizeUpload). The uploadUrl is self-authorising (ADR 0001 §39, its own key purpose) and bound to the draft and session; the session lives in the draft's JMAP metadata (ADR 0006 D5).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.attachments.create-upload-session.json`
+
+#### `mail.attachments.upload-session-put`
+
+**PUT v1.0 `{uploadUrl}`** — forms: external; success: 200; paging: none
+
+- Headers: `Content-Range: bytes first-last/total`
+- Request body: `<bytes>`
+- Client reads: `expirationDateTime`, `nextExpectedRanges`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession
+- Notes: No bearer: the URL is the credential. Chunks must arrive in order; each is a Stalwart blob, merged with Blob/upload up to maxSizeBlobSet. nextExpectedRanges is the next byte, as Exchange answers.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.attachments.upload-session-put.json`
+
+#### `mail.attachments.upload-session-put-final`
+
+**PUT v1.0 `{uploadUrl}`** — forms: external; success: 201; paging: none
+
+- Headers: `Content-Range: bytes first-last/total`
+- Request body: `<bytes>`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession
+- Notes: The last chunk attaches the whole file to the draft (keeping its d. id): 201, Location of the attachment, no body.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.attachments.upload-session-put-final.json`
 
 <!-- END GENERATED -->

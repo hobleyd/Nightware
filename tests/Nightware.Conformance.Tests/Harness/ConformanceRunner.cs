@@ -94,9 +94,14 @@ public static class ConformanceRunner
         var url = token is null ? fixture.Url : fixture.Url.Replace(Uri.EscapeDataString(TokenPlaceholder), Uri.EscapeDataString(token), StringComparison.Ordinal)
             .Replace(TokenPlaceholder, Uri.EscapeDataString(token), StringComparison.Ordinal);
         var request = new HttpRequestMessage(new HttpMethod(fixture.Method), url);
+        var contentHeaders = new List<(string Name, string Value)>();
         foreach (var (name, value) in fixture.Headers.Where(static h => !RequestHeadersNotReplayed.Contains(h.Key)))
         {
-            request.Headers.TryAddWithoutValidation(name, value);
+            if (!request.Headers.TryAddWithoutValidation(name, value))
+            {
+                // Content-Range and its kind belong to the body.
+                contentHeaders.Add((name, value));
+            }
         }
 
         if (fixture.Body is not null)
@@ -104,6 +109,10 @@ public static class ConformanceRunner
             var mediaType = fixture.Headers.TryGetValue("Content-Type", out var type) ? MediaTypeHeaderValue.Parse(type).MediaType! : "application/json";
             var text = fixture.Body is JsonValue raw && raw.TryGetValue<string>(out var s) ? s : fixture.Body.ToJsonString();
             request.Content = new StringContent(text, Encoding.UTF8, mediaType);
+            foreach (var (name, value) in contentHeaders)
+            {
+                request.Content.Headers.TryAddWithoutValidation(name, value);
+            }
         }
 
         return request;

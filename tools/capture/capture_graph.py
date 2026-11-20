@@ -397,7 +397,8 @@ NAME_KEYS = {"displayName", "givenName", "surname", "name"}
 # encoding (webLink's %2F/%2B form, uploadUrl's '-'/'_' form), and credentials Microsoft embeds in
 # URLs (an upload session's authtoken is a JWT carrying the tenant and user ids). Placeholders
 # ("AAMk-…") cannot match: a real id has 'A' straight after its four-character prefix.
-EXCHANGE_ID = re.compile(r"A[AQ][MQ]kA(?:[A-Za-z0-9+/_=-]|%2[BbFf]|%3[Dd]){20,}")
+# '/' and '+' only ever appear percent-encoded (webLink); a raw '/' is a path separator, which a match must stop at.
+EXCHANGE_ID = re.compile(r"A[AQ][MQ]kA(?:[A-Za-z0-9_=-]|%2[BbFf]|%3[Dd]){20,}")
 JWT = re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+")
 AUTHTOKEN = re.compile(r"(authtoken=)[^&\"'\s]+", re.IGNORECASE)
 # Graph's continuation tokens in @odata.nextLink/@odata.deltaLink: opaque, and they may encode mailbox state.

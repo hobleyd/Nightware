@@ -10,7 +10,7 @@ public sealed class MailWriteServiceCollectionExtensionsTests
 {
     private static readonly Type[] UseCases =
     [
-        typeof(UpdateMessage), typeof(CreateDraft), typeof(MoveMessage), typeof(CopyMessage), typeof(DeleteMessage), typeof(PermanentlyDeleteMessage),
+        typeof(UpdateMessage), typeof(CreateDraft), typeof(MoveMessage), typeof(CopyMessage), typeof(BeginDraftAttachmentUpload), typeof(UploadDraftAttachmentChunk), typeof(DeleteMessage), typeof(PermanentlyDeleteMessage),
         typeof(ImportMessage), typeof(AddDraftAttachment), typeof(RemoveDraftAttachment), typeof(SendDraft), typeof(SendMail),
         typeof(ReplyToMessage), typeof(CreateReplyDraft), typeof(ForwardMessage), typeof(CreateForwardDraft),
         typeof(CreateChildFolder), typeof(RenameFolder), typeof(MoveFolder), typeof(DeleteFolder),
@@ -23,7 +23,7 @@ public sealed class MailWriteServiceCollectionExtensionsTests
     private static readonly Type[] Ports =
     [
         typeof(IMailMessageWriter), typeof(IMailFolderWriter), typeof(IDraftStore), typeof(IMailSender),
-        typeof(IMailImporter), typeof(IMailMessageReader), typeof(IMasterCategoryStore), typeof(IMessageRuleStore),
+        typeof(IMailImporter), typeof(IMailMessageReader), typeof(IMasterCategoryStore), typeof(IMessageRuleStore), typeof(IDraftUploadStaging),
     ];
 
     [Fact]

@@ -12,6 +12,7 @@ public static class MailWriteEndpoints
         FolderWriteEndpoints.Map(graph);
         Categories.MasterCategoryEndpoints.Map(graph);
         Rules.MessageRuleEndpoints.Map(graph);
+        Upload.MailUploadEndpoints.Map(graph);
         return graph;
     }
 }
