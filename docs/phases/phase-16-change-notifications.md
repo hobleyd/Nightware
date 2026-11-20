@@ -1,6 +1,6 @@
 # Phase 16 — Change notifications
 
-> **Status (2026-11-20): planned; design open.** Decisions: [ADR 0006](../adr/0006-graph-parity.md) D10.
+> **Status (2026-11-20): planned; option A (façade subscription store).** Decisions: [ADR 0006](../adr/0006-graph-parity.md) D10.
 
 **Goal:** a client subscribes to messages, events, contacts or To Do tasks and
 receives Graph notifications at its own HTTPS endpoint.

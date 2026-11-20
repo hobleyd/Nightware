@@ -156,8 +156,9 @@ public sealed partial class RequestBudgetMiddleware(
     internal static bool IsSafe(string method) =>
         HttpMethods.IsGet(method) || HttpMethods.IsHead(method) || HttpMethods.IsOptions(method);
 
-    // Raw bytes in or out: attachments, $value/content streams, upload sessions, sendMail with inline attachments.
-    [GeneratedRegex(@"(/attachments\b|/\$value$|/content$|uploadSession|/sendMail$)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    // Raw bytes in or out: attachments, $value/content streams, upload sessions, sendMail with inline
+    // attachments; and $batch, whose up to 20 requests each have their own budget inside it.
+    [GeneratedRegex(@"(/attachments\b|/\$value$|/content$|uploadSession|/sendMail$|/\$batch$)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex TransferRoute();
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "{Method} {Route} exceeded its {BudgetSeconds}s request budget")]

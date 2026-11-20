@@ -24,6 +24,7 @@ using Nightware.Api.Features.Rooms;
 using Nightware.Api.Features.Security;
 using Nightware.Api.Features.Tasks;
 using Nightware.Api.Graph;
+using Nightware.Api.Graph.Batch;
 using Nightware.Api.Graph.Errors;
 using Nightware.Api.Graph.Json;
 using Nightware.Api.Graph.Routing;
@@ -73,6 +74,7 @@ public static class NightwareComposition
         services.AddSingleton<DeltaLinkCodec>();
 
         services.AddSelfAuthorisingUrls();
+        services.AddGraphBatch();
         services.TryAddScoped<IMailboxResolver, MailboxResolver>();
 
         services
@@ -97,6 +99,7 @@ public static class NightwareComposition
     /// authentication (it partitions by <c>sub</c>) and before the request budget, so a rejected
     /// request costs nothing; the budget innermost of the cross-cutting steps, so its 503/504 is
     /// written before <see cref="GraphExceptionMiddleware"/> could mistake a timeout for a client abort.
+    /// <c>$batch</c> sub-requests run through the same steps from routing on (<see cref="GraphBatchPipeline"/>).
     /// </summary>
     public static WebApplication UseNightware(this WebApplication app)
     {
@@ -105,6 +108,18 @@ public static class NightwareComposition
         app.UseMiddleware<SecurityHeadersMiddleware>();
         app.UseMiddleware<RequestCorrelationMiddleware>();
         app.UseMiddleware<GraphExceptionMiddleware>();
+        app.UseRequestPipeline();
+
+        app.MapDiscovery().RequireNightMailCors();
+        app.MapReadiness(HealthPath).AllowAnonymous();
+        app.MapHealthChecks(LivenessPath, new HealthCheckOptions { Predicate = static _ => false }).AllowAnonymous();
+        app.MapGraph();
+        app.Services.GetRequiredService<GraphBatchPipeline>().Build(app, static branch => branch.UseRequestPipeline());
+        return app;
+    }
+
+    private static void UseRequestPipeline(this IApplicationBuilder app)
+    {
         app.UseRouting();
         app.UseCors();
         app.UseMiddleware<RequestBodyLimitMiddleware>();
@@ -113,12 +128,6 @@ public static class NightwareComposition
         app.UseRateLimiter();
         app.UseMiddleware<RequestBudgetMiddleware>();
         app.UseAuthorization();
-
-        app.MapDiscovery().RequireNightMailCors();
-        app.MapReadiness(HealthPath).AllowAnonymous();
-        app.MapHealthChecks(LivenessPath, new HealthCheckOptions { Predicate = static _ => false }).AllowAnonymous();
-        app.MapGraph();
-        return app;
     }
 
     /// <summary>Maps every feature under both <c>/v1.0</c> and <c>/beta</c>, plus the unknown-route fallback.</summary>
@@ -141,7 +150,8 @@ public static class NightwareComposition
                 .MapTasksEndpoints()
                 .MapMailboxSettingsEndpoints()
                 .MapFilesEndpoints()
-                .MapSecurityEndpoints();
+                .MapSecurityEndpoints()
+                .MapBatchEndpoints();
             foreach (var contributor in endpoints.ServiceProvider.GetServices<IGraphEndpointContributor>())
             {
                 contributor.Map(graph);

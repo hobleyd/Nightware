@@ -1,7 +1,7 @@
 # ADR 0006 — Graph parity beyond NightMail
 
-Status: proposed (2026-11-20). Amends `architecture.md` rule 1 and supersedes
-ADR 0001 §21. D10 is open until phase 16 starts.
+Status: accepted (2026-11-20). Amends `architecture.md` rules 1 and 2 and
+supersedes ADR 0001 §21.
 
 ## Context
 
@@ -167,7 +167,7 @@ into the phase doc before contracting operations (as phase 10 did).
   batch's. Continuation links inside responses are absolute on `graphBaseUrl`
   (endpoints.md requirement 1).
 
-### D10 — Change notifications (open)
+### D10 — Change notifications: a façade subscription store (option A)
 Subscriptions are data of record, and `architecture.md` rule 2 forbids it in
 the façade.
 
@@ -184,7 +184,13 @@ Options:
   events, contacts and To Do subscriptions stay 501.
 - **C.** B for mail, plus A for the DAV resources only.
 
-Required whichever option is chosen:
+**Chosen: A** (2026-11-20). It covers every resource type with one design.
+Rule 2 gains one exception: the subscription store is data of record. It is
+the only one, and it holds nothing a backend already owns. Phase 16 Step 0
+settles the background credential and the database (its own Postgres in
+compose and ansible).
+
+Required:
 - An SSRF guard on `notificationUrl`: https only, resolved address not
   loopback/private/link-local/compose network, re-checked at each send.
 - The `validationToken` handshake within 10 s, and `clientState` echoed.

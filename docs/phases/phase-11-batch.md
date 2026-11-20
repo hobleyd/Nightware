@@ -1,6 +1,7 @@
 # Phase 11 — JSON batching (`$batch`)
 
-> **Status (2026-11-20): planned.** Decisions: [ADR 0006](../adr/0006-graph-parity.md) D9.
+> **Status (2026-11-20): built; contract entries and conformance wait for the
+> tenant captures (`batch.post`, `batch.post-depends-on`).** Decisions: [ADR 0006](../adr/0006-graph-parity.md) D9.
 
 **Goal:** a Graph client can send up to 20 requests in one `POST /$batch`, and
 each one behaves exactly as it would on its own.
@@ -14,14 +15,20 @@ Depends on: nothing new. No backend work.
 | `batch.post-depends-on` | `POST /v1.0/$batch` with a `dependsOn` chain whose first request fails (the dependant gets 424) |
 
 ## Built here
-- `Api/Features/Batch/`: request/response DTOs, `BatchDispatcher`. The
-  dispatcher builds a sub-`HttpContext` per request and invokes the app's
-  `RequestDelegate`, with bounded concurrency and `dependsOn` ordering.
-- Refusals, each per sub-request: a nested `$batch`; an absolute or
-  version-crossing `url`; a self-authorising route; more than 20 requests (the
-  whole batch).
-- Tests: dispatcher unit tests, endpoint tests (auth per sub-request, `Prefer`
-  honoured, continuation links absolute), and conformance for both ids.
+- `Api/Graph/Batch/`:
+  - `BatchRequestReader`: whole-batch validation (shape, ids, `dependsOn`,
+    cycles, 20 max).
+  - `BatchDispatcher`: at most 4 at once, `dependsOn` ordering, 424.
+  - `BatchSubRequest`: one in-process request per entry, with its own DI scope.
+  - `GraphBatchPipeline`: a branch of the app built by `UseNightware`, running
+    the same steps from routing on (the steps are shared with the main
+    pipeline), wrapped in `GraphExceptionMiddleware`.
+- Refused per sub-request: a nested `$batch`; an absolute `url`; an
+  `authtoken` (self-authorising) URL; a body without `Content-Type`.
+- `RequestBudget` gives `$batch` the transfer budget. Each sub-request still
+  has its own budget.
+- Tests: `Api.Tests/Graph/Batch`, 30 tests (reader units; end to end over the
+  real pipeline).
 
 ## Acceptance
 - Batched `GET /me/messages?$top=5` returns the same body as the direct call.
