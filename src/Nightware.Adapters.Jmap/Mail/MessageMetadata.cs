@@ -52,19 +52,24 @@ internal sealed record MessageMetadata
     }
 
     /// <summary>
-    /// This state with <paramref name="patch"/>'s flag, categories and importance applied: a not-flagged flag,
-    /// an empty category list and normal importance clear their entry.
+    /// This state with <paramref name="patch"/>'s flag, categories and importance applied: a flag the
+    /// <c>$flagged</c> keyword says all of, an empty category list and normal importance clear their entry.
     /// </summary>
     public MessageMetadata Apply(MessagePatch patch)
     {
         ArgumentNullException.ThrowIfNull(patch);
         return this with
         {
-            Flag = patch.Flag is { } flag ? (flag.Status == FlagStatus.NotFlagged ? null : flag) : Flag,
+            Flag = patch.Flag is { } flag ? (CarriesMore(flag) ? flag : null) : Flag,
             Categories = patch.Categories is { } categories ? (categories.Count == 0 ? null : categories) : Categories,
             Importance = patch.Importance is { } importance ? (importance == Domain.Mail.Importance.Normal ? null : importance) : Importance,
         };
     }
+
+    /// <summary>A flag says more than <c>$flagged</c> can: it is complete, or it has dates.</summary>
+    private static bool CarriesMore(FollowUpFlag flag) =>
+        flag.Status == FlagStatus.Complete
+        || flag.Status == FlagStatus.Flagged && (flag.StartDateTime is not null || flag.DueDateTime is not null || flag.CompletedDateTime is not null);
 
     /// <summary>The namespace's value, or null when nothing is set (which removes it).</summary>
     public JsonObject? ToJson()

@@ -70,9 +70,22 @@ public sealed class JmapDraftUploadStagingTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_chunk_is_uploaded_and_merged_into_the_last_blob_within_the_server_s_limit()
+    public async Task A_chunk_is_appended_while_the_list_is_short()
     {
         StoredDraft(metadata: Stored(4, """[{"id":"B1","size":4}]"""));
+        _jmap.StubUpload("B2", "application/octet-stream", 6);
+
+        (await Staging().AppendAsync(Alice, Draft, "s1", 4, 6, 10, new MemoryStream(new byte[6]), Ct)).Value.IsComplete.ShouldBeTrue();
+
+        _jmap.Calls().ShouldNotContain(c => c.Method == "Blob/upload");
+        Written()["sessions"]!["s1"]!["blobs"]!.ToJsonString().ShouldBe("""[{"id":"B1","size":4},{"id":"B2","size":6}]""");
+    }
+
+    [Fact]
+    public async Task A_chunk_is_merged_into_the_last_blob_within_the_server_s_limit_once_the_list_is_long()
+    {
+        var earlier = string.Join(",", Enumerable.Range(0, JmapDraftUploadStaging.MergeAfter - 1).Select(static i => $$$"""{"id":"P{{{i}}}","size":0}"""));
+        StoredDraft(metadata: Stored(4, "[" + earlier + """,{"id":"B1","size":4}]"""));
         _jmap.StubUpload("B2", "application/octet-stream", 6);
         _jmap.On("Blob/upload", """{"accountId":"c","created":{"merged":{"id":"B12","size":10}}}""");
 
@@ -80,7 +93,7 @@ public sealed class JmapDraftUploadStagingTests : IAsyncLifetime
 
         state.IsComplete.ShouldBeTrue();
         _jmap.Single("Blob/upload")["create"]!["merged"]!["data"]!.ToJsonString().ShouldBe("""[{"blobId":"B1"},{"blobId":"B2"}]""");
-        Written()["sessions"]!["s1"]!["blobs"]!.ToJsonString().ShouldBe("""[{"id":"B12","size":10}]""");
+        Written()["sessions"]!["s1"]!["blobs"]!.AsArray()[^1]!.ToJsonString().ShouldBe("""{"id":"B12","size":10}""");
         Written()["sessions"]!["s1"]!["received"]!.GetValue<long>().ShouldBe(10);
     }
 

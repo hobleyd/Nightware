@@ -15,6 +15,12 @@ namespace Nightware.Adapters.Jmap.Mail.Rules;
 internal sealed record LoadedFilter(string? ScriptId, bool IsActive, FilterState State)
 {
     public bool Exists => ScriptId is not null;
+
+    /// <summary>
+    /// The name of an active script that is neither ours nor Stalwart's <c>vacation</c>: the user's own filter,
+    /// which activating ours would silently switch off.
+    /// </summary>
+    public string? ForeignActiveScript { get; init; }
 }
 
 /// <summary>
@@ -27,6 +33,9 @@ internal sealed class NightwareSieve(IJmapClient jmap, IJmapBlobService blobs)
 {
     private const string SieveType = "application/sieve";
 
+    /// <summary>The script Stalwart writes for <c>VacationResponse</c>; taking over from it is expected.</summary>
+    internal const string VacationScriptName = "vacation";
+
     public async Task<Result<LoadedFilter>> LoadAsync(JmapAccount account, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(account);
@@ -38,10 +47,11 @@ internal sealed class NightwareSieve(IJmapClient jmap, IJmapBlobService blobs)
             return scripts.Error;
         }
 
+        var foreign = scripts.Value.List.FirstOrDefault(static s => s.IsActive == true && s.Name is not (SieveScriptWriter.ScriptName or VacationScriptName))?.Name;
         var script = scripts.Value.List.FirstOrDefault(static s => s.Name == SieveScriptWriter.ScriptName);
         if (script?.Id is null || script.BlobId is null)
         {
-            return new LoadedFilter(null, false, FilterState.Empty);
+            return new LoadedFilter(null, false, FilterState.Empty) { ForeignActiveScript = foreign };
         }
 
         var content = await blobs.DownloadAsync(account.AccountId, script.BlobId, SieveScriptWriter.ScriptName, SieveType, cancellationToken).ConfigureAwait(false);
@@ -55,7 +65,7 @@ internal sealed class NightwareSieve(IJmapClient jmap, IJmapBlobService blobs)
         var text = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
 
         // A script of ours that no longer carries a readable state (edited by hand) starts again empty.
-        return new LoadedFilter(script.Id, script.IsActive == true, FilterState.FromScript(text) ?? FilterState.Empty);
+        return new LoadedFilter(script.Id, script.IsActive == true, FilterState.FromScript(text) ?? FilterState.Empty) { ForeignActiveScript = foreign };
     }
 
     /// <summary>Writes <paramref name="state"/> as the script and makes it the active one.</summary>
@@ -67,6 +77,12 @@ internal sealed class NightwareSieve(IJmapClient jmap, IJmapBlobService blobs)
         if (account.IsReadOnly)
         {
             return Error.Forbidden("The signed-in user cannot change this mailbox's rules or automatic replies.");
+        }
+
+        if (loaded.ForeignActiveScript is { } foreign)
+        {
+            return new Error(ErrorKind.Conflict, "ErrorMailFilterInUse",
+                $"The mailbox's own mail filter '{foreign}' is active; Nightware's rules would switch it off. Deactivate it first.");
         }
 
         var mailboxRequest = new JmapRequestBuilder();

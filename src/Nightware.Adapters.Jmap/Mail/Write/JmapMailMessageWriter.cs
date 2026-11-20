@@ -49,7 +49,15 @@ internal sealed class JmapMailMessageWriter(IJmapClient jmap, IJmapMessageLocato
             return stored.Error;
         }
 
-        var written = WithMetadata(keywords, stored.Value.Apply(patch));
+        // A plain flag toggle or read-state change that leaves the stored state as it was writes the keywords
+        // alone, exactly as before metadata existed (and so needs no right to write it, e.g. in a shared mailbox).
+        var applied = stored.Value.Apply(patch);
+        if (!NeedsMetadata(patch) && JsonNode.DeepEquals(applied.ToJson(), stored.Value.ToJson()))
+        {
+            return keywords.Count == 0 ? Result.Success() : await UpdateAsync(located.Value, keywords, cancellationToken).ConfigureAwait(false);
+        }
+
+        var written = WithMetadata(keywords, applied);
         return written.IsSuccess
             ? await UpdateAsync(located.Value, written.Value, cancellationToken, JmapMethods.EmailSetWithMetadata).ConfigureAwait(false)
             : written.Error;

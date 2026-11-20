@@ -104,6 +104,19 @@ public sealed class JmapMessageRuleStoreTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task The_user_s_own_active_filter_is_never_switched_off()
+    {
+        _jmap.On("SieveScript/get", """{"accountId":"c","state":"1","list":[{"id":"u1","name":"my-filter","blobId":"X","isActive":true}],"notFound":[]}""");
+        Vacation("\"isEnabled\":false");
+
+        var result = await Store().SaveAsync(Alice, [Filing], Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.Conflict);
+        result.Error.Message.ShouldContain("my-filter");
+        _jmap.Calls().ShouldNotContain(c => c.Method == "SieveScript/set");
+    }
+
+    [Fact]
     public async Task A_rule_naming_an_unknown_folder_is_refused_before_anything_is_written()
     {
         NoScript();

@@ -75,6 +75,26 @@ public sealed class JmapMailMessageWriterMetadataTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_plain_flag_toggle_with_nothing_stored_writes_only_the_keyword()
+    {
+        StoredMetadata("""{"nightware.ms":{"categories":["Red"]}}""");
+
+        (await Writer().PatchAsync(Alice, Id, new MessagePatch { Flag = new FollowUpFlag(FlagStatus.Flagged) }, Ct)).IsSuccess.ShouldBeTrue();
+
+        WrittenUpdate().ToJsonString().ShouldBe("""{"keywords/$flagged":true}""");
+    }
+
+    [Fact]
+    public async Task Unflagging_a_completed_message_clears_the_stored_flag()
+    {
+        StoredMetadata("""{"nightware.ms":{"flag":{"status":"complete"}}}""");
+
+        (await Writer().PatchAsync(Alice, Id, new MessagePatch { Flag = FollowUpFlag.NotFlagged }, Ct)).IsSuccess.ShouldBeTrue();
+
+        WrittenUpdate().ToJsonString().ShouldBe("""{"keywords/$flagged":null,"metadata/nightware.ms":null}""");
+    }
+
+    [Fact]
     public async Task Read_state_alone_writes_only_the_keyword()
     {
         (await Writer().PatchAsync(Alice, Id, new MessagePatch { IsRead = true }, Ct)).IsSuccess.ShouldBeTrue();

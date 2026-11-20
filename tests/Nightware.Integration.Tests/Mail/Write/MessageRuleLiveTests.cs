@@ -101,6 +101,16 @@ public sealed class MessageRuleLiveTests : IAsyncLifetime
             scripts[0]![1]!["list"]!.AsArray().Single(x => x!["isActive"]!.GetValue<bool>())!["name"]!.GetValue<string>().ShouldBe("nightware-rules");
             (await SendAsync(alice, HttpMethod.Get, "/v1.0/me/mailFolders/inbox/messageRules")).Body!["value"]!.AsArray().Count.ShouldBe(1);
 
+            // The generated reply block is delivered: bob writes to alice and gets the reply, text intact.
+            var bob = await _stack.GraphClientAsync("bob", Ct);
+            await SendAsync(bob, HttpMethod.Post, "/v1.0/me/sendMail", $$$"""
+                {"message":{"subject":"Ping {{{_run}}}","body":{"contentType":"text","content":"ping"},
+                  "toRecipients":[{"emailAddress":{"address":"{{{AliceAddress}}}"}}]},"saveToSentItems":false}
+                """);
+            var reply = await WaitForReplyAsync(bob, AliceAddress);
+            reply["body"]!["content"]!.GetValue<string>().ShouldContain("Away – back soon");
+            await SendAsync(bob, HttpMethod.Post, $"/v1.0/me/messages/{reply["id"]!.GetValue<string>()}/permanentDelete");
+
             await SendAsync(alice, HttpMethod.Patch, "/v1.0/me/mailboxSettings", """{"automaticRepliesSetting":{"status":"disabled"}}""");
             var (_, off) = await SendAsync(alice, HttpMethod.Get, "/v1.0/me/mailboxSettings?$select=automaticRepliesSetting");
             off!["automaticRepliesSetting"]!["status"]!.GetValue<string>().ShouldBe("disabled");
@@ -115,6 +125,24 @@ public sealed class MessageRuleLiveTests : IAsyncLifetime
             await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/mailFolders/{folderId}");
             await RemoveScriptAsync();
         }
+    }
+
+    private static async Task<JsonObject> WaitForReplyAsync(HttpClient bob, string from)
+    {
+        for (var attempt = 0; attempt < 30; attempt++)
+        {
+            var (_, page) = await SendAsync(bob, HttpMethod.Get, "/v1.0/me/mailFolders/inbox/messages?$select=id,subject,from,receivedDateTime&$top=10");
+            if (page!["value"]!.AsArray().FirstOrDefault(m => m!["from"]?["emailAddress"]?["address"]?.GetValue<string>() == from
+                && m["receivedDateTime"]!.GetValue<DateTimeOffset>() > DateTimeOffset.UtcNow.AddMinutes(-2)) is JsonObject found)
+            {
+                var (_, full) = await SendAsync(bob, HttpMethod.Get, $"/v1.0/me/messages/{found["id"]!.GetValue<string>()}");
+                return full!;
+            }
+
+            await Task.Delay(1000, Ct);
+        }
+
+        throw new ShouldAssertException($"No automatic reply from {from} reached bob.");
     }
 
     private static async Task<JsonObject> WaitInFolderAsync(HttpClient alice, string folderId, string subject)

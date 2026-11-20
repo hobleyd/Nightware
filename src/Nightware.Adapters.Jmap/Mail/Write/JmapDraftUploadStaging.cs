@@ -15,13 +15,17 @@ namespace Nightware.Adapters.Jmap.Mail.Write;
 /// <summary>
 /// Draft attachment uploads staged in Stalwart (ADR 0006 D5): each chunk is uploaded as a blob, and the session
 /// (the file and its blobs in order) is kept in the draft's metadata under <see cref="Namespace"/>, so nothing
-/// outside the mail store holds it. Consecutive chunks are merged with <c>Blob/upload</c> while the result stays
-/// within the account's <c>maxSizeBlobSet</c> (7.5 MB on Stalwart), keeping the list well inside 8 KB.
+/// outside the mail store holds it. Past <see cref="MergeAfter"/> chunks, consecutive ones are merged with
+/// <c>Blob/upload</c> while the result stays within the account's <c>maxSizeBlobSet</c> (7.5 MB on Stalwart), so
+/// even small chunks keep the list inside 8 KB.
 /// </summary>
 internal sealed class JmapDraftUploadStaging(IJmapClient jmap, IJmapMessageLocator locator, IJmapBlobService blobs) : IDraftUploadStaging
 {
     public const string Namespace = "nightware.upload";
     private const string ChunkType = "application/octet-stream";
+
+    /// <summary>Blob entries kept before chunks start to be merged; about 75 bytes each, well inside 8 KB.</summary>
+    internal const int MergeAfter = 48;
 
     public async Task<Result<DraftUploadState>> BeginAsync(MailboxRef mailbox, MessageId draftId, DraftUploadFile file, CancellationToken cancellationToken)
     {
@@ -136,7 +140,9 @@ internal sealed class JmapDraftUploadStaging(IJmapClient jmap, IJmapMessageLocat
         var limit = account.Session.HasAccountCapability(account.AccountId, JmapCapabilities.Blob)
             ? account.Session.AccountCapability(account.AccountId, JmapCapabilities.Blob, JmapJsonContext.Default.BlobAccountCapability)?.MaxSizeBlobSet ?? long.MaxValue
             : 0;
-        if (list.Count > 0 && list[^1] is JsonObject last && last["size"]!.GetValue<long>() + chunk.Size <= limit)
+        // Merging re-uploads bytes, and Stalwart counts every blob against the account's upload quota (50 MB
+        // per window by default): chunks are only merged once the list would otherwise outgrow the metadata.
+        if (list.Count >= MergeAfter && list[^1] is JsonObject last && last["size"]!.GetValue<long>() + chunk.Size <= limit)
         {
             const string created = "merged";
             var request = new JmapRequestBuilder();
