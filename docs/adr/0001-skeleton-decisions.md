@@ -95,6 +95,7 @@ anything contradictory in `architecture.md` or the phase docs.
     `createdDateTime desc`; `$skip`; `$expand=attachments($select=…)`.
     No `$count`, no `ConsistencyLevel`.
 21. **Cut**: `$batch` and Graph `subscriptions` (zero client use).
+    *Superseded by ADR 0006* (phases 11 and 16).
 22. `GET /shares/{id}/driveItem/content?format=pdf` → 501 in v1 (no conversion
     without Collabora). *Amended (Phase 7):* Collabora Online renders Office
     files to PDF through `IDocumentConverter`; without `Collabora:BaseUrl`

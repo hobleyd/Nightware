@@ -21,8 +21,9 @@ NightMail ──HTTPS + OIDC bearer──▶ Nightware.Api (Graph façade)
 
 ## Non-negotiable rules
 
-1. **Implement only what NightMail calls.** The endpoint inventory in
-   `docs/contract/` is the scope. Anything else returns a Graph-shaped
+1. **Implement only what the contract lists.** The endpoint inventory in
+   `docs/contract/` is the scope: what NightMail calls, plus the Graph-parity
+   operations of ADR 0006. Anything else returns a Graph-shaped
    `501 notImplemented` (or `400 invalidRequest` for unsupported OData).
 2. **No data of record in the façade.** Delta tokens and IDs are
    self-describing (encoded backend state), so the façade needs no database.
