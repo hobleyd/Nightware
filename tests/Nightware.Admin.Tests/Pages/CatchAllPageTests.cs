@@ -51,7 +51,7 @@ public sealed class CatchAllPageTests : IDisposable
 
         html.ShouldContain("<th>Fallback</th>");
         html.ShouldContain("<option value=\"\">No one: refuse it</option>");
-        html.ShouldContain($"<option value=\"u-alice\">alice ({Alice})</option>");
+        html.ShouldContain($"<option value=\"u-alice\">{Alice}</option>");
         // dan has no mailbox of his own yet, so the mail would bounce.
         html.ShouldNotContain("<option value=\"u-dan\"");
         html.ShouldContain("handler=CatchAll");
@@ -64,7 +64,7 @@ public sealed class CatchAllPageTests : IDisposable
 
         string html = await GetAsync();
 
-        html.ShouldContain($"<option value=\"u-alice\" selected=\"selected\">alice ({Alice})</option>");
+        html.ShouldContain($"<option value=\"u-alice\" selected=\"selected\">{Alice}</option>");
         html.ShouldNotContain("<p class=\"warning\">");
     }
 
@@ -91,7 +91,7 @@ public sealed class CatchAllPageTests : IDisposable
         string html = await GetAsync();
         html.ShouldContain("erin is offboarded, so no one reads this mail.");
         // Still shown as the current choice although no longer offered.
-        html.ShouldContain("<option value=\"u-erin\" selected>erin (erin@acme.example)</option>");
+        html.ShouldContain("<option value=\"u-erin\" selected>erin@acme.example</option>");
     }
 
     [Fact]

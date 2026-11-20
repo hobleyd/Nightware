@@ -43,11 +43,11 @@
                                     <option value="">No one: refuse it</option>
                                     @if (holder is not null && !Model.CatchAllCandidates.Contains(holder))
                                     {
-                                        <option value="@holder.User.Identity.Id" selected>@holder.User.Identity.DisplayName (@holder.User.Identity.Email)</option>
+                                        <option value="@holder.User.Identity.Id" selected>@holder.User.Identity.Email</option>
                                     }
                                     @foreach (var u in Model.CatchAllCandidates)
                                     {
-                                        <option value="@u.User.Identity.Id" selected="@(u == holder)">@u.User.Identity.DisplayName (@u.User.Identity.Email)</option>
+                                        <option value="@u.User.Identity.Id" selected="@(u == holder)">@u.User.Identity.Email</option>
                                     }
                                 </select>
                             </label>
