@@ -96,7 +96,8 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
     [Theory]
     [InlineData("/entities/e-acme/dns-hosting", "DNS hosting")]
     [InlineData("/entities/e-acme/admins", "Administrators")]
-    public async Task Each_entitys_dns_hosting_and_administrators_are_entries_under_it(string url, string entry)
+    [InlineData("/entities/e-acme/users", "Users")]
+    public async Task Each_entitys_own_pages_are_entries_under_it(string url, string entry)
     {
         string side = Side(await GetAsync("/entities"));
         foreach (string id in new[] { "e-acme", "e-other" })
@@ -104,11 +105,14 @@ public sealed partial class DashboardAndReadFailureTests : IDisposable
             side.ShouldContain($"<a href=\"/entities/{id}/dns-hosting\">DNS hosting</a>");
             side.ShouldContain($"<a href=\"/entities/{id}/admins\">Administrators</a>");
             side.ShouldContain($"<a href=\"/entities/{id}#domains\">Domains</a>");
+            side.ShouldContain($"<a href=\"/entities/{id}/users\">Users</a>");
         }
 
         side.IndexOf(">Administrators</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">DNS hosting</a>", StringComparison.Ordinal));
         side.IndexOf(">DNS hosting</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">Domains</a>", StringComparison.Ordinal));
         side.IndexOf(">Domains</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">acme.example</a>", StringComparison.Ordinal));
+        side.IndexOf(">Shared mailboxes</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">Users</a>", StringComparison.Ordinal), "Users is the entity's last entry");
+        side.IndexOf(">Users</a>", StringComparison.Ordinal).ShouldBeLessThan(side.IndexOf(">Other Co</a>", StringComparison.Ordinal));
 
         string html = await GetAsync(url);
         side = Side(html);

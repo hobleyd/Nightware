@@ -106,6 +106,7 @@
                                 (Text: "Domains", Href: Url.Page("/Entities/Detail", new { id = e.Id }) + "#domains"),
                                 (Text: "Groups", Href: Url.Page("/Entities/Groups/Index", new { id = e.Id })),
                                 (Text: "Shared mailboxes", Href: Url.Page("/Entities/Mailboxes/Index", new { id = e.Id })),
+                                (Text: "Users", Href: Url.Page("/Users/Index", new { entity = e.Id })),
                             }.Select(p => (p.Text, p.Href,
                                 Here: on && below.Count == 1 && string.Equals(p.Href, self, StringComparison.OrdinalIgnoreCase),
                                 Trail: on && below.Count > 1 && below[0].Href == p.Href)).ToList();
