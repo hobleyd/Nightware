@@ -198,6 +198,15 @@ internal class SetRequest<T>
     public IReadOnlyList<string>? Destroy { get; init; }
 }
 
+/// <summary><c>SieveScript/set</c> arguments (RFC 9661 §2.2): activation is a side effect of a successful set.</summary>
+internal sealed class SieveScriptSetRequest(string accountId) : SetRequest<SieveScript>(accountId)
+{
+    /// <summary>The id (or <c>#creationId</c>) of the script to make the active one.</summary>
+    public string? OnSuccessActivateScript { get; init; }
+
+    public bool? OnSuccessDeactivateScript { get; init; }
+}
+
 /// <summary><c>Mailbox/set</c> arguments.</summary>
 internal sealed class MailboxSetRequest(string accountId) : SetRequest<Mailbox>(accountId)
 {

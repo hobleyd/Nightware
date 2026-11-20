@@ -18,10 +18,12 @@ internal sealed class StalwartProbe(LiveStack stack)
     private readonly Dictionary<string, (string Token, string Account)> _sessions = [];
 
     /// <summary>Runs <paramref name="methodCalls"/> (a JSON array literal; <c>$account</c> is replaced) and returns <c>methodResponses</c>.</summary>
-    public async Task<JsonArray> CallAsync(string user, string methodCalls, CancellationToken cancellationToken)
+    /// <param name="capabilities">Further capabilities for <c>using</c> (e.g. <c>urn:ietf:params:jmap:sieve</c>).</param>
+    public async Task<JsonArray> CallAsync(string user, string methodCalls, CancellationToken cancellationToken, params string[] capabilities)
     {
         var (token, account) = await SessionAsync(user, cancellationToken);
-        var body = """{"using":["urn:ietf:params:jmap:core","urn:ietf:params:jmap:mail","urn:ietf:params:jmap:submission"],"methodCalls":"""
+        string[] usingList = ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail", "urn:ietf:params:jmap:submission", .. capabilities];
+        var body = """{"using":""" + new JsonArray([.. usingList.Select(static c => (JsonNode)c)]).ToJsonString() + ""","methodCalls":"""
             + methodCalls.Replace("$account", account, StringComparison.Ordinal) + "}";
         using var request = new HttpRequestMessage(HttpMethod.Post, MailUrl + "/jmap/") { Content = new StringContent(body, Encoding.UTF8, "application/json") };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);

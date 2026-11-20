@@ -369,6 +369,29 @@ internal sealed record VacationResponse
     public string? HtmlBody { get; init; }
 }
 
+/// <summary>A Sieve script (RFC 9661 §2). Its content is the blob <see cref="BlobId"/>.</summary>
+internal sealed record SieveScript
+{
+    public string? Id { get; init; }
+
+    public string? Name { get; init; }
+
+    public string? BlobId { get; init; }
+
+    public bool? IsActive { get; init; }
+}
+
+/// <summary><c>SieveScript/validate</c> response: <see cref="Error"/> is null when the script compiles.</summary>
+internal sealed record SieveScriptValidateResponse
+{
+    public string AccountId { get; init; } = string.Empty;
+
+    public SetError? Error { get; init; }
+}
+
+/// <summary><c>SieveScript/validate</c> arguments.</summary>
+internal sealed record SieveScriptValidateRequest(string AccountId, string BlobId);
+
 /// <summary>Response of a blob upload (RFC 8620 §6.1).</summary>
 internal sealed record UploadResponse(string AccountId, string BlobId, string Type, long Size);
 

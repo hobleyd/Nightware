@@ -30,5 +30,10 @@ public static class MailWriteServiceCollectionExtensions
             .AddScoped<Categories.GetMasterCategory>()
             .AddScoped<Categories.CreateMasterCategory>()
             .AddScoped<Categories.UpdateMasterCategory>()
-            .AddScoped<Categories.DeleteMasterCategory>();
+            .AddScoped<Categories.DeleteMasterCategory>()
+            .AddScoped<Rules.ListMessageRules>()
+            .AddScoped<Rules.GetMessageRule>()
+            .AddScoped<Rules.CreateMessageRule>()
+            .AddScoped<Rules.UpdateMessageRule>()
+            .AddScoped<Rules.DeleteMessageRule>();
 }

@@ -5,6 +5,8 @@ using Nightware.Adapters.Jmap.Core;
 using Nightware.Adapters.Jmap.Core.Errors;
 using Nightware.Adapters.Jmap.Core.Protocol;
 using Nightware.Adapters.Jmap.Core.Requests;
+using Nightware.Adapters.Jmap.Core.Session;
+using Nightware.Adapters.Jmap.Mail.Rules;
 using Nightware.Application.Common.Time;
 using Nightware.Application.MailboxSettings;
 using Nightware.Domain.Calendar;
@@ -26,8 +28,10 @@ namespace Nightware.Adapters.Jmap.MailboxSettings;
 /// for people outside the organisation, and outsiders are exactly whom Stalwart will also answer —
 /// storing the internal text could send internal detail to strangers. On read both messages carry
 /// the stored text and the audience is <c>all</c>, which is what the server actually does.</para>
+/// <para>Once the mailbox has Inbox rules, Nightware's Sieve script holds the reply too (one script is active at
+/// a time, ADR 0006 D5): while that script is active it is read and written there, with the same mapping.</para>
 /// </remarks>
-internal sealed class JmapAutoReplyStore(IJmapClient jmap) : IAutoReplyStore
+internal sealed class JmapAutoReplyStore(IJmapClient jmap, NightwareSieve sieve) : IAutoReplyStore
 {
     private static readonly string[] Singleton = [VacationResponse.SingletonId];
 
@@ -37,6 +41,17 @@ internal sealed class JmapAutoReplyStore(IJmapClient jmap) : IAutoReplyStore
         if (!account.IsSuccess)
         {
             return account.Error;
+        }
+
+        var filter = await FilterAsync(account.Value, cancellationToken).ConfigureAwait(false);
+        if (!filter.IsSuccess)
+        {
+            return filter.Error;
+        }
+
+        if (filter.Value is { Exists: true, IsActive: true } ours)
+        {
+            return Normalise(ours.State.AutoReply ?? new AutoReplySetting(AutoReplyStatus.Disabled));
         }
 
         var request = new JmapRequestBuilder();
@@ -59,6 +74,20 @@ internal sealed class JmapAutoReplyStore(IJmapClient jmap) : IAutoReplyStore
             return Error.Forbidden($"The signed-in user cannot change the automatic replies of '{mailbox.Address}'.");
         }
 
+        var filter = await FilterAsync(account.Value, cancellationToken).ConfigureAwait(false);
+        if (!filter.IsSuccess)
+        {
+            return filter.Error;
+        }
+
+        if (filter.Value is { Exists: true } ours)
+        {
+            // Writing here also makes the script active again if vacation was switched on elsewhere.
+            var normalised = Normalise(setting);
+            var saved = await sieve.SaveAsync(account.Value, ours, ours.State with { AutoReply = normalised }, cancellationToken).ConfigureAwait(false);
+            return saved.IsSuccess ? normalised : saved.Error;
+        }
+
         var request = new JmapRequestBuilder();
         var set = request.Add(JmapMethods.VacationResponseSet, new SetRequest<VacationResponse>(account.Value.AccountId)
         {
@@ -75,6 +104,42 @@ internal sealed class JmapAutoReplyStore(IJmapClient jmap) : IAutoReplyStore
         var updated = written.IsSuccess ? written.Value.Updated(VacationResponse.SingletonId) : written.ToResult();
         return updated.IsSuccess ? response.Value.Get(get).Map(ToDomain) : updated.Error;
     }
+
+    /// <summary>Nightware's script, where the account has Sieve; none otherwise.</summary>
+    private async Task<Result<LoadedFilter?>> FilterAsync(JmapAccount account, CancellationToken cancellationToken)
+    {
+        if (!account.Session.HasAccountCapability(account.AccountId, JmapCapabilities.Sieve))
+        {
+            return Result<LoadedFilter?>.Success(null);
+        }
+
+        var loaded = await sieve.LoadAsync(account, cancellationToken).ConfigureAwait(false);
+        return loaded.IsSuccess ? Result<LoadedFilter?>.Success(loaded.Value) : loaded.Error;
+    }
+
+    /// <summary>What a setting reads back as once stored: the same mapping as <see cref="ToPatch"/> then <see cref="ToDomain"/>.</summary>
+    internal static AutoReplySetting Normalise(AutoReplySetting setting)
+    {
+        ArgumentNullException.ThrowIfNull(setting);
+        if (setting.Status == AutoReplyStatus.Disabled)
+        {
+            return new AutoReplySetting(AutoReplyStatus.Disabled);
+        }
+
+        var dated = setting.Status != AutoReplyStatus.AlwaysEnabled && (setting.ScheduledStartDateTime is not null || setting.ScheduledEndDateTime is not null);
+        var message = !string.IsNullOrEmpty(setting.ExternalReplyMessage) ? setting.ExternalReplyMessage : setting.InternalReplyMessage ?? string.Empty;
+        return new AutoReplySetting(dated ? AutoReplyStatus.Scheduled : AutoReplyStatus.AlwaysEnabled)
+        {
+            ExternalAudience = ExternalAudience.All,
+            InternalReplyMessage = message,
+            ExternalReplyMessage = message,
+            ScheduledStartDateTime = dated ? Utc(setting.ScheduledStartDateTime) : null,
+            ScheduledEndDateTime = dated ? Utc(setting.ScheduledEndDateTime) : null,
+        };
+    }
+
+    private static DateTimeTimeZone? Utc(DateTimeTimeZone? value) =>
+        value is null ? null : DateTimeTimeZone.Utc(GraphTimeZone.ToInstant(value.DateTime, value.TimeZone));
 
     internal static PatchObject ToPatch(AutoReplySetting setting)
     {

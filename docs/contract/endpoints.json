@@ -3921,5 +3921,213 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/mailfolder-delta"
+  },
+  {
+    "id": "mail.rules.list",
+    "phase": 12,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/inbox/messageRules",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].displayName",
+      "value[].sequence",
+      "value[].isEnabled",
+      "value[].hasError",
+      "value[].isReadOnly",
+      "value[].conditions",
+      "value[].actions",
+      "value[].exceptions"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/messagerule",
+    "notes": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). In sequence order, numbered 1..n."
+  },
+  {
+    "id": "mail.rules.get",
+    "phase": 12,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/inbox/messageRules/{ruleId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "displayName",
+      "sequence",
+      "isEnabled",
+      "hasError",
+      "isReadOnly",
+      "conditions",
+      "actions",
+      "exceptions"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/messagerule",
+    "notes": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). "
+  },
+  {
+    "id": "mail.rules.create",
+    "phase": 12,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/inbox/messageRules",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "displayName",
+        "sequence?",
+        "isEnabled?",
+        "conditions?",
+        "exceptions?",
+        "actions"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "displayName",
+      "sequence",
+      "isEnabled",
+      "hasError",
+      "isReadOnly",
+      "conditions",
+      "actions",
+      "exceptions"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/messagerule",
+    "notes": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). Supported predicates: subjectContains, bodyContains, bodyOrSubjectContains, senderContains, recipientContains, fromAddresses, sentToAddresses, hasAttachments, importance. Actions: moveToFolder, copyToFolder, delete, permanentDelete, markAsRead, forwardTo/redirectTo (one address in all), stopProcessingRules. Anything else is 501 naming the field. The first rule takes over an enabled VacationResponse."
+  },
+  {
+    "id": "mail.rules.update",
+    "phase": 12,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/inbox/messageRules/{ruleId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "displayName?",
+        "sequence?",
+        "isEnabled?",
+        "conditions?",
+        "exceptions?",
+        "actions?"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "displayName",
+      "sequence",
+      "isEnabled",
+      "hasError",
+      "isReadOnly",
+      "conditions",
+      "actions",
+      "exceptions"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/messagerule",
+    "notes": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). Members sent replace the stored ones; a changed sequence moves the rule."
+  },
+  {
+    "id": "mail.rules.delete",
+    "phase": 12,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/inbox/messageRules/{ruleId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/messagerule",
+    "notes": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). "
   }
 ]

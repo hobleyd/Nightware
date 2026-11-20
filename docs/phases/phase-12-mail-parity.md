@@ -95,12 +95,25 @@ the shared `metadata`.
 The message PATCH dispatch gains a third arm: keyword-only fields on any
 message. It must not disturb `update-read-state` or `drafts.update`.
 
-Supported rule conditions: `senderContains`, `fromAddresses`,
-`subjectContains`, `bodyContains`, `headerContains`, `sentToAddresses`,
-`hasAttachments`, `importance`. Supported actions: `moveToFolder`,
-`copyToFolder`, `delete`, `markAsRead`, `markImportance`, `assignCategories`,
-`forwardTo`, `redirectTo`, `stopProcessingRules`. Exceptions mirror the
-conditions.
+Supported rule conditions (and exceptions):
+- `subjectContains`, `bodyContains`, `bodyOrSubjectContains`;
+- `senderContains`, `recipientContains`;
+- `fromAddresses`, `sentToAddresses`;
+- `hasAttachments`, `importance`.
+
+Supported actions:
+- `moveToFolder`, `copyToFolder`;
+- `delete` (to Deleted Items), `permanentDelete` (`discard`);
+- `markAsRead`;
+- `forwardTo` / `redirectTo` (one address in all: `maxNumberRedirects` is 1);
+- `stopProcessingRules`.
+
+Anything else is `501` naming the field:
+- `headerContains`: Sieve cannot search every header.
+- `assignCategories`: categories live in JMAP metadata, which Sieve cannot
+  write.
+- `markImportance`, `isAutomaticReply`, the size and date predicates, and the
+  rest.
 
 ## Acceptance
 - Flag, categorise and mark important a received message: the id is unchanged

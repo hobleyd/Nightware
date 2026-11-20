@@ -323,8 +323,8 @@ operation:
 | Phase 5A — Directory, contacts, people | 6 |
 | Phase 5B — Tasks, mailbox settings, files, threat submission | 14 |
 | Phase 11 — JSON batching (Graph parity) | 2 |
-| Phase 12 — Mail (Graph parity) | 11 |
-| **Total** | **89** |
+| Phase 12 — Mail (Graph parity) | 16 |
+| **Total** | **94** |
 
 ### Phase 2 — Mail, read side
 
@@ -1270,6 +1270,11 @@ operation:
 | [`mail.master-categories.delete`](#mailmaster-categoriesdelete) | DELETE | v1.0 | `{mailbox}/outlook/masterCategories/{categoryId}` | none |
 | [`mail.folders.delta`](#mailfoldersdelta) | GET | v1.0 | `{mailbox}/mailFolders/delta` | deltaLink |
 | [`mail.folders.delta-changes`](#mailfoldersdelta-changes) | GET | v1.0 | `{mailbox}/mailFolders/delta` | deltaLink |
+| [`mail.rules.list`](#mailruleslist) | GET | v1.0 | `{mailbox}/mailFolders/inbox/messageRules` | none |
+| [`mail.rules.get`](#mailrulesget) | GET | v1.0 | `{mailbox}/mailFolders/inbox/messageRules/{ruleId}` | none |
+| [`mail.rules.create`](#mailrulescreate) | POST | v1.0 | `{mailbox}/mailFolders/inbox/messageRules` | none |
+| [`mail.rules.update`](#mailrulesupdate) | PATCH | v1.0 | `{mailbox}/mailFolders/inbox/messageRules/{ruleId}` | none |
+| [`mail.rules.delete`](#mailrulesdelete) | DELETE | v1.0 | `{mailbox}/mailFolders/inbox/messageRules/{ruleId}` | none |
 
 #### `mail.messages.update-flag`
 
@@ -1378,5 +1383,51 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/mailfolder-delta
 - Notes: After a change: created/updated folders as upserts (a rename, move or count change), destroyed ones as @removed deleted.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.delta-changes.json`
+
+#### `mail.rules.list`
+
+**GET v1.0 `{mailbox}/mailFolders/inbox/messageRules`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].displayName`, `value[].sequence`, `value[].isEnabled`, `value[].hasError`, `value[].isReadOnly`, `value[].conditions`, `value[].actions`, `value[].exceptions`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/messagerule
+- Notes: Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). In sequence order, numbered 1..n.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.rules.list.json`
+
+#### `mail.rules.get`
+
+**GET v1.0 `{mailbox}/mailFolders/inbox/messageRules/{ruleId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `displayName`, `sequence`, `isEnabled`, `hasError`, `isReadOnly`, `conditions`, `actions`, `exceptions`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/messagerule
+- Notes: Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.rules.get.json`
+
+#### `mail.rules.create`
+
+**POST v1.0 `{mailbox}/mailFolders/inbox/messageRules`** — forms: me, users; success: 201; paging: none
+
+- Request body: `displayName`; `sequence?`; `isEnabled?`; `conditions?`; `exceptions?`; `actions`
+- Client reads: `id`, `displayName`, `sequence`, `isEnabled`, `hasError`, `isReadOnly`, `conditions`, `actions`, `exceptions`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/messagerule
+- Notes: Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). Supported predicates: subjectContains, bodyContains, bodyOrSubjectContains, senderContains, recipientContains, fromAddresses, sentToAddresses, hasAttachments, importance. Actions: moveToFolder, copyToFolder, delete, permanentDelete, markAsRead, forwardTo/redirectTo (one address in all), stopProcessingRules. Anything else is 501 naming the field. The first rule takes over an enabled VacationResponse.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.rules.create.json`
+
+#### `mail.rules.update`
+
+**PATCH v1.0 `{mailbox}/mailFolders/inbox/messageRules/{ruleId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `displayName?`; `sequence?`; `isEnabled?`; `conditions?`; `exceptions?`; `actions?`
+- Client reads: `id`, `displayName`, `sequence`, `isEnabled`, `hasError`, `isReadOnly`, `conditions`, `actions`, `exceptions`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/messagerule
+- Notes: Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). Members sent replace the stored ones; a changed sequence moves the rule.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.rules.update.json`
+
+#### `mail.rules.delete`
+
+**DELETE v1.0 `{mailbox}/mailFolders/inbox/messageRules/{ruleId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/messagerule
+- Notes: Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.rules.delete.json`
 
 <!-- END GENERATED -->

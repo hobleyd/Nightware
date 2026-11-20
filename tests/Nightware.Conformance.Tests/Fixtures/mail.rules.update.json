@@ -1,0 +1,46 @@
+{
+  "operationId": "mail.rules.update",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "PATCH",
+    "path": "/v1.0/me/mailFolders/inbox/messageRules/AAMk-id-0011=",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "displayName": "Nightware eb09af renamed",
+      "isEnabled": false
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/mailFolders('inbox')/messageRules/$entity",
+      "id": "AAMk-id-0011=",
+      "displayName": "Nightware eb09af renamed",
+      "sequence": 1,
+      "isEnabled": false,
+      "hasError": false,
+      "isReadOnly": false,
+      "conditions": {
+        "subjectContains": [
+          "nw-capture-eb09af"
+        ]
+      },
+      "actions": {
+        "moveToFolder": "AAMk-parentFolderId-0001=",
+        "markAsRead": true,
+        "stopProcessingRules": true
+      },
+      "exceptions": {
+        "hasAttachments": true
+      }
+    }
+  }
+}

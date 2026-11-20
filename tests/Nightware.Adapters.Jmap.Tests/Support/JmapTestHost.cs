@@ -86,6 +86,19 @@ internal sealed class JmapTestHost : IAsyncDisposable
         return document.ToJsonString();
     }
 
+    /// <summary>The Alice session without <paramref name="capability"/>, at session and account level.</summary>
+    public static string SessionWithout(string capability)
+    {
+        var document = JsonNode.Parse(Fixtures.AliceSession)!.AsObject();
+        document["capabilities"]!.AsObject().Remove(capability);
+        foreach (var (_, account) in document["accounts"]!.AsObject())
+        {
+            account!["accountCapabilities"]!.AsObject().Remove(capability);
+        }
+
+        return document.ToJsonString();
+    }
+
     /// <summary>The Alice session with <c>urn:ietf:params:jmap:metadata</c> advertised for her account, as Stalwart 1.1 does.</summary>
     public static string SessionWithMetadata()
     {

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Nightware.Application.Mail;
 using Nightware.Application.Mail.Categories;
+using Nightware.Application.Mail.Rules;
 using Nightware.Application.Mail.Write;
 
 namespace Nightware.Application.Tests.Mail.Write;
@@ -14,6 +15,7 @@ public sealed class MailWriteServiceCollectionExtensionsTests
         typeof(ReplyToMessage), typeof(CreateReplyDraft), typeof(ForwardMessage), typeof(CreateForwardDraft),
         typeof(CreateChildFolder), typeof(RenameFolder), typeof(MoveFolder), typeof(DeleteFolder),
         typeof(ListMasterCategories), typeof(GetMasterCategory), typeof(CreateMasterCategory), typeof(UpdateMasterCategory), typeof(DeleteMasterCategory),
+        typeof(ListMessageRules), typeof(GetMessageRule), typeof(CreateMessageRule), typeof(UpdateMessageRule), typeof(DeleteMessageRule),
     ];
 
     // The test project has no DI container, so resolvability is checked structurally: every use case is
@@ -21,7 +23,7 @@ public sealed class MailWriteServiceCollectionExtensionsTests
     private static readonly Type[] Ports =
     [
         typeof(IMailMessageWriter), typeof(IMailFolderWriter), typeof(IDraftStore), typeof(IMailSender),
-        typeof(IMailImporter), typeof(IMailMessageReader), typeof(IMasterCategoryStore),
+        typeof(IMailImporter), typeof(IMailMessageReader), typeof(IMasterCategoryStore), typeof(IMessageRuleStore),
     ];
 
     [Fact]

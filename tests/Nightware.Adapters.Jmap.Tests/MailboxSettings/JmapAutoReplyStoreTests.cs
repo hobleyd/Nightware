@@ -14,7 +14,8 @@ public sealed class JmapAutoReplyStoreTests : IAsyncDisposable
     private static readonly MailboxRef Alice = new(JmapTestHost.AliceAddress);
     private readonly JmapTestHost _host = new();
 
-    public JmapAutoReplyStoreTests() => _host.StubSession();
+    // The VacationResponse path: a mailbox without Nightware's Sieve script (JmapAutoReplyStoreScriptTests covers that).
+    public JmapAutoReplyStoreTests() => _host.StubSession(JmapTestHost.SessionWithout("urn:ietf:params:jmap:sieve"));
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

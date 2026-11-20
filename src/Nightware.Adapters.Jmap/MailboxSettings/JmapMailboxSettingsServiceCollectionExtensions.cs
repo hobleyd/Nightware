@@ -9,6 +9,7 @@ internal static class JmapMailboxSettingsServiceCollectionExtensions
     /// <summary>Registers this feature's port implementations. Owned by Phase 5B.</summary>
     public static IServiceCollection AddJmapMailboxSettings(this IServiceCollection services)
     {
+        services.TryAddScoped<Mail.Rules.NightwareSieve>();
         services.TryAddScoped<IAutoReplyStore, JmapAutoReplyStore>();
         services.TryAddScoped<IMailboxSettingsAccess, JmapMailboxSettingsAccess>();
         return services;

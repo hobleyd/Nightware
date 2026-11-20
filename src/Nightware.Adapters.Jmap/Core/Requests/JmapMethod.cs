@@ -46,6 +46,7 @@ internal static class JmapMethods
     private static readonly string[] SubmissionCaps = [JmapCapabilities.Mail, JmapCapabilities.Submission];
     private static readonly string[] VacationCaps = [JmapCapabilities.VacationResponse];
     private static readonly string[] MailMetadataCaps = [JmapCapabilities.Mail, JmapCapabilities.Metadata];
+    private static readonly string[] SieveCaps = [JmapCapabilities.Sieve];
 
     private static JmapJsonContext Json => JmapJsonContext.Default;
 
@@ -115,6 +116,16 @@ internal static class JmapMethods
 
     public static JmapMethod<EmailSubmissionSetRequest, SetResponse<EmailSubmission>> EmailSubmissionSet { get; } =
         new("EmailSubmission/set", JmapMethodKind.Set, SubmissionCaps, Json.EmailSubmissionSetRequest, Json.SetResponseEmailSubmission);
+
+    public static JmapMethod<GetRequest, GetResponse<SieveScript>> SieveScriptGet { get; } =
+        new("SieveScript/get", JmapMethodKind.Get, SieveCaps, Json.GetRequest, Json.GetResponseSieveScript);
+
+    public static JmapMethod<SieveScriptSetRequest, SetResponse<SieveScript>> SieveScriptSet { get; } =
+        new("SieveScript/set", JmapMethodKind.Set, SieveCaps, Json.SieveScriptSetRequest, Json.SetResponseSieveScript);
+
+    /// <summary>Compiles a script without storing it; read-only, so safe to retry.</summary>
+    public static JmapMethod<SieveScriptValidateRequest, SieveScriptValidateResponse> SieveScriptValidate { get; } =
+        new("SieveScript/validate", JmapMethodKind.Get, SieveCaps, Json.SieveScriptValidateRequest, Json.SieveScriptValidateResponse);
 
     public static JmapMethod<GetRequest, GetResponse<VacationResponse>> VacationResponseGet { get; } =
         new("VacationResponse/get", JmapMethodKind.Get, VacationCaps, Json.GetRequest, Json.GetResponseVacationResponse);
