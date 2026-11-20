@@ -392,8 +392,34 @@ class Names:
 
 NAME_KEYS = {"displayName", "givenName", "surname", "name"}
 
+# What the id map cannot catch: Exchange ids of objects created in setup steps, or in another
+# encoding (webLink's %2F/%2B form, uploadUrl's '-'/'_' form), and credentials Microsoft embeds in
+# URLs (an upload session's authtoken is a JWT carrying the tenant and user ids). Placeholders
+# ("AAMk-…") cannot match: a real id has 'A' straight after its four-character prefix.
+EXCHANGE_ID = re.compile(r"A[AQ][MQ]kA(?:[A-Za-z0-9+/_=-]|%2[BbFf]|%3[Dd]){20,}")
+JWT = re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+")
+AUTHTOKEN = re.compile(r"(authtoken=)[^&\"'\s]+", re.IGNORECASE)
 
-def scrub(node, pairs: list[tuple[str, str]], names: Names, key: str | None = None):
+
+class OpaqueIds:
+    """Maps each leftover Exchange id to one placeholder, whatever its encoding."""
+
+    def __init__(self) -> None:
+        self.map: dict[str, str] = {}
+
+    def __call__(self, text: str) -> str:
+        text = AUTHTOKEN.sub(r"\1{token}", text)
+        text = JWT.sub("{jwt}", text)
+        return EXCHANGE_ID.sub(self._replace, text)
+
+    def _replace(self, match: re.Match) -> str:
+        key = urllib.parse.unquote(match.group(0)).replace("+", "-").replace("/", "_")
+        if key not in self.map:
+            self.map[key] = f"AAMk-ref-{len(self.map) + 1:04d}="
+        return self.map[key]
+
+
+def scrub(node, pairs: list[tuple[str, str]], names: Names, opaque: OpaqueIds, key: str | None = None):
     """Replaces in values only: keys are Graph's own vocabulary."""
     if isinstance(node, str):
         if key in NAME_KEYS and node in names.by_value:
@@ -403,12 +429,26 @@ def scrub(node, pairs: list[tuple[str, str]], names: Names, key: str | None = No
                 node = node.replace(real, fake)
         if names.phrase:
             node = names.phrase.sub("Me Example", node)
-        return node
+        return opaque(node)
     if isinstance(node, list):
-        return [scrub(v, pairs, names, key) for v in node]
+        return [scrub(v, pairs, names, opaque, key) for v in node]
     if isinstance(node, dict):
-        return {k: scrub(v, pairs, names, k) for k, v in node.items()}
+        return {k: scrub(v, pairs, names, opaque, k) for k, v in node.items()}
     return node
+
+
+def rescrub(folder: Path) -> int:
+    """Applies the id/credential pass to fixtures already written (they hold no other originals)."""
+    opaque = OpaqueIds()
+    names = Names({}, None)
+    changed = 0
+    for path in sorted(folder.glob("*.json")):
+        before = json.loads(path.read_text(encoding="utf-8"))
+        after = scrub(before, [], names, opaque)
+        if after != before:
+            path.write_text(json.dumps(after, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            changed += 1
+    return changed
 
 
 def scrub_tokens(request: dict) -> dict:
@@ -421,6 +461,7 @@ def scrub_tokens(request: dict) -> dict:
 def write_fixtures(run: Run, me: dict, allow_leaks: bool, date: str) -> int:
     pairs = build_replacements(run, me)
     names = Names.of(me)
+    opaque = OpaqueIds()
     sensitive = [real for real, _ in pairs if not real.startswith(("AAMk", "00000000"))
                  and len(real) >= 4 and not real.lower().endswith("example.com")]
     OUT.mkdir(exist_ok=True)
@@ -430,8 +471,8 @@ def write_fixtures(run: Run, me: dict, allow_leaks: bool, date: str) -> int:
             "operationId": ex.op,
             "provenance": f"Captured from Microsoft Graph v1.0 (tenant capture {date}), scrubbed",
             **({"direction": "outbound"} if ex.direction == "outbound" else {}),
-            "request": scrub_tokens(scrub(ex.request, pairs, names)),
-            "response": scrub(ex.response, pairs, names),
+            "request": scrub_tokens(scrub(ex.request, pairs, names, opaque)),
+            "response": scrub(ex.response, pairs, names, opaque),
         }
         text = json.dumps(fixture, indent=2, ensure_ascii=False) + "\n"
         found = [s for s in sensitive if s in text]
@@ -475,7 +516,9 @@ def time_vars(run: Run) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--phase", action="append", required=True,
+    ap.add_argument("--rescrub", action="store_true",
+                    help="re-run the id/credential scrub over out/ (fixtures from an older version)")
+    ap.add_argument("--phase", action="append",
                     help="phase number (11-16) or 'all'; repeatable")
     ap.add_argument("--dry-run", action="store_true", help="print the requests without sending them")
     ap.add_argument("--notification-url", help="public https URL tunnelled to --listen (phase 16)")
@@ -484,6 +527,11 @@ def main() -> int:
     ap.add_argument("--photo", type=Path, help="JPEG for the contact photo (default: a 1x1 JPEG)")
     ap.add_argument("--allow-leaks", action="store_true", help="write fixtures even if the leak check fails")
     args = ap.parse_args()
+    if args.rescrub:
+        print(f"{rescrub(OUT)} fixture(s) changed in {OUT}")
+        return 0
+    if not args.phase:
+        ap.error("--phase is required")
 
     phases = sorted(scenarios.PHASES) if "all" in args.phase else [int(p) for p in args.phase]
     unknown = [p for p in phases if p not in scenarios.PHASES]

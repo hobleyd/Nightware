@@ -93,6 +93,26 @@ class ScrubTests(unittest.TestCase):
         self.assertEqual(body["other"], "Test Users")
 
 
+class OpaqueIdTests(unittest.TestCase):
+    def test_leftover_ids_map_to_one_placeholder_in_every_encoding(self):
+        opaque = c.OpaqueIds()
+        raw = "AAMkAGVlODA3YjAyLWI3NDMtNGRhNC04OWRhLTc2NmU5NGZjYThlYQBG+/x=="
+        url_safe = raw.replace("+", "-").replace("/", "_")
+        encoded = raw.replace("+", "%2B").replace("/", "%2F")
+
+        placeholders = {opaque(f"messages('{v}')") for v in (raw, url_safe, encoded)}
+
+        self.assertEqual(placeholders, {"messages('AAMk-ref-0001=')"})
+        self.assertEqual(opaque("AAMk-parentFolderId-0001="), "AAMk-parentFolderId-0001=")
+
+    def test_embedded_credentials_are_removed(self):
+        opaque = c.OpaqueIds()
+        url = "https://outlook.office365.com/api/x?authtoken=eyJhbGciOiJSUzI1NiJ9.eyJ0aWQiOiIwMTIifQ.c2ln&x=1"
+
+        self.assertEqual(opaque(url), "https://outlook.office365.com/api/x?authtoken={token}&x=1")
+        self.assertEqual(opaque("Bearer eyJhbGciOiJSUzI1NiJ9.eyJ0aWQiOiIwMTIifQ.c2ln"), "Bearer {jwt}")
+
+
 class PickTests(unittest.TestCase):
     def test_reads_dotted_indexed_and_odata_paths(self):
         self.assertEqual(c.pick({"value": [{"id": 1}]}, "value[0].id"), 1)

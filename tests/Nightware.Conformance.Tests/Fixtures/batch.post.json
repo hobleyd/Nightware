@@ -1,0 +1,98 @@
+{
+  "operationId": "batch.post",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/$batch",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "requests": [
+        {
+          "id": "1",
+          "method": "GET",
+          "url": "/me?$select=displayName,mail"
+        },
+        {
+          "id": "2",
+          "method": "GET",
+          "url": "/me/mailFolders/inbox?$select=displayName,totalItemCount"
+        },
+        {
+          "id": "3",
+          "method": "GET",
+          "url": "/me/mailFolders/nightware-no-such-folder"
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "responses": [
+        {
+          "id": "3",
+          "status": 400,
+          "headers": {
+            "Cache-Control": "private",
+            "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+          },
+          "body": {
+            "error": {
+              "code": "ErrorInvalidIdMalformed",
+              "message": "Id is malformed.",
+              "innererror": {
+                "message": "\"Exchange service returned error ErrorInvalidIdMalformed: Id is malformed.\".",
+                "type": "Microsoft.Exchange.Services.ExchangeService.ExchangeServiceErrorResponseException",
+                "internalexception": {
+                  "message": "Id is malformed.",
+                  "type": "Microsoft.Exchange.Services.Core.Types.ErrorInvalidIdMalformedException",
+                  "internalexception": {
+                    "message": "[IdConverter::IsPublicFolder] Invalid compression id",
+                    "type": "Microsoft.M365.Core.IdSerialization.InvalidIdMalformedException"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "2",
+          "status": 200,
+          "headers": {
+            "Cache-Control": "private",
+            "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+          },
+          "body": {
+            "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/mailFolders(displayName,totalItemCount)/$entity",
+            "id": "AAMk-id-0001=",
+            "displayName": "Inbox",
+            "totalItemCount": 6
+          }
+        },
+        {
+          "id": "1",
+          "status": 200,
+          "headers": {
+            "Cache-Control": "no-cache",
+            "x-ms-resource-unit": "1",
+            "OData-Version": "4.0",
+            "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+          },
+          "body": {
+            "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users(displayName,mail)/$entity",
+            "displayName": "Me Example",
+            "mail": "me@example.com"
+          }
+        }
+      ]
+    }
+  }
+}

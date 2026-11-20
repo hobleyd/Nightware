@@ -1,0 +1,82 @@
+{
+  "operationId": "batch.post-depends-on",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/$batch",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "requests": [
+        {
+          "id": "1",
+          "method": "GET",
+          "url": "/me/mailFolders/nightware-no-such-folder"
+        },
+        {
+          "id": "2",
+          "dependsOn": [
+            "1"
+          ],
+          "method": "GET",
+          "url": "/me/mailFolders/inbox?$select=displayName"
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "responses": [
+        {
+          "id": "1",
+          "status": 400,
+          "headers": {
+            "Cache-Control": "private",
+            "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+          },
+          "body": {
+            "error": {
+              "code": "ErrorInvalidIdMalformed",
+              "message": "Id is malformed.",
+              "innererror": {
+                "message": "\"Exchange service returned error ErrorInvalidIdMalformed: Id is malformed.\".",
+                "type": "Microsoft.Exchange.Services.ExchangeService.ExchangeServiceErrorResponseException",
+                "internalexception": {
+                  "message": "Id is malformed.",
+                  "type": "Microsoft.Exchange.Services.Core.Types.ErrorInvalidIdMalformedException",
+                  "internalexception": {
+                    "message": "[IdConverter::IsPublicFolder] Invalid compression id",
+                    "type": "Microsoft.M365.Core.IdSerialization.InvalidIdMalformedException"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": "2",
+          "status": 424,
+          "body": {
+            "error": {
+              "code": "FailedDependency",
+              "message": "Request failed as dependent request failed",
+              "innerError": {
+                "date": "2026-11-20T22:31:42",
+                "request-id": "68bd86dc-b0d9-4283-9f49-b3b8e2268768",
+                "client-request-id": "68bd86dc-b0d9-4283-9f49-b3b8e2268768"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

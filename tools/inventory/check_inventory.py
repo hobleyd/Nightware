@@ -41,7 +41,9 @@ REQUIRED_KEYS = {
     "id", "phase", "method", "version", "path", "forms", "query", "headers",
     "requestBody", "responseFields", "paging", "clientCallSites", "notes",
 }
-VALID_PHASES = {2, 3, 4, 5, "5A", "5B"}
+VALID_PHASES = {2, 3, 4, 5, "5A", "5B", 11, 12, 13, 14, 15, 16}
+# ADR 0006 D1: operations NightMail does not call, added for Graph parity.
+GRAPH_PARITY = "graph-parity"
 VALID_FORMS = {"me", "users", "root", "external"}
 
 # Files scanned for *relative* Graph paths: the datasources that issue requests
@@ -364,7 +366,10 @@ def main() -> int:
             errors.append(f"{op['id']}: {{mailbox}} path needs me/users form")
         if op["paging"] not in ("nextLink", "deltaLink", "none"):
             errors.append(f"{op['id']}: invalid paging {op['paging']!r}")
-        if not op["clientCallSites"]:
+        parity = op.get("source") == GRAPH_PARITY
+        if parity and (op["clientCallSites"] or not op.get("docs")):
+            errors.append(f"{op['id']}: a graph-parity operation has no clientCallSites and a 'docs' link")
+        if not parity and not op["clientCallSites"]:
             errors.append(f"{op['id']}: no clientCallSites")
 
     # Fixtures: one per operation, and none orphaned.
@@ -408,7 +413,7 @@ def main() -> int:
 
     for op in ops:
         if REQUIRED_KEYS <= op.keys() and op["id"] not in used_ops and \
-                "external" not in op["forms"]:
+                "external" not in op["forms"] and op.get("source") != GRAPH_PARITY:
             warnings.append(f"operation {op['id']} matched no extracted "
                             "call path (absolute nextLink/uploadUrl targets "
                             "are expected here)")

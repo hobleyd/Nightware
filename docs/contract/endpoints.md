@@ -322,7 +322,8 @@ operation:
 | Phase 4 — Calendar, scheduling and rooms | 21 |
 | Phase 5A — Directory, contacts, people | 6 |
 | Phase 5B — Tasks, mailbox settings, files, threat submission | 14 |
-| **Total** | **76** |
+| Phase 11 — JSON batching (Graph parity) | 2 |
+| **Total** | **78** |
 
 ### Phase 2 — Mail, read side
 
@@ -1225,5 +1226,32 @@ operation:
 - Call sites: `…/remote/graph_api_datasource_impl.dart:2650`, `…/remote/graph_api_datasource_impl.dart:2692`
 - Notes: Absolute URL https://graph.microsoft.com/beta/security/threatSubmission/emailThreats. The message is named by messageUrl, an absolute Graph BETA URL whose host is hardcoded to graph.microsoft.com and whose user segment is the directory id (own mailbox, from GET /me?$select=id,mail,userPrincipalName) or the shared mailbox address. The server must parse users/{id}/messages/{id} out of it. Submitted BEFORE the junk move (move changes the Graph id). Response body ignored. Microsoft-only in the client (needs ThreatSubmission.ReadWrite); likely gated off for Nightware accounts.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/security.threat-submission.email-threats.create.json`
+
+### Phase 11 — JSON batching (Graph parity)
+
+| Id | Method | Ver | Path | Paging |
+|---|---|---|---|---|
+| [`batch.post`](#batchpost) | POST | v1.0 | `/$batch` | none |
+| [`batch.post-depends-on`](#batchpost-depends-on) | POST | v1.0 | `/$batch` | none |
+
+#### `batch.post`
+
+**POST v1.0 `/$batch`** — forms: root; success: 200; paging: none
+
+- Request body: `requests[].id`; `requests[].method`; `requests[].url`; `requests[].headers?`; `requests[].body?`; `requests[].dependsOn?`
+- Client reads: `responses[].id`, `responses[].status`, `responses[].headers`, `responses[].body`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/json-batching
+- Notes: Up to 20 independent requests, one of them failing. Graph returns the responses in any order; the façade returns request order. Also served under /beta. ADR 0006 D9.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/batch.post.json`
+
+#### `batch.post-depends-on`
+
+**POST v1.0 `/$batch`** — forms: root; success: 200; paging: none
+
+- Request body: `requests[].id`; `requests[].method`; `requests[].url`; `requests[].dependsOn`
+- Client reads: `responses[].id`, `responses[].status`, `responses[].body.error.code`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/json-batching
+- Notes: dependsOn chain whose first request fails: the dependant is answered 424 FailedDependency without running, with no headers.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/batch.post-depends-on.json`
 
 <!-- END GENERATED -->

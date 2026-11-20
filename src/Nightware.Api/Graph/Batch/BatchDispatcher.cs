@@ -68,13 +68,13 @@ public sealed class BatchDispatcher(BatchSubRequest subRequest)
         var descriptor = new GraphErrorDescriptor(
             StatusCodes.Status424FailedDependency,
             FailedDependencyCode,
-            "The request was not run because a request it depends on failed.",
+            "Request failed as dependent request failed",
             null);
+        // Graph's own wording, and no headers: the request never ran (captured, batch.post-depends-on).
         return new BatchResponse(descriptor.StatusCode, new JsonObject
         {
             ["id"] = item.Id,
             ["status"] = descriptor.StatusCode,
-            ["headers"] = new JsonObject { ["Content-Type"] = "application/json" },
             ["body"] = GraphErrorWriter.Envelope(batch, descriptor),
         });
     }

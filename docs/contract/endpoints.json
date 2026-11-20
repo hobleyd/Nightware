@@ -3407,5 +3407,88 @@
       "lib/data/datasources/remote/graph_api_datasource_impl.dart:2692"
     ],
     "notes": "Absolute URL https://graph.microsoft.com/beta/security/threatSubmission/emailThreats. The message is named by messageUrl, an absolute Graph BETA URL whose host is hardcoded to graph.microsoft.com and whose user segment is the directory id (own mailbox, from GET /me?$select=id,mail,userPrincipalName) or the shared mailbox address. The server must parse users/{id}/messages/{id} out of it. Submitted BEFORE the junk move (move changes the Graph id). Response body ignored. Microsoft-only in the client (needs ThreatSubmission.ReadWrite); likely gated off for Nightware accounts."
+  },
+  {
+    "id": "batch.post",
+    "phase": 11,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/$batch",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/json-batching",
+    "requestBody": {
+      "fields": [
+        "requests[].id",
+        "requests[].method",
+        "requests[].url",
+        "requests[].headers?",
+        "requests[].body?",
+        "requests[].dependsOn?"
+      ]
+    },
+    "responseFields": [
+      "responses[].id",
+      "responses[].status",
+      "responses[].headers",
+      "responses[].body"
+    ],
+    "notes": "Up to 20 independent requests, one of them failing. Graph returns the responses in any order; the façade returns request order. Also served under /beta. ADR 0006 D9."
+  },
+  {
+    "id": "batch.post-depends-on",
+    "phase": 11,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/$batch",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/json-batching",
+    "requestBody": {
+      "fields": [
+        "requests[].id",
+        "requests[].method",
+        "requests[].url",
+        "requests[].dependsOn"
+      ]
+    },
+    "responseFields": [
+      "responses[].id",
+      "responses[].status",
+      "responses[].body.error.code"
+    ],
+    "notes": "dependsOn chain whose first request fails: the dependant is answered 424 FailedDependency without running, with no headers."
   }
 ]

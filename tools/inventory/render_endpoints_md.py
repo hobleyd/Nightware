@@ -24,6 +24,12 @@ PHASES = [
     ("4", "Phase 4 — Calendar, scheduling and rooms"),
     ("5A", "Phase 5A — Directory, contacts, people"),
     ("5B", "Phase 5B — Tasks, mailbox settings, files, threat submission"),
+    ("11", "Phase 11 — JSON batching (Graph parity)"),
+    ("12", "Phase 12 — Mail (Graph parity)"),
+    ("13", "Phase 13 — Calendar (Graph parity)"),
+    ("14", "Phase 14 — Contacts (Graph parity)"),
+    ("15", "Phase 15 — To Do (Graph parity)"),
+    ("16", "Phase 16 — Change notifications (Graph parity)"),
 ]
 
 
@@ -68,8 +74,11 @@ def render_op(op: dict) -> str:
         lines.append("- Client reads: " + ", ".join(code(f) for f in op["responseFields"]))
     if op.get("clientErrorHandling"):
         lines.append("- On error: " + op["clientErrorHandling"])
-    lines.append("- Call sites: " + ", ".join(
-        code(s.replace("lib/data/datasources/remote/", "…/remote/")) for s in op["clientCallSites"]))
+    if op.get("source") == "graph-parity":
+        lines.append(f"- Graph parity (ADR 0006); reference: {op['docs']}")
+    else:
+        lines.append("- Call sites: " + ", ".join(
+            code(s.replace("lib/data/datasources/remote/", "…/remote/")) for s in op["clientCallSites"]))
     if op["notes"]:
         lines.append("- Notes: " + op["notes"])
     lines.append(f"- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/{op['id']}.json`")
@@ -83,11 +92,14 @@ def render(ops: list[dict]) -> str:
     parts.append("|---|---|")
     for key, title in PHASES:
         n = sum(1 for o in ops if str(o["phase"]) == key)
-        parts.append(f"| {title} | {n} |")
+        if n:
+            parts.append(f"| {title} | {n} |")
     parts.append(f"| **Total** | **{len(ops)}** |")
     parts.append("")
     for key, title in PHASES:
         group = [o for o in ops if str(o["phase"]) == key]
+        if not group:
+            continue
         parts.append(f"### {title}")
         parts.append("")
         parts.append("| Id | Method | Ver | Path | Paging |")
