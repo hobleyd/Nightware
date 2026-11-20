@@ -120,6 +120,7 @@ public static class NightwareComposition
 
     private static void UseRequestPipeline(this IApplicationBuilder app)
     {
+        app.UseMiddleware<CurrentRequestMiddleware>();
         app.UseRouting();
         app.UseCors();
         app.UseMiddleware<RequestBodyLimitMiddleware>();

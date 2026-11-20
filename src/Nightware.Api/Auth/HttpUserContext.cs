@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
 
+using Nightware.Api.Hosting;
 using Nightware.Application.Common.Identity;
 using Nightware.Domain.Kernel;
 
@@ -15,7 +16,7 @@ namespace Nightware.Api.Auth;
 /// <c>preferred_username</c> is often a bare login, so the mailbox address comes from
 /// <c>email</c> and falls back to the username only when it is an address.
 /// </remarks>
-public sealed class HttpUserContext(IHttpContextAccessor accessor) : IUserContext
+public sealed class HttpUserContext(IHttpContextAccessor accessor, CurrentRequest? current = null) : IUserContext
 {
     public const string SubjectClaim = "sub";
     public const string UsernameClaim = "preferred_username";
@@ -62,6 +63,7 @@ public sealed class HttpUserContext(IHttpContextAccessor accessor) : IUserContex
 
     private ClaimsPrincipal CurrentUser() => Context().User;
 
+    // The scope's own request first: inside a $batch the accessor still returns the batch.
     private HttpContext Context() =>
-        accessor.HttpContext ?? throw new InvalidOperationException("IUserContext used outside an HTTP request.");
+        current?.Context ?? accessor.HttpContext ?? throw new InvalidOperationException("IUserContext used outside an HTTP request.");
 }

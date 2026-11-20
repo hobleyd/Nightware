@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 
 using Nightware.Api.Auth;
+using Nightware.Api.Hosting;
 
 namespace Nightware.Api.Tests.Auth;
 
@@ -73,5 +74,18 @@ public sealed class HttpUserContextTests
         var http = new DefaultHttpContext();
         http.Request.Headers.Authorization = "Basic xyz";
         Should.Throw<InvalidOperationException>(() => new HttpUserContext(new HttpContextAccessor { HttpContext = http }).BearerToken);
+    }
+
+    [Fact]
+    public void Prefers_the_scope_s_own_request_over_the_accessor()
+    {
+        var outer = new DefaultHttpContext { User = User(("sub", "outer"), ("email", "outer@b.c")) };
+        var inner = new DefaultHttpContext { User = User(("sub", "inner"), ("email", "inner@b.c")) };
+        inner.Request.Headers.Authorization = "Bearer inner-token";
+
+        var context = new HttpUserContext(new HttpContextAccessor { HttpContext = outer }, new CurrentRequest { Context = inner });
+
+        context.Principal.Id.ShouldBe("inner");
+        context.BearerToken.ShouldBe("inner-token");
     }
 }

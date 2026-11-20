@@ -117,7 +117,8 @@ public sealed class BatchSubRequest(GraphBatchPipeline pipeline, IServiceScopeFa
         var queryAt = url.IndexOf('?', StringComparison.Ordinal);
         var path = queryAt < 0 ? url : url[..queryAt];
         var query = queryAt < 0 ? QueryString.Empty : new QueryString(url[queryAt..]);
-        var full = new PathString(GraphPaths.VersionOf(batch.Request.Path)).Add(new PathString("/" + path.TrimStart('/')));
+        // Decoded as the server decodes a direct call's path, so /users/a%40b routes and resolves alike.
+        var full = new PathString(GraphPaths.VersionOf(batch.Request.Path)).Add(PathString.FromUriComponent("/" + path.TrimStart('/')));
 
         if (full.Value!.Split('/').Any(static s => s.Equals("$batch", StringComparison.OrdinalIgnoreCase)))
         {

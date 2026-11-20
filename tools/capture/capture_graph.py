@@ -347,9 +347,6 @@ def build_replacements(run: Run, me: dict) -> list[tuple[str, str]]:
     if run.colleague:
         pairs[run.colleague] = "colleague@example.com"
         pairs[run.colleague.split("@")[1]] = "example.com"
-    for key, fake in (("displayName", "Me Example"), ("givenName", "Me"), ("surname", "Example")):
-        if me.get(key) and len(me[key]) >= 3:
-            pairs[me[key]] = fake
     if run.notification_url:
         pairs[run.notification_url] = FAKE_NOTIFY_URL
 
@@ -375,16 +372,42 @@ def build_replacements(run: Run, me: dict) -> list[tuple[str, str]]:
     return sorted(out, key=lambda p: -len(p[0]))
 
 
-def scrub(node, pairs: list[tuple[str, str]]):
+@dataclass
+class Names:
+    """The mailbox owner's names. Unlike ids and addresses they are ordinary words ("Test User"), so a
+    bare substring replace would corrupt "Users/…" or "@odata.type"; they are replaced only as a whole
+    name-field value, or (the display name) as a whole phrase."""
+
+    by_value: dict[str, str]
+    phrase: re.Pattern | None
+
+    @staticmethod
+    def of(me: dict) -> "Names":
+        fakes = {"displayName": "Me Example", "givenName": "Me", "surname": "Example"}
+        by_value = {me[k]: fake for k, fake in fakes.items() if me.get(k)}
+        display = me.get("displayName")
+        phrase = re.compile(rf"(?<![\w]){re.escape(display)}(?![\w])") if display else None
+        return Names(by_value, phrase)
+
+
+NAME_KEYS = {"displayName", "givenName", "surname", "name"}
+
+
+def scrub(node, pairs: list[tuple[str, str]], names: Names, key: str | None = None):
+    """Replaces in values only: keys are Graph's own vocabulary."""
     if isinstance(node, str):
+        if key in NAME_KEYS and node in names.by_value:
+            return names.by_value[node]
         for real, fake in pairs:
             if real in node:
                 node = node.replace(real, fake)
+        if names.phrase:
+            node = names.phrase.sub("Me Example", node)
         return node
     if isinstance(node, list):
-        return [scrub(v, pairs) for v in node]
+        return [scrub(v, pairs, names, key) for v in node]
     if isinstance(node, dict):
-        return {scrub(k, pairs): scrub(v, pairs) for k, v in node.items()}
+        return {k: scrub(v, pairs, names, k) for k, v in node.items()}
     return node
 
 
@@ -397,6 +420,7 @@ def scrub_tokens(request: dict) -> dict:
 
 def write_fixtures(run: Run, me: dict, allow_leaks: bool, date: str) -> int:
     pairs = build_replacements(run, me)
+    names = Names.of(me)
     sensitive = [real for real, _ in pairs if not real.startswith(("AAMk", "00000000"))
                  and len(real) >= 4 and not real.lower().endswith("example.com")]
     OUT.mkdir(exist_ok=True)
@@ -406,11 +430,13 @@ def write_fixtures(run: Run, me: dict, allow_leaks: bool, date: str) -> int:
             "operationId": ex.op,
             "provenance": f"Captured from Microsoft Graph v1.0 (tenant capture {date}), scrubbed",
             **({"direction": "outbound"} if ex.direction == "outbound" else {}),
-            "request": scrub_tokens(scrub(ex.request, pairs)),
-            "response": scrub(ex.response, pairs),
+            "request": scrub_tokens(scrub(ex.request, pairs, names)),
+            "response": scrub(ex.response, pairs, names),
         }
         text = json.dumps(fixture, indent=2, ensure_ascii=False) + "\n"
         found = [s for s in sensitive if s in text]
+        if names.phrase and names.phrase.search(text):
+            found.append(names.phrase.pattern)
         if found:
             leaks += 1
             print(f"  LEAK in {ex.op}: {found}", file=sys.stderr)
@@ -510,7 +536,9 @@ def main() -> int:
                 try:
                     run_step(step, run)
                 except StepFailed as err:
-                    print(f"  cleanup failed: {err}", file=sys.stderr)
+                    # An unset id means the scenario stopped before creating that object.
+                    if not str(err).startswith("unset variable"):
+                        print(f"  cleanup failed: {err}", file=sys.stderr)
 
     if args.dry_run:
         return 0

@@ -11,6 +11,7 @@ using Nightware.Api.Graph;
 using Nightware.Api.Graph.Batch;
 using Nightware.Api.Graph.OData;
 using Nightware.Api.Graph.Routing;
+using Nightware.Api.Hosting;
 using Nightware.Api.Tests.Support;
 
 namespace Nightware.Api.Tests.Graph.Batch;
@@ -31,10 +32,16 @@ public sealed class BatchEndpointTests : IAsyncLifetime
             {
                 foreach (var scope in graph.MapMailboxGroups())
                 {
-                    scope.MapGet("/batchProbe", static (Mailbox mailbox, ODataQuery odata, PreferHeader prefer, HttpContext http) =>
+                    scope.MapGet("/batchProbe", static (Mailbox mailbox, ODataQuery odata, PreferHeader prefer, HttpContext http, CurrentRequest current) =>
                     {
                         prefer.MarkTimeZoneApplied(http.Response);
-                        return Results.Json(new { mailbox = mailbox.Ref.Address, top = odata.Query.Top, path = http.Request.Path.Value });
+                        return Results.Json(new
+                        {
+                            mailbox = mailbox.Ref.Address,
+                            top = odata.Query.Top,
+                            path = http.Request.Path.Value,
+                            scopePath = current.Context?.Request.Path.Value,
+                        });
                     });
                 }
 
@@ -106,6 +113,28 @@ public sealed class BatchEndpointTests : IAsyncLifetime
         JsonNode.DeepEquals(response["body"], direct).ShouldBeTrue();
         direct["mailbox"]!.GetValue<string>().ShouldBe(TestHost.UserEmail);
         direct["top"]!.GetValue<int>().ShouldBe(5);
+    }
+
+    [Theory]
+    [InlineData("/users/other@example.com/batchProbe")]
+    [InlineData("/users/other%40example.com/batchProbe")]
+    public async Task The_users_form_resolves_the_named_mailbox_as_a_direct_call_does(string url)
+    {
+        var direct = await (await _host.AuthorizedClient().GetAsync("/v1.0" + url, Ct)).ReadObjectAsync();
+
+        var batch = await PostBatchAsync("/v1.0", Request("1", url));
+
+        var body = ResponseFor(batch, "1")["body"]!;
+        body["mailbox"]!.GetValue<string>().ShouldBe("other@example.com");
+        JsonNode.DeepEquals(body, direct).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Each_request_s_scope_sees_its_own_request_not_the_batch()
+    {
+        var batch = await PostBatchAsync("/v1.0", Request("1", "/me/batchProbe"));
+
+        ResponseFor(batch, "1")["body"]!["scopePath"]!.GetValue<string>().ShouldBe("/v1.0/me/batchProbe");
     }
 
     [Fact]
@@ -185,7 +214,7 @@ public sealed class BatchEndpointTests : IAsyncLifetime
 
         batch["responses"]!.AsArray().ShouldAllBe(r => r!["status"]!.GetValue<int>() == 200);
         _concurrency.Entered.ShouldBe(BatchRequestReader.MaxRequests);
-        _concurrency.MaxInFlight.ShouldBeInRange(2, BatchDispatcher.MaxConcurrency);
+        _concurrency.MaxInFlight.ShouldBe(BatchDispatcher.MaxConcurrency);
     }
 
     [Fact]
@@ -295,7 +324,15 @@ public sealed class BatchEndpointTests : IAsyncLifetime
             {
             }
 
-            await Task.Delay(50);
+            // Hold each entrant until the gate is full (or a while has passed, when fewer can run), so
+            // the peak is what the dispatcher allows rather than what the scheduler happened to do.
+            var deadline = DateTime.UtcNow.AddMilliseconds(500);
+            while (Volatile.Read(ref _inFlight) < BatchDispatcher.MaxConcurrency && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(5);
+            }
+
+            await Task.Delay(20);
             Interlocked.Decrement(ref _inFlight);
         }
     }

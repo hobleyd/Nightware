@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 using Nightware.Api.Graph.Errors;
+using Nightware.Api.Hosting;
 using Nightware.Application.Common.Identity;
 
 namespace Nightware.Api.Auth;
@@ -24,6 +25,7 @@ public static class AuthServiceCollectionExtensions
         services.AddAuthorization();
 
         services.AddHttpContextAccessor();
+        services.TryAddScoped<CurrentRequest>();
         services.TryAddScoped<IUserContext, HttpUserContext>();
         return services;
     }

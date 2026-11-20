@@ -63,7 +63,7 @@ These are replaced everywhere, including the percent-encoded forms in paths and
 |---|---|
 | Tenant and user ids | Fixed GUIDs |
 | The mailbox's address, UPN and domain | `me@example.com` / `example.com` |
-| Its display name and given/surname | `Me Example` |
+| Its display name, given name and surname | `Me Example`, `Me`, `Example`: in name fields, plus the display name as a whole phrase anywhere. Keys and other words are never touched, so a user called "Test User" leaves `Users/…` alone |
 | The colleague's address | `colleague@example.com` |
 | The tunnel URL | `https://webhook.example.com/notify` |
 | Every Graph id (`id`, `…Id`, `changeKey`, `iCalUId`) | Stable placeholders |
@@ -73,6 +73,8 @@ These are replaced everywhere, including the percent-encoded forms in paths and
 A leak check then searches each fixture for every original value. A fixture
 that fails it isn't written, and the exit code is 1. `--allow-leaks` writes it
 anyway, so you can inspect it.
+
+Offline tests: `python3 -m unittest tools/capture/test_capture_graph.py`.
 
 **Read `out/` before handing it over.** Mail bodies and signatures can carry
 tenant text the scrubber doesn't know about.
