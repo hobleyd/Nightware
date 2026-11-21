@@ -324,7 +324,8 @@ operation:
 | Phase 5B — Tasks, mailbox settings, files, threat submission | 14 |
 | Phase 11 — JSON batching (Graph parity) | 2 |
 | Phase 12 — Mail (Graph parity) | 19 |
-| **Total** | **97** |
+| Phase 13 — Calendar (Graph parity) | 11 |
+| **Total** | **108** |
 
 ### Phase 2 — Mail, read side
 
@@ -1463,5 +1464,122 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession
 - Notes: The last chunk attaches the whole file to the draft (keeping its d. id): 201, Location of the attachment, no body.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.attachments.upload-session-put-final.json`
+
+### Phase 13 — Calendar (Graph parity)
+
+| Id | Method | Ver | Path | Paging |
+|---|---|---|---|---|
+| [`calendar.calendars.list`](#calendarcalendarslist) | GET | v1.0 | `{mailbox}/calendars` | none |
+| [`calendar.calendar.get`](#calendarcalendarget) | GET | v1.0 | `{mailbox}/calendar` | none |
+| [`calendar.calendars.get`](#calendarcalendarsget) | GET | v1.0 | `{mailbox}/calendars/{calendarId}` | none |
+| [`calendar.calendars.create`](#calendarcalendarscreate) | POST | v1.0 | `{mailbox}/calendars` | none |
+| [`calendar.calendars.update`](#calendarcalendarsupdate) | PATCH | v1.0 | `{mailbox}/calendars/{calendarId}` | none |
+| [`calendar.calendars.delete`](#calendarcalendarsdelete) | DELETE | v1.0 | `{mailbox}/calendars/{calendarId}` | none |
+| [`calendar.calendars.events.list`](#calendarcalendarseventslist) | GET | v1.0 | `{mailbox}/calendars/{calendarId}/events` | none |
+| [`calendar.calendars.events.create`](#calendarcalendarseventscreate) | POST | v1.0 | `{mailbox}/calendars/{calendarId}/events` | none |
+| [`calendar.calendars.calendar-view`](#calendarcalendarscalendar-view) | GET | v1.0 | `{mailbox}/calendars/{calendarId}/calendarView` | none |
+| [`calendar.calendar-groups.list`](#calendarcalendar-groupslist) | GET | v1.0 | `{mailbox}/calendarGroups` | none |
+| [`calendar.calendar-groups.calendars`](#calendarcalendar-groupscalendars) | GET | v1.0 | `{mailbox}/calendarGroups/{groupId}/calendars` | none |
+
+#### `calendar.calendars.list`
+
+**GET v1.0 `{mailbox}/calendars`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].name`, `value[].color`, `value[].hexColor`, `value[].isDefaultCalendar`, `value[].canEdit`, `value[].isRemovable`, `value[].owner`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendar
+- Notes: CalDAV collections (ADR 0006 D6). The default first; the read-only birthday calendar included.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.list.json`
+
+#### `calendar.calendar.get`
+
+**GET v1.0 `{mailbox}/calendar`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `name`, `color`, `hexColor`, `isDefaultCalendar`, `canEdit`, `isRemovable`, `owner`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendar
+- Notes: CalDAV collections (ADR 0006 D6). The default (Nextcloud's personal) calendar.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendar.get.json`
+
+#### `calendar.calendars.get`
+
+**GET v1.0 `{mailbox}/calendars/{calendarId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `name`, `color`, `hexColor`, `isDefaultCalendar`, `canEdit`, `isRemovable`, `owner`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendar
+- Notes: CalDAV collections (ADR 0006 D6). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.get.json`
+
+#### `calendar.calendars.create`
+
+**POST v1.0 `{mailbox}/calendars`** — forms: me, users; success: 201; paging: none
+
+- Request body: `name`; `color?`
+- Client reads: `id`, `name`, `color`, `hexColor`, `isDefaultCalendar`, `canEdit`, `isRemovable`, `owner`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendar
+- Notes: CalDAV collections (ADR 0006 D6). MKCALENDAR in the caller's own home; Location as Graph.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.create.json`
+
+#### `calendar.calendars.update`
+
+**PATCH v1.0 `{mailbox}/calendars/{calendarId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `name?`; `color?`
+- Client reads: `id`, `name`, `color`, `hexColor`, `isDefaultCalendar`, `canEdit`, `isRemovable`, `owner`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendar
+- Notes: CalDAV collections (ADR 0006 D6). PROPPATCH displayname and calendar-color; Graph colour names map to hex, auto removes it.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.update.json`
+
+#### `calendar.calendars.delete`
+
+**DELETE v1.0 `{mailbox}/calendars/{calendarId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendar
+- Notes: CalDAV collections (ADR 0006 D6). The default calendar is 400 ErrorCannotDeleteDefaultCalendar.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.delete.json`
+
+#### `calendar.calendars.events.list`
+
+**GET v1.0 `{mailbox}/calendars/{calendarId}/events`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].subject`, `value[].start`, `value[].end`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendar
+- Notes: CalDAV collections (ADR 0006 D6). Unexpanded; $orderby start/dateTime, $top, $skip.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.list.json`
+
+#### `calendar.calendars.events.create`
+
+**POST v1.0 `{mailbox}/calendars/{calendarId}/events`** — forms: me, users; success: 201; paging: none
+
+- Request body: `subject`; `start`; `end`; `recurrence?`
+- Client reads: `id`, `subject`, `start`, `end`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendar
+- Notes: CalDAV collections (ADR 0006 D6). Refused (403) in a read-only calendar.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.create.json`
+
+#### `calendar.calendars.calendar-view`
+
+**GET v1.0 `{mailbox}/calendars/{calendarId}/calendarView`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].subject`, `value[].start`, `value[].end`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendar
+- Notes: CalDAV collections (ADR 0006 D6). startDateTime/endDateTime required; expanded on the server.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.calendar-view.json`
+
+#### `calendar.calendar-groups.list`
+
+**GET v1.0 `{mailbox}/calendarGroups`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].name`, `value[].classId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendargroup
+- Notes: One synthetic group, My Calendars (ADR 0006 D6); Exchange's other groups have no Nextcloud counterpart.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendar-groups.list.json`
+
+#### `calendar.calendar-groups.calendars`
+
+**GET v1.0 `{mailbox}/calendarGroups/{groupId}/calendars`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].name`, `value[].color`, `value[].hexColor`, `value[].isDefaultCalendar`, `value[].canEdit`, `value[].isRemovable`, `value[].owner`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendargroup
+- Notes: Every calendar; any other group id is 404.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendar-groups.calendars.json`
 
 <!-- END GENERATED -->

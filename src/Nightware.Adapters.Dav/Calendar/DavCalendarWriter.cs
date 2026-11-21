@@ -34,8 +34,14 @@ internal sealed class DavCalendarWriter(
             return Error.Forbidden($"{mailbox.Address} has no calendar you can add events to.");
         }
 
-        var href = calendar.Href + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture) + ".ics";
-        var ics = codec.Serialize(new CalendarDocument(null, [ToEvent(newEvent, mailbox, scope.Value.Owner.DisplayName)]));
+        return await CreateInAsync(calendar.Href, scope.Value.Owner.DisplayName, mailbox, newEvent, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>A new event in the calendar at <paramref name="calendarHref"/>.</summary>
+    internal async Task<Result<CalendarEvent>> CreateInAsync(string calendarHref, string? ownerName, MailboxRef mailbox, NewEvent newEvent, CancellationToken cancellationToken)
+    {
+        var href = calendarHref + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture) + ".ics";
+        var ics = codec.Serialize(new CalendarDocument(null, [ToEvent(newEvent, mailbox, ownerName)]));
         var put = await dav.PutAsync(href, ics, DavEventResources.ContentType, DavPrecondition.CreateOnly, cancellationToken).ConfigureAwait(false);
         if (!put.IsSuccess)
         {

@@ -39,14 +39,23 @@ internal sealed class DavCalendarReader(
             return scope.Error;
         }
 
-        if (scope.Value.Default is not { } calendar)
+        return scope.Value.Default is { } calendar
+            ? await ViewAsync(calendar.Href, mailbox, start, end, query, cancellationToken).ConfigureAwait(false)
+            : OffsetPaging.Slice<CalendarEvent>([], query, DefaultPageSize);
+    }
+
+    /// <summary>The expanded occurrences of one calendar overlapping [start, end).</summary>
+    internal async Task<Result<Page<CalendarEvent>>> ViewAsync(
+        string calendarHref, MailboxRef mailbox, DateTimeOffset start, DateTimeOffset end, ItemQuery query, CancellationToken cancellationToken)
+    {
+        if (EventFilters.Unsupported(query) is { } unsupported)
         {
-            return OffsetPaging.Slice<CalendarEvent>([], query, DefaultPageSize);
+            return unsupported;
         }
 
         var range = new DavTimeRange(start, end);
         var report = DavRequestBodies.CalendarQuery(new CalendarQuery("VEVENT") { TimeRange = range, Expand = range });
-        var expanded = await dav.ReportAsync(calendar.Href, DavDepth.One, report, cancellationToken).ConfigureAwait(false);
+        var expanded = await dav.ReportAsync(calendarHref, DavDepth.One, report, cancellationToken).ConfigureAwait(false);
         if (!expanded.IsSuccess)
         {
             return expanded.Error;
@@ -56,7 +65,7 @@ internal sealed class DavCalendarReader(
             .SelectMany(r => r.Events.Select(e => (r.Href, Event: e)))
             .ToList();
         var exceptions = await StoredExceptionsAsync(
-            calendar.Href, instances.Where(i => i.Event.OriginalStart is not null).Select(i => i.Href).Distinct(StringComparer.Ordinal).ToList(), mailbox, cancellationToken)
+            calendarHref, instances.Where(i => i.Event.OriginalStart is not null).Select(i => i.Href).Distinct(StringComparer.Ordinal).ToList(), mailbox, cancellationToken)
             .ConfigureAwait(false);
         if (!exceptions.IsSuccess)
         {
@@ -86,22 +95,27 @@ internal sealed class DavCalendarReader(
             return uid.Error;
         }
 
-        if (query.Search is not null || query.OrderBy.Count > 0)
-        {
-            return Error.Validation("Events support only $filter=iCalUId eq '…', $select, $top and $skip.", query.Search is not null ? "$search" : "$orderby");
-        }
-
         var scope = await scopes.ResolveAsync(mailbox, cancellationToken).ConfigureAwait(false);
         if (!scope.IsSuccess)
         {
             return scope.Error;
         }
 
-        // A UID is looked up in every calendar of the mailbox (an invitation may have been filed in any);
-        // an unfiltered listing is Graph's /events, the default calendar.
-        var calendars = uid.Value is null
-            ? scope.Value.Default is { } calendar ? [calendar] : []
-            : scope.Value.Calendars;
+        // Unfiltered, this is Graph's /events: the default calendar's events, orderable by start.
+        if (uid.Value is null)
+        {
+            return scope.Value.Default is { } defaultCalendar
+                ? await ListInAsync(defaultCalendar.Href, mailbox, query, cancellationToken).ConfigureAwait(false)
+                : OffsetPaging.Slice<CalendarEvent>([], query, DefaultPageSize);
+        }
+
+        if (query.Search is not null || query.OrderBy.Count > 0)
+        {
+            return Error.Validation("Events filtered by iCalUId support only $select, $top and $skip.", query.Search is not null ? "$search" : "$orderby");
+        }
+
+        // A UID is looked up in every calendar of the mailbox: an invitation may have been filed in any.
+        var calendars = scope.Value.Calendars;
         var found = new List<CalendarEvent>();
         foreach (var candidate in calendars)
         {
@@ -116,6 +130,33 @@ internal sealed class DavCalendarReader(
         }
 
         var ordered = found.OrderBy(e => GraphTimeZone.ToInstant(e.Start.DateTime, e.Start.TimeZone)).ToList();
+        return OffsetPaging.Slice(ordered, query, DefaultPageSize);
+    }
+
+    /// <summary>The unexpanded events of one calendar (masters and single events), by start or as <paramref name="query"/> orders.</summary>
+    internal async Task<Result<Page<CalendarEvent>>> ListInAsync(string calendarHref, MailboxRef mailbox, ItemQuery query, CancellationToken cancellationToken)
+    {
+        if (query.Search is not null || query.Filter is not null)
+        {
+            return Error.Validation("A calendar's events support $select, $orderby on start, $top and $skip.", query.Search is not null ? "$search" : "$filter");
+        }
+
+        var descending = EventFilters.StartDescending(query);
+        if (!descending.IsSuccess)
+        {
+            return descending.Error;
+        }
+
+        var listing = await dav.ReportAsync(calendarHref, DavDepth.One, DavRequestBodies.CalendarQuery(new CalendarQuery("VEVENT")), cancellationToken).ConfigureAwait(false);
+        if (!listing.IsSuccess)
+        {
+            return listing.Error;
+        }
+
+        var events = ParseAll(listing.Value, mailbox, isExpanded: false).Select(r => Primary(r.Events)).OfType<CalendarEvent>();
+        var ordered = descending.Value
+            ? events.OrderByDescending(e => GraphTimeZone.ToInstant(e.Start.DateTime, e.Start.TimeZone)).ToList()
+            : events.OrderBy(e => GraphTimeZone.ToInstant(e.Start.DateTime, e.Start.TimeZone)).ToList();
         return OffsetPaging.Slice(ordered, query, DefaultPageSize);
     }
 

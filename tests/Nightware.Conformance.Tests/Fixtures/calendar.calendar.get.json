@@ -1,0 +1,46 @@
+{
+  "operationId": "calendar.calendar.get",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/calendar",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Prefer": "outlook.timezone=\"UTC\""
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/calendar/$entity",
+      "id": "AAMk-id-0001=",
+      "name": "Calendar",
+      "color": "auto",
+      "hexColor": "",
+      "groupClassId": "00000000-0000-0000-0000-000000000001",
+      "isDefaultCalendar": true,
+      "changeKey": "AAMk-changeKey-0001=",
+      "canShare": true,
+      "canViewPrivateItems": true,
+      "isShared": false,
+      "isSharedWithMe": false,
+      "canEdit": true,
+      "allowedOnlineMeetingProviders": [
+        "teamsForBusiness"
+      ],
+      "defaultOnlineMeetingProvider": "teamsForBusiness",
+      "isTallyingResponses": true,
+      "isRemovable": false,
+      "owner": {
+        "name": "Me Example",
+        "address": "colleague@example.com"
+      }
+    }
+  }
+}

@@ -4249,5 +4249,425 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/attachment-createuploadsession",
     "paging": "none"
+  },
+  {
+    "id": "calendar.calendars.list",
+    "phase": 13,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].name",
+      "value[].color",
+      "value[].hexColor",
+      "value[].isDefaultCalendar",
+      "value[].canEdit",
+      "value[].isRemovable",
+      "value[].owner"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/calendar",
+    "notes": "CalDAV collections (ADR 0006 D6). The default first; the read-only birthday calendar included."
+  },
+  {
+    "id": "calendar.calendar.get",
+    "phase": 13,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "name",
+      "color",
+      "hexColor",
+      "isDefaultCalendar",
+      "canEdit",
+      "isRemovable",
+      "owner"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/calendar",
+    "notes": "CalDAV collections (ADR 0006 D6). The default (Nextcloud's personal) calendar."
+  },
+  {
+    "id": "calendar.calendars.get",
+    "phase": 13,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "name",
+      "color",
+      "hexColor",
+      "isDefaultCalendar",
+      "canEdit",
+      "isRemovable",
+      "owner"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/calendar",
+    "notes": "CalDAV collections (ADR 0006 D6). "
+  },
+  {
+    "id": "calendar.calendars.create",
+    "phase": 13,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "name",
+        "color?"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "name",
+      "color",
+      "hexColor",
+      "isDefaultCalendar",
+      "canEdit",
+      "isRemovable",
+      "owner"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/calendar",
+    "notes": "CalDAV collections (ADR 0006 D6). MKCALENDAR in the caller's own home; Location as Graph."
+  },
+  {
+    "id": "calendar.calendars.update",
+    "phase": 13,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "name?",
+        "color?"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "name",
+      "color",
+      "hexColor",
+      "isDefaultCalendar",
+      "canEdit",
+      "isRemovable",
+      "owner"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/calendar",
+    "notes": "CalDAV collections (ADR 0006 D6). PROPPATCH displayname and calendar-color; Graph colour names map to hex, auto removes it."
+  },
+  {
+    "id": "calendar.calendars.delete",
+    "phase": 13,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/calendar",
+    "notes": "CalDAV collections (ADR 0006 D6). The default calendar is 400 ErrorCannotDeleteDefaultCalendar."
+  },
+  {
+    "id": "calendar.calendars.events.list",
+    "phase": 13,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].subject",
+      "value[].start",
+      "value[].end"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/calendar",
+    "notes": "CalDAV collections (ADR 0006 D6). Unexpanded; $orderby start/dateTime, $top, $skip."
+  },
+  {
+    "id": "calendar.calendars.events.create",
+    "phase": 13,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "subject",
+        "start",
+        "end",
+        "recurrence?"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "subject",
+      "start",
+      "end"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/calendar",
+    "notes": "CalDAV collections (ADR 0006 D6). Refused (403) in a read-only calendar."
+  },
+  {
+    "id": "calendar.calendars.calendar-view",
+    "phase": 13,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/calendarView",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].subject",
+      "value[].start",
+      "value[].end"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/calendar",
+    "notes": "CalDAV collections (ADR 0006 D6). startDateTime/endDateTime required; expanded on the server."
+  },
+  {
+    "id": "calendar.calendar-groups.list",
+    "phase": 13,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendarGroups",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].name",
+      "value[].classId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/calendargroup",
+    "notes": "One synthetic group, My Calendars (ADR 0006 D6); Exchange's other groups have no Nextcloud counterpart."
+  },
+  {
+    "id": "calendar.calendar-groups.calendars",
+    "phase": 13,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendarGroups/{groupId}/calendars",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].name",
+      "value[].color",
+      "value[].hexColor",
+      "value[].isDefaultCalendar",
+      "value[].canEdit",
+      "value[].isRemovable",
+      "value[].owner"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/calendargroup",
+    "notes": "Every calendar; any other group id is 404."
   }
 ]

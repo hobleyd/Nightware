@@ -15,6 +15,22 @@ internal static class EventFilters
         _ => Error.Validation("Only $filter=iCalUId eq '…' is supported on events.", "$filter"),
     };
 
+    /// <summary>
+    /// The one <c>$orderby</c> an event listing takes: <c>start/dateTime</c>, ascending (also the default) or
+    /// descending. True for descending.
+    /// </summary>
+    public static Result<bool> StartDescending(ItemQuery query)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        return query.OrderBy switch
+        {
+            [] => false,
+            [{ Property: var property, Direction: var direction }] when string.Equals(property, "start/dateTime", StringComparison.OrdinalIgnoreCase) =>
+                direction == SortDirection.Descending,
+            _ => Error.Validation("Events can be ordered only by start/dateTime.", "$orderby"),
+        };
+    }
+
     /// <summary>calendarView takes no OData beyond <c>$select</c>/<c>$top</c>/<c>$skip</c>.</summary>
     public static Error? Unsupported(ItemQuery query) =>
         query.Filter is not null || query.Search is not null || query.OrderBy.Count > 0

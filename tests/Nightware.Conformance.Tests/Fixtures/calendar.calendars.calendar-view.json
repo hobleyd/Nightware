@@ -1,0 +1,301 @@
+{
+  "operationId": "calendar.calendars.calendar-view",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/calendars/AAMk-id-0004=/calendarView",
+    "query": {
+      "startDateTime": "2026-11-20T22:38:00",
+      "endDateTime": "2026-12-25T22:38:00"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Prefer": "outlook.timezone=\"UTC\""
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/calendars('AAMk-id-0004%3D')/calendarView",
+      "value": [
+        {
+          "@odata.etag": "W/\"AAMk-changeKey-0006=\"",
+          "id": "AAMk-id-0006=",
+          "createdDateTime": "2026-11-20T22:38:43.9170624Z",
+          "lastModifiedDateTime": "2026-11-20T22:38:43.9865402Z",
+          "changeKey": "AAMk-changeKey-0006=",
+          "categories": [],
+          "transactionId": null,
+          "originalStartTimeZone": "UTC",
+          "originalEndTimeZone": "UTC",
+          "iCalUId": "AAMk-iCalUId-0002=",
+          "uid": "AAMk-iCalUId-0001=",
+          "reminderMinutesBeforeStart": 15,
+          "isReminderOn": true,
+          "hasAttachments": false,
+          "subject": "Nightware capture ae6347 series",
+          "bodyPreview": "",
+          "importance": "normal",
+          "sensitivity": "normal",
+          "isAllDay": false,
+          "isCancelled": false,
+          "isOrganizer": true,
+          "responseRequested": true,
+          "seriesMasterId": "AAMk-id-0005=",
+          "showAs": "busy",
+          "type": "occurrence",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AAMk-ref-0002=&exvsurl=1&path=/calendar/item",
+          "onlineMeetingUrl": null,
+          "isOnlineMeeting": false,
+          "onlineMeetingProvider": "unknown",
+          "allowNewTimeProposals": true,
+          "occurrenceId": "AAMk-occurrenceId-0001=",
+          "isDraft": false,
+          "hideAttendees": false,
+          "responseStatus": {
+            "response": "organizer",
+            "time": "0001-01-01T00:00:00Z"
+          },
+          "body": {
+            "contentType": "html",
+            "content": "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\r\n<meta name=\"Generator\" content=\"Microsoft Exchange Server\">\r\n<!-- converted from text -->\r\n<style><!-- .EmailQuote { margin-left: 1pt; padding-left: 4pt; border-left: #800000 2px solid; } --></style></head>\r\n<body>\r\n<font size=\"2\"><span style=\"font-size:11pt;\"><div class=\"PlainText\">&nbsp;</div></span></font>\r\n</body>\r\n</html>\r\n"
+          },
+          "start": {
+            "dateTime": "2026-11-21T10:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2026-11-21T10:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "location": {
+            "displayName": "",
+            "locationType": "default",
+            "uniqueIdType": "unknown",
+            "address": {},
+            "coordinates": {}
+          },
+          "locations": [],
+          "recurrence": null,
+          "attendees": [],
+          "organizer": {
+            "emailAddress": {
+              "name": "Me Example",
+              "address": "colleague@example.com"
+            }
+          },
+          "onlineMeeting": null
+        },
+        {
+          "@odata.etag": "W/\"AAMk-changeKey-0006=\"",
+          "id": "AAMk-id-0007=",
+          "createdDateTime": "2026-11-20T22:38:43.9170624Z",
+          "lastModifiedDateTime": "2026-11-20T22:38:43.9865402Z",
+          "changeKey": "AAMk-changeKey-0006=",
+          "categories": [],
+          "transactionId": null,
+          "originalStartTimeZone": "UTC",
+          "originalEndTimeZone": "UTC",
+          "iCalUId": "AAMk-iCalUId-0003=",
+          "uid": "AAMk-iCalUId-0001=",
+          "reminderMinutesBeforeStart": 15,
+          "isReminderOn": true,
+          "hasAttachments": false,
+          "subject": "Nightware capture ae6347 series",
+          "bodyPreview": "",
+          "importance": "normal",
+          "sensitivity": "normal",
+          "isAllDay": false,
+          "isCancelled": false,
+          "isOrganizer": true,
+          "responseRequested": true,
+          "seriesMasterId": "AAMk-id-0005=",
+          "showAs": "busy",
+          "type": "occurrence",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AAMk-ref-0003=&exvsurl=1&path=/calendar/item",
+          "onlineMeetingUrl": null,
+          "isOnlineMeeting": false,
+          "onlineMeetingProvider": "unknown",
+          "allowNewTimeProposals": true,
+          "occurrenceId": "AAMk-occurrenceId-0002=",
+          "isDraft": false,
+          "hideAttendees": false,
+          "responseStatus": {
+            "response": "organizer",
+            "time": "0001-01-01T00:00:00Z"
+          },
+          "body": {
+            "contentType": "html",
+            "content": "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\r\n<meta name=\"Generator\" content=\"Microsoft Exchange Server\">\r\n<!-- converted from text -->\r\n<style><!-- .EmailQuote { margin-left: 1pt; padding-left: 4pt; border-left: #800000 2px solid; } --></style></head>\r\n<body>\r\n<font size=\"2\"><span style=\"font-size:11pt;\"><div class=\"PlainText\">&nbsp;</div></span></font>\r\n</body>\r\n</html>\r\n"
+          },
+          "start": {
+            "dateTime": "2026-11-28T10:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2026-11-28T10:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "location": {
+            "displayName": "",
+            "locationType": "default",
+            "uniqueIdType": "unknown",
+            "address": {},
+            "coordinates": {}
+          },
+          "locations": [],
+          "recurrence": null,
+          "attendees": [],
+          "organizer": {
+            "emailAddress": {
+              "name": "Me Example",
+              "address": "colleague@example.com"
+            }
+          },
+          "onlineMeeting": null
+        },
+        {
+          "@odata.etag": "W/\"AAMk-changeKey-0006=\"",
+          "id": "AAMk-id-0008=",
+          "createdDateTime": "2026-11-20T22:38:43.9170624Z",
+          "lastModifiedDateTime": "2026-11-20T22:38:43.9865402Z",
+          "changeKey": "AAMk-changeKey-0006=",
+          "categories": [],
+          "transactionId": null,
+          "originalStartTimeZone": "UTC",
+          "originalEndTimeZone": "UTC",
+          "iCalUId": "AAMk-iCalUId-0004=",
+          "uid": "AAMk-iCalUId-0001=",
+          "reminderMinutesBeforeStart": 15,
+          "isReminderOn": true,
+          "hasAttachments": false,
+          "subject": "Nightware capture ae6347 series",
+          "bodyPreview": "",
+          "importance": "normal",
+          "sensitivity": "normal",
+          "isAllDay": false,
+          "isCancelled": false,
+          "isOrganizer": true,
+          "responseRequested": true,
+          "seriesMasterId": "AAMk-id-0005=",
+          "showAs": "busy",
+          "type": "occurrence",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AAMk-ref-0004=&exvsurl=1&path=/calendar/item",
+          "onlineMeetingUrl": null,
+          "isOnlineMeeting": false,
+          "onlineMeetingProvider": "unknown",
+          "allowNewTimeProposals": true,
+          "occurrenceId": "AAMk-occurrenceId-0003=",
+          "isDraft": false,
+          "hideAttendees": false,
+          "responseStatus": {
+            "response": "organizer",
+            "time": "0001-01-01T00:00:00Z"
+          },
+          "body": {
+            "contentType": "html",
+            "content": "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\r\n<meta name=\"Generator\" content=\"Microsoft Exchange Server\">\r\n<!-- converted from text -->\r\n<style><!-- .EmailQuote { margin-left: 1pt; padding-left: 4pt; border-left: #800000 2px solid; } --></style></head>\r\n<body>\r\n<font size=\"2\"><span style=\"font-size:11pt;\"><div class=\"PlainText\">&nbsp;</div></span></font>\r\n</body>\r\n</html>\r\n"
+          },
+          "start": {
+            "dateTime": "2026-12-05T10:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2026-12-05T10:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "location": {
+            "displayName": "",
+            "locationType": "default",
+            "uniqueIdType": "unknown",
+            "address": {},
+            "coordinates": {}
+          },
+          "locations": [],
+          "recurrence": null,
+          "attendees": [],
+          "organizer": {
+            "emailAddress": {
+              "name": "Me Example",
+              "address": "colleague@example.com"
+            }
+          },
+          "onlineMeeting": null
+        },
+        {
+          "@odata.etag": "W/\"AAMk-changeKey-0006=\"",
+          "id": "AAMk-id-0009=",
+          "createdDateTime": "2026-11-20T22:38:43.9170624Z",
+          "lastModifiedDateTime": "2026-11-20T22:38:43.9865402Z",
+          "changeKey": "AAMk-changeKey-0006=",
+          "categories": [],
+          "transactionId": null,
+          "originalStartTimeZone": "UTC",
+          "originalEndTimeZone": "UTC",
+          "iCalUId": "AAMk-iCalUId-0005=",
+          "uid": "AAMk-iCalUId-0001=",
+          "reminderMinutesBeforeStart": 15,
+          "isReminderOn": true,
+          "hasAttachments": false,
+          "subject": "Nightware capture ae6347 series",
+          "bodyPreview": "",
+          "importance": "normal",
+          "sensitivity": "normal",
+          "isAllDay": false,
+          "isCancelled": false,
+          "isOrganizer": true,
+          "responseRequested": true,
+          "seriesMasterId": "AAMk-id-0005=",
+          "showAs": "busy",
+          "type": "occurrence",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AAMk-ref-0005=&exvsurl=1&path=/calendar/item",
+          "onlineMeetingUrl": null,
+          "isOnlineMeeting": false,
+          "onlineMeetingProvider": "unknown",
+          "allowNewTimeProposals": true,
+          "occurrenceId": "AAMk-occurrenceId-0004=",
+          "isDraft": false,
+          "hideAttendees": false,
+          "responseStatus": {
+            "response": "organizer",
+            "time": "0001-01-01T00:00:00Z"
+          },
+          "body": {
+            "contentType": "html",
+            "content": "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\r\n<meta name=\"Generator\" content=\"Microsoft Exchange Server\">\r\n<!-- converted from text -->\r\n<style><!-- .EmailQuote { margin-left: 1pt; padding-left: 4pt; border-left: #800000 2px solid; } --></style></head>\r\n<body>\r\n<font size=\"2\"><span style=\"font-size:11pt;\"><div class=\"PlainText\">&nbsp;</div></span></font>\r\n</body>\r\n</html>\r\n"
+          },
+          "start": {
+            "dateTime": "2026-12-12T10:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2026-12-12T10:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "location": {
+            "displayName": "",
+            "locationType": "default",
+            "uniqueIdType": "unknown",
+            "address": {},
+            "coordinates": {}
+          },
+          "locations": [],
+          "recurrence": null,
+          "attendees": [],
+          "organizer": {
+            "emailAddress": {
+              "name": "Me Example",
+              "address": "colleague@example.com"
+            }
+          },
+          "onlineMeeting": null
+        }
+      ]
+    }
+  }
+}

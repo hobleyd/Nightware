@@ -1,0 +1,117 @@
+{
+  "operationId": "calendar.calendar-groups.calendars",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed; request names Nightware's one synthetic group (ADR 0006 D6) instead of Exchange's group id",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/calendarGroups/calendargroup-default/calendars",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/calendarGroups('AAMk-id-0012%3D')/calendars",
+      "value": [
+        {
+          "id": "AAMk-id-0001=",
+          "name": "Calendar",
+          "color": "auto",
+          "hexColor": "",
+          "groupClassId": "00000000-0000-0000-0000-000000000001",
+          "isDefaultCalendar": true,
+          "changeKey": "AAMk-changeKey-0001=",
+          "canShare": true,
+          "canViewPrivateItems": true,
+          "isShared": false,
+          "isSharedWithMe": false,
+          "canEdit": true,
+          "allowedOnlineMeetingProviders": [
+            "teamsForBusiness"
+          ],
+          "defaultOnlineMeetingProvider": "teamsForBusiness",
+          "isTallyingResponses": true,
+          "isRemovable": false,
+          "owner": {
+            "name": "Me Example",
+            "address": "colleague@example.com"
+          }
+        },
+        {
+          "id": "AAMk-id-0002=",
+          "name": "United States holidays",
+          "color": "auto",
+          "hexColor": "",
+          "groupClassId": "00000000-0000-0000-0000-000000000001",
+          "isDefaultCalendar": false,
+          "changeKey": "AAMk-changeKey-0002=",
+          "canShare": false,
+          "canViewPrivateItems": true,
+          "isShared": false,
+          "isSharedWithMe": false,
+          "canEdit": false,
+          "allowedOnlineMeetingProviders": [],
+          "defaultOnlineMeetingProvider": "unknown",
+          "isTallyingResponses": false,
+          "isRemovable": true,
+          "owner": {
+            "name": "Me Example",
+            "address": "colleague@example.com"
+          }
+        },
+        {
+          "id": "AAMk-id-0003=",
+          "name": "Birthdays",
+          "color": "auto",
+          "hexColor": "",
+          "groupClassId": "00000000-0000-0000-0000-000000000001",
+          "isDefaultCalendar": false,
+          "changeKey": "AAMk-changeKey-0003=",
+          "canShare": false,
+          "canViewPrivateItems": true,
+          "isShared": false,
+          "isSharedWithMe": false,
+          "canEdit": false,
+          "allowedOnlineMeetingProviders": [],
+          "defaultOnlineMeetingProvider": "unknown",
+          "isTallyingResponses": false,
+          "isRemovable": true,
+          "owner": {
+            "name": "Me Example",
+            "address": "colleague@example.com"
+          }
+        },
+        {
+          "id": "AAMk-id-0004=",
+          "name": "Nightware ae6347 renamed",
+          "color": "lightGreen",
+          "hexColor": "#87d28e",
+          "groupClassId": "00000000-0000-0000-0000-000000000001",
+          "isDefaultCalendar": false,
+          "changeKey": "AAMk-changeKey-0005=",
+          "canShare": true,
+          "canViewPrivateItems": true,
+          "isShared": false,
+          "isSharedWithMe": false,
+          "canEdit": true,
+          "allowedOnlineMeetingProviders": [
+            "teamsForBusiness"
+          ],
+          "defaultOnlineMeetingProvider": "teamsForBusiness",
+          "isTallyingResponses": false,
+          "isRemovable": true,
+          "owner": {
+            "name": "Me Example",
+            "address": "colleague@example.com"
+          }
+        }
+      ]
+    }
+  }
+}

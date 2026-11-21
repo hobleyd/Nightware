@@ -1,0 +1,84 @@
+using Nightware.Application.Calendar.Calendars;
+using Nightware.Application.Common.Query;
+using Nightware.Domain.Calendar;
+using Nightware.Domain.Kernel;
+
+namespace Nightware.Application.Tests.Calendar.Calendars;
+
+public sealed class CalendarCollectionUseCaseTests
+{
+    private static readonly MailboxRef Me = new("me@example.com");
+    private static readonly EventCalendar Personal = new(new CalendarId("c1"), "Personal") { IsDefault = true };
+    private static readonly EventCalendar Work = new(new CalendarId("c2"), "Work") { IsRemovable = true };
+    private readonly ICalendarStore _store = Substitute.For<ICalendarStore>();
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    public CalendarCollectionUseCaseTests() =>
+        _store.ListAsync(Me, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<EventCalendar>>.Success([Personal, Work]));
+
+    [Fact]
+    public async Task Get_finds_by_id_or_the_default()
+    {
+        (await new GetCalendar(_store).ExecuteAsync(Me, null, Ct)).Value.ShouldBe(Personal);
+        (await new GetCalendar(_store).ExecuteAsync(Me, Work.Id, Ct)).Value.ShouldBe(Work);
+        (await new GetCalendar(_store).ExecuteAsync(Me, new CalendarId("x"), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task Create_maps_a_graph_colour_and_needs_a_name()
+    {
+        _store.CreateAsync(Me, "Projects", "#87D28E", Ct).Returns(Work);
+
+        (await new CreateCalendar(_store).ExecuteAsync(Me, " Projects ", "lightGreen", Ct)).Value.ShouldBe(Work);
+        (await new CreateCalendar(_store).ExecuteAsync(Me, " ", null, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await new CreateCalendar(_store).ExecuteAsync(Me, "x", "purple", Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+    }
+
+    [Fact]
+    public async Task Update_passes_name_and_colour_and_auto_clears_it()
+    {
+        _store.UpdateAsync(default, default, default, default, Ct).ReturnsForAnyArgs(Work);
+
+        await new UpdateCalendar(_store).ExecuteAsync(Me, Work.Id, "Office", "auto", Ct);
+        await new UpdateCalendar(_store).ExecuteAsync(Me, Work.Id, null, null, Ct);
+
+        await _store.Received(1).UpdateAsync(Me, Work.Id, "Office", string.Empty, Ct);
+        await _store.Received(1).UpdateAsync(Me, Work.Id, null, null, Ct);
+        (await new UpdateCalendar(_store).ExecuteAsync(Me, Work.Id, "", null, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+    }
+
+    [Fact]
+    public async Task The_default_calendar_cannot_be_deleted()
+    {
+        _store.DeleteAsync(Me, Work.Id, Ct).Returns(Result.Success());
+
+        (await new DeleteCalendar(_store).ExecuteAsync(Me, Personal.Id, Ct)).Error!.Code.ShouldBe("ErrorCannotDeleteDefaultCalendar");
+        (await new DeleteCalendar(_store).ExecuteAsync(Me, Work.Id, Ct)).IsSuccess.ShouldBeTrue();
+        (await new DeleteCalendar(_store).ExecuteAsync(Me, new CalendarId("x"), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task The_one_calendar_group_holds_every_calendar()
+    {
+        (await new ListGroupCalendars(_store).ExecuteAsync(Me, CalendarGroups.DefaultId, Ct)).Value.Count.ShouldBe(2);
+        (await new ListGroupCalendars(_store).ExecuteAsync(Me, "other", Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task Events_in_a_calendar_pass_through_and_an_overlong_view_is_refused()
+    {
+        var events = Substitute.For<ICalendarEventsIn>();
+        var start = DateTimeOffset.UnixEpoch;
+
+        (await new CalendarEventsIn(events).ViewAsync(Me, Work.Id, start, start.AddYears(11), ItemQuery.Default, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        await new CalendarEventsIn(events).ListAsync(Me, Work.Id, ItemQuery.Default, Ct);
+        await events.Received(1).ListAsync(Me, Work.Id, ItemQuery.Default, Ct);
+    }
+
+    [Theory]
+    [InlineData("#87d28e", "lightGreen")]
+    [InlineData("#0082C9", "auto")]
+    [InlineData(null, "auto")]
+    public void Stored_hex_reads_as_graph_colour(string? hex, string color) => CalendarColors.FromHex(hex).ShouldBe(color);
+}

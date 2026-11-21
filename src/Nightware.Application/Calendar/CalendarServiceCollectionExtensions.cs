@@ -24,6 +24,13 @@ public static class CalendarServiceCollectionExtensions
         services.TryAddScoped<GetMessageEvent>();
         services.TryAddScoped<RespondToMessage>();
         services.TryAddScoped<GetSchedule>();
+        services.TryAddScoped<Calendars.ListCalendars>();
+        services.TryAddScoped<Calendars.GetCalendar>();
+        services.TryAddScoped<Calendars.CreateCalendar>();
+        services.TryAddScoped<Calendars.UpdateCalendar>();
+        services.TryAddScoped<Calendars.DeleteCalendar>();
+        services.TryAddScoped<Calendars.ListGroupCalendars>();
+        services.TryAddScoped<Calendars.CalendarEventsIn>();
         return services;
     }
 }

@@ -1,0 +1,43 @@
+{
+  "operationId": "calendar.calendar-groups.list",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/calendarGroups",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/calendarGroups",
+      "value": [
+        {
+          "id": "AAMk-id-0012=",
+          "name": "My Calendars",
+          "classId": "00000000-0000-0000-0000-000000000001",
+          "changeKey": "AAMk-changeKey-0008="
+        },
+        {
+          "id": "AAMk-id-0013=",
+          "name": "Other Calendars",
+          "classId": "00000000-0000-0000-0000-000000000001",
+          "changeKey": "AAMk-changeKey-0009="
+        },
+        {
+          "id": "AAMk-id-0014=",
+          "name": "People's Calendars",
+          "classId": "00000000-0000-0000-0000-000000000002",
+          "changeKey": "AAMk-changeKey-0010="
+        }
+      ]
+    }
+  }
+}

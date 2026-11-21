@@ -11,6 +11,7 @@ public static class CalendarEndpoints
     public static RouteGroupBuilder MapCalendarEndpoints(this RouteGroupBuilder graph)
     {
         EventEndpoints.Map(graph);
+        CalendarCollectionEndpoints.Map(graph);
         SchedulingEndpoints.Map(graph);
         MessageEventEndpoints.Map(graph);
         ScheduleEndpoints.Map(graph);
