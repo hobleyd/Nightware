@@ -89,6 +89,12 @@ public sealed partial class IcsEditor
             vevent.Comments = [comment];
         }
 
+        // Every TZID the reply uses needs its VTIMEZONE (RFC 5545 §3.2.19): the stored ones come along.
+        foreach (var zone in stored.TimeZones.ToList())
+        {
+            reply.AddChild(zone);
+        }
+
         reply.Events.Add(vevent);
         return new CalendarSerializer().SerializeToString(reply) ?? string.Empty;
     }

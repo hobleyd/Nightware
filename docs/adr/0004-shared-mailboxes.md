@@ -102,7 +102,9 @@ uids (their usernames), so membership changes touch only the group.
   Groupware link. A member who has never signed in to Nextcloud is waiting.
 - Only a calendar's owner can share it, so each repair sets the user a fresh
   random password over OCS and acts as it once over WebDAV; nothing is stored.
-  A new account's sample event is removed.
+  A new account's sample event is removed. The user is created without an
+  email and given it afterwards: created with one, Nextcloud mails a welcome
+  to it (the shared mailbox's inbox). A password reset sends nothing.
 - The share must name the group URL-encoded (`principals/groups/mbx-a%40b`):
   Nextcloud accepts the raw `@` and grants nothing by it.
 - Deleting the mailbox deletes its Nextcloud user (and so the calendar and

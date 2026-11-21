@@ -46,6 +46,7 @@ public sealed class NextcloudSharedCalendarsTests : IDisposable
     {
         _nextcloud.Answer("GET", User, 200, 998, message: "User does not exist");
         _nextcloud.Answer("POST", Users, 200, 100, """{"id":"mbx-desk@acme.example"}""");
+        _nextcloud.Answer("PUT", User, 200, 100);
         Calendar("sample.ics");
         _nextcloud.AnswerRaw("DELETE", Personal + "sample.ics", 204, "");
         _nextcloud.AnswerRaw("POST", Personal, 200, "");
@@ -53,8 +54,10 @@ public sealed class NextcloudSharedCalendarsTests : IDisposable
         (await Calendars.EnsureAsync(Desk, "Help desk", "mbx-desk@acme.example", Ct)).IsSuccess.ShouldBeTrue();
 
         var created = JsonNode.Parse(Sent("POST", Users).Single().Body!)!.AsObject();
-        (created["userid"]!.GetValue<string>(), created["email"]!.GetValue<string>(), created["displayName"]!.GetValue<string>())
-            .ShouldBe(("mbx-desk@acme.example", "desk@acme.example", "Help desk"));
+        (created["userid"]!.GetValue<string>(), created["displayName"]!.GetValue<string>()).ShouldBe(("mbx-desk@acme.example", "Help desk"));
+        created.ContainsKey("email").ShouldBeFalse("created with an email, Nextcloud mails a welcome to the shared mailbox");
+        var email = JsonNode.Parse(Sent("PUT", User).Single().Body!)!.AsObject();
+        (email["key"]!.GetValue<string>(), email["value"]!.GetValue<string>()).ShouldBe(("email", "desk@acme.example"));
         created["password"]!.GetValue<string>().Length.ShouldBeGreaterThan(20);
         BasicUser(Sent("PROPFIND", Personal).Single()).ShouldBe("mbx-desk@acme.example", "the calendar is touched as its owner");
         Sent("DELETE", Personal + "sample.ics").ShouldHaveSingleItem();

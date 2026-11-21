@@ -72,11 +72,20 @@ internal sealed partial class NextcloudSharedCalendars(NextcloudProvisioningClie
         }
         else
         {
-            var body = new JsonObject { ["userid"] = uid, ["password"] = password, ["email"] = address.Value, ["displayName"] = displayName };
+            // The email is set after creating: created with one, Nextcloud mails a welcome to it, which is the
+            // shared mailbox's own inbox.
+            var body = new JsonObject { ["userid"] = uid, ["password"] = password, ["displayName"] = displayName };
             var added = await client.SendAsync(HttpMethod.Post, UsersPath, body, cancellationToken).ConfigureAwait(false);
             if (!added.IsSuccess || !added.Value.Succeeded)
             {
                 return added.IsSuccess ? added.Value.ToError($"Nextcloud refused the user {uid}.") : added.Error;
+            }
+
+            var mailed = await client.SendAsync(HttpMethod.Put, $"{UsersPath}/{Uri.EscapeDataString(uid)}", new JsonObject { ["key"] = "email", ["value"] = address.Value }, cancellationToken)
+                .ConfigureAwait(false);
+            if (!mailed.IsSuccess || !mailed.Value.Succeeded)
+            {
+                return mailed.IsSuccess ? mailed.Value.ToError($"No Nextcloud user {uid}.") : mailed.Error;
             }
 
             created = true;

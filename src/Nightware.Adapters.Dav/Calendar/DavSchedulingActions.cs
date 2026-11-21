@@ -35,24 +35,26 @@ internal sealed class DavSchedulingActions(DavEventResources resources, DavCalen
         }
 
         // The façade answers an outside organizer itself only when Sabre's reply would lose something.
-        ItipMessage? mailed = null;
-        if (sendResponse && (comment is not null || proposedNewTime is not null) && current.Organizer is { Address.Length: > 0 } organizer
-            && await IsOutsideAsync(organizer.Address, cancellationToken).ConfigureAwait(false))
+        var organizer = current.Organizer?.Address;
+        var mail = sendResponse && (comment is not null || proposedNewTime is not null) && !string.IsNullOrEmpty(organizer)
+            && await IsOutsideAsync(organizer, cancellationToken).ConfigureAwait(false);
+        var edited = editor.SetParticipation(stored.Body, mailbox.Address, response, stored.Id.RecurrenceId, comment, serverReplies: sendResponse && !mail);
+        if (!edited.IsSuccess)
         {
-            var reply = editor.Reply(stored.Body, mailbox.Address, response, stored.Id.RecurrenceId, comment, proposedNewTime);
+            return edited.Error;
+        }
+
+        ItipMessage? mailed = null;
+        if (mail)
+        {
+            // From the edited copy: an occurrence answered on its own has its component (and RECURRENCE-ID) only now.
+            var reply = editor.Reply(edited.Value, mailbox.Address, response, stored.Id.RecurrenceId, comment, proposedNewTime);
             if (!reply.IsSuccess)
             {
                 return reply.Error;
             }
 
-            var method = proposedNewTime is null ? "REPLY" : "COUNTER";
-            mailed = new ItipMessage(organizer.Address, Subject(response, proposedNewTime, current.Subject), comment ?? string.Empty, reply.Value, method);
-        }
-
-        var edited = editor.SetParticipation(stored.Body, mailbox.Address, response, stored.Id.RecurrenceId, comment, serverReplies: sendResponse && mailed is null);
-        if (!edited.IsSuccess)
-        {
-            return edited.Error;
+            mailed = new ItipMessage(organizer!, Subject(response, proposedNewTime, current.Subject), comment ?? string.Empty, reply.Value, proposedNewTime is null ? "REPLY" : "COUNTER");
         }
 
         var saved = await resources.SaveAsync(stored, edited.Value, cancellationToken).ConfigureAwait(false);

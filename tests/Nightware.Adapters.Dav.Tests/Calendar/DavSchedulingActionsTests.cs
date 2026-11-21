@@ -50,6 +50,22 @@ public sealed class DavSchedulingActionsTests : IDisposable
     }
 
     [Fact]
+    public async Task A_comment_on_one_occurrence_replies_for_that_occurrence_with_its_time_zone()
+    {
+        OutsideOrganizer();
+        _h.ServeIcs(BobSeriesHref, FromOutside(Read("series-bob.ics")));
+        _h.Serve("PUT", BobSeriesHref, 204);
+
+        var mail = (await _h.Scheduling.RespondAsync(BobMailbox, _h.OccurrenceIdOf(BobSeriesHref, Third), RsvpResponse.Decline, "Not that day", true, null, Ct)).Value!;
+
+        var calendar = mail.Calendar.Replace("\r\n ", string.Empty, StringComparison.Ordinal);
+        calendar.ShouldContain("RECURRENCE-ID;TZID=Australia/Sydney:20270118T090000");
+        calendar.ShouldContain("DTSTART;TZID=Australia/Sydney:20270118T090000");
+        calendar.ShouldContain("BEGIN:VTIMEZONE");
+        calendar.ShouldContain("TZID:Australia/Sydney");
+    }
+
+    [Fact]
     public async Task A_proposal_for_an_outside_organizer_is_a_counter()
     {
         OutsideOrganizer();

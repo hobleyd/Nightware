@@ -41,6 +41,14 @@
   A stored calendar object must not carry `METHOD` (415).
 - **Stalwart submission:** recipients on reserved test domains (`.example`,
   `.test`) are dropped from the envelope ("No recipients found").
+- **Inside or outside:** the façade calls an organizer outside when no
+  Nextcloud principal has the address. Nextcloud's user enumeration is not
+  restricted (`shareapi_restrict_user_enumeration*` unset, here and in
+  `nextcloud/configure.sh`), so every Nextcloud user is found; restricting it
+  would make other entities' people look outside.
+- **Nextcloud mail:** a user created over OCS *with* an email gets a welcome
+  mail at it; one given the email afterwards does not. An admin password reset
+  sends nothing.
 - **Not possible:** a comment or proposed time for an organizer inside
   Nextcloud. Sabre delivers the REPLY into their calendar and can't carry
   either; a mailed iTIP message would arrive as mail, not update the calendar.
