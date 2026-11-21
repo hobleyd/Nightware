@@ -24,6 +24,8 @@ internal static class MessageWriteEndpoints
             scope.MapPatch("/messages/{messageId}", UpdateAsync);
             scope.MapPost("/messages", CreateDraftAsync);
             scope.MapDelete("/messages/{messageId}", DeleteAsync);
+            scope.MapPatch("/mailFolders/{folderId}/messages/{messageId}", UpdateAsync);
+            scope.MapDelete("/mailFolders/{folderId}/messages/{messageId}", DeleteAsync);
             scope.MapPost("/messages/{messageId}/move", MoveAsync);
             scope.MapPost("/messages/{messageId}/copy", CopyAsync);
             scope.MapPost("/messages/{messageId}/permanentDelete", PermanentDeleteAsync);

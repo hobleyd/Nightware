@@ -1,0 +1,19 @@
+{
+  "operationId": "calendar.default.events.delete",
+  "provenance": "calendar.events.delete.json's exchange on Graph's alias route (https://learn.microsoft.com/graph/api/event-delete lists both); constructed, no tenant capture yet. Base: Constructed from the Graph v1.0 resource shape (delete event, 204) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
+  "request": {
+    "method": "DELETE",
+    "path": "/v1.0/me/calendar/events/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAENAAAiIsqMbYjsT5e-T7KzowPTAAAYbwXuAAA=",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 204,
+    "headers": {},
+    "body": null
+  }
+}

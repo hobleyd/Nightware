@@ -212,6 +212,9 @@ internal static class CalendarCollectionEndpoints
             scope.MapGet("/calendars/{calendarId}/events", ListEventsAsync);
             scope.MapPost("/calendars/{calendarId}/events", CreateEventAsync);
             scope.MapGet("/calendars/{calendarId}/calendarView", CalendarViewAsync);
+            scope.MapGet("/calendar/events", DefaultEventsAsync);
+            scope.MapPost("/calendar/events", DefaultCreateEventAsync);
+            scope.MapGet("/calendar/calendarView", DefaultCalendarViewAsync);
             scope.MapGet("/events/{eventId}/instances", InstancesAsync);
             scope.MapGet("/calendarView/delta", CalendarViewDeltaAsync);
             scope.MapGet("/reminderView(startDateTime={start},endDateTime={end})", ReminderViewAsync);
@@ -256,19 +259,58 @@ internal static class CalendarCollectionEndpoints
     private static async Task<IResult> DeleteAsync(Mailbox mailbox, string calendarId, DeleteCalendar useCase, CancellationToken cancellationToken) =>
         GraphResults.Match(await useCase.ExecuteAsync(mailbox.Ref, new CalendarId(calendarId), cancellationToken).ConfigureAwait(false));
 
-    private static async Task<IResult> ListEventsAsync(
-        Mailbox mailbox, string calendarId, ODataQuery odata, PreferHeader prefer, HttpContext http, CalendarEventsIn useCase, CancellationToken cancellationToken)
+    private static Task<IResult> ListEventsAsync(
+        Mailbox mailbox, string calendarId, ODataQuery odata, PreferHeader prefer, HttpContext http, CalendarEventsIn useCase, CancellationToken cancellationToken) =>
+        ListEventsInAsync(mailbox, calendarId, $"{Calendars(mailbox)}('{calendarId}')", odata, prefer, http, useCase, cancellationToken);
+
+    private static async Task<IResult> ListEventsInAsync(
+        Mailbox mailbox, string calendarId, string context, ODataQuery odata, PreferHeader prefer, HttpContext http, CalendarEventsIn useCase, CancellationToken cancellationToken)
     {
         var page = await useCase.ListAsync(mailbox.Ref, new CalendarId(calendarId), odata.Query, cancellationToken).ConfigureAwait(false);
         return GraphResults.Match(page, p =>
         {
             prefer.MarkTimeZoneApplied(http.Response);
-            return GraphResults.Page(p, e => EventDtoMapper.ToDto(e, prefer), $"{Calendars(mailbox)}('{calendarId}')/events", odata.Query);
+            return GraphResults.Page(p, e => EventDtoMapper.ToDto(e, prefer), $"{context}/events", odata.Query);
         });
     }
 
-    private static async Task<IResult> CalendarViewAsync(
-        Mailbox mailbox, string calendarId, ODataQuery odata, PreferHeader prefer, HttpContext http, CalendarEventsIn useCase, CancellationToken cancellationToken)
+    /// <summary>
+    /// <c>calendar/events</c>, <c>calendar/calendarView</c>: the default calendar's, through its own
+    /// <c>calendars/{id}/…</c> handling, so they can't drift from it.
+    /// </summary>
+    private static async Task<IResult> DefaultEventsAsync(
+        Mailbox mailbox, ODataQuery odata, PreferHeader prefer, HttpContext http, GetCalendar calendar, CalendarEventsIn useCase, CancellationToken cancellationToken)
+    {
+        var found = await calendar.ExecuteAsync(mailbox.Ref, null, cancellationToken).ConfigureAwait(false);
+        return found.IsSuccess
+            ? await ListEventsInAsync(mailbox, found.Value.Id.Value, $"{mailbox.ContextSegment}/calendar", odata, prefer, http, useCase, cancellationToken).ConfigureAwait(false)
+            : GraphResults.Error(found.Error);
+    }
+
+    private static async Task<IResult> DefaultCalendarViewAsync(
+        Mailbox mailbox, ODataQuery odata, PreferHeader prefer, HttpContext http, GetCalendar calendar, CalendarEventsIn useCase, CancellationToken cancellationToken)
+    {
+        var found = await calendar.ExecuteAsync(mailbox.Ref, null, cancellationToken).ConfigureAwait(false);
+        return found.IsSuccess
+            ? await CalendarViewInAsync(mailbox, found.Value.Id.Value, $"{mailbox.ContextSegment}/calendar", odata, prefer, http, useCase, cancellationToken).ConfigureAwait(false)
+            : GraphResults.Error(found.Error);
+    }
+
+    private static async Task<IResult> DefaultCreateEventAsync(
+        Mailbox mailbox, EventWriteDto? body, ODataQuery odata, PreferHeader prefer, HttpContext http, GetCalendar calendar, CalendarEventsIn useCase, CancellationToken cancellationToken)
+    {
+        var found = await calendar.ExecuteAsync(mailbox.Ref, null, cancellationToken).ConfigureAwait(false);
+        return found.IsSuccess
+            ? await CreateEventAsync(mailbox, found.Value.Id.Value, body, odata, prefer, http, useCase, cancellationToken).ConfigureAwait(false)
+            : GraphResults.Error(found.Error);
+    }
+
+    private static Task<IResult> CalendarViewAsync(
+        Mailbox mailbox, string calendarId, ODataQuery odata, PreferHeader prefer, HttpContext http, CalendarEventsIn useCase, CancellationToken cancellationToken) =>
+        CalendarViewInAsync(mailbox, calendarId, $"{Calendars(mailbox)}('{calendarId}')", odata, prefer, http, useCase, cancellationToken);
+
+    private static async Task<IResult> CalendarViewInAsync(
+        Mailbox mailbox, string calendarId, string context, ODataQuery odata, PreferHeader prefer, HttpContext http, CalendarEventsIn useCase, CancellationToken cancellationToken)
     {
         var start = EventEndpoints.ParseBound(http.Request.Query, EventEndpoints.StartDateTime);
         var end = EventEndpoints.ParseBound(http.Request.Query, EventEndpoints.EndDateTime);
@@ -281,7 +323,7 @@ internal static class CalendarCollectionEndpoints
         return GraphResults.Match(page, p =>
         {
             prefer.MarkTimeZoneApplied(http.Response);
-            return GraphResults.Page(p, e => EventDtoMapper.ToDto(e, prefer), $"{Calendars(mailbox)}('{calendarId}')/calendarView", odata.Query);
+            return GraphResults.Page(p, e => EventDtoMapper.ToDto(e, prefer), $"{context}/calendarView", odata.Query);
         });
     }
 

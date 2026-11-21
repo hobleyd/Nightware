@@ -328,8 +328,8 @@ operation:
 | Phase 14 — Contacts (Graph parity) | 18 |
 | Phase 15 — To Do (Graph parity) | 19 |
 | Phase 16 — Change notifications (Graph parity) | 10 |
-| Phase 18 — Settings, aliases, single items and $count (Graph parity) | 9 |
-| **Total** | **180** |
+| Phase 18 — Settings, aliases, single items and $count (Graph parity) | 24 |
+| **Total** | **195** |
 
 ### Phase 2 — Mail, read side
 
@@ -2250,6 +2250,21 @@ operation:
 | [`outlook.supported-time-zones`](#outlooksupported-time-zones) | GET | v1.0 | `{mailbox}/outlook/supportedTimeZones` | none |
 | [`outlook.supported-time-zones-standard`](#outlooksupported-time-zones-standard) | GET | v1.0 | `{mailbox}/outlook/supportedTimeZones(TimeZoneStandard={standard})` | none |
 | [`outlook.supported-languages`](#outlooksupported-languages) | GET | v1.0 | `{mailbox}/outlook/supportedLanguages` | none |
+| [`calendar.default.events.list`](#calendardefaulteventslist) | GET | v1.0 | `{mailbox}/calendar/events` | none |
+| [`calendar.default.events.create`](#calendardefaulteventscreate) | POST | v1.0 | `{mailbox}/calendar/events` | none |
+| [`calendar.default.calendar-view`](#calendardefaultcalendar-view) | GET | v1.0 | `{mailbox}/calendar/calendarView` | none |
+| [`calendar.default.events.get`](#calendardefaulteventsget) | GET | v1.0 | `{mailbox}/calendar/events/{eventId}` | none |
+| [`calendar.default.events.update`](#calendardefaulteventsupdate) | PATCH | v1.0 | `{mailbox}/calendar/events/{eventId}` | none |
+| [`calendar.default.events.delete`](#calendardefaulteventsdelete) | DELETE | v1.0 | `{mailbox}/calendar/events/{eventId}` | none |
+| [`calendar.calendars.events.get`](#calendarcalendarseventsget) | GET | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}` | none |
+| [`calendar.calendars.events.update`](#calendarcalendarseventsupdate) | PATCH | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}` | none |
+| [`calendar.calendars.events.delete`](#calendarcalendarseventsdelete) | DELETE | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}` | none |
+| [`mail.folders.messages.get`](#mailfoldersmessagesget) | GET | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}` | none |
+| [`mail.folders.messages.update`](#mailfoldersmessagesupdate) | PATCH | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}` | none |
+| [`mail.folders.messages.delete`](#mailfoldersmessagesdelete) | DELETE | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}` | none |
+| [`contacts.folders.contacts.get`](#contactsfolderscontactsget) | GET | v1.0 | `{mailbox}/contactFolders/{folderId}/contacts/{contactId}` | none |
+| [`contacts.folders.contacts.update`](#contactsfolderscontactsupdate) | PATCH | v1.0 | `{mailbox}/contactFolders/{folderId}/contacts/{contactId}` | none |
+| [`contacts.folders.contacts.delete`](#contactsfolderscontactsdelete) | DELETE | v1.0 | `{mailbox}/contactFolders/{folderId}/contacts/{contactId}` | none |
 
 #### `mailbox-settings.automatic-replies.get`
 
@@ -2331,5 +2346,148 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/outlookuser-supportedlanguages
 - Notes: A fixed list of locales with their native names (tools/outlook-catalog). The fixture keeps the first three.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/outlook.supported-languages.json`
+
+#### `calendar.default.events.list`
+
+**GET v1.0 `{mailbox}/calendar/events`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].subject`, `value[].start`, `value[].end`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/calendar-list-events
+- Notes: Graph's alias of calendar.calendars.events.list (calendar calendars events list): the same handling. The default calendar's, through the calendars/{id}/… handling.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.list.json`
+
+#### `calendar.default.events.create`
+
+**POST v1.0 `{mailbox}/calendar/events`** — forms: me, users; success: 201; paging: none
+
+- Request body: `subject`; `start`; `end`; `recurrence?`
+- Client reads: `id`, `subject`, `start`, `end`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/calendar-post-events
+- Notes: Graph's alias of calendar.calendars.events.create (calendar calendars events create): the same handling. The default calendar's, through the calendars/{id}/… handling.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.create.json`
+
+#### `calendar.default.calendar-view`
+
+**GET v1.0 `{mailbox}/calendar/calendarView`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].subject`, `value[].start`, `value[].end`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/calendar-list-calendarview
+- Notes: Graph's alias of calendar.calendars.calendar-view (calendar calendars calendar-view): the same handling. The default calendar's, through the calendars/{id}/… handling.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.calendar-view.json`
+
+#### `calendar.default.events.get`
+
+**GET v1.0 `{mailbox}/calendar/events/{eventId}`** — forms: me, users; success: 200; paging: none
+
+- Query: `$select` (variant 1): `id,iCalUId,subject,start,end,isAllDay,location,onlineMeeting,bodyPreview,showAs,isOrganizer,organizer,responseStatus,attendees,recurrence,isReminderOn,reminderMinutesBeforeStart,seriesMasterId`; `$select` (variant 2): `recurrence`
+- Headers: `Prefer: outlook.timezone="UTC"`
+- Client reads: `id`, `iCalUId`, `subject`, `start.dateTime`, `start.timeZone`, `end.dateTime`, `end.timeZone`, `isAllDay`, `location.displayName`, `onlineMeeting.joinUrl`, `onlineMeetingUrl (fallback, not selected)`, `bodyPreview`, `showAs`, `isOrganizer`, `responseStatus.response`, `organizer.emailAddress.{address,name}`, `attendees[].emailAddress.{address,name}`, `attendees[].status.response`, `attendees[].type`, `recurrence.pattern.{type,interval,daysOfWeek}`, `recurrence.range.{type,endDate,numberOfOccurrences}`, `isReminderOn`, `reminderMinutesBeforeStart`, `seriesMasterId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-get
+- Notes: Graph's alias of calendar.events.get (calendar events get): the same handling.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.get.json`
+
+#### `calendar.default.events.update`
+
+**PATCH v1.0 `{mailbox}/calendar/events/{eventId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `subject`; `isAllDay`; `isReminderOn`; `reminderMinutesBeforeStart?`; `isOnlineMeeting (only when true)`; `onlineMeetingProvider ('teamsForBusiness', only when online)`; `body {contentType:'text', content}?`; `start {dateTime 'YYYY-MM-DDTHH:MM:SS' local wall-clock, timeZone IANA e.g. 'Australia/Sydney'}`; `end {dateTime, timeZone}`; `locations[] {displayName, locationEmailAddress?, locationType 'conferenceRoom'?} (always sent, may be [])`; `location {displayName, …} (always sent; {displayName:''} when none)`; `attendees[] {emailAddress{address,name?}, type 'required'|'resource'} (always sent)`; `recurrence? {pattern{type daily|weekly|absoluteMonthly|absoluteYearly, interval, daysOfWeek?}, range{type endDate|numbered|noEnd, startDate 'YYYY-MM-DD', endDate?|numberOfOccurrences?}}`; `— or, accepting a proposed time: start/end only, {dateTime 'YYYY-MM-DDTHH:MM:SS.mmm' (no Z), timeZone:'UTC'}`
+- Client reads: `id`, `iCalUId`, `subject`, `start.dateTime`, `start.timeZone`, `end.dateTime`, `end.timeZone`, `isAllDay`, `location.displayName`, `onlineMeeting.joinUrl`, `onlineMeetingUrl (fallback, not selected)`, `bodyPreview`, `showAs`, `isOrganizer`, `responseStatus.response`, `organizer.emailAddress.{address,name}`, `attendees[].emailAddress.{address,name}`, `attendees[].status.response`, `attendees[].type`, `recurrence.pattern.{type,interval,daysOfWeek}`, `recurrence.range.{type,endDate,numberOfOccurrences}`, `isReminderOn`, `reminderMinutesBeforeStart`, `seriesMasterId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-update
+- Notes: Graph's alias of calendar.events.update (calendar events update): the same handling.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.update.json`
+
+#### `calendar.default.events.delete`
+
+**DELETE v1.0 `{mailbox}/calendar/events/{eventId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-delete
+- Notes: Graph's alias of calendar.events.delete (calendar events delete): the same handling.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.delete.json`
+
+#### `calendar.calendars.events.get`
+
+**GET v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}`** — forms: me, users; success: 200; paging: none
+
+- Query: `$select` (variant 1): `id,iCalUId,subject,start,end,isAllDay,location,onlineMeeting,bodyPreview,showAs,isOrganizer,organizer,responseStatus,attendees,recurrence,isReminderOn,reminderMinutesBeforeStart,seriesMasterId`; `$select` (variant 2): `recurrence`
+- Headers: `Prefer: outlook.timezone="UTC"`
+- Client reads: `id`, `iCalUId`, `subject`, `start.dateTime`, `start.timeZone`, `end.dateTime`, `end.timeZone`, `isAllDay`, `location.displayName`, `onlineMeeting.joinUrl`, `onlineMeetingUrl (fallback, not selected)`, `bodyPreview`, `showAs`, `isOrganizer`, `responseStatus.response`, `organizer.emailAddress.{address,name}`, `attendees[].emailAddress.{address,name}`, `attendees[].status.response`, `attendees[].type`, `recurrence.pattern.{type,interval,daysOfWeek}`, `recurrence.range.{type,endDate,numberOfOccurrences}`, `isReminderOn`, `reminderMinutesBeforeStart`, `seriesMasterId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-get
+- Notes: Graph's alias of calendar.events.get (calendar events get): the same handling. The parent segment is not checked: ids are unique in the mailbox.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.get.json`
+
+#### `calendar.calendars.events.update`
+
+**PATCH v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `subject`; `isAllDay`; `isReminderOn`; `reminderMinutesBeforeStart?`; `isOnlineMeeting (only when true)`; `onlineMeetingProvider ('teamsForBusiness', only when online)`; `body {contentType:'text', content}?`; `start {dateTime 'YYYY-MM-DDTHH:MM:SS' local wall-clock, timeZone IANA e.g. 'Australia/Sydney'}`; `end {dateTime, timeZone}`; `locations[] {displayName, locationEmailAddress?, locationType 'conferenceRoom'?} (always sent, may be [])`; `location {displayName, …} (always sent; {displayName:''} when none)`; `attendees[] {emailAddress{address,name?}, type 'required'|'resource'} (always sent)`; `recurrence? {pattern{type daily|weekly|absoluteMonthly|absoluteYearly, interval, daysOfWeek?}, range{type endDate|numbered|noEnd, startDate 'YYYY-MM-DD', endDate?|numberOfOccurrences?}}`; `— or, accepting a proposed time: start/end only, {dateTime 'YYYY-MM-DDTHH:MM:SS.mmm' (no Z), timeZone:'UTC'}`
+- Client reads: `id`, `iCalUId`, `subject`, `start.dateTime`, `start.timeZone`, `end.dateTime`, `end.timeZone`, `isAllDay`, `location.displayName`, `onlineMeeting.joinUrl`, `onlineMeetingUrl (fallback, not selected)`, `bodyPreview`, `showAs`, `isOrganizer`, `responseStatus.response`, `organizer.emailAddress.{address,name}`, `attendees[].emailAddress.{address,name}`, `attendees[].status.response`, `attendees[].type`, `recurrence.pattern.{type,interval,daysOfWeek}`, `recurrence.range.{type,endDate,numberOfOccurrences}`, `isReminderOn`, `reminderMinutesBeforeStart`, `seriesMasterId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-update
+- Notes: Graph's alias of calendar.events.update (calendar events update): the same handling. The parent segment is not checked: ids are unique in the mailbox.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.update.json`
+
+#### `calendar.calendars.events.delete`
+
+**DELETE v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-delete
+- Notes: Graph's alias of calendar.events.delete (calendar events delete): the same handling. The parent segment is not checked: ids are unique in the mailbox.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.delete.json`
+
+#### `mail.folders.messages.get`
+
+**GET v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}`** — forms: me, users; success: 200; paging: none
+
+- Query: `$expand`: `attachments($select=id,name,contentType,size,isInline)`
+- Headers: `Prefer: outlook.timezone="UTC"`
+- Client reads: `@odata.type`, `id`, `subject`, `from.emailAddress.{address,name}`, `{toRecipients|ccRecipients|bccRecipients}[].emailAddress.address`, `body.content`, `body.contentType`, `bodyPreview`, `isRead`, `flag.flagStatus`, `receivedDateTime`, `sentDateTime`, `importance`, `conversationId`, `hasAttachments`, `parentFolderId`, `meetingMessageType (eventMessage)`, `startDateTime.{dateTime,timeZone} (eventMessage)`, `endDateTime.{dateTime,timeZone} (eventMessage)`, `location.displayName (eventMessage)`, `isAllDay (eventMessage)`, `proposedNewTime.{start,end}.dateTime (eventMessageResponse)`, `attachments[].{id,name,contentType,size,isInline,@odata.type}`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-get
+- Notes: Graph's alias of mail.messages.get (mail messages get): the same handling. The parent segment is not checked: ids are unique in the mailbox.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.get.json`
+
+#### `mail.folders.messages.update`
+
+**PATCH v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}`** — forms: me, users; success: 200; paging: none
+
+- Query: `$select` (always): `id,subject,from,toRecipients,ccRecipients,bccRecipients,bodyPreview,isRead,flag,receivedDateTime,sentDateTime,importance,conversationId,hasAttachments,parentFolderId`
+- Request body: `isRead`
+- Client reads: `id`, `subject`, `from.emailAddress.address`, `from.emailAddress.name`, `toRecipients[].emailAddress.{address,name}`, `ccRecipients[].emailAddress.{address,name}`, `bccRecipients[].emailAddress.{address,name}`, `bodyPreview`, `isRead`, `flag.flagStatus`, `receivedDateTime`, `sentDateTime`, `importance`, `conversationId`, `hasAttachments`, `parentFolderId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-update
+- Notes: Graph's alias of mail.messages.update-read-state (mail messages update-read-state): the same handling. The parent segment is not checked: ids are unique in the mailbox.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.update.json`
+
+#### `mail.folders.messages.delete`
+
+**DELETE v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-delete
+- Notes: Graph's alias of mail.messages.delete (mail messages delete): the same handling. The parent segment is not checked: ids are unique in the mailbox.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.delete.json`
+
+#### `contacts.folders.contacts.get`
+
+**GET v1.0 `{mailbox}/contactFolders/{folderId}/contacts/{contactId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `createdDateTime`, `lastModifiedDateTime`, `changeKey`, `categories`, `parentFolderId`, `birthday`, `fileAs`, `displayName`, `givenName`, `initials`, `middleName`, `nickName`, `surname`, `title`, `yomiGivenName`, `yomiSurname`, `yomiCompanyName`, `generation`, `imAddresses`, `jobTitle`, `companyName`, `department`, `officeLocation`, `profession`, `businessHomePage`, `assistantName`, `manager`, `homePhones`, `mobilePhone`, `businessPhones`, `spouseName`, `personalNotes`, `children`, `emailAddresses`, `primaryEmailAddress`, `homeAddress`, `businessAddress`, `otherAddress`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/contact-get
+- Notes: Graph's alias of contacts.get (contacts get): the same handling. The parent segment is not checked: ids are unique in the mailbox.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.contacts.get.json`
+
+#### `contacts.folders.contacts.update`
+
+**PATCH v1.0 `{mailbox}/contactFolders/{folderId}/contacts/{contactId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `categories`; `birthday`; `fileAs`; `displayName`; `givenName`; `initials`; `middleName`; `nickName`; `surname`; `title`; `yomiGivenName`; `yomiSurname`; `yomiCompanyName`; `generation`; `imAddresses`; `jobTitle`; `companyName`; `department`; `officeLocation`; `profession`; `businessHomePage`; `assistantName`; `manager`; `homePhones`; `mobilePhone`; `businessPhones`; `spouseName`; `personalNotes`; `children`; `emailAddresses`; `homeAddress`; `businessAddress`; `otherAddress`
+- Client reads: `id`, `createdDateTime`, `lastModifiedDateTime`, `changeKey`, `categories`, `parentFolderId`, `birthday`, `fileAs`, `displayName`, `givenName`, `initials`, `middleName`, `nickName`, `surname`, `title`, `yomiGivenName`, `yomiSurname`, `yomiCompanyName`, `generation`, `imAddresses`, `jobTitle`, `companyName`, `department`, `officeLocation`, `profession`, `businessHomePage`, `assistantName`, `manager`, `homePhones`, `mobilePhone`, `businessPhones`, `spouseName`, `personalNotes`, `children`, `emailAddresses`, `primaryEmailAddress`, `homeAddress`, `businessAddress`, `otherAddress`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/contact-update
+- Notes: Graph's alias of contacts.update (contacts update): the same handling. The parent segment is not checked: ids are unique in the mailbox.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.contacts.update.json`
+
+#### `contacts.folders.contacts.delete`
+
+**DELETE v1.0 `{mailbox}/contactFolders/{folderId}/contacts/{contactId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/contact-delete
+- Notes: Graph's alias of contacts.delete (contacts delete): the same handling. The parent segment is not checked: ids are unique in the mailbox.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.contacts.delete.json`
 
 <!-- END GENERATED -->

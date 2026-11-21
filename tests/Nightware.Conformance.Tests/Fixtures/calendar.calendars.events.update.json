@@ -1,0 +1,94 @@
+{
+  "operationId": "calendar.calendars.events.update",
+  "provenance": "calendar.events.update.json's exchange on Graph's alias route (https://learn.microsoft.com/graph/api/event-update lists both); constructed, no tenant capture yet. Base: Shape after nightmail test/data/datasources/remote/graph_api_calendar_test.dart:499 'sends the new time as UTC wall-clock labelled UTC'; body constructed with example.com data",
+  "request": {
+    "method": "PATCH",
+    "path": "/v1.0/me/calendars/AAMk-id-0001=/events/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAENAAAiIsqMbYjsT5e-T7KzowPTAAAYbwXuAAA=",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "start": {
+        "dateTime": "2026-06-10T10:00:00.000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-06-10T11:00:00.000",
+        "timeZone": "UTC"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/events/$entity",
+      "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAENAAAiIsqMbYjsT5e-T7KzowPTAAAYbwXuAAA=",
+      "iCalUId": "040000008200E00074C5B7101A82E00800000000A1B2C3D4E5F6D901000000000000000010000000F1E2D3C4B5A69788",
+      "subject": "Quarterly review",
+      "bodyPreview": "Agenda: Q2 numbers.",
+      "isAllDay": false,
+      "showAs": "busy",
+      "isOrganizer": true,
+      "isReminderOn": true,
+      "reminderMinutesBeforeStart": 15,
+      "seriesMasterId": null,
+      "responseStatus": {
+        "response": "organizer",
+        "time": "0001-01-01T00:00:00Z"
+      },
+      "start": {
+        "dateTime": "2026-06-10T10:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-06-10T11:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "location": {
+        "displayName": "Boardroom",
+        "locationType": "conferenceRoom",
+        "locationEmailAddress": "boardroom@example.com"
+      },
+      "recurrence": null,
+      "attendees": [
+        {
+          "type": "required",
+          "status": {
+            "response": "accepted",
+            "time": "2026-06-02T01:00:00Z"
+          },
+          "emailAddress": {
+            "name": "Sam Attendee",
+            "address": "sam@example.com"
+          }
+        },
+        {
+          "type": "resource",
+          "status": {
+            "response": "accepted",
+            "time": "2026-06-02T01:00:05Z"
+          },
+          "emailAddress": {
+            "name": "Boardroom",
+            "address": "boardroom@example.com"
+          }
+        }
+      ],
+      "organizer": {
+        "emailAddress": {
+          "name": "Me Example",
+          "address": "me@example.com"
+        }
+      },
+      "onlineMeeting": {
+        "joinUrl": "https://teams.example.com/l/meetup-join/19%3ameeting_abc"
+      }
+    }
+  }
+}

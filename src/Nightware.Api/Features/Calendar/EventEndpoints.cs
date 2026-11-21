@@ -27,6 +27,15 @@ internal static class EventEndpoints
             scope.MapGet("/events/{eventId}", GetAsync);
             scope.MapPatch("/events/{eventId}", UpdateAsync);
             scope.MapDelete("/events/{eventId}", DeleteAsync);
+
+            // Graph's calendar-scoped item routes. An event id names its resource, unique in the mailbox, so the
+            // calendar segment is not checked.
+            foreach (var prefix in new[] { "/calendar/events/{eventId}", "/calendars/{calendarId}/events/{eventId}" })
+            {
+                scope.MapGet(prefix, GetAsync);
+                scope.MapPatch(prefix, UpdateAsync);
+                scope.MapDelete(prefix, DeleteAsync);
+            }
         }
     }
 

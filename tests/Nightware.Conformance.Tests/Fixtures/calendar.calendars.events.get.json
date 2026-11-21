@@ -1,0 +1,47 @@
+{
+  "operationId": "calendar.calendars.events.get",
+  "provenance": "calendar.events.get.json's exchange on Graph's alias route (https://learn.microsoft.com/graph/api/event-get lists both); constructed, no tenant capture yet. Base: client code graph_api_datasource_impl.dart:860-887 (recurrence-only fetch); Constructed from the Graph v1.0 resource shape (event recurrence) — not copied verbatim from Microsoft docs; trimmed to the fields the client reads",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/calendars/AAMk-id-0001=/events/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAENAAAiIsqMbYjsT5e-T7KzowPTAAAYbwXuAAA=",
+    "query": {
+      "$select": "recurrence"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/events(recurrence)/$entity",
+      "@odata.etag": "W/\"IiLKjG2I7E+Xvk+ys6MD0wAAGG8F7g==\"",
+      "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAENAAAiIsqMbYjsT5e-T7KzowPTAAAYbwXuAAA=",
+      "recurrence": {
+        "pattern": {
+          "type": "weekly",
+          "interval": 1,
+          "month": 0,
+          "dayOfMonth": 0,
+          "daysOfWeek": [
+            "thursday"
+          ],
+          "firstDayOfWeek": "sunday",
+          "index": "first"
+        },
+        "range": {
+          "type": "endDate",
+          "startDate": "2026-06-11",
+          "endDate": "2026-12-31",
+          "recurrenceTimeZone": "AUS Eastern Standard Time",
+          "numberOfOccurrences": 0
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "operationId": "calendar.default.events.create",
+  "provenance": "calendar.calendars.events.create.json's exchange on Graph's alias route (https://learn.microsoft.com/graph/api/calendar-post-events lists both); constructed, no tenant capture yet. Base: Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/calendar/events",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Prefer": "outlook.timezone=\"UTC\"",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "subject": "Nightware capture ae6347 series",
+      "start": {
+        "dateTime": "2026-11-21T10:00:00",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-11-21T10:30:00",
+        "timeZone": "UTC"
+      },
+      "isReminderOn": true,
+      "reminderMinutesBeforeStart": 15,
+      "recurrence": {
+        "pattern": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            "saturday"
+          ]
+        },
+        "range": {
+          "type": "numbered",
+          "startDate": "2026-11-21",
+          "numberOfOccurrences": 4
+        }
+      }
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8",
+      "Location": "https://graph.microsoft.com/v1.0/users('22222222-2222-2222-2222-222222222222')/events('AAMk-id-0005=')"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/calendars('AAMk-id-0004%3D')/events/$entity",
+      "@odata.etag": "W/\"AAMk-changeKey-0006=\"",
+      "id": "AAMk-id-0005=",
+      "createdDateTime": "2026-11-20T22:38:43.9170624Z",
+      "lastModifiedDateTime": "2026-11-20T22:38:43.9865402Z",
+      "changeKey": "AAMk-changeKey-0006=",
+      "categories": [],
+      "transactionId": null,
+      "originalStartTimeZone": "UTC",
+      "originalEndTimeZone": "UTC",
+      "iCalUId": "AAMk-iCalUId-0001=",
+      "uid": "AAMk-iCalUId-0001=",
+      "reminderMinutesBeforeStart": 15,
+      "isReminderOn": true,
+      "hasAttachments": false,
+      "subject": "Nightware capture ae6347 series",
+      "bodyPreview": "",
+      "importance": "normal",
+      "sensitivity": "normal",
+      "isAllDay": false,
+      "isCancelled": false,
+      "isOrganizer": true,
+      "responseRequested": true,
+      "seriesMasterId": null,
+      "showAs": "busy",
+      "type": "seriesMaster",
+      "webLink": "https://outlook.office365.com/owa/?itemid=AAMk-ref-0001=&exvsurl=1&path=/calendar/item",
+      "onlineMeetingUrl": null,
+      "isOnlineMeeting": false,
+      "onlineMeetingProvider": "unknown",
+      "allowNewTimeProposals": true,
+      "occurrenceId": null,
+      "isDraft": false,
+      "hideAttendees": false,
+      "responseStatus": {
+        "response": "organizer",
+        "time": "0001-01-01T00:00:00Z"
+      },
+      "body": {
+        "contentType": "html",
+        "content": "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\r\n<meta name=\"Generator\" content=\"Microsoft Exchange Server\">\r\n<!-- converted from text -->\r\n<style><!-- .EmailQuote { margin-left: 1pt; padding-left: 4pt; border-left: #800000 2px solid; } --></style></head>\r\n<body>\r\n<font size=\"2\"><span style=\"font-size:11pt;\"><div class=\"PlainText\">&nbsp;</div></span></font>\r\n</body>\r\n</html>\r\n"
+      },
+      "start": {
+        "dateTime": "2026-11-21T10:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-11-21T10:30:00.0000000",
+        "timeZone": "UTC"
+      },
+      "location": {
+        "displayName": "",
+        "locationType": "default",
+        "uniqueIdType": "unknown",
+        "address": {},
+        "coordinates": {}
+      },
+      "locations": [],
+      "recurrence": {
+        "pattern": {
+          "type": "weekly",
+          "interval": 1,
+          "month": 0,
+          "dayOfMonth": 0,
+          "daysOfWeek": [
+            "saturday"
+          ],
+          "firstDayOfWeek": "sunday",
+          "index": "first"
+        },
+        "range": {
+          "type": "numbered",
+          "startDate": "2026-11-21",
+          "endDate": "0001-01-01",
+          "recurrenceTimeZone": "UTC",
+          "numberOfOccurrences": 4
+        }
+      },
+      "attendees": [],
+      "organizer": {
+        "emailAddress": {
+          "name": "Me Example",
+          "address": "colleague@example.com"
+        }
+      },
+      "onlineMeeting": null
+    }
+  }
+}

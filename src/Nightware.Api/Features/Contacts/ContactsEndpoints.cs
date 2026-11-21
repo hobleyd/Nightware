@@ -29,6 +29,10 @@ public static class ContactsEndpoints
             scope.MapGet("/contacts/{contactId}", GetAsync);
             scope.MapPatch("/contacts/{contactId}", UpdateAsync);
             scope.MapDelete("/contacts/{contactId}", DeleteAsync);
+            // Graph's folder-scoped item routes. Contact ids are unique in the mailbox, so the folder is not checked.
+            scope.MapGet("/contactFolders/{folderId}/contacts/{contactId}", GetAsync);
+            scope.MapPatch("/contactFolders/{folderId}/contacts/{contactId}", UpdateAsync);
+            scope.MapDelete("/contactFolders/{folderId}/contacts/{contactId}", DeleteAsync);
             scope.MapGet("/contacts/{contactId}/photo/$value", GetPhotoAsync);
             scope.MapPut("/contacts/{contactId}/photo/$value", SetPhotoAsync);
 

@@ -1,0 +1,92 @@
+{
+  "operationId": "mail.folders.messages.get",
+  "provenance": "mail.messages.get.json's exchange on Graph's alias route (https://learn.microsoft.com/graph/api/message-get lists both); constructed, no tenant capture yet. Base: Shape after nightmail test/data/datasources/remote/message_parser_isolate_test.dart:384-460 (parseGraphFullMessage: inline attachments, .ics); graph_api_calendar_test.dart:433 (@odata.type eventMessageResponse); body constructed with example.com data",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/mailFolders/inbox/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=",
+    "query": {
+      "$expand": "attachments($select=id,name,contentType,size,isInline)"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Prefer": "outlook.timezone=\"UTC\""
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/messages(attachments(id,name,contentType,size,isInline))/$entity",
+      "@odata.type": "#microsoft.graph.eventMessageRequest",
+      "@odata.etag": "W/\"DAAAABYAAAAiIsqMbYjsT5e+T7KzowPTAAAYbwXu\"",
+      "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=",
+      "receivedDateTime": "2026-06-01T10:00:00Z",
+      "sentDateTime": "2026-06-01T09:59:58Z",
+      "hasAttachments": true,
+      "subject": "Quarterly review",
+      "bodyPreview": "Hi, the Q2 numbers are attached.",
+      "importance": "normal",
+      "parentFolderId": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAuAAAAAAAiQ8W967B7TKBjgx9rVEURAQAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAA=",
+      "conversationId": "AAQkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OAAQAO8aPpjxtUhAlI2JxnVmPSI=",
+      "isRead": false,
+      "from": {
+        "emailAddress": {
+          "name": "Alex Sender",
+          "address": "alex@example.com"
+        }
+      },
+      "toRecipients": [
+        {
+          "emailAddress": {
+            "name": "Me Example",
+            "address": "me@example.com"
+          }
+        }
+      ],
+      "ccRecipients": [],
+      "bccRecipients": [],
+      "flag": {
+        "flagStatus": "notFlagged"
+      },
+      "body": {
+        "contentType": "html",
+        "content": "<html><body><p>Agenda: Q2 numbers.</p><img src=\"cid:logo@example.com\"></body></html>"
+      },
+      "meetingMessageType": "meetingRequest",
+      "startDateTime": {
+        "dateTime": "2026-06-10T09:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "endDateTime": {
+        "dateTime": "2026-06-10T10:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "location": {
+        "displayName": "Boardroom"
+      },
+      "isAllDay": false,
+      "attachments": [
+        {
+          "@odata.type": "#microsoft.graph.fileAttachment",
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAABEgAQAKz6Oe_TU0RIs2Gu-ZyqAQs=",
+          "name": "q2.xlsx",
+          "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "size": 18432,
+          "isInline": false
+        },
+        {
+          "@odata.type": "#microsoft.graph.fileAttachment",
+          "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAABEgAQAB2nJ2D2OlBJopWQ8IC1ngE=",
+          "name": "logo.png",
+          "contentType": "image/png",
+          "size": 2048,
+          "isInline": true
+        }
+      ]
+    }
+  }
+}

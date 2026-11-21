@@ -386,6 +386,40 @@ SETTINGS = [
     step("outlook.supported-languages", "GET", "/v1.0/me/outlook/supportedLanguages"),
 ]
 
+EVENT = {
+    "subject": "Nightware capture ${run} alias",
+    "start": {"dateTime": "${tomorrow10}", "timeZone": "UTC"},
+    "end": {"dateTime": "${tomorrow1030}", "timeZone": "UTC"},
+}
+
+ALIASES = [
+    SELF_MAIL, FIND_SELF_MAIL,
+    step("mail.folders.messages.get", "GET", "/v1.0/me/mailFolders/inbox/messages/${msgId}"),
+    step("mail.folders.messages.update", "PATCH", "/v1.0/me/mailFolders/inbox/messages/${msgId}", body={"isRead": True}),
+    step("mail.folders.messages.delete", "DELETE", "/v1.0/me/mailFolders/inbox/messages/${msgId}"),
+
+    setup("GET", "/v1.0/me/calendar", query={"$select": "id"}, save={"calId": "id"}),
+    step("calendar.default.events.create", "POST", "/v1.0/me/calendar/events", headers=UTC, body=EVENT, save={"evId": "id"}),
+    step("calendar.default.events.list", "GET", "/v1.0/me/calendar/events", headers=UTC, query={"$top": "5"}),
+    step("calendar.default.calendar-view", "GET", "/v1.0/me/calendar/calendarView",
+         headers=UTC, query={"startDateTime": "${windowStart}", "endDateTime": "${windowEnd}"}),
+    step("calendar.default.events.get", "GET", "/v1.0/me/calendar/events/${evId}", headers=UTC),
+    step("calendar.calendars.events.get", "GET", "/v1.0/me/calendars/${calId}/events/${evId}", headers=UTC),
+    step("calendar.default.events.update", "PATCH", "/v1.0/me/calendar/events/${evId}", headers=UTC,
+         body={"subject": "Nightware capture ${run} alias renamed"}),
+    step("calendar.calendars.events.update", "PATCH", "/v1.0/me/calendars/${calId}/events/${evId}", headers=UTC,
+         body={"subject": "Nightware capture ${run} alias renamed again"}),
+    step("calendar.calendars.events.delete", "DELETE", "/v1.0/me/calendars/${calId}/events/${evId}", always=True),
+    setup("POST", "/v1.0/me/calendar/events", headers=UTC, body=EVENT, save={"evId": "id"}),
+    step("calendar.default.events.delete", "DELETE", "/v1.0/me/calendar/events/${evId}", always=True),
+
+    setup("POST", "/v1.0/me/contacts", body={"givenName": "Nightware", "surname": "Capture ${run}"},
+          save={"cId": "id", "cfId": "parentFolderId"}),
+    step("contacts.folders.contacts.get", "GET", "/v1.0/me/contactFolders/${cfId}/contacts/${cId}"),
+    step("contacts.folders.contacts.update", "PATCH", "/v1.0/me/contactFolders/${cfId}/contacts/${cId}", body={"jobTitle": "Tester"}),
+    step("contacts.folders.contacts.delete", "DELETE", "/v1.0/me/contactFolders/${cfId}/contacts/${cId}", always=True),
+]
+
 PHASES = {
     11: [("batch", BATCH)],
     12: [("mail", MAIL)],
@@ -393,5 +427,5 @@ PHASES = {
     14: [("contacts", CONTACTS)],
     15: [("todo", TODO)],
     16: [("notifications", NOTIFICATIONS)],
-    18: [("settings", SETTINGS)],
+    18: [("settings", SETTINGS), ("aliases", ALIASES)],
 }

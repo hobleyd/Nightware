@@ -2005,6 +2005,1965 @@
         }
       }
     },
+    "/me/calendars/{calendarId}/events/{eventId}": {
+      "delete": {
+        "operationId": "calendar.calendars.events.delete",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar calendars events: delete",
+        "description": "Graph's alias of calendar.events.delete (calendar events delete): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-delete",
+        "parameters": [
+          {
+            "name": "calendarId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "calendar.calendars.events.get",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar calendars events: get",
+        "description": "Graph's alias of calendar.events.get (calendar events get): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-get",
+        "parameters": [
+          {
+            "name": "calendarId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "required": false,
+            "description": "Properties to return, comma-separated.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "id,iCalUId,subject,start,end,isAllDay,location,onlineMeeting,bodyPreview,showAs,isOrganizer,organizer,responseStatus,attendees,recurrence,isReminderOn,reminderMinutesBeforeStart,seriesMasterId"
+          },
+          {
+            "name": "Prefer",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "outlook.timezone=\"UTC\""
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "iCalUId": {},
+                    "subject": {},
+                    "start": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "end": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "isAllDay": {},
+                    "location": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {}
+                      }
+                    },
+                    "onlineMeeting": {
+                      "type": "object",
+                      "properties": {
+                        "joinUrl": {}
+                      }
+                    },
+                    "onlineMeetingUrl (fallback, not selected)": {},
+                    "bodyPreview": {},
+                    "showAs": {},
+                    "isOrganizer": {},
+                    "responseStatus": {
+                      "type": "object",
+                      "properties": {
+                        "response": {}
+                      }
+                    },
+                    "organizer": {
+                      "type": "object",
+                      "properties": {
+                        "emailAddress": {
+                          "type": "object",
+                          "properties": {
+                            "{address,name}": {}
+                          }
+                        }
+                      }
+                    },
+                    "attendees": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "{address,name}": {}
+                            }
+                          },
+                          "status": {
+                            "type": "object",
+                            "properties": {
+                              "response": {}
+                            }
+                          },
+                          "type": {}
+                        }
+                      }
+                    },
+                    "recurrence": {
+                      "type": "object",
+                      "properties": {
+                        "pattern": {
+                          "type": "object",
+                          "properties": {
+                            "{type,interval,daysOfWeek}": {}
+                          }
+                        },
+                        "range": {
+                          "type": "object",
+                          "properties": {
+                            "{type,endDate,numberOfOccurrences}": {}
+                          }
+                        }
+                      }
+                    },
+                    "isReminderOn": {},
+                    "reminderMinutesBeforeStart": {},
+                    "seriesMasterId": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "calendar.calendars.events.update",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar calendars events: update",
+        "description": "Graph's alias of calendar.events.update (calendar events update): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-update",
+        "parameters": [
+          {
+            "name": "calendarId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subject": {},
+                  "isAllDay": {},
+                  "isReminderOn": {},
+                  "reminderMinutesBeforeStart?": {},
+                  "isOnlineMeeting (only when true)": {},
+                  "onlineMeetingProvider ('teamsForBusiness', only when online)": {},
+                  "body {contentType:'text', content}?": {},
+                  "start {dateTime 'YYYY-MM-DDTHH:MM:SS' local wall-clock, timeZone IANA e": {
+                    "type": "object",
+                    "properties": {
+                      "g": {
+                        "type": "object",
+                        "properties": {
+                          " 'Australia/Sydney'}": {}
+                        }
+                      }
+                    }
+                  },
+                  "end {dateTime, timeZone}": {},
+                  "locations[] {displayName, locationEmailAddress?, locationType 'conferenceRoom'?} (always sent, may be [])": {},
+                  "location {displayName, …} (always sent; {displayName:''} when none)": {},
+                  "attendees[] {emailAddress{address,name?}, type 'required'|'resource'} (always sent)": {},
+                  "recurrence? {pattern{type daily|weekly|absoluteMonthly|absoluteYearly, interval, daysOfWeek?}, range{type endDate|numbered|noEnd, startDate 'YYYY-MM-DD', endDate?|numberOfOccurrences?}}": {},
+                  "— or, accepting a proposed time: start/end only, {dateTime 'YYYY-MM-DDTHH:MM:SS": {
+                    "type": "object",
+                    "properties": {
+                      "mmm' (no Z), timeZone:'UTC'}": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "iCalUId": {},
+                    "subject": {},
+                    "start": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "end": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "isAllDay": {},
+                    "location": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {}
+                      }
+                    },
+                    "onlineMeeting": {
+                      "type": "object",
+                      "properties": {
+                        "joinUrl": {}
+                      }
+                    },
+                    "onlineMeetingUrl (fallback, not selected)": {},
+                    "bodyPreview": {},
+                    "showAs": {},
+                    "isOrganizer": {},
+                    "responseStatus": {
+                      "type": "object",
+                      "properties": {
+                        "response": {}
+                      }
+                    },
+                    "organizer": {
+                      "type": "object",
+                      "properties": {
+                        "emailAddress": {
+                          "type": "object",
+                          "properties": {
+                            "{address,name}": {}
+                          }
+                        }
+                      }
+                    },
+                    "attendees": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "{address,name}": {}
+                            }
+                          },
+                          "status": {
+                            "type": "object",
+                            "properties": {
+                              "response": {}
+                            }
+                          },
+                          "type": {}
+                        }
+                      }
+                    },
+                    "recurrence": {
+                      "type": "object",
+                      "properties": {
+                        "pattern": {
+                          "type": "object",
+                          "properties": {
+                            "{type,interval,daysOfWeek}": {}
+                          }
+                        },
+                        "range": {
+                          "type": "object",
+                          "properties": {
+                            "{type,endDate,numberOfOccurrences}": {}
+                          }
+                        }
+                      }
+                    },
+                    "isReminderOn": {},
+                    "reminderMinutesBeforeStart": {},
+                    "seriesMasterId": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/calendars/{calendarId}/events/{eventId}": {
+      "delete": {
+        "operationId": "calendar.calendars.events.delete.users",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar calendars events: delete",
+        "description": "Graph's alias of calendar.events.delete (calendar events delete): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-delete",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "calendarId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "calendar.calendars.events.get.users",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar calendars events: get",
+        "description": "Graph's alias of calendar.events.get (calendar events get): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "calendarId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "required": false,
+            "description": "Properties to return, comma-separated.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "id,iCalUId,subject,start,end,isAllDay,location,onlineMeeting,bodyPreview,showAs,isOrganizer,organizer,responseStatus,attendees,recurrence,isReminderOn,reminderMinutesBeforeStart,seriesMasterId"
+          },
+          {
+            "name": "Prefer",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "outlook.timezone=\"UTC\""
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "iCalUId": {},
+                    "subject": {},
+                    "start": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "end": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "isAllDay": {},
+                    "location": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {}
+                      }
+                    },
+                    "onlineMeeting": {
+                      "type": "object",
+                      "properties": {
+                        "joinUrl": {}
+                      }
+                    },
+                    "onlineMeetingUrl (fallback, not selected)": {},
+                    "bodyPreview": {},
+                    "showAs": {},
+                    "isOrganizer": {},
+                    "responseStatus": {
+                      "type": "object",
+                      "properties": {
+                        "response": {}
+                      }
+                    },
+                    "organizer": {
+                      "type": "object",
+                      "properties": {
+                        "emailAddress": {
+                          "type": "object",
+                          "properties": {
+                            "{address,name}": {}
+                          }
+                        }
+                      }
+                    },
+                    "attendees": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "{address,name}": {}
+                            }
+                          },
+                          "status": {
+                            "type": "object",
+                            "properties": {
+                              "response": {}
+                            }
+                          },
+                          "type": {}
+                        }
+                      }
+                    },
+                    "recurrence": {
+                      "type": "object",
+                      "properties": {
+                        "pattern": {
+                          "type": "object",
+                          "properties": {
+                            "{type,interval,daysOfWeek}": {}
+                          }
+                        },
+                        "range": {
+                          "type": "object",
+                          "properties": {
+                            "{type,endDate,numberOfOccurrences}": {}
+                          }
+                        }
+                      }
+                    },
+                    "isReminderOn": {},
+                    "reminderMinutesBeforeStart": {},
+                    "seriesMasterId": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "calendar.calendars.events.update.users",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar calendars events: update",
+        "description": "Graph's alias of calendar.events.update (calendar events update): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-update",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "calendarId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subject": {},
+                  "isAllDay": {},
+                  "isReminderOn": {},
+                  "reminderMinutesBeforeStart?": {},
+                  "isOnlineMeeting (only when true)": {},
+                  "onlineMeetingProvider ('teamsForBusiness', only when online)": {},
+                  "body {contentType:'text', content}?": {},
+                  "start {dateTime 'YYYY-MM-DDTHH:MM:SS' local wall-clock, timeZone IANA e": {
+                    "type": "object",
+                    "properties": {
+                      "g": {
+                        "type": "object",
+                        "properties": {
+                          " 'Australia/Sydney'}": {}
+                        }
+                      }
+                    }
+                  },
+                  "end {dateTime, timeZone}": {},
+                  "locations[] {displayName, locationEmailAddress?, locationType 'conferenceRoom'?} (always sent, may be [])": {},
+                  "location {displayName, …} (always sent; {displayName:''} when none)": {},
+                  "attendees[] {emailAddress{address,name?}, type 'required'|'resource'} (always sent)": {},
+                  "recurrence? {pattern{type daily|weekly|absoluteMonthly|absoluteYearly, interval, daysOfWeek?}, range{type endDate|numbered|noEnd, startDate 'YYYY-MM-DD', endDate?|numberOfOccurrences?}}": {},
+                  "— or, accepting a proposed time: start/end only, {dateTime 'YYYY-MM-DDTHH:MM:SS": {
+                    "type": "object",
+                    "properties": {
+                      "mmm' (no Z), timeZone:'UTC'}": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "iCalUId": {},
+                    "subject": {},
+                    "start": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "end": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "isAllDay": {},
+                    "location": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {}
+                      }
+                    },
+                    "onlineMeeting": {
+                      "type": "object",
+                      "properties": {
+                        "joinUrl": {}
+                      }
+                    },
+                    "onlineMeetingUrl (fallback, not selected)": {},
+                    "bodyPreview": {},
+                    "showAs": {},
+                    "isOrganizer": {},
+                    "responseStatus": {
+                      "type": "object",
+                      "properties": {
+                        "response": {}
+                      }
+                    },
+                    "organizer": {
+                      "type": "object",
+                      "properties": {
+                        "emailAddress": {
+                          "type": "object",
+                          "properties": {
+                            "{address,name}": {}
+                          }
+                        }
+                      }
+                    },
+                    "attendees": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "{address,name}": {}
+                            }
+                          },
+                          "status": {
+                            "type": "object",
+                            "properties": {
+                              "response": {}
+                            }
+                          },
+                          "type": {}
+                        }
+                      }
+                    },
+                    "recurrence": {
+                      "type": "object",
+                      "properties": {
+                        "pattern": {
+                          "type": "object",
+                          "properties": {
+                            "{type,interval,daysOfWeek}": {}
+                          }
+                        },
+                        "range": {
+                          "type": "object",
+                          "properties": {
+                            "{type,endDate,numberOfOccurrences}": {}
+                          }
+                        }
+                      }
+                    },
+                    "isReminderOn": {},
+                    "reminderMinutesBeforeStart": {},
+                    "seriesMasterId": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/calendar/calendarView": {
+      "get": {
+        "operationId": "calendar.default.calendar-view",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar default: calendar view",
+        "description": "Graph's alias of calendar.calendars.calendar-view (calendar calendars calendar-view): the same handling. The default calendar's, through the calendars/{id}/… handling.\n\nGraph reference: https://learn.microsoft.com/graph/api/calendar-list-calendarview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {},
+                          "subject": {},
+                          "start": {},
+                          "end": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/calendar/calendarView": {
+      "get": {
+        "operationId": "calendar.default.calendar-view.users",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar default: calendar view",
+        "description": "Graph's alias of calendar.calendars.calendar-view (calendar calendars calendar-view): the same handling. The default calendar's, through the calendars/{id}/… handling.\n\nGraph reference: https://learn.microsoft.com/graph/api/calendar-list-calendarview",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {},
+                          "subject": {},
+                          "start": {},
+                          "end": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/calendar/events": {
+      "post": {
+        "operationId": "calendar.default.events.create",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar default events: create",
+        "description": "Graph's alias of calendar.calendars.events.create (calendar calendars events create): the same handling. The default calendar's, through the calendars/{id}/… handling.\n\nGraph reference: https://learn.microsoft.com/graph/api/calendar-post-events",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subject": {},
+                  "start": {},
+                  "end": {},
+                  "recurrence?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "subject": {},
+                    "start": {},
+                    "end": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "calendar.default.events.list",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar default events: list",
+        "description": "Graph's alias of calendar.calendars.events.list (calendar calendars events list): the same handling. The default calendar's, through the calendars/{id}/… handling.\n\nGraph reference: https://learn.microsoft.com/graph/api/calendar-list-events",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {},
+                          "subject": {},
+                          "start": {},
+                          "end": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/calendar/events": {
+      "post": {
+        "operationId": "calendar.default.events.create.users",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar default events: create",
+        "description": "Graph's alias of calendar.calendars.events.create (calendar calendars events create): the same handling. The default calendar's, through the calendars/{id}/… handling.\n\nGraph reference: https://learn.microsoft.com/graph/api/calendar-post-events",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subject": {},
+                  "start": {},
+                  "end": {},
+                  "recurrence?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "subject": {},
+                    "start": {},
+                    "end": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "calendar.default.events.list.users",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar default events: list",
+        "description": "Graph's alias of calendar.calendars.events.list (calendar calendars events list): the same handling. The default calendar's, through the calendars/{id}/… handling.\n\nGraph reference: https://learn.microsoft.com/graph/api/calendar-list-events",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {},
+                          "subject": {},
+                          "start": {},
+                          "end": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/calendar/events/{eventId}": {
+      "delete": {
+        "operationId": "calendar.default.events.delete",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar default events: delete",
+        "description": "Graph's alias of calendar.events.delete (calendar events delete): the same handling.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-delete",
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "calendar.default.events.get",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar default events: get",
+        "description": "Graph's alias of calendar.events.get (calendar events get): the same handling.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-get",
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "required": false,
+            "description": "Properties to return, comma-separated.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "id,iCalUId,subject,start,end,isAllDay,location,onlineMeeting,bodyPreview,showAs,isOrganizer,organizer,responseStatus,attendees,recurrence,isReminderOn,reminderMinutesBeforeStart,seriesMasterId"
+          },
+          {
+            "name": "Prefer",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "outlook.timezone=\"UTC\""
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "iCalUId": {},
+                    "subject": {},
+                    "start": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "end": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "isAllDay": {},
+                    "location": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {}
+                      }
+                    },
+                    "onlineMeeting": {
+                      "type": "object",
+                      "properties": {
+                        "joinUrl": {}
+                      }
+                    },
+                    "onlineMeetingUrl (fallback, not selected)": {},
+                    "bodyPreview": {},
+                    "showAs": {},
+                    "isOrganizer": {},
+                    "responseStatus": {
+                      "type": "object",
+                      "properties": {
+                        "response": {}
+                      }
+                    },
+                    "organizer": {
+                      "type": "object",
+                      "properties": {
+                        "emailAddress": {
+                          "type": "object",
+                          "properties": {
+                            "{address,name}": {}
+                          }
+                        }
+                      }
+                    },
+                    "attendees": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "{address,name}": {}
+                            }
+                          },
+                          "status": {
+                            "type": "object",
+                            "properties": {
+                              "response": {}
+                            }
+                          },
+                          "type": {}
+                        }
+                      }
+                    },
+                    "recurrence": {
+                      "type": "object",
+                      "properties": {
+                        "pattern": {
+                          "type": "object",
+                          "properties": {
+                            "{type,interval,daysOfWeek}": {}
+                          }
+                        },
+                        "range": {
+                          "type": "object",
+                          "properties": {
+                            "{type,endDate,numberOfOccurrences}": {}
+                          }
+                        }
+                      }
+                    },
+                    "isReminderOn": {},
+                    "reminderMinutesBeforeStart": {},
+                    "seriesMasterId": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "calendar.default.events.update",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar default events: update",
+        "description": "Graph's alias of calendar.events.update (calendar events update): the same handling.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-update",
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subject": {},
+                  "isAllDay": {},
+                  "isReminderOn": {},
+                  "reminderMinutesBeforeStart?": {},
+                  "isOnlineMeeting (only when true)": {},
+                  "onlineMeetingProvider ('teamsForBusiness', only when online)": {},
+                  "body {contentType:'text', content}?": {},
+                  "start {dateTime 'YYYY-MM-DDTHH:MM:SS' local wall-clock, timeZone IANA e": {
+                    "type": "object",
+                    "properties": {
+                      "g": {
+                        "type": "object",
+                        "properties": {
+                          " 'Australia/Sydney'}": {}
+                        }
+                      }
+                    }
+                  },
+                  "end {dateTime, timeZone}": {},
+                  "locations[] {displayName, locationEmailAddress?, locationType 'conferenceRoom'?} (always sent, may be [])": {},
+                  "location {displayName, …} (always sent; {displayName:''} when none)": {},
+                  "attendees[] {emailAddress{address,name?}, type 'required'|'resource'} (always sent)": {},
+                  "recurrence? {pattern{type daily|weekly|absoluteMonthly|absoluteYearly, interval, daysOfWeek?}, range{type endDate|numbered|noEnd, startDate 'YYYY-MM-DD', endDate?|numberOfOccurrences?}}": {},
+                  "— or, accepting a proposed time: start/end only, {dateTime 'YYYY-MM-DDTHH:MM:SS": {
+                    "type": "object",
+                    "properties": {
+                      "mmm' (no Z), timeZone:'UTC'}": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "iCalUId": {},
+                    "subject": {},
+                    "start": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "end": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "isAllDay": {},
+                    "location": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {}
+                      }
+                    },
+                    "onlineMeeting": {
+                      "type": "object",
+                      "properties": {
+                        "joinUrl": {}
+                      }
+                    },
+                    "onlineMeetingUrl (fallback, not selected)": {},
+                    "bodyPreview": {},
+                    "showAs": {},
+                    "isOrganizer": {},
+                    "responseStatus": {
+                      "type": "object",
+                      "properties": {
+                        "response": {}
+                      }
+                    },
+                    "organizer": {
+                      "type": "object",
+                      "properties": {
+                        "emailAddress": {
+                          "type": "object",
+                          "properties": {
+                            "{address,name}": {}
+                          }
+                        }
+                      }
+                    },
+                    "attendees": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "{address,name}": {}
+                            }
+                          },
+                          "status": {
+                            "type": "object",
+                            "properties": {
+                              "response": {}
+                            }
+                          },
+                          "type": {}
+                        }
+                      }
+                    },
+                    "recurrence": {
+                      "type": "object",
+                      "properties": {
+                        "pattern": {
+                          "type": "object",
+                          "properties": {
+                            "{type,interval,daysOfWeek}": {}
+                          }
+                        },
+                        "range": {
+                          "type": "object",
+                          "properties": {
+                            "{type,endDate,numberOfOccurrences}": {}
+                          }
+                        }
+                      }
+                    },
+                    "isReminderOn": {},
+                    "reminderMinutesBeforeStart": {},
+                    "seriesMasterId": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/calendar/events/{eventId}": {
+      "delete": {
+        "operationId": "calendar.default.events.delete.users",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar default events: delete",
+        "description": "Graph's alias of calendar.events.delete (calendar events delete): the same handling.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-delete",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "calendar.default.events.get.users",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar default events: get",
+        "description": "Graph's alias of calendar.events.get (calendar events get): the same handling.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "required": false,
+            "description": "Properties to return, comma-separated.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "id,iCalUId,subject,start,end,isAllDay,location,onlineMeeting,bodyPreview,showAs,isOrganizer,organizer,responseStatus,attendees,recurrence,isReminderOn,reminderMinutesBeforeStart,seriesMasterId"
+          },
+          {
+            "name": "Prefer",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "outlook.timezone=\"UTC\""
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "iCalUId": {},
+                    "subject": {},
+                    "start": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "end": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "isAllDay": {},
+                    "location": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {}
+                      }
+                    },
+                    "onlineMeeting": {
+                      "type": "object",
+                      "properties": {
+                        "joinUrl": {}
+                      }
+                    },
+                    "onlineMeetingUrl (fallback, not selected)": {},
+                    "bodyPreview": {},
+                    "showAs": {},
+                    "isOrganizer": {},
+                    "responseStatus": {
+                      "type": "object",
+                      "properties": {
+                        "response": {}
+                      }
+                    },
+                    "organizer": {
+                      "type": "object",
+                      "properties": {
+                        "emailAddress": {
+                          "type": "object",
+                          "properties": {
+                            "{address,name}": {}
+                          }
+                        }
+                      }
+                    },
+                    "attendees": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "{address,name}": {}
+                            }
+                          },
+                          "status": {
+                            "type": "object",
+                            "properties": {
+                              "response": {}
+                            }
+                          },
+                          "type": {}
+                        }
+                      }
+                    },
+                    "recurrence": {
+                      "type": "object",
+                      "properties": {
+                        "pattern": {
+                          "type": "object",
+                          "properties": {
+                            "{type,interval,daysOfWeek}": {}
+                          }
+                        },
+                        "range": {
+                          "type": "object",
+                          "properties": {
+                            "{type,endDate,numberOfOccurrences}": {}
+                          }
+                        }
+                      }
+                    },
+                    "isReminderOn": {},
+                    "reminderMinutesBeforeStart": {},
+                    "seriesMasterId": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "calendar.default.events.update.users",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar default events: update",
+        "description": "Graph's alias of calendar.events.update (calendar events update): the same handling.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-update",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subject": {},
+                  "isAllDay": {},
+                  "isReminderOn": {},
+                  "reminderMinutesBeforeStart?": {},
+                  "isOnlineMeeting (only when true)": {},
+                  "onlineMeetingProvider ('teamsForBusiness', only when online)": {},
+                  "body {contentType:'text', content}?": {},
+                  "start {dateTime 'YYYY-MM-DDTHH:MM:SS' local wall-clock, timeZone IANA e": {
+                    "type": "object",
+                    "properties": {
+                      "g": {
+                        "type": "object",
+                        "properties": {
+                          " 'Australia/Sydney'}": {}
+                        }
+                      }
+                    }
+                  },
+                  "end {dateTime, timeZone}": {},
+                  "locations[] {displayName, locationEmailAddress?, locationType 'conferenceRoom'?} (always sent, may be [])": {},
+                  "location {displayName, …} (always sent; {displayName:''} when none)": {},
+                  "attendees[] {emailAddress{address,name?}, type 'required'|'resource'} (always sent)": {},
+                  "recurrence? {pattern{type daily|weekly|absoluteMonthly|absoluteYearly, interval, daysOfWeek?}, range{type endDate|numbered|noEnd, startDate 'YYYY-MM-DD', endDate?|numberOfOccurrences?}}": {},
+                  "— or, accepting a proposed time: start/end only, {dateTime 'YYYY-MM-DDTHH:MM:SS": {
+                    "type": "object",
+                    "properties": {
+                      "mmm' (no Z), timeZone:'UTC'}": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "iCalUId": {},
+                    "subject": {},
+                    "start": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "end": {
+                      "type": "object",
+                      "properties": {
+                        "dateTime": {},
+                        "timeZone": {}
+                      }
+                    },
+                    "isAllDay": {},
+                    "location": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {}
+                      }
+                    },
+                    "onlineMeeting": {
+                      "type": "object",
+                      "properties": {
+                        "joinUrl": {}
+                      }
+                    },
+                    "onlineMeetingUrl (fallback, not selected)": {},
+                    "bodyPreview": {},
+                    "showAs": {},
+                    "isOrganizer": {},
+                    "responseStatus": {
+                      "type": "object",
+                      "properties": {
+                        "response": {}
+                      }
+                    },
+                    "organizer": {
+                      "type": "object",
+                      "properties": {
+                        "emailAddress": {
+                          "type": "object",
+                          "properties": {
+                            "{address,name}": {}
+                          }
+                        }
+                      }
+                    },
+                    "attendees": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "{address,name}": {}
+                            }
+                          },
+                          "status": {
+                            "type": "object",
+                            "properties": {
+                              "response": {}
+                            }
+                          },
+                          "type": {}
+                        }
+                      }
+                    },
+                    "recurrence": {
+                      "type": "object",
+                      "properties": {
+                        "pattern": {
+                          "type": "object",
+                          "properties": {
+                            "{type,interval,daysOfWeek}": {}
+                          }
+                        },
+                        "range": {
+                          "type": "object",
+                          "properties": {
+                            "{type,endDate,numberOfOccurrences}": {}
+                          }
+                        }
+                      }
+                    },
+                    "isReminderOn": {},
+                    "reminderMinutesBeforeStart": {},
+                    "seriesMasterId": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me/events/{eventId}/accept": {
       "post": {
         "operationId": "calendar.events.accept",
@@ -8628,6 +10587,592 @@
         }
       }
     },
+    "/me/contactFolders/{folderId}/contacts/{contactId}": {
+      "delete": {
+        "operationId": "contacts.folders.contacts.delete",
+        "tags": [
+          "Contacts"
+        ],
+        "summary": "Contacts folders contacts: delete",
+        "description": "Graph's alias of contacts.delete (contacts delete): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/contact-delete",
+        "parameters": [
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "contacts.folders.contacts.get",
+        "tags": [
+          "Contacts"
+        ],
+        "summary": "Contacts folders contacts: get",
+        "description": "Graph's alias of contacts.get (contacts get): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/contact-get",
+        "parameters": [
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "createdDateTime": {},
+                    "lastModifiedDateTime": {},
+                    "changeKey": {},
+                    "categories": {},
+                    "parentFolderId": {},
+                    "birthday": {},
+                    "fileAs": {},
+                    "displayName": {},
+                    "givenName": {},
+                    "initials": {},
+                    "middleName": {},
+                    "nickName": {},
+                    "surname": {},
+                    "title": {},
+                    "yomiGivenName": {},
+                    "yomiSurname": {},
+                    "yomiCompanyName": {},
+                    "generation": {},
+                    "imAddresses": {},
+                    "jobTitle": {},
+                    "companyName": {},
+                    "department": {},
+                    "officeLocation": {},
+                    "profession": {},
+                    "businessHomePage": {},
+                    "assistantName": {},
+                    "manager": {},
+                    "homePhones": {},
+                    "mobilePhone": {},
+                    "businessPhones": {},
+                    "spouseName": {},
+                    "personalNotes": {},
+                    "children": {},
+                    "emailAddresses": {},
+                    "primaryEmailAddress": {},
+                    "homeAddress": {},
+                    "businessAddress": {},
+                    "otherAddress": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "contacts.folders.contacts.update",
+        "tags": [
+          "Contacts"
+        ],
+        "summary": "Contacts folders contacts: update",
+        "description": "Graph's alias of contacts.update (contacts update): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/contact-update",
+        "parameters": [
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "categories": {},
+                  "birthday": {},
+                  "fileAs": {},
+                  "displayName": {},
+                  "givenName": {},
+                  "initials": {},
+                  "middleName": {},
+                  "nickName": {},
+                  "surname": {},
+                  "title": {},
+                  "yomiGivenName": {},
+                  "yomiSurname": {},
+                  "yomiCompanyName": {},
+                  "generation": {},
+                  "imAddresses": {},
+                  "jobTitle": {},
+                  "companyName": {},
+                  "department": {},
+                  "officeLocation": {},
+                  "profession": {},
+                  "businessHomePage": {},
+                  "assistantName": {},
+                  "manager": {},
+                  "homePhones": {},
+                  "mobilePhone": {},
+                  "businessPhones": {},
+                  "spouseName": {},
+                  "personalNotes": {},
+                  "children": {},
+                  "emailAddresses": {},
+                  "homeAddress": {},
+                  "businessAddress": {},
+                  "otherAddress": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "createdDateTime": {},
+                    "lastModifiedDateTime": {},
+                    "changeKey": {},
+                    "categories": {},
+                    "parentFolderId": {},
+                    "birthday": {},
+                    "fileAs": {},
+                    "displayName": {},
+                    "givenName": {},
+                    "initials": {},
+                    "middleName": {},
+                    "nickName": {},
+                    "surname": {},
+                    "title": {},
+                    "yomiGivenName": {},
+                    "yomiSurname": {},
+                    "yomiCompanyName": {},
+                    "generation": {},
+                    "imAddresses": {},
+                    "jobTitle": {},
+                    "companyName": {},
+                    "department": {},
+                    "officeLocation": {},
+                    "profession": {},
+                    "businessHomePage": {},
+                    "assistantName": {},
+                    "manager": {},
+                    "homePhones": {},
+                    "mobilePhone": {},
+                    "businessPhones": {},
+                    "spouseName": {},
+                    "personalNotes": {},
+                    "children": {},
+                    "emailAddresses": {},
+                    "primaryEmailAddress": {},
+                    "homeAddress": {},
+                    "businessAddress": {},
+                    "otherAddress": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/contactFolders/{folderId}/contacts/{contactId}": {
+      "delete": {
+        "operationId": "contacts.folders.contacts.delete.users",
+        "tags": [
+          "Contacts"
+        ],
+        "summary": "Contacts folders contacts: delete",
+        "description": "Graph's alias of contacts.delete (contacts delete): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/contact-delete",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "contacts.folders.contacts.get.users",
+        "tags": [
+          "Contacts"
+        ],
+        "summary": "Contacts folders contacts: get",
+        "description": "Graph's alias of contacts.get (contacts get): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/contact-get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "createdDateTime": {},
+                    "lastModifiedDateTime": {},
+                    "changeKey": {},
+                    "categories": {},
+                    "parentFolderId": {},
+                    "birthday": {},
+                    "fileAs": {},
+                    "displayName": {},
+                    "givenName": {},
+                    "initials": {},
+                    "middleName": {},
+                    "nickName": {},
+                    "surname": {},
+                    "title": {},
+                    "yomiGivenName": {},
+                    "yomiSurname": {},
+                    "yomiCompanyName": {},
+                    "generation": {},
+                    "imAddresses": {},
+                    "jobTitle": {},
+                    "companyName": {},
+                    "department": {},
+                    "officeLocation": {},
+                    "profession": {},
+                    "businessHomePage": {},
+                    "assistantName": {},
+                    "manager": {},
+                    "homePhones": {},
+                    "mobilePhone": {},
+                    "businessPhones": {},
+                    "spouseName": {},
+                    "personalNotes": {},
+                    "children": {},
+                    "emailAddresses": {},
+                    "primaryEmailAddress": {},
+                    "homeAddress": {},
+                    "businessAddress": {},
+                    "otherAddress": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "contacts.folders.contacts.update.users",
+        "tags": [
+          "Contacts"
+        ],
+        "summary": "Contacts folders contacts: update",
+        "description": "Graph's alias of contacts.update (contacts update): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/contact-update",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "categories": {},
+                  "birthday": {},
+                  "fileAs": {},
+                  "displayName": {},
+                  "givenName": {},
+                  "initials": {},
+                  "middleName": {},
+                  "nickName": {},
+                  "surname": {},
+                  "title": {},
+                  "yomiGivenName": {},
+                  "yomiSurname": {},
+                  "yomiCompanyName": {},
+                  "generation": {},
+                  "imAddresses": {},
+                  "jobTitle": {},
+                  "companyName": {},
+                  "department": {},
+                  "officeLocation": {},
+                  "profession": {},
+                  "businessHomePage": {},
+                  "assistantName": {},
+                  "manager": {},
+                  "homePhones": {},
+                  "mobilePhone": {},
+                  "businessPhones": {},
+                  "spouseName": {},
+                  "personalNotes": {},
+                  "children": {},
+                  "emailAddresses": {},
+                  "homeAddress": {},
+                  "businessAddress": {},
+                  "otherAddress": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "createdDateTime": {},
+                    "lastModifiedDateTime": {},
+                    "changeKey": {},
+                    "categories": {},
+                    "parentFolderId": {},
+                    "birthday": {},
+                    "fileAs": {},
+                    "displayName": {},
+                    "givenName": {},
+                    "initials": {},
+                    "middleName": {},
+                    "nickName": {},
+                    "surname": {},
+                    "title": {},
+                    "yomiGivenName": {},
+                    "yomiSurname": {},
+                    "yomiCompanyName": {},
+                    "generation": {},
+                    "imAddresses": {},
+                    "jobTitle": {},
+                    "companyName": {},
+                    "department": {},
+                    "officeLocation": {},
+                    "profession": {},
+                    "businessHomePage": {},
+                    "assistantName": {},
+                    "manager": {},
+                    "homePhones": {},
+                    "mobilePhone": {},
+                    "businessPhones": {},
+                    "spouseName": {},
+                    "personalNotes": {},
+                    "children": {},
+                    "emailAddresses": {},
+                    "primaryEmailAddress": {},
+                    "homeAddress": {},
+                    "businessAddress": {},
+                    "otherAddress": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me/contactFolders": {
       "post": {
         "operationId": "contacts.folders.create",
@@ -12277,6 +14822,758 @@
                       }
                     },
                     "@odata.nextLink": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/mailFolders/{folderId}/messages/{messageId}": {
+      "delete": {
+        "operationId": "mail.folders.messages.delete",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail folders messages: delete",
+        "description": "Graph's alias of mail.messages.delete (mail messages delete): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/message-delete",
+        "parameters": [
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "mail.folders.messages.get",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail folders messages: get",
+        "description": "Graph's alias of mail.messages.get (mail messages get): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/message-get",
+        "parameters": [
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "$expand",
+            "in": "query",
+            "required": false,
+            "description": "Related entities to include.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "attachments($select=id,name,contentType,size,isInline)"
+          },
+          {
+            "name": "Prefer",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "outlook.timezone=\"UTC\""
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "@odata.type": {},
+                    "id": {},
+                    "subject": {},
+                    "from": {
+                      "type": "object",
+                      "properties": {
+                        "emailAddress": {
+                          "type": "object",
+                          "properties": {
+                            "{address,name}": {}
+                          }
+                        }
+                      }
+                    },
+                    "{toRecipients|ccRecipients|bccRecipients}": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "address": {}
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "body": {
+                      "type": "object",
+                      "properties": {
+                        "content": {},
+                        "contentType": {}
+                      }
+                    },
+                    "bodyPreview": {},
+                    "isRead": {},
+                    "flag": {
+                      "type": "object",
+                      "properties": {
+                        "flagStatus": {}
+                      }
+                    },
+                    "receivedDateTime": {},
+                    "sentDateTime": {},
+                    "importance": {},
+                    "conversationId": {},
+                    "hasAttachments": {},
+                    "parentFolderId": {},
+                    "meetingMessageType (eventMessage)": {},
+                    "startDateTime": {
+                      "type": "object",
+                      "properties": {
+                        "{dateTime,timeZone} (eventMessage)": {}
+                      }
+                    },
+                    "endDateTime": {
+                      "type": "object",
+                      "properties": {
+                        "{dateTime,timeZone} (eventMessage)": {}
+                      }
+                    },
+                    "location": {
+                      "type": "object",
+                      "properties": {
+                        "displayName (eventMessage)": {}
+                      }
+                    },
+                    "isAllDay (eventMessage)": {},
+                    "proposedNewTime": {
+                      "type": "object",
+                      "properties": {
+                        "{start,end}": {
+                          "type": "object",
+                          "properties": {
+                            "dateTime (eventMessageResponse)": {}
+                          }
+                        }
+                      }
+                    },
+                    "attachments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "{id,name,contentType,size,isInline,@odata": {
+                            "type": "object",
+                            "properties": {
+                              "type}": {}
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "mail.folders.messages.update",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail folders messages: update",
+        "description": "Graph's alias of mail.messages.update-read-state (mail messages update-read-state): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/message-update",
+        "parameters": [
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "required": false,
+            "description": "Properties to return, comma-separated.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "id,subject,from,toRecipients,ccRecipients,bccRecipients,bodyPreview,isRead,flag,receivedDateTime,sentDateTime,importance,conversationId,hasAttachments,parentFolderId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "isRead": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "subject": {},
+                    "from": {
+                      "type": "object",
+                      "properties": {
+                        "emailAddress": {
+                          "type": "object",
+                          "properties": {
+                            "address": {},
+                            "name": {}
+                          }
+                        }
+                      }
+                    },
+                    "toRecipients": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "{address,name}": {}
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "ccRecipients": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "{address,name}": {}
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "bccRecipients": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "{address,name}": {}
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "bodyPreview": {},
+                    "isRead": {},
+                    "flag": {
+                      "type": "object",
+                      "properties": {
+                        "flagStatus": {}
+                      }
+                    },
+                    "receivedDateTime": {},
+                    "sentDateTime": {},
+                    "importance": {},
+                    "conversationId": {},
+                    "hasAttachments": {},
+                    "parentFolderId": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/mailFolders/{folderId}/messages/{messageId}": {
+      "delete": {
+        "operationId": "mail.folders.messages.delete.users",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail folders messages: delete",
+        "description": "Graph's alias of mail.messages.delete (mail messages delete): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/message-delete",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "mail.folders.messages.get.users",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail folders messages: get",
+        "description": "Graph's alias of mail.messages.get (mail messages get): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/message-get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "$expand",
+            "in": "query",
+            "required": false,
+            "description": "Related entities to include.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "attachments($select=id,name,contentType,size,isInline)"
+          },
+          {
+            "name": "Prefer",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "outlook.timezone=\"UTC\""
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "@odata.type": {},
+                    "id": {},
+                    "subject": {},
+                    "from": {
+                      "type": "object",
+                      "properties": {
+                        "emailAddress": {
+                          "type": "object",
+                          "properties": {
+                            "{address,name}": {}
+                          }
+                        }
+                      }
+                    },
+                    "{toRecipients|ccRecipients|bccRecipients}": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "address": {}
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "body": {
+                      "type": "object",
+                      "properties": {
+                        "content": {},
+                        "contentType": {}
+                      }
+                    },
+                    "bodyPreview": {},
+                    "isRead": {},
+                    "flag": {
+                      "type": "object",
+                      "properties": {
+                        "flagStatus": {}
+                      }
+                    },
+                    "receivedDateTime": {},
+                    "sentDateTime": {},
+                    "importance": {},
+                    "conversationId": {},
+                    "hasAttachments": {},
+                    "parentFolderId": {},
+                    "meetingMessageType (eventMessage)": {},
+                    "startDateTime": {
+                      "type": "object",
+                      "properties": {
+                        "{dateTime,timeZone} (eventMessage)": {}
+                      }
+                    },
+                    "endDateTime": {
+                      "type": "object",
+                      "properties": {
+                        "{dateTime,timeZone} (eventMessage)": {}
+                      }
+                    },
+                    "location": {
+                      "type": "object",
+                      "properties": {
+                        "displayName (eventMessage)": {}
+                      }
+                    },
+                    "isAllDay (eventMessage)": {},
+                    "proposedNewTime": {
+                      "type": "object",
+                      "properties": {
+                        "{start,end}": {
+                          "type": "object",
+                          "properties": {
+                            "dateTime (eventMessageResponse)": {}
+                          }
+                        }
+                      }
+                    },
+                    "attachments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "{id,name,contentType,size,isInline,@odata": {
+                            "type": "object",
+                            "properties": {
+                              "type}": {}
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "mail.folders.messages.update.users",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail folders messages: update",
+        "description": "Graph's alias of mail.messages.update-read-state (mail messages update-read-state): the same handling. The parent segment is not checked: ids are unique in the mailbox.\n\nGraph reference: https://learn.microsoft.com/graph/api/message-update",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "required": false,
+            "description": "Properties to return, comma-separated.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "id,subject,from,toRecipients,ccRecipients,bccRecipients,bodyPreview,isRead,flag,receivedDateTime,sentDateTime,importance,conversationId,hasAttachments,parentFolderId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "isRead": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "subject": {},
+                    "from": {
+                      "type": "object",
+                      "properties": {
+                        "emailAddress": {
+                          "type": "object",
+                          "properties": {
+                            "address": {},
+                            "name": {}
+                          }
+                        }
+                      }
+                    },
+                    "toRecipients": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "{address,name}": {}
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "ccRecipients": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "{address,name}": {}
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "bccRecipients": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "emailAddress": {
+                            "type": "object",
+                            "properties": {
+                              "{address,name}": {}
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "bodyPreview": {},
+                    "isRead": {},
+                    "flag": {
+                      "type": "object",
+                      "properties": {
+                        "flagStatus": {}
+                      }
+                    },
+                    "receivedDateTime": {},
+                    "sentDateTime": {},
+                    "importance": {},
+                    "conversationId": {},
+                    "hasAttachments": {},
+                    "parentFolderId": {}
                   }
                 }
               }
