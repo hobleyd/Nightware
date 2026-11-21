@@ -328,7 +328,8 @@ operation:
 | Phase 14 — Contacts (Graph parity) | 18 |
 | Phase 15 — To Do (Graph parity) | 19 |
 | Phase 16 — Change notifications (Graph parity) | 10 |
-| **Total** | **171** |
+| Phase 18 — Settings, aliases, single items and $count (Graph parity) | 9 |
+| **Total** | **180** |
 
 ### Phase 2 — Mail, read side
 
@@ -2235,5 +2236,100 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/change-notifications-delivery-webhooks
 - Notes: Outbound (Nightware → the subscriber): a changeNotificationCollection. Sent only to a public address, never with a bearer token.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/subscriptions.notification.json`
+
+### Phase 18 — Settings, aliases, single items and $count (Graph parity)
+
+| Id | Method | Ver | Path | Paging |
+|---|---|---|---|---|
+| [`mailbox-settings.automatic-replies.get`](#mailbox-settingsautomatic-repliesget) | GET | v1.0 | `{mailbox}/mailboxSettings/automaticRepliesSetting` | none |
+| [`mailbox-settings.time-zone.get`](#mailbox-settingstime-zoneget) | GET | v1.0 | `{mailbox}/mailboxSettings/timeZone` | none |
+| [`mailbox-settings.language.get`](#mailbox-settingslanguageget) | GET | v1.0 | `{mailbox}/mailboxSettings/language` | none |
+| [`mailbox-settings.working-hours.get`](#mailbox-settingsworking-hoursget) | GET | v1.0 | `{mailbox}/mailboxSettings/workingHours` | none |
+| [`mailbox-settings.date-format.get`](#mailbox-settingsdate-formatget) | GET | v1.0 | `{mailbox}/mailboxSettings/dateFormat` | none |
+| [`mailbox-settings.time-format.get`](#mailbox-settingstime-formatget) | GET | v1.0 | `{mailbox}/mailboxSettings/timeFormat` | none |
+| [`outlook.supported-time-zones`](#outlooksupported-time-zones) | GET | v1.0 | `{mailbox}/outlook/supportedTimeZones` | none |
+| [`outlook.supported-time-zones-standard`](#outlooksupported-time-zones-standard) | GET | v1.0 | `{mailbox}/outlook/supportedTimeZones(TimeZoneStandard={standard})` | none |
+| [`outlook.supported-languages`](#outlooksupported-languages) | GET | v1.0 | `{mailbox}/outlook/supportedLanguages` | none |
+
+#### `mailbox-settings.automatic-replies.get`
+
+**GET v1.0 `{mailbox}/mailboxSettings/automaticRepliesSetting`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `status`, `externalAudience`, `internalReplyMessage`, `externalReplyMessage`, `scheduledStartDateTime?`, `scheduledEndDateTime?`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings
+- Notes: The same setting as mailboxSettings, scheduled times in the mailbox's zone. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mailbox-settings.automatic-replies.get.json`
+
+#### `mailbox-settings.time-zone.get`
+
+**GET v1.0 `{mailbox}/mailboxSettings/timeZone`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings
+- Notes: A Windows id, as mailboxSettings returns it. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mailbox-settings.time-zone.get.json`
+
+#### `mailbox-settings.language.get`
+
+**GET v1.0 `{mailbox}/mailboxSettings/language`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `locale`, `displayName`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings
+- Notes: The locale stored for the user in the directory, else en-US; its name from outlook/supportedLanguages. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mailbox-settings.language.get.json`
+
+#### `mailbox-settings.working-hours.get`
+
+**GET v1.0 `{mailbox}/mailboxSettings/workingHours`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `daysOfWeek`, `startTime`, `endTime`, `timeZone.name`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings
+- Notes: The user's own, else Exchange's defaults (Monday to Friday, 08:00–17:00) in the mailbox's zone: what findMeetingTimes plans against. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mailbox-settings.working-hours.get.json`
+
+#### `mailbox-settings.date-format.get`
+
+**GET v1.0 `{mailbox}/mailboxSettings/dateFormat`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings
+- Notes: The user's own, else the short date pattern of their language. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mailbox-settings.date-format.get.json`
+
+#### `mailbox-settings.time-format.get`
+
+**GET v1.0 `{mailbox}/mailboxSettings/timeFormat`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings
+- Notes: The user's own, else the short time pattern of their language. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mailbox-settings.time-format.get.json`
+
+#### `outlook.supported-time-zones`
+
+**GET v1.0 `{mailbox}/outlook/supportedTimeZones`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].alias`, `value[].displayName`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/outlookuser-supportedtimezones
+- Notes: A fixed list (tools/outlook-catalog), ordered by standard offset; every alias is accepted by PATCH mailboxSettings timeZone. The fixture keeps the first three. Windows ids.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/outlook.supported-time-zones.json`
+
+#### `outlook.supported-time-zones-standard`
+
+**GET v1.0 `{mailbox}/outlook/supportedTimeZones(TimeZoneStandard={standard})`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].alias`, `value[].displayName`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/outlookuser-supportedtimezones
+- Notes: A fixed list (tools/outlook-catalog), ordered by standard offset; every alias is accepted by PATCH mailboxSettings timeZone. The fixture keeps the first three. TimeZoneStandard is Windows or Iana (microsoft.graph.timeZoneStandard'Iana'); anything else is 400. IANA ids are their own display name.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/outlook.supported-time-zones-standard.json`
+
+#### `outlook.supported-languages`
+
+**GET v1.0 `{mailbox}/outlook/supportedLanguages`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].locale`, `value[].displayName`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/outlookuser-supportedlanguages
+- Notes: A fixed list of locales with their native names (tools/outlook-catalog). The fixture keeps the first three.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/outlook.supported-languages.json`
 
 <!-- END GENERATED -->

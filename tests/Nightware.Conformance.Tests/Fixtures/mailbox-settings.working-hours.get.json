@@ -1,0 +1,35 @@
+{
+  "operationId": "mailbox-settings.working-hours.get",
+  "provenance": "Constructed from Microsoft's Graph v1.0 reference (https://learn.microsoft.com/graph/api/user-get-mailboxsettings) with example.com data; no tenant capture yet (tools/capture phase 18 records one)",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/mailboxSettings/workingHours",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/mailboxSettings/workingHours",
+      "daysOfWeek": [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday"
+      ],
+      "startTime": "08:00:00.0000000",
+      "endTime": "17:00:00.0000000",
+      "timeZone": {
+        "name": "AUS Eastern Standard Time"
+      }
+    }
+  }
+}

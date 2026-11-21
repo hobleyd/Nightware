@@ -30,6 +30,7 @@ PHASES = [
     ("14", "Phase 14 — Contacts (Graph parity)"),
     ("15", "Phase 15 — To Do (Graph parity)"),
     ("16", "Phase 16 — Change notifications (Graph parity)"),
+    ("18", "Phase 18 — Settings, aliases, single items and $count (Graph parity)"),
 ]
 
 

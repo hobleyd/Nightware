@@ -1,0 +1,35 @@
+{
+  "operationId": "mailbox-settings.automatic-replies.get",
+  "provenance": "Constructed from Microsoft's Graph v1.0 reference (https://learn.microsoft.com/graph/api/user-get-mailboxsettings) with example.com data; no tenant capture yet (tools/capture phase 18 records one)",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/mailboxSettings/automaticRepliesSetting",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/mailboxSettings/automaticRepliesSetting",
+      "status": "scheduled",
+      "externalAudience": "contactsOnly",
+      "internalReplyMessage": "<div>Away.</div>",
+      "externalReplyMessage": "<div>Out of the office.</div>",
+      "scheduledStartDateTime": {
+        "dateTime": "2026-09-20T00:00:00.0000000",
+        "timeZone": "AUS Eastern Standard Time"
+      },
+      "scheduledEndDateTime": {
+        "dateTime": "2026-09-27T23:59:59.0000000",
+        "timeZone": "AUS Eastern Standard Time"
+      }
+    }
+  }
+}

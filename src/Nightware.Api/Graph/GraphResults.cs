@@ -28,6 +28,33 @@ public static class GraphResults
     public static IResult Entity(object dto, string contextFragment, IReadOnlySet<string>? select = null, IReadOnlyList<ExpandClause>? expand = null) =>
         EntityWithStatus(StatusCodes.Status200OK, dto, contextFragment, select, expand);
 
+    /// <summary>
+    /// A complex property of an entity, e.g. <c>mailboxSettings/automaticRepliesSetting</c>: the context names the
+    /// property path itself, with no <c>/$entity</c>, as Graph's does.
+    /// </summary>
+    public static IResult Property(object dto, string contextFragment)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+        return new GraphJsonResult(StatusCodes.Status200OK, http =>
+        {
+            var body = new JsonObject { ["@odata.context"] = Links(http).Context(http.Request, contextFragment) };
+            foreach (var (key, value) in GraphJson.ToObject(dto).ToList())
+            {
+                body[key] = value?.DeepClone();
+            }
+
+            return body;
+        });
+    }
+
+    /// <summary>A primitive property, e.g. <c>mailboxSettings/timeZone</c>: <c>{"@odata.context": …, "value": "UTC"}</c>.</summary>
+    public static IResult PropertyValue(string value, string contextFragment) =>
+        new GraphJsonResult(StatusCodes.Status200OK, http => new JsonObject
+        {
+            ["@odata.context"] = Links(http).Context(http.Request, contextFragment),
+            ["value"] = value,
+        });
+
     /// <summary>A single entity with 201 Created (Graph uses it for POSTs that create, and for <c>move</c>).</summary>
     public static IResult Created(object dto, string contextFragment, IReadOnlySet<string>? select = null) =>
         EntityWithStatus(StatusCodes.Status201Created, dto, contextFragment, select, null);

@@ -31,6 +31,22 @@ public static class MailboxSettingsMapper
         };
     }
 
+    public static LocaleInfoDto ToDto(MailboxLanguage language)
+    {
+        ArgumentNullException.ThrowIfNull(language);
+        return new LocaleInfoDto(language.Locale, language.DisplayName);
+    }
+
+    public static WorkingHoursDto ToDto(Nightware.Domain.Directory.WorkingHours hours)
+    {
+        ArgumentNullException.ThrowIfNull(hours);
+        return new WorkingHoursDto(
+            [.. hours.DaysOfWeek.Select(static d => JsonNamingPolicy.CamelCase.ConvertName(d.ToString()))],
+            hours.StartTime.ToString("HH:mm:ss.fffffff", System.Globalization.CultureInfo.InvariantCulture),
+            hours.EndTime.ToString("HH:mm:ss.fffffff", System.Globalization.CultureInfo.InvariantCulture),
+            new TimeZoneBaseDto(Nightware.Application.Common.Time.GraphTimeZone.ToWindowsId(hours.TimeZone)));
+    }
+
     /// <summary>
     /// A PATCH body. <c>automaticRepliesSetting</c> replaces the whole setting (Graph replaces complex
     /// properties, and NightMail sends it whole); properties NightMail Server does not store

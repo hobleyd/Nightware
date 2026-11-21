@@ -33,3 +33,15 @@ public sealed record AutomaticRepliesSettingDto
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DateTimeTimeZoneDto? ScheduledEndDateTime { get; init; }
 }
+
+/// <summary>Graph <c>localeInfo</c>.</summary>
+public sealed record LocaleInfoDto(string Locale, string DisplayName);
+
+/// <summary>Graph <c>workingHours</c>; the zone is named by its Windows id.</summary>
+public sealed record WorkingHoursDto(IReadOnlyList<string> DaysOfWeek, string StartTime, string EndTime, TimeZoneBaseDto TimeZone);
+
+/// <summary>Graph <c>timeZoneBase</c>.</summary>
+public sealed record TimeZoneBaseDto(string Name);
+
+/// <summary>Graph <c>timeZoneInformation</c>.</summary>
+public sealed record TimeZoneInformationDto(string Alias, string DisplayName);

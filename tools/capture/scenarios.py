@@ -371,6 +371,21 @@ NOTIFICATIONS = [
     setup("DELETE", "/v1.0/me/messages/${msgId}", always=True),
 ]
 
+# ---------------------------------------------------------------- phase 18
+
+SETTINGS = [
+    step("mailbox-settings.automatic-replies.get", "GET", "/v1.0/me/mailboxSettings/automaticRepliesSetting"),
+    step("mailbox-settings.time-zone.get", "GET", "/v1.0/me/mailboxSettings/timeZone"),
+    step("mailbox-settings.language.get", "GET", "/v1.0/me/mailboxSettings/language"),
+    step("mailbox-settings.working-hours.get", "GET", "/v1.0/me/mailboxSettings/workingHours"),
+    step("mailbox-settings.date-format.get", "GET", "/v1.0/me/mailboxSettings/dateFormat"),
+    step("mailbox-settings.time-format.get", "GET", "/v1.0/me/mailboxSettings/timeFormat"),
+    step("outlook.supported-time-zones", "GET", "/v1.0/me/outlook/supportedTimeZones"),
+    step("outlook.supported-time-zones-standard", "GET",
+         "/v1.0/me/outlook/supportedTimeZones(TimeZoneStandard=microsoft.graph.timeZoneStandard'Iana')"),
+    step("outlook.supported-languages", "GET", "/v1.0/me/outlook/supportedLanguages"),
+]
+
 PHASES = {
     11: [("batch", BATCH)],
     12: [("mail", MAIL)],
@@ -378,4 +393,5 @@ PHASES = {
     14: [("contacts", CONTACTS)],
     15: [("todo", TODO)],
     16: [("notifications", NOTIFICATIONS)],
+    18: [("settings", SETTINGS)],
 }

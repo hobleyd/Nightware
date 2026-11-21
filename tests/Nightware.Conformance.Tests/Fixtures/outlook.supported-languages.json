@@ -1,0 +1,37 @@
+{
+  "operationId": "outlook.supported-languages",
+  "provenance": "Constructed from Microsoft's Graph v1.0 reference (https://learn.microsoft.com/graph/api/outlookuser-supportedlanguages) with example.com data; no tenant capture yet (tools/capture phase 18 records one)",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/outlook/supportedLanguages",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(microsoft.graph.localeInfo)",
+      "value": [
+        {
+          "locale": "af-ZA",
+          "displayName": "Afrikaans (Suid-Afrika)"
+        },
+        {
+          "locale": "ar-SA",
+          "displayName": "العربية (المملكة العربية السعودية)"
+        },
+        {
+          "locale": "bg-BG",
+          "displayName": "български (България)"
+        }
+      ]
+    }
+  }
+}

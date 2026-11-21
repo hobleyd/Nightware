@@ -7164,5 +7164,305 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/change-notifications-delivery-webhooks",
     "notes": "Outbound (Nightware → the subscriber): a changeNotificationCollection. Sent only to a public address, never with a bearer token."
+  },
+  {
+    "id": "mailbox-settings.automatic-replies.get",
+    "phase": 18,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailboxSettings/automaticRepliesSetting",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "status",
+      "externalAudience",
+      "internalReplyMessage",
+      "externalReplyMessage",
+      "scheduledStartDateTime?",
+      "scheduledEndDateTime?"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+    "notes": "The same setting as mailboxSettings, scheduled times in the mailbox's zone. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone."
+  },
+  {
+    "id": "mailbox-settings.time-zone.get",
+    "phase": 18,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailboxSettings/timeZone",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+    "notes": "A Windows id, as mailboxSettings returns it. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone."
+  },
+  {
+    "id": "mailbox-settings.language.get",
+    "phase": 18,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailboxSettings/language",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "locale",
+      "displayName"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+    "notes": "The locale stored for the user in the directory, else en-US; its name from outlook/supportedLanguages. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone."
+  },
+  {
+    "id": "mailbox-settings.working-hours.get",
+    "phase": 18,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailboxSettings/workingHours",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "daysOfWeek",
+      "startTime",
+      "endTime",
+      "timeZone.name"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+    "notes": "The user's own, else Exchange's defaults (Monday to Friday, 08:00–17:00) in the mailbox's zone: what findMeetingTimes plans against. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone."
+  },
+  {
+    "id": "mailbox-settings.date-format.get",
+    "phase": 18,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailboxSettings/dateFormat",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+    "notes": "The user's own, else the short date pattern of their language. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone."
+  },
+  {
+    "id": "mailbox-settings.time-format.get",
+    "phase": 18,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailboxSettings/timeFormat",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+    "notes": "The user's own, else the short time pattern of their language. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone."
+  },
+  {
+    "id": "outlook.supported-time-zones",
+    "phase": 18,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/outlook/supportedTimeZones",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].alias",
+      "value[].displayName"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/outlookuser-supportedtimezones",
+    "notes": "A fixed list (tools/outlook-catalog), ordered by standard offset; every alias is accepted by PATCH mailboxSettings timeZone. The fixture keeps the first three. Windows ids."
+  },
+  {
+    "id": "outlook.supported-time-zones-standard",
+    "phase": 18,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/outlook/supportedTimeZones(TimeZoneStandard={standard})",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].alias",
+      "value[].displayName"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/outlookuser-supportedtimezones",
+    "notes": "A fixed list (tools/outlook-catalog), ordered by standard offset; every alias is accepted by PATCH mailboxSettings timeZone. The fixture keeps the first three. TimeZoneStandard is Windows or Iana (microsoft.graph.timeZoneStandard'Iana'); anything else is 400. IANA ids are their own display name."
+  },
+  {
+    "id": "outlook.supported-languages",
+    "phase": 18,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/outlook/supportedLanguages",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].locale",
+      "value[].displayName"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/outlookuser-supportedlanguages",
+    "notes": "A fixed list of locales with their native names (tools/outlook-catalog). The fixture keeps the first three."
   }
 ]

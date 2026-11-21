@@ -196,4 +196,39 @@ public sealed class MailboxSettingsEndpointsTests : IAsyncLifetime
     }
 
     private static StringContent Json(string json) => new(json, Encoding.UTF8, "application/json");
+
+    [Fact]
+    public async Task A_single_setting_reads_as_graph_shapes_it()
+    {
+        _replies.GetAsync(Arg.Any<MailboxRef>(), Arg.Any<CancellationToken>()).Returns(Stored);
+        _preferences.GetAsync(Arg.Any<MailboxRef>(), Arg.Any<CancellationToken>()).Returns(new UserPreferences("Australia/Sydney", "en-AU"));
+        var client = _host.AuthorizedClient();
+
+        var zone = await (await client.GetAsync("/v1.0/me/mailboxSettings/timeZone", Ct)).ReadObjectAsync();
+        zone["value"]!.GetValue<string>().ShouldBe("AUS Eastern Standard Time");
+        zone["@odata.context"]!.GetValue<string>().ShouldEndWith("/mailboxSettings/timeZone");
+
+        var hours = await (await client.GetAsync("/v1.0/me/mailboxSettings/WorkingHours", Ct)).ReadObjectAsync();
+        hours["timeZone"]!["name"]!.GetValue<string>().ShouldBe("AUS Eastern Standard Time", "named by its Windows id, as Graph does");
+        hours["daysOfWeek"]![0]!.GetValue<string>().ShouldBe("monday");
+    }
+
+    [Theory]
+    [InlineData("userPurpose")]
+    [InlineData("nonsense")]
+    public async Task A_setting_nightware_has_no_source_for_is_404(string setting)
+    {
+        var response = await _host.AuthorizedClient().GetAsync("/v1.0/me/mailboxSettings/" + setting, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        await _replies.DidNotReceiveWithAnyArgs().GetAsync(default!, Ct);
+    }
+
+    [Fact]
+    public async Task An_unknown_time_zone_standard_is_400()
+    {
+        var response = await _host.AuthorizedClient().GetAsync("/v1.0/me/outlook/supportedTimeZones(TimeZoneStandard=microsoft.graph.timeZoneStandard'Olson')", Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
 }

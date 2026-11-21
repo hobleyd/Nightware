@@ -1,0 +1,37 @@
+{
+  "operationId": "outlook.supported-time-zones-standard",
+  "provenance": "Constructed from Microsoft's Graph v1.0 reference (https://learn.microsoft.com/graph/api/outlookuser-supportedtimezones) with example.com data; no tenant capture yet (tools/capture phase 18 records one)",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/outlook/supportedTimeZones(TimeZoneStandard=microsoft.graph.timeZoneStandard'Iana')",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(microsoft.graph.timeZoneInformation)",
+      "value": [
+        {
+          "alias": "Etc/GMT+11",
+          "displayName": "Etc/GMT+11"
+        },
+        {
+          "alias": "America/Adak",
+          "displayName": "America/Adak"
+        },
+        {
+          "alias": "Pacific/Honolulu",
+          "displayName": "Pacific/Honolulu"
+        }
+      ]
+    }
+  }
+}

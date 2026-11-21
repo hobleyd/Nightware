@@ -42,6 +42,9 @@
       "name": "Mailbox settings"
     },
     {
+      "name": "Outlook"
+    },
+    {
       "name": "People"
     },
     {
@@ -16900,6 +16903,198 @@
         }
       }
     },
+    "/me/mailboxSettings/automaticRepliesSetting": {
+      "get": {
+        "operationId": "mailbox-settings.automatic-replies.get",
+        "tags": [
+          "Mailbox settings"
+        ],
+        "summary": "Mailbox settings automatic replies: get",
+        "description": "The same setting as mailboxSettings, scheduled times in the mailbox's zone. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {},
+                    "externalAudience": {},
+                    "internalReplyMessage": {},
+                    "externalReplyMessage": {},
+                    "scheduledStartDateTime?": {},
+                    "scheduledEndDateTime?": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/mailboxSettings/automaticRepliesSetting": {
+      "get": {
+        "operationId": "mailbox-settings.automatic-replies.get.users",
+        "tags": [
+          "Mailbox settings"
+        ],
+        "summary": "Mailbox settings automatic replies: get",
+        "description": "The same setting as mailboxSettings, scheduled times in the mailbox's zone. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {},
+                    "externalAudience": {},
+                    "internalReplyMessage": {},
+                    "externalReplyMessage": {},
+                    "scheduledStartDateTime?": {},
+                    "scheduledEndDateTime?": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/mailboxSettings/dateFormat": {
+      "get": {
+        "operationId": "mailbox-settings.date-format.get",
+        "tags": [
+          "Mailbox settings"
+        ],
+        "summary": "Mailbox settings date format: get",
+        "description": "The user's own, else the short date pattern of their language. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/mailboxSettings/dateFormat": {
+      "get": {
+        "operationId": "mailbox-settings.date-format.get.users",
+        "tags": [
+          "Mailbox settings"
+        ],
+        "summary": "Mailbox settings date format: get",
+        "description": "The user's own, else the short date pattern of their language. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me/mailboxSettings": {
       "get": {
         "operationId": "mailbox-settings.get",
@@ -17178,6 +17373,732 @@
         "responses": {
           "200": {
             "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/mailboxSettings/language": {
+      "get": {
+        "operationId": "mailbox-settings.language.get",
+        "tags": [
+          "Mailbox settings"
+        ],
+        "summary": "Mailbox settings language: get",
+        "description": "The locale stored for the user in the directory, else en-US; its name from outlook/supportedLanguages. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "locale": {},
+                    "displayName": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/mailboxSettings/language": {
+      "get": {
+        "operationId": "mailbox-settings.language.get.users",
+        "tags": [
+          "Mailbox settings"
+        ],
+        "summary": "Mailbox settings language: get",
+        "description": "The locale stored for the user in the directory, else en-US; its name from outlook/supportedLanguages. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "locale": {},
+                    "displayName": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/mailboxSettings/timeFormat": {
+      "get": {
+        "operationId": "mailbox-settings.time-format.get",
+        "tags": [
+          "Mailbox settings"
+        ],
+        "summary": "Mailbox settings time format: get",
+        "description": "The user's own, else the short time pattern of their language. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/mailboxSettings/timeFormat": {
+      "get": {
+        "operationId": "mailbox-settings.time-format.get.users",
+        "tags": [
+          "Mailbox settings"
+        ],
+        "summary": "Mailbox settings time format: get",
+        "description": "The user's own, else the short time pattern of their language. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/mailboxSettings/timeZone": {
+      "get": {
+        "operationId": "mailbox-settings.time-zone.get",
+        "tags": [
+          "Mailbox settings"
+        ],
+        "summary": "Mailbox settings time zone: get",
+        "description": "A Windows id, as mailboxSettings returns it. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/mailboxSettings/timeZone": {
+      "get": {
+        "operationId": "mailbox-settings.time-zone.get.users",
+        "tags": [
+          "Mailbox settings"
+        ],
+        "summary": "Mailbox settings time zone: get",
+        "description": "A Windows id, as mailboxSettings returns it. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/mailboxSettings/workingHours": {
+      "get": {
+        "operationId": "mailbox-settings.working-hours.get",
+        "tags": [
+          "Mailbox settings"
+        ],
+        "summary": "Mailbox settings working hours: get",
+        "description": "The user's own, else Exchange's defaults (Monday to Friday, 08:00–17:00) in the mailbox's zone: what findMeetingTimes plans against. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "daysOfWeek": {},
+                    "startTime": {},
+                    "endTime": {},
+                    "timeZone": {
+                      "type": "object",
+                      "properties": {
+                        "name": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/mailboxSettings/workingHours": {
+      "get": {
+        "operationId": "mailbox-settings.working-hours.get.users",
+        "tags": [
+          "Mailbox settings"
+        ],
+        "summary": "Mailbox settings working hours: get",
+        "description": "The user's own, else Exchange's defaults (Monday to Friday, 08:00–17:00) in the mailbox's zone: what findMeetingTimes plans against. Read-only here: PATCH mailboxSettings changes automaticRepliesSetting and timeZone.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-get-mailboxsettings",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "daysOfWeek": {},
+                    "startTime": {},
+                    "endTime": {},
+                    "timeZone": {
+                      "type": "object",
+                      "properties": {
+                        "name": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/outlook/supportedLanguages": {
+      "get": {
+        "operationId": "outlook.supported-languages",
+        "tags": [
+          "Outlook"
+        ],
+        "summary": "Outlook: supported languages",
+        "description": "A fixed list of locales with their native names (tools/outlook-catalog). The fixture keeps the first three.\n\nGraph reference: https://learn.microsoft.com/graph/api/outlookuser-supportedlanguages",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "locale": {},
+                          "displayName": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/outlook/supportedLanguages": {
+      "get": {
+        "operationId": "outlook.supported-languages.users",
+        "tags": [
+          "Outlook"
+        ],
+        "summary": "Outlook: supported languages",
+        "description": "A fixed list of locales with their native names (tools/outlook-catalog). The fixture keeps the first three.\n\nGraph reference: https://learn.microsoft.com/graph/api/outlookuser-supportedlanguages",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "locale": {},
+                          "displayName": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/outlook/supportedTimeZones": {
+      "get": {
+        "operationId": "outlook.supported-time-zones",
+        "tags": [
+          "Outlook"
+        ],
+        "summary": "Outlook: supported time zones",
+        "description": "A fixed list (tools/outlook-catalog), ordered by standard offset; every alias is accepted by PATCH mailboxSettings timeZone. The fixture keeps the first three. Windows ids.\n\nGraph reference: https://learn.microsoft.com/graph/api/outlookuser-supportedtimezones",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "alias": {},
+                          "displayName": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/outlook/supportedTimeZones": {
+      "get": {
+        "operationId": "outlook.supported-time-zones.users",
+        "tags": [
+          "Outlook"
+        ],
+        "summary": "Outlook: supported time zones",
+        "description": "A fixed list (tools/outlook-catalog), ordered by standard offset; every alias is accepted by PATCH mailboxSettings timeZone. The fixture keeps the first three. Windows ids.\n\nGraph reference: https://learn.microsoft.com/graph/api/outlookuser-supportedtimezones",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "alias": {},
+                          "displayName": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/outlook/supportedTimeZones(TimeZoneStandard={standard})": {
+      "get": {
+        "operationId": "outlook.supported-time-zones-standard",
+        "tags": [
+          "Outlook"
+        ],
+        "summary": "Outlook: supported time zones standard",
+        "description": "A fixed list (tools/outlook-catalog), ordered by standard offset; every alias is accepted by PATCH mailboxSettings timeZone. The fixture keeps the first three. TimeZoneStandard is Windows or Iana (microsoft.graph.timeZoneStandard'Iana'); anything else is 400. IANA ids are their own display name.\n\nGraph reference: https://learn.microsoft.com/graph/api/outlookuser-supportedtimezones",
+        "parameters": [
+          {
+            "name": "standard",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "alias": {},
+                          "displayName": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/outlook/supportedTimeZones(TimeZoneStandard={standard})": {
+      "get": {
+        "operationId": "outlook.supported-time-zones-standard.users",
+        "tags": [
+          "Outlook"
+        ],
+        "summary": "Outlook: supported time zones standard",
+        "description": "A fixed list (tools/outlook-catalog), ordered by standard offset; every alias is accepted by PATCH mailboxSettings timeZone. The fixture keeps the first three. TimeZoneStandard is Windows or Iana (microsoft.graph.timeZoneStandard'Iana'); anything else is 400. IANA ids are their own display name.\n\nGraph reference: https://learn.microsoft.com/graph/api/outlookuser-supportedtimezones",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "standard",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "alias": {},
+                          "displayName": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/Error"

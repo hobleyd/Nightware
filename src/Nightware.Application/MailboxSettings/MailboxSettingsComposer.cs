@@ -21,13 +21,41 @@ internal static class MailboxSettingsComposer
             ? GraphTimeZone.ToWindowsId(stored)
             : GraphTimeZone.Utc;
         GraphTimeZone.TryFind(zoneName, out var zone);
+        var known = OutlookCatalog.FindLanguage(preferences?.Language);
+        var language = preferences?.Language is { Length: > 0 } locale
+            ? new MailboxLanguage(known?.Locale ?? locale, known?.DisplayName ?? locale)
+            : MailboxLanguage.Default;
+        var patterns = known ?? OutlookCatalog.FindLanguage(MailboxLanguage.Default.Locale)!;
         return new MailboxSettingsSnapshot(
             replies with
             {
                 ScheduledStartDateTime = InZone(replies.ScheduledStartDateTime, zone, zoneName),
                 ScheduledEndDateTime = InZone(replies.ScheduledEndDateTime, zone, zoneName),
             },
-            zoneName);
+            zoneName)
+        {
+            Language = language,
+            WorkingHours = WorkingHours(preferences),
+            DateFormat = preferences?.DateFormat ?? patterns.DateFormat,
+            TimeFormat = preferences?.TimeFormat ?? patterns.TimeFormat,
+        };
+    }
+
+    /// <summary>
+    /// The mailbox's own working hours when their zone is known, else Exchange's defaults in the mailbox's zone
+    /// (what <c>findMeetingTimes</c> plans against too).
+    /// </summary>
+    public static WorkingHours WorkingHours(UserPreferences? preferences)
+    {
+        if (preferences?.WorkingHours is { } hours && GraphTimeZone.TryFind(hours.TimeZone, out _))
+        {
+            return hours;
+        }
+
+        return Calendar.FreeBusy.FindMeetingTimes.DefaultWorkingHours with
+        {
+            TimeZone = GraphTimeZone.TryFind(preferences?.TimeZone, out _) ? preferences!.TimeZone! : GraphTimeZone.Utc,
+        };
     }
 
     /// <summary>The preferences, or null when the directory does not know the mailbox; other failures pass through.</summary>

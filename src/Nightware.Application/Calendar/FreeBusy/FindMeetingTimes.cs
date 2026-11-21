@@ -118,16 +118,8 @@ public sealed class FindMeetingTimes(IFreeBusyReader freeBusy, IUserPreferencesS
             return stored.Error.Kind == ErrorKind.NotFound ? DefaultWorkingHours : stored.Error;
         }
 
-        if (stored.Value.WorkingHours is { } hours && GraphTimeZone.TryFind(hours.TimeZone, out _))
-        {
-            return hours;
-        }
-
-        // No working hours of their own: Exchange's defaults, in the mailbox's zone.
-        return DefaultWorkingHours with
-        {
-            TimeZone = GraphTimeZone.TryFind(stored.Value.TimeZone, out _) ? stored.Value.TimeZone! : GraphTimeZone.Utc,
-        };
+        // Its own, or Exchange's defaults in the mailbox's zone: what GET mailboxSettings/workingHours reports too.
+        return MailboxSettings.MailboxSettingsComposer.WorkingHours(stored.Value);
     }
 
     /// <summary>Starts on half-hour boundaries that fit the window and, for work/personal, the working day.</summary>

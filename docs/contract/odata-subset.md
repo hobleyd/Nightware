@@ -216,3 +216,10 @@ fractional seconds (Graph's 7-digit form is fine). It appends `Z` when
 asked for UTC. To Do and mailbox-settings values are read as naive local
 wall-clock. Top-level timestamps (`receivedDateTime`, `sentDateTime`,
 `createdDateTime`, `lastModifiedDateTime`) are ISO-8601 with `Z`.
+
+## 10. Graph-parity operations, phase 18 (ADR 0006 D3)
+
+| Operations | Accepted |
+|---|---|
+| `mailbox-settings.*.get` (`mailboxSettings/{setting}`) | nothing (a single property: Graph's reference lists no options that apply) |
+| `outlook.supported-time-zones`, `-standard`, `outlook.supported-languages` | nothing; `TimeZoneStandard` is a function argument, `Windows` or `Iana` (anything else 400) |
