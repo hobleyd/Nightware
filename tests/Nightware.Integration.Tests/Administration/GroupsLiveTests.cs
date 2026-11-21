@@ -180,4 +180,36 @@ public sealed class GroupsLiveTests : IAsyncDisposable
         {
         }
     }
+
+    [Fact]
+    public async Task A_profile_set_in_the_console_reads_back_through_the_graph_directory()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
+        using IServiceScope scope = _services!.CreateScope();
+        IdentityAccount bob = (await scope.ServiceProvider.GetRequiredService<IIdentityAccounts>().FindByUsernameAsync("bob", Ct)).Value;
+        var before = bob.Profile;
+        var title = "Engineer " + Guid.NewGuid().ToString("N")[..6];
+        try
+        {
+            var saved = await scope.ServiceProvider.GetRequiredService<Nightware.Application.Administration.Users.SetUserProfile>().ExecuteAsync(
+                bob.Id,
+                new UserProfile { JobTitle = title, Department = "R&D", OfficeLocation = "Level 3", BusinessPhones = ["+61 2 5550 0100", "+61 2 5550 0101"], MobilePhone = "+61 400 000 000" },
+                Ct);
+            saved.Value.User.Identity.Profile.JobTitle.ShouldBe(title);
+
+            await using var stack = Nightware.Integration.Tests.Directory.LiveStack.Start();
+            using var client = await stack.GraphClientAsync("alice", Ct);
+            using var response = await client.GetAsync("/v1.0/users/" + Uri.EscapeDataString(bob.Email) + "?$select=jobTitle,department,officeLocation,businessPhones,mobilePhone", Ct);
+            var user = (await System.Net.Http.Json.HttpContentJsonExtensions.ReadFromJsonAsync<System.Text.Json.Nodes.JsonObject>(response.Content, Ct))!;
+            user["jobTitle"]!.GetValue<string>().ShouldBe(title);
+            user["department"]!.GetValue<string>().ShouldBe("R&D");
+            user["officeLocation"]!.GetValue<string>().ShouldBe("Level 3");
+            user["businessPhones"]!.AsArray().Select(static p => p!.GetValue<string>()).ShouldBe(["+61 2 5550 0100", "+61 2 5550 0101"]);
+            user["mobilePhone"]!.GetValue<string>().ShouldBe("+61 400 000 000");
+        }
+        finally
+        {
+            await scope.ServiceProvider.GetRequiredService<IIdentityAccounts>().SetProfileAsync(bob.Id, before, Ct);
+        }
+    }
 }

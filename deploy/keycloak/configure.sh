@@ -3,8 +3,10 @@
 #   - declare the Graph mailboxSettings attributes in the realm's user profile
 #     (Keycloak 26 drops undeclared "unmanaged" attributes): zoneinfo, locale,
 #     nightware_working_hours (JSON string), nightware_date_format,
-#     nightware_time_format. Viewable by users, editable only by admins / the
-#     nightware-api service account.
+#     nightware_time_format; and the Graph user profile fields the console sets
+#     (nightware_job_title, _department, _company_name, _office_location,
+#     _business_phones (multivalued), phoneNumber → mobilePhone). Viewable by
+#     users, editable only by admins / the service accounts.
 #   - lock the identity attributes: `email` (the Stalwart account and the
 #     façade's /me mailbox) and `username` are editable by admins only, so a user
 #     cannot claim another mailbox's address in the account console; usernames
@@ -34,14 +36,20 @@ ATTRS='[
   {"name":"locale","displayName":"Locale","validations":{"length":{"max":35}}},
   {"name":"nightware_working_hours","displayName":"Working hours (Graph workingHours JSON)","validations":{"length":{"max":4096}}},
   {"name":"nightware_date_format","displayName":"Date format (Graph dateFormat)","validations":{"length":{"max":64}}},
-  {"name":"nightware_time_format","displayName":"Time format (Graph timeFormat)","validations":{"length":{"max":64}}}
+  {"name":"nightware_time_format","displayName":"Time format (Graph timeFormat)","validations":{"length":{"max":64}}},
+  {"name":"nightware_job_title","displayName":"Job title","validations":{"length":{"max":255}}},
+  {"name":"nightware_department","displayName":"Department","validations":{"length":{"max":255}}},
+  {"name":"nightware_company_name","displayName":"Company","validations":{"length":{"max":255}}},
+  {"name":"nightware_office_location","displayName":"Office","validations":{"length":{"max":255}}},
+  {"name":"nightware_business_phones","displayName":"Work phones","multivalued":true,"validations":{"length":{"max":255}}},
+  {"name":"phoneNumber","displayName":"Mobile phone","validations":{"length":{"max":255}}}
 ]'
 profile=$(ccurl -f -H "Authorization: Bearer ${ADMIN}" "${API}/users/profile")
 updated=$(jq --argjson want "$ATTRS" -f "$DEPLOY_DIR/keycloak/user-profile.jq" <<<"$profile")
 if [[ "$(jq -S . <<<"$profile")" == "$(jq -S . <<<"$updated")" ]]; then
-  log "Keycloak: user profile already declares the mailboxSettings attributes and locks email/username"
+  log "Keycloak: user profile already declares the mailboxSettings and profile attributes and locks email/username"
 else
-  log "Keycloak: declaring zoneinfo, locale, nightware_working_hours, nightware_date_format, nightware_time_format; email/username admin-edit only"
+  log "Keycloak: declaring the mailboxSettings and profile attributes; email/username admin-edit only"
   ccurl -f -X PUT -H "Authorization: Bearer ${ADMIN}" -H 'Content-Type: application/json' \
     "${API}/users/profile" --data-binary @- <<<"$updated" >/dev/null
 fi

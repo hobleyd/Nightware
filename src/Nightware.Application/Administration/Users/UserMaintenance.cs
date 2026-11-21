@@ -62,6 +62,39 @@ public sealed class RepairUser(IAdminActor actor, UserAccess users, IMailAccount
     }
 }
 
+/// <summary>
+/// Replaces a user's Graph profile fields (job title, department, company, office, phones) in Keycloak, where the
+/// façade's directory reads them. Values are trimmed and capped as the realm's user profile declares them.
+/// </summary>
+public sealed class SetUserProfile(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IAuditLog audit)
+{
+    internal const int MaxLength = 255;
+
+    public async Task<Result<UserDetail>> ExecuteAsync(string userId, UserProfile profile, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        Result<UserDetail> loaded = await users.LoadWithLinksAsync(userId, cancellationToken).ConfigureAwait(false);
+        if (!loaded.IsSuccess)
+        {
+            return loaded.Error;
+        }
+
+        var fields = new[] { profile.JobTitle, profile.Department, profile.CompanyName, profile.OfficeLocation, profile.MobilePhone }.Concat(profile.BusinessPhones);
+        if (fields.Any(static f => f is { Length: > MaxLength }))
+        {
+            return Error.Validation($"Each profile field can be at most {MaxLength} characters.", "profile");
+        }
+
+        Result result = await identities.SetProfileAsync(userId, profile, cancellationToken).ConfigureAwait(false);
+        audit.Record(new AuditEvent("user.profile.set", actor.Current.UserId, result.IsSuccess)
+        {
+            TargetUserId = userId,
+            EntityId = loaded.Value.User.EntityId,
+        });
+        return result.IsSuccess ? await users.LoadWithLinksAsync(userId, cancellationToken).ConfigureAwait(false) : result.Error;
+    }
+}
+
 /// <summary>Replaces a user's secondary addresses in Keycloak and on their mailbox.</summary>
 public sealed class SetUserAliases(IAdminActor actor, UserAccess users, IEntityRegistry entities, IIdentityAccounts identities, IMailAccounts mail, AdministrationOptions options, IAuditLog audit)
 {

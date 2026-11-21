@@ -63,6 +63,9 @@ public sealed record IdentityAccount(string Id, string Username, string Email, b
     /// <summary>Secondary addresses (Keycloak attribute <c>nightware_aliases</c>).</summary>
     public IReadOnlyList<string> Aliases { get; init; } = [];
 
+    /// <summary>The Graph profile fields (<c>jobTitle</c>, <c>department</c>, …) the façade's directory shows.</summary>
+    public UserProfile Profile { get; init; } = UserProfile.Empty;
+
     /// <summary>When the console deleted this user's mail (Keycloak attribute <c>nightware_mail_deleted_at</c>).</summary>
     public DateTimeOffset? MailDeletedAt { get; init; }
 
@@ -75,6 +78,30 @@ public sealed record IdentityAccount(string Id, string Username, string Email, b
     public string DisplayName => string.Join(' ', new[] { FirstName, LastName }.Where(static n => !string.IsNullOrWhiteSpace(n))) is { Length: > 0 } name
         ? name
         : Username;
+}
+
+/// <summary>A user's Graph profile fields; blank means not set.</summary>
+public sealed record UserProfile
+{
+    public static UserProfile Empty { get; } = new();
+
+    public string? JobTitle { get; init; }
+
+    public string? Department { get; init; }
+
+    public string? CompanyName { get; init; }
+
+    public string? OfficeLocation { get; init; }
+
+    public IReadOnlyList<string> BusinessPhones { get; init; } = [];
+
+    public string? MobilePhone { get; init; }
+
+    public bool Equals(UserProfile? other) =>
+        other is not null && JobTitle == other.JobTitle && Department == other.Department && CompanyName == other.CompanyName
+        && OfficeLocation == other.OfficeLocation && MobilePhone == other.MobilePhone && BusinessPhones.SequenceEqual(other.BusinessPhones);
+
+    public override int GetHashCode() => HashCode.Combine(JobTitle, Department, CompanyName, OfficeLocation, MobilePhone, BusinessPhones.Count);
 }
 
 /// <summary>A Keycloak user plus what the console knows about their entity and roles.</summary>

@@ -2,9 +2,9 @@ namespace Nightware.Adapters.Directory.Directory;
 
 /// <summary>
 /// Keycloak user attributes that back Graph <c>user</c> properties Keycloak has no built-in field for.
-/// Keycloak 24+ keeps only attributes its realm user profile declares, so a deployment that wants these
-/// filled declares them (admin-editable) the way <c>deploy/keycloak/configure.sh</c> declares the
-/// mailboxSettings ones; undeclared, they are simply absent and the Graph properties are null.
+/// Keycloak 24+ keeps only attributes its realm user profile declares; <c>deploy/keycloak/configure.sh</c> declares
+/// these (admin-editable) and the console's user page sets them. Undeclared, they are absent and the Graph
+/// properties are null.
 /// </summary>
 internal static class KeycloakUserAttributes
 {

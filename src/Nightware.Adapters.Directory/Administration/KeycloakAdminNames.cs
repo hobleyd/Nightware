@@ -20,6 +20,21 @@ internal static class KeycloakAdminNames
     /// <summary>Multivalued user attribute: the user's secondary addresses.</summary>
     public const string AliasesAttribute = "nightware_aliases";
 
+    /// <summary>The Graph profile attributes the directory reads (<c>Directory/KeycloakUserAttributes</c>), set from the console.</summary>
+    public const string JobTitleAttribute = "nightware_job_title";
+
+    public const string DepartmentAttribute = "nightware_department";
+
+    public const string CompanyNameAttribute = "nightware_company_name";
+
+    public const string OfficeLocationAttribute = "nightware_office_location";
+
+    /// <summary>Multi-valued.</summary>
+    public const string BusinessPhonesAttribute = "nightware_business_phones";
+
+    /// <summary>Keycloak's own attribute behind the OIDC <c>phone_number</c> claim; Graph's <c>mobilePhone</c>.</summary>
+    public const string PhoneNumberAttribute = "phoneNumber";
+
     /// <summary>User attribute: when the console deleted the user's mail (ISO-8601 round-trip).</summary>
     public const string MailDeletedAtAttribute = "nightware_mail_deleted_at";
 

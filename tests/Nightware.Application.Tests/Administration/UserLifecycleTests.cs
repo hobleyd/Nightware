@@ -429,6 +429,32 @@ public sealed class UserLifecycleTests
     }
 
     [Fact]
+    public async Task A_profile_is_written_to_keycloak_and_audited()
+    {
+        Carol();
+        _bed.Identities.SetProfileAsync("u-carol", Arg.Any<UserProfile>(), Arg.Any<CancellationToken>()).Returns(Result.Success());
+        var setProfile = new SetUserProfile(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Audit);
+        var profile = new UserProfile { JobTitle = "Engineer", BusinessPhones = ["+61 2 5550 0100"] };
+
+        (await setProfile.ExecuteAsync("u-carol", profile, Ct)).IsSuccess.ShouldBeTrue();
+
+        await _bed.Identities.Received(1).SetProfileAsync("u-carol", profile, Arg.Any<CancellationToken>());
+        _bed.Audit.Single("user.profile.set").Succeeded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task A_profile_field_over_the_cap_or_for_a_user_out_of_reach_is_refused()
+    {
+        Carol();
+        var setProfile = new SetUserProfile(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Audit);
+
+        (await setProfile.ExecuteAsync("u-carol", new UserProfile { Department = new string('d', 256) }, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        _bed.ActAsNobody();
+        (await setProfile.ExecuteAsync("u-carol", new UserProfile { JobTitle = "x" }, Ct)).IsSuccess.ShouldBeFalse();
+        await _bed.Identities.DidNotReceiveWithAnyArgs().SetProfileAsync(default!, default!, Ct);
+    }
+
+    [Fact]
     public async Task Aliases_off_the_entity_or_held_by_another_mailbox_are_refused()
     {
         Carol();

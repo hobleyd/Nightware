@@ -18,6 +18,7 @@ public sealed class DetailModel(
     RepairUser repair,
     ResetUserCredential reset,
     SetUserAliases setAliases,
+    SetUserProfile setProfile,
     OffboardUser offboard,
     ReinstateUser reinstate,
     SetGlobalAdmin setGlobalAdmin,
@@ -73,6 +74,24 @@ public sealed class DetailModel(
         await AfterAsync(
             await setAliases.ExecuteAsync(Id, (aliases ?? string.Empty).Split([',', ';', '\n', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), cancellationToken),
             "Aliases saved.",
+            cancellationToken);
+
+    public async Task<IActionResult> OnPostProfileAsync(
+        string? jobTitle, string? department, string? companyName, string? officeLocation, string? businessPhones, string? mobilePhone, CancellationToken cancellationToken) =>
+        await AfterAsync(
+            await setProfile.ExecuteAsync(
+                Id,
+                new UserProfile
+                {
+                    JobTitle = jobTitle,
+                    Department = department,
+                    CompanyName = companyName,
+                    OfficeLocation = officeLocation,
+                    BusinessPhones = (businessPhones ?? string.Empty).Split([',', ';', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                    MobilePhone = mobilePhone,
+                },
+                cancellationToken),
+            "Profile saved.",
             cancellationToken);
 
     public async Task<IActionResult> OnPostOffboardAsync(bool confirm, CancellationToken cancellationToken)

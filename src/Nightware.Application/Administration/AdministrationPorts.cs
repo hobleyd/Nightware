@@ -83,6 +83,9 @@ public interface IIdentityAccounts
 
     Task<Result> SetAliasesAsync(string userId, IReadOnlyList<MailAddress> aliases, CancellationToken cancellationToken);
 
+    /// <summary>Replaces the user's Graph profile fields (blank values clear them).</summary>
+    Task<Result> SetProfileAsync(string userId, UserProfile profile, CancellationToken cancellationToken);
+
     Task<Result> SetEnabledAsync(string userId, bool enabled, CancellationToken cancellationToken);
 
     /// <summary>

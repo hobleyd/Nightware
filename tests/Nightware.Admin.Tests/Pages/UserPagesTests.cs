@@ -156,6 +156,28 @@ public sealed class UserPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task The_profile_form_saves_each_field_and_splits_the_work_phones()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+        _host.Identities.SetProfileAsync("u-dan", Arg.Any<UserProfile>(), Arg.Any<CancellationToken>()).Returns(Result.Success());
+        HttpClient client = _host.ClientAs(ConsoleHost.EntityAdmin);
+
+        (await client.GetStringAsync("/users/u-dan", Ct)).ShouldContain("handler=Profile");
+        using HttpResponseMessage done = await ConsoleHost.PostFormAsync(client, "/users/u-dan", "/users/u-dan?handler=Profile", new Dictionary<string, string>
+        {
+            ["jobTitle"] = "Engineer",
+            ["department"] = "R&D",
+            ["businessPhones"] = "+61 2 5550 0100; +61 2 5550 0101",
+            ["mobilePhone"] = "",
+        });
+
+        done.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        await _host.Identities.Received(1).SetProfileAsync("u-dan", Arg.Is<UserProfile>(p =>
+            p.JobTitle == "Engineer" && p.Department == "R&D" && p.BusinessPhones.SequenceEqual(new[] { "+61 2 5550 0100", "+61 2 5550 0101" }) && string.IsNullOrEmpty(p.MobilePhone)),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Finding_one_user_opens_them_and_several_are_listed_with_their_entity()
     {
         _host.AddUser("u-dan", "dan", "dan@acme.example");

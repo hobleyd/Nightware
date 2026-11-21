@@ -75,9 +75,10 @@ what a fix needs. Ordered by impact within each section.
   token is renewed. Removal is immediate (the mail server refuses).
 - A shared mailbox has no calendar, contacts or files: those routes answer as
   for any address Nextcloud does not know.
-- Graph-only profile fields (`jobTitle`, `department`, aliases, …) come from
-  `nightware_*` Keycloak attributes that the dev realm doesn't declare yet, so
-  they are null live and `proxyAddresses` is only `SMTP:<mail>`.
+- Graph-only profile fields (`jobTitle`, `department`, `companyName`,
+  `officeLocation`, `businessPhones`, `mobilePhone`) are set on the console's
+  user page ("Profile"). `keycloak/configure.sh` declares their attributes;
+  until it has run on a stack they are null.
 
 ## Operations and security
 - **Stalwart's default inbound throttle (25 messages/hour per sender domain and

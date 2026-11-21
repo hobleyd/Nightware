@@ -86,6 +86,28 @@ internal sealed class KeycloakIdentityAccounts(IKeycloakAdminClient keycloak, IO
         return await SetAttributeAsync(userId, KeycloakAdminNames.AliasesAttribute, values, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<Result> SetProfileAsync(string userId, UserProfile profile, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        ArgumentNullException.ThrowIfNull(profile);
+        static IReadOnlyList<string>? One(string? value) => Blank(value) is { } v ? [v] : null;
+        IReadOnlyList<string> phones = [.. profile.BusinessPhones.Select(Blank).OfType<string>().Distinct(StringComparer.Ordinal)];
+        Result<KeycloakUser> updated = await keycloak.UpdateUserAttributesAsync(
+                userId,
+                new Dictionary<string, IReadOnlyList<string>?>
+                {
+                    [KeycloakAdminNames.JobTitleAttribute] = One(profile.JobTitle),
+                    [KeycloakAdminNames.DepartmentAttribute] = One(profile.Department),
+                    [KeycloakAdminNames.CompanyNameAttribute] = One(profile.CompanyName),
+                    [KeycloakAdminNames.OfficeLocationAttribute] = One(profile.OfficeLocation),
+                    [KeycloakAdminNames.BusinessPhonesAttribute] = phones.Count == 0 ? null : phones,
+                    [KeycloakAdminNames.PhoneNumberAttribute] = One(profile.MobilePhone),
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
+        return updated.ToResult();
+    }
+
     public async Task<Result> SetEnabledAsync(string userId, bool enabled, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);

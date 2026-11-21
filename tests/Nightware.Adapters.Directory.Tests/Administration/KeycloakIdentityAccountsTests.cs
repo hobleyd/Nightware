@@ -144,6 +144,35 @@ public sealed class KeycloakIdentityAccountsTests : IDisposable
     }
 
     [Fact]
+    public async Task A_profile_sets_its_attributes_and_blank_fields_remove_theirs()
+    {
+        _keycloak.GivenAdmin(UserPath, 200, """{"id":"5d2c6a4e-2f0b-4a8e-9f3c-1b7e2d9a6c11","attributes":{"nightware_department":["Old"],"locale":["en"]}}""");
+        _keycloak.GivenAdmin(UserPath, 204, method: "PUT");
+        await using AdapterHost host = Host();
+
+        var profile = new UserProfile { JobTitle = " Engineer ", Department = " ", BusinessPhones = ["+1 555", " ", "+1 555", "+1 556"], MobilePhone = "+1 400" };
+        (await host.Scoped<IIdentityAccounts>().SetProfileAsync(UserId, profile, Ct)).IsSuccess.ShouldBeTrue();
+
+        JsonObject attributes = PutBody()["attributes"]!.AsObject();
+        attributes["nightware_job_title"]!.AsArray().Single()!.GetValue<string>().ShouldBe("Engineer");
+        attributes.ContainsKey("nightware_department").ShouldBeFalse();
+        attributes["nightware_business_phones"]!.AsArray().Select(static p => p!.GetValue<string>()).ShouldBe(["+1 555", "+1 556"]);
+        attributes["phoneNumber"]!.AsArray().Single()!.GetValue<string>().ShouldBe("+1 400");
+        attributes["locale"].ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task The_profile_is_read_from_its_attributes()
+    {
+        _keycloak.GivenAdmin(UserPath, 200, """{"id":"5d2c6a4e-2f0b-4a8e-9f3c-1b7e2d9a6c11","username":"alice","email":"a@x.example","enabled":true,"attributes":{"nightware_job_title":["Engineer"],"nightware_business_phones":["+1 555","+1 556"],"phoneNumber":["+1 400"]}}""");
+        await using AdapterHost host = Host();
+
+        var profile = (await host.Scoped<IIdentityAccounts>().GetAsync(UserId, Ct)).Value.Profile;
+
+        profile.ShouldBe(new UserProfile { JobTitle = "Engineer", BusinessPhones = ["+1 555", "+1 556"], MobilePhone = "+1 400" });
+    }
+
+    [Fact]
     public async Task No_aliases_removes_the_attribute()
     {
         _keycloak.GivenAdmin(UserPath, 200, """{"id":"5d2c6a4e-2f0b-4a8e-9f3c-1b7e2d9a6c11","attributes":{"nightware_aliases":["x@y.example"],"locale":["en"]}}""");

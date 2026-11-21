@@ -16,6 +16,15 @@ internal static class KeycloakAdministrationMapper
             FirstName = Blank(user.FirstName),
             LastName = Blank(user.LastName),
             Aliases = Values(user, KeycloakAdminNames.AliasesAttribute),
+            Profile = new UserProfile
+            {
+                JobTitle = Blank(user.Attribute(KeycloakAdminNames.JobTitleAttribute)),
+                Department = Blank(user.Attribute(KeycloakAdminNames.DepartmentAttribute)),
+                CompanyName = Blank(user.Attribute(KeycloakAdminNames.CompanyNameAttribute)),
+                OfficeLocation = Blank(user.Attribute(KeycloakAdminNames.OfficeLocationAttribute)),
+                BusinessPhones = Values(user, KeycloakAdminNames.BusinessPhonesAttribute),
+                MobilePhone = Blank(user.Attribute(KeycloakAdminNames.PhoneNumberAttribute)),
+            },
             MailDeletedAt = Marker(user.Attribute(KeycloakAdminNames.MailDeletedAtAttribute)),
             GroupwareDeletedAt = Marker(user.Attribute(KeycloakAdminNames.GroupwareDeletedAtAttribute)),
             AccessHistory = History(Values(user, KeycloakAdminNames.AccessHistoryAttribute)),

@@ -61,6 +61,7 @@ public static class AdministrationServiceCollectionExtensions
         services.TryAddScoped<ApplyUserProvisioning>();
         services.TryAddScoped<RepairUser>();
         services.TryAddScoped<SetUserAliases>();
+        services.TryAddScoped<SetUserProfile>();
         services.TryAddScoped<ResetUserCredential>();
         services.TryAddScoped<OffboardUser>();
         services.TryAddScoped<ReinstateUser>();
