@@ -73,7 +73,21 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
     {
         ArgumentNullException.ThrowIfNull(fetch);
         var found = await FetchAsync(mailbox, id, (account, jmapId) => EmailProperties.FullRequest(account, jmapId, fetch), cancellationToken).ConfigureAwait(false);
-        return found.Map(f => EmailMapper.ToMessage(f.Email, preferredBody: fetch.PreferredBodyType));
+        if (!found.IsSuccess)
+        {
+            return found.Error;
+        }
+
+        var (account, email) = found.Value;
+        var message = EmailMapper.ToMessage(email, preferredBody: fetch.PreferredBodyType);
+        if (!message.Attachments.Any(static a => a.Kind == AttachmentKind.Item))
+        {
+            return message;
+        }
+
+        var names = await AttachedSubjectsAsync(account, message.Attachments.Where(static a => a.Kind == AttachmentKind.Item).Select(a => PartOf(email, a.Id)), cancellationToken)
+            .ConfigureAwait(false);
+        return message with { Attachments = [.. message.Attachments.Select(a => Named(a, PartOf(email, a.Id), names))] };
     }
 
     public async Task<Result<BlobContent>> GetRawAsync(MailboxRef mailbox, MessageId id, CancellationToken cancellationToken)
@@ -93,8 +107,47 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
     public async Task<Result<IReadOnlyList<MailAttachment>>> ListAttachmentsAsync(MailboxRef mailbox, MessageId id, CancellationToken cancellationToken)
     {
         var found = await FetchAsync(mailbox, id, AttachmentsRequest, cancellationToken).ConfigureAwait(false);
-        return found.Map(static f => MimeParts.Attachments(f.Email));
+        if (!found.IsSuccess)
+        {
+            return found.Error;
+        }
+
+        var (account, email) = found.Value;
+        var attachments = MimeParts.Attachments(email);
+        var names = await AttachedSubjectsAsync(account, attachments.Where(static a => a.Kind == AttachmentKind.Item).Select(a => PartOf(email, a.Id)), cancellationToken)
+            .ConfigureAwait(false);
+        return Result<IReadOnlyList<MailAttachment>>.Success([.. attachments.Select(a => Named(a, PartOf(email, a.Id), names))]);
     }
+
+    /// <summary>
+    /// The subjects of attached messages that carry no file name, by blob id (<c>Email/parse</c>), so an item
+    /// attachment is named as Graph names it rather than "Attached message". Best effort: a failure keeps the
+    /// fallback name.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, string>> AttachedSubjectsAsync(JmapAccount account, IEnumerable<EmailBodyPart?> parts, CancellationToken cancellationToken)
+    {
+        var blobIds = parts.Where(static p => p is { BlobId: not null } && string.IsNullOrWhiteSpace(p.Name)).Select(static p => p!.BlobId!).Distinct(StringComparer.Ordinal).ToList();
+        if (blobIds.Count == 0)
+        {
+            return new Dictionary<string, string>();
+        }
+
+        var request = new JmapRequestBuilder();
+        var parse = request.Add(JmapMethods.EmailParse, new EmailParseRequest(account.AccountId, blobIds) { Properties = ["subject"] });
+        var parsed = (await jmap.SendAsync(request, cancellationToken).ConfigureAwait(false)).Bind(r => r.Get(parse));
+        return parsed is { IsSuccess: true, Value.Parsed: { } byBlob }
+            ? byBlob.Where(static kv => !string.IsNullOrWhiteSpace(kv.Value.Subject)).ToDictionary(static kv => kv.Key, static kv => kv.Value.Subject!.Trim(), StringComparer.Ordinal)
+            : new Dictionary<string, string>();
+    }
+
+    private static EmailBodyPart? PartOf(Email email, AttachmentId id) =>
+        AttachmentItemId.Parse(id) is { IsSuccess: true } parsed ? parsed.Value.Find(email.BodyStructure) : null;
+
+    /// <summary>The attachment named after its message's subject when it is an attached message without a file name.</summary>
+    private static MailAttachment Named(MailAttachment attachment, EmailBodyPart? part, IReadOnlyDictionary<string, string> subjects) =>
+        attachment.Kind == AttachmentKind.Item && part is { BlobId: { } blob } && string.IsNullOrWhiteSpace(part.Name) && subjects.TryGetValue(blob, out var subject)
+            ? attachment with { Name = subject }
+            : attachment;
 
     public async Task<Result<MailAttachment>> GetAttachmentAsync(MailboxRef mailbox, MessageId id, AttachmentId attachment, bool includeContent, CancellationToken cancellationToken)
     {
@@ -106,7 +159,12 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
 
         var (account, email, bodyPart) = part.Value;
         var result = MimeParts.ToAttachment(bodyPart, attachment, email.ReceivedAt);
-        if (!includeContent || result.Kind != AttachmentKind.File)
+        if (result.Kind == AttachmentKind.Item)
+        {
+            return Named(result, bodyPart, await AttachedSubjectsAsync(account, [bodyPart], cancellationToken).ConfigureAwait(false));
+        }
+
+        if (!includeContent)
         {
             return result;
         }

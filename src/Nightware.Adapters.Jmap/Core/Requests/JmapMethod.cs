@@ -97,6 +97,9 @@ internal static class JmapMethods
     public static JmapMethod<SetRequest<Email>, SetResponse<Email>> EmailSetWithMetadata { get; } =
         new("Email/set", JmapMethodKind.Set, MailMetadataCaps, Json.SetRequestEmail, Json.SetResponseEmail);
 
+    public static JmapMethod<EmailParseRequest, EmailParseResponse> EmailParse { get; } =
+        new("Email/parse", JmapMethodKind.Get, MailCaps, Json.EmailParseRequest, Json.EmailParseResponse);
+
     public static JmapMethod<EmailImportRequest, EmailImportResponse> EmailImport { get; } =
         new("Email/import", JmapMethodKind.Other, MailCaps, Json.EmailImportRequest, Json.EmailImportResponse);
 

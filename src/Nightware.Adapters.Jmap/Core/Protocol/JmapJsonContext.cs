@@ -58,6 +58,8 @@ namespace Nightware.Adapters.Jmap.Core.Protocol;
 [JsonSerializable(typeof(SetResponse<Identity>))]
 [JsonSerializable(typeof(EmailImportRequest))]
 [JsonSerializable(typeof(EmailImportResponse))]
+[JsonSerializable(typeof(EmailParseRequest))]
+[JsonSerializable(typeof(EmailParseResponse))]
 internal sealed partial class JmapJsonContext : JsonSerializerContext
 {
     /// <summary>Shared instance; <see cref="JsonSerializerOptions"/> are immutable once used.</summary>

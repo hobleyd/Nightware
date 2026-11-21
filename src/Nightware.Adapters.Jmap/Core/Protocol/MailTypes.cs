@@ -278,6 +278,24 @@ internal sealed record EmailImportRequest(string AccountId, IReadOnlyDictionary<
     public string? IfInState { get; init; }
 }
 
+/// <summary><c>Email/parse</c> (RFC 8621 §4.9): reads blobs holding RFC 5322 messages without importing them.</summary>
+internal sealed record EmailParseRequest(string AccountId, IReadOnlyList<string> BlobIds)
+{
+    public IReadOnlyList<string>? Properties { get; init; }
+}
+
+/// <summary><c>Email/parse</c> response: the parsed messages by blob id.</summary>
+internal sealed record EmailParseResponse
+{
+    public string AccountId { get; init; } = string.Empty;
+
+    public IReadOnlyDictionary<string, Email>? Parsed { get; init; }
+
+    public IReadOnlyList<string>? NotParsable { get; init; }
+
+    public IReadOnlyList<string>? NotFound { get; init; }
+}
+
 /// <summary><c>Email/import</c> response.</summary>
 internal sealed record EmailImportResponse
 {

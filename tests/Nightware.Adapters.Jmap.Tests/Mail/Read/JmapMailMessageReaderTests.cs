@@ -240,6 +240,46 @@ public sealed class JmapMailMessageReaderTests
     }
 
     [Fact]
+    public async Task An_attached_message_is_named_after_its_subject()
+    {
+        await using var host = Host();
+        host.On("Email/get", WithAttachments);
+        host.On("Email/parse", """[["Email/parse",{"accountId":"c","parsed":{"G3":{"subject":" Q3 numbers "}}},"c0"]]""");
+
+        var listed = (await Reader(host).ListAttachmentsAsync(Alice, new MessageId("e.m1"), Ct)).Value;
+        var single = (await Reader(host).GetAttachmentAsync(Alice, new MessageId("e.m1"), AttachedMessage, includeContent: true, Ct)).Value;
+
+        listed.Select(a => a.Name).ShouldBe(["q2.pdf", "Q3 numbers", "invite.ics"]);
+        listed[1].Id.ShouldBe(AttachedMessage, "the id stays the part's, whatever the name");
+        single.Name.ShouldBe("Q3 numbers");
+        host.Calls("Email/parse")[0][0]![1]!.ToJsonString().ShouldBe("""{"accountId":"c","blobIds":["G3"],"properties":["subject"]}""");
+    }
+
+    [Fact]
+    public async Task An_expanded_attached_message_is_named_after_its_subject_too()
+    {
+        await using var host = Host();
+        host.On("Email/get", WithAttachments);
+        host.On("Email/parse", """[["Email/parse",{"accountId":"c","parsed":{"G3":{"subject":"Q3 numbers"}}},"c0"]]""");
+
+        var fetch = new MessageFetch(ExpandAttachments: new ExpandClause("attachments"));
+        var message = (await Reader(host).GetAsync(Alice, new MessageId("e.m1"), fetch, Ct)).Value;
+
+        message.Attachments.Single(a => a.Kind == AttachmentKind.Item).Name.ShouldBe("Q3 numbers");
+    }
+
+    [Fact]
+    public async Task A_message_without_attached_messages_needs_no_parse()
+    {
+        await using var host = Host();
+        host.On("Email/get", WithAttachments.Replace("\"message/rfc822\"", "\"application/zip\"", StringComparison.Ordinal));
+
+        await Reader(host).ListAttachmentsAsync(Alice, new MessageId("e.m1"), Ct);
+
+        host.Calls("Email/parse").ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task A_file_attachment_carries_its_bytes_and_an_item_attachment_never_does()
     {
         await using var host = Host();
