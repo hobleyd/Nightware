@@ -9,6 +9,15 @@ public sealed class ChecklistItemsUseCase(IChecklistStore checklist)
     public Task<Result<IReadOnlyList<ChecklistItem>>> ListAsync(MailboxRef mailbox, TaskListId list, TaskId task, CancellationToken cancellationToken) =>
         checklist.ListAsync(mailbox, list, task, cancellationToken);
 
+    /// <summary>One step: the task's list holds them all, so it is read from there.</summary>
+    public async Task<Result<ChecklistItem>> GetAsync(MailboxRef mailbox, TaskListId list, TaskId task, string item, CancellationToken cancellationToken)
+    {
+        var all = await checklist.ListAsync(mailbox, list, task, cancellationToken).ConfigureAwait(false);
+        return all.Bind(items => items.FirstOrDefault(i => string.Equals(i.Id, item, StringComparison.Ordinal)) is { } found
+            ? Result<ChecklistItem>.Success(found)
+            : Error.NotFound("The specified checklist item was not found.", "id"));
+    }
+
     public Task<Result<ChecklistItem>> CreateAsync(MailboxRef mailbox, TaskListId list, TaskId task, string? displayName, bool? isChecked, CancellationToken cancellationToken) =>
         string.IsNullOrWhiteSpace(displayName)
             ? Task.FromResult<Result<ChecklistItem>>(Error.Validation("displayName is required.", "displayName"))
@@ -29,6 +38,15 @@ public sealed class LinkedResourcesUseCase(ILinkedResourceStore resources)
 {
     public Task<Result<IReadOnlyList<LinkedResource>>> ListAsync(MailboxRef mailbox, TaskListId list, TaskId task, CancellationToken cancellationToken) =>
         resources.ListAsync(mailbox, list, task, cancellationToken);
+
+    /// <summary>One link, read from the task's list of them.</summary>
+    public async Task<Result<LinkedResource>> GetAsync(MailboxRef mailbox, TaskListId list, TaskId task, string id, CancellationToken cancellationToken)
+    {
+        var all = await resources.ListAsync(mailbox, list, task, cancellationToken).ConfigureAwait(false);
+        return all.Bind(links => links.FirstOrDefault(l => string.Equals(l.Id, id, StringComparison.Ordinal)) is { } found
+            ? Result<LinkedResource>.Success(found)
+            : Error.NotFound("The specified linked resource was not found.", "id"));
+    }
 
     public Task<Result<LinkedResource>> CreateAsync(MailboxRef mailbox, TaskListId list, TaskId task, LinkedResource resource, CancellationToken cancellationToken)
     {

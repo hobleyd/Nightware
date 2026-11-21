@@ -420,6 +420,19 @@ ALIASES = [
     step("contacts.folders.contacts.delete", "DELETE", "/v1.0/me/contactFolders/${cfId}/contacts/${cId}", always=True),
 ]
 
+TODO_ITEMS = [
+    setup("POST", "/v1.0/me/todo/lists", body={"displayName": "Nightware ${run} items"}, save={"listId": "id"}),
+    setup("POST", TASKS, body={"title": "Nightware capture ${run}"}, save={"taskId": "id"}),
+    setup("POST", TASKS + "/${taskId}/checklistItems", body={"displayName": "Step one"}, save={"ciId": "id"}),
+    step("tasks.checklist-items.get", "GET", TASKS + "/${taskId}/checklistItems/${ciId}"),
+    setup("POST", TASKS + "/${taskId}/linkedResources", body={
+        "webUrl": "https://example.com/items/1", "applicationName": "Nightware capture",
+        "displayName": "Item 1", "externalId": "item-1",
+    }, save={"lrId": "id"}),
+    step("tasks.linked-resources.get", "GET", TASKS + "/${taskId}/linkedResources/${lrId}"),
+    setup("DELETE", "/v1.0/me/todo/lists/${listId}", always=True),
+]
+
 PHASES = {
     11: [("batch", BATCH)],
     12: [("mail", MAIL)],
@@ -427,5 +440,5 @@ PHASES = {
     14: [("contacts", CONTACTS)],
     15: [("todo", TODO)],
     16: [("notifications", NOTIFICATIONS)],
-    18: [("settings", SETTINGS), ("aliases", ALIASES)],
+    18: [("settings", SETTINGS), ("aliases", ALIASES), ("todo items", TODO_ITEMS)],
 }

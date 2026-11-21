@@ -23274,6 +23274,154 @@
         }
       }
     },
+    "/me/todo/lists/{listId}/tasks/{taskId}/checklistItems/{checklistItemId}": {
+      "get": {
+        "operationId": "tasks.checklist-items.get",
+        "tags": [
+          "To Do"
+        ],
+        "summary": "Tasks checklist items: get",
+        "description": "One step of the task, read from its checklist.\n\nGraph reference: https://learn.microsoft.com/graph/api/checklistitem-get",
+        "parameters": [
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "checklistItemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "displayName": {},
+                    "isChecked": {},
+                    "createdDateTime": {},
+                    "checkedDateTime?": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/todo/lists/{listId}/tasks/{taskId}/checklistItems/{checklistItemId}": {
+      "get": {
+        "operationId": "tasks.checklist-items.get.users",
+        "tags": [
+          "To Do"
+        ],
+        "summary": "Tasks checklist items: get",
+        "description": "One step of the task, read from its checklist.\n\nGraph reference: https://learn.microsoft.com/graph/api/checklistitem-get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "checklistItemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "displayName": {},
+                    "isChecked": {},
+                    "createdDateTime": {},
+                    "checkedDateTime?": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me/todo/lists/{listId}/tasks/{taskId}/linkedResources": {
       "post": {
         "operationId": "tasks.linked-resources.create",
@@ -23842,6 +23990,154 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "webUrl": {},
+                    "applicationName": {},
+                    "displayName": {},
+                    "externalId": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/todo/lists/{listId}/tasks/{taskId}/linkedResources/{linkedResourceId}": {
+      "get": {
+        "operationId": "tasks.linked-resources.get",
+        "tags": [
+          "To Do"
+        ],
+        "summary": "Tasks linked resources: get",
+        "description": "One link, read from the task's links. Returned as the entity, as the other single GETs (checklistItem included) are; the reference page's sample wraps it in \"value\".\n\nGraph reference: https://learn.microsoft.com/graph/api/linkedresource-get",
+        "parameters": [
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "linkedResourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "webUrl": {},
+                    "applicationName": {},
+                    "displayName": {},
+                    "externalId": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/todo/lists/{listId}/tasks/{taskId}/linkedResources/{linkedResourceId}": {
+      "get": {
+        "operationId": "tasks.linked-resources.get.users",
+        "tags": [
+          "To Do"
+        ],
+        "summary": "Tasks linked resources: get",
+        "description": "One link, read from the task's links. Returned as the entity, as the other single GETs (checklistItem included) are; the reference page's sample wraps it in \"value\".\n\nGraph reference: https://learn.microsoft.com/graph/api/linkedresource-get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "linkedResourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success.",

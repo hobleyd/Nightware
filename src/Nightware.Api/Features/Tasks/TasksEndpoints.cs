@@ -57,10 +57,12 @@ public static partial class TasksEndpoints
             scope.MapDelete(Attachments + "/{attachmentId}", DeleteAttachmentAsync);
             scope.MapGet(Checklist, ListChecklistAsync);
             scope.MapPost(Checklist, CreateChecklistItemAsync);
+            scope.MapGet(Checklist + "/{itemId}", GetChecklistItemAsync);
             scope.MapPatch(Checklist + "/{itemId}", UpdateChecklistItemAsync);
             scope.MapDelete(Checklist + "/{itemId}", DeleteChecklistItemAsync);
             scope.MapGet(Linked, ListLinkedAsync);
             scope.MapPost(Linked, CreateLinkedAsync);
+            scope.MapGet(Linked + "/{resourceId}", GetLinkedAsync);
             scope.MapPatch(Linked + "/{resourceId}", UpdateLinkedAsync);
             scope.MapDelete(Linked + "/{resourceId}", DeleteLinkedAsync);
             scope.MapGet(Tasks, ListTasksAsync);
@@ -173,6 +175,12 @@ public static partial class TasksEndpoints
             await useCase.CreateAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), body?.DisplayName, body?.IsChecked, cancellationToken).ConfigureAwait(false),
             item => GraphResults.Created(ChecklistItemDto.From(item), ChecklistContext(mailbox, listId, taskId)));
 
+    private static async Task<IResult> GetChecklistItemAsync(
+        Mailbox mailbox, string listId, string taskId, string itemId, ChecklistItemsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.GetAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), itemId, cancellationToken).ConfigureAwait(false),
+            item => GraphResults.Entity(ChecklistItemDto.From(item), ChecklistContext(mailbox, listId, taskId)));
+
     private static async Task<IResult> UpdateChecklistItemAsync(
         Mailbox mailbox, string listId, string taskId, string itemId, ChecklistItemDto? body, ChecklistItemsUseCase useCase, CancellationToken cancellationToken) =>
         GraphResults.Match(
@@ -195,6 +203,12 @@ public static partial class TasksEndpoints
         GraphResults.Match(
             await useCase.CreateAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), (body ?? new LinkedResourceDto()).ToDomain(string.Empty), cancellationToken).ConfigureAwait(false),
             resource => GraphResults.Created(LinkedResourceDto.From(resource), LinkedContext(mailbox, listId, taskId)));
+
+    private static async Task<IResult> GetLinkedAsync(
+        Mailbox mailbox, string listId, string taskId, string resourceId, LinkedResourcesUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.GetAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), resourceId, cancellationToken).ConfigureAwait(false),
+            resource => GraphResults.Entity(LinkedResourceDto.From(resource), LinkedContext(mailbox, listId, taskId)));
 
     private static async Task<IResult> UpdateLinkedAsync(
         Mailbox mailbox, string listId, string taskId, string resourceId, LinkedResourceDto? body, LinkedResourcesUseCase useCase, CancellationToken cancellationToken) =>

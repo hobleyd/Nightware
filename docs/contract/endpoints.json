@@ -8311,5 +8311,77 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/contact-delete",
     "notes": "Graph's alias of contacts.delete (contacts delete): the same handling. The parent segment is not checked: ids are unique in the mailbox."
+  },
+  {
+    "id": "tasks.checklist-items.get",
+    "phase": 18,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/checklistItems/{checklistItemId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "displayName",
+      "isChecked",
+      "createdDateTime",
+      "checkedDateTime?"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/checklistitem-get",
+    "notes": "One step of the task, read from its checklist."
+  },
+  {
+    "id": "tasks.linked-resources.get",
+    "phase": 18,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources/{linkedResourceId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "webUrl",
+      "applicationName",
+      "displayName",
+      "externalId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/linkedresource-get",
+    "notes": "One link, read from the task's links. Returned as the entity, as the other single GETs (checklistItem included) are; the reference page's sample wraps it in \"value\"."
   }
 ]

@@ -31,6 +31,7 @@
 | Initial folder delta anchored after the last message seen | 1.44.2 |
 | `mailboxSettings/{automaticRepliesSetting,timeZone,language,workingHours,dateFormat,timeFormat}`; `outlook/supportedTimeZones` (both standards), `outlook/supportedLanguages` | 1.45.0 |
 | Aliases: `calendar/events` (list, create), `calendar/calendarView`, `calendar/events/{id}` and `calendars/{id}/events/{id}`, `mailFolders/{id}/messages/{id}`, `contactFolders/{id}/contacts/{id}` (get, update, delete) | 1.46.0 |
+| `checklistItems/{id}` and `linkedResources/{id}` GET | 1.47.0 |
 
 ## Decisions
 - An alias maps the base operation's own handler on Graph's other route, so
@@ -42,6 +43,10 @@
 - Nested item routes do not check the parent segment: event, message and
   contact ids are unique in the mailbox. Literal routes (`…/delta`) keep
   precedence over `{id}` (tested).
+- A single checklist item or linked resource is read from the task's list of
+  them (the stores read the whole task anyway). `linkedResource` comes back as
+  the entity; the reference page's sample wraps it in `value`, unlike every
+  other single GET.
 - `mailboxSettings/userPurpose` and `delegateMeetingMessageDeliveryOptions`
   are 404: Nightware has no source for either. The single settings are
   read-only, as in Graph (PATCH goes to `mailboxSettings`).

@@ -78,6 +78,9 @@ public sealed class TaskParityArrangements : IConformanceArrangements
         yield return new ConformanceArrangement("tasks.checklist-items.list", fakes =>
             fakes.For<IChecklistStore>().ListAsync(Me, ListId, TaskId, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<ChecklistItem>>.Success([one, two])));
 
+        yield return new ConformanceArrangement("tasks.checklist-items.get", fakes =>
+            fakes.For<IChecklistStore>().ListAsync(Me, ListId, TaskId, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<ChecklistItem>>.Success([one, two])));
+
         yield return new ConformanceArrangement("tasks.checklist-items.create", fakes =>
             fakes.For<IChecklistStore>().CreateAsync(Me, ListId, TaskId, "Step one", false, Arg.Any<CancellationToken>())
                 .Returns(one with { CreatedDateTime = DateTimeOffset.Parse("2026-11-20T22:39:06.7418119Z", System.Globalization.CultureInfo.InvariantCulture) }));
@@ -94,6 +97,9 @@ public sealed class TaskParityArrangements : IConformanceArrangements
             WebUrl = "https://example.com/items/1", ApplicationName = "Nightware capture", DisplayName = "Item 1", ExternalId = "item-1",
         };
         yield return new ConformanceArrangement("tasks.linked-resources.list", fakes =>
+            fakes.For<ILinkedResourceStore>().ListAsync(Me, ListId, TaskId, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<LinkedResource>>.Success([link])));
+
+        yield return new ConformanceArrangement("tasks.linked-resources.get", fakes =>
             fakes.For<ILinkedResourceStore>().ListAsync(Me, ListId, TaskId, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<LinkedResource>>.Success([link])));
 
         yield return new ConformanceArrangement("tasks.linked-resources.create", fakes =>

@@ -126,6 +126,29 @@ public sealed class TaskPartsUseCaseTests
         (await useCase.UpdateAsync(Me, List, Task, "r", resource with { WebUrl = "/relative" }, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
         (await useCase.DeleteAsync(Me, List, Task, "r", Ct)).IsSuccess.ShouldBeTrue();
     }
+
+    [Fact]
+    public async Task One_item_is_read_from_the_tasks_list_of_them()
+    {
+        var checklist = Substitute.For<IChecklistStore>();
+        checklist.ListAsync(Me, List, Task, Ct).Returns(Result<IReadOnlyList<ChecklistItem>>.Success([new ChecklistItem("a", "One", false), new ChecklistItem("b", "Two", true)]));
+        var links = Substitute.For<ILinkedResourceStore>();
+        links.ListAsync(Me, List, Task, Ct).Returns(Result<IReadOnlyList<LinkedResource>>.Success([new LinkedResource("r") { DisplayName = "Item" }]));
+
+        (await new ChecklistItemsUseCase(checklist).GetAsync(Me, List, Task, "b", Ct)).Value.DisplayName.ShouldBe("Two");
+        (await new ChecklistItemsUseCase(checklist).GetAsync(Me, List, Task, "B", Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound, "ids are exact");
+        (await new LinkedResourcesUseCase(links).GetAsync(Me, List, Task, "r", Ct)).Value.DisplayName.ShouldBe("Item");
+        (await new LinkedResourcesUseCase(links).GetAsync(Me, List, Task, "x", Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task A_task_that_cannot_be_read_fails_the_single_read_the_same_way()
+    {
+        var checklist = Substitute.For<IChecklistStore>();
+        checklist.ListAsync(Me, List, Task, Ct).Returns(Result<IReadOnlyList<ChecklistItem>>.Failure(Error.NotFound("no task")));
+
+        (await new ChecklistItemsUseCase(checklist).GetAsync(Me, List, Task, "a", Ct)).Error!.Message.ShouldBe("no task");
+    }
 }
 
 public sealed class TaskDeltaUseCaseTests

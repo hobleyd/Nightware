@@ -328,8 +328,8 @@ operation:
 | Phase 14 — Contacts (Graph parity) | 18 |
 | Phase 15 — To Do (Graph parity) | 19 |
 | Phase 16 — Change notifications (Graph parity) | 10 |
-| Phase 18 — Settings, aliases, single items and $count (Graph parity) | 24 |
-| **Total** | **195** |
+| Phase 18 — Settings, aliases, single items and $count (Graph parity) | 26 |
+| **Total** | **197** |
 
 ### Phase 2 — Mail, read side
 
@@ -2265,6 +2265,8 @@ operation:
 | [`contacts.folders.contacts.get`](#contactsfolderscontactsget) | GET | v1.0 | `{mailbox}/contactFolders/{folderId}/contacts/{contactId}` | none |
 | [`contacts.folders.contacts.update`](#contactsfolderscontactsupdate) | PATCH | v1.0 | `{mailbox}/contactFolders/{folderId}/contacts/{contactId}` | none |
 | [`contacts.folders.contacts.delete`](#contactsfolderscontactsdelete) | DELETE | v1.0 | `{mailbox}/contactFolders/{folderId}/contacts/{contactId}` | none |
+| [`tasks.checklist-items.get`](#taskschecklist-itemsget) | GET | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/checklistItems/{checklistItemId}` | none |
+| [`tasks.linked-resources.get`](#taskslinked-resourcesget) | GET | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources/{linkedResourceId}` | none |
 
 #### `mailbox-settings.automatic-replies.get`
 
@@ -2489,5 +2491,23 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/contact-delete
 - Notes: Graph's alias of contacts.delete (contacts delete): the same handling. The parent segment is not checked: ids are unique in the mailbox.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.contacts.delete.json`
+
+#### `tasks.checklist-items.get`
+
+**GET v1.0 `{mailbox}/todo/lists/{listId}/tasks/{taskId}/checklistItems/{checklistItemId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `displayName`, `isChecked`, `createdDateTime`, `checkedDateTime?`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/checklistitem-get
+- Notes: One step of the task, read from its checklist.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.checklist-items.get.json`
+
+#### `tasks.linked-resources.get`
+
+**GET v1.0 `{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources/{linkedResourceId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `webUrl`, `applicationName`, `displayName`, `externalId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/linkedresource-get
+- Notes: One link, read from the task's links. Returned as the entity, as the other single GETs (checklistItem included) are; the reference page's sample wraps it in "value".
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.linked-resources.get.json`
 
 <!-- END GENERATED -->
