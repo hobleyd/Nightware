@@ -50,7 +50,7 @@ public sealed class SubscriptionStoreTests : IAsyncLifetime
     {
         Assert.SkipUnless(DevStack.Enabled, "Live integration tests run only with NIGHTWARE_INTEGRATION=1.");
         var store = new PostgresSubscriptionStore(_source!, new CredentialSealer(new string('c', 64)), new SubscriptionSchema(_source!));
-        var mine = New("alice");
+        var mine = New("alice") with { LifecycleNotificationUrl = new Uri("https://hooks.example.com/lifecycle"), SyncState = "t0" };
         var theirs = New("bob") with { Target = new SubscriptionTarget(new MailboxRef("b@example.com"), SubscriptionResourceKind.Tasks, "L1") };
 
         (await store.CreateAsync(mine, "alice-refresh-token", Ct)).IsSuccess.ShouldBeTrue();
@@ -125,5 +125,49 @@ public sealed class SubscriptionStoreTests : IAsyncLifetime
 
         var again = (await store.LeaseDueAsync(DateTimeOffset.UtcNow.AddSeconds(1), TimeSpan.FromMinutes(2), 10, Ct)).Value.Single(l => l.Subscription.Id == sub.Id);
         (again.RefreshToken, again.Failures, again.Subscription.SyncState).ShouldBe(("r2", 0, "s9"));
+    }
+
+    [Fact]
+    public async Task A_credential_sealed_under_a_replaced_key_is_leased_without_one()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Live integration tests run only with NIGHTWARE_INTEGRATION=1.");
+        var schema = new SubscriptionSchema(_source!);
+        var now = new DateTimeOffset(2026, 11, 21, 12, 0, 0, TimeSpan.Zero);
+        var sub = New("dave") with { ExpirationDateTime = now.AddDays(1) };
+        await new PostgresSubscriptionStore(_source!, new CredentialSealer(new string('c', 64)), schema).CreateAsync(sub, "r1", Ct);
+
+        var rotated = new PostgresSubscriptionStore(_source!, new CredentialSealer(new string('d', 64)), schema);
+
+        var leased = (await rotated.LeaseDueAsync(now, TimeSpan.FromMinutes(2), 10, Ct)).Value.ShouldHaveSingleItem();
+        leased.Subscription.Id.ShouldBe(sub.Id);
+        leased.RefreshToken.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task A_lapsed_lease_is_leased_again_and_a_round_takes_at_most_max()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Live integration tests run only with NIGHTWARE_INTEGRATION=1.");
+        var store = new PostgresSubscriptionStore(_source!, new CredentialSealer(new string('c', 64)), new SubscriptionSchema(_source!));
+        var now = new DateTimeOffset(2026, 11, 21, 12, 0, 0, TimeSpan.Zero);
+        foreach (var _ in Enumerable.Range(0, 3))
+        {
+            await store.CreateAsync(New("erin") with { ExpirationDateTime = now.AddDays(1) }, "r", Ct);
+        }
+
+        (await store.LeaseDueAsync(now, TimeSpan.FromMinutes(2), 2, Ct)).Value.Count.ShouldBe(2);
+        (await store.LeaseDueAsync(now, TimeSpan.FromMinutes(2), 2, Ct)).Value.Count.ShouldBe(1);
+        (await store.LeaseDueAsync(now.AddMinutes(1), TimeSpan.FromMinutes(2), 10, Ct)).Value.ShouldBeEmpty("every lease is still held");
+        (await store.LeaseDueAsync(now.AddMinutes(3), TimeSpan.FromMinutes(2), 10, Ct)).Value.Count.ShouldBe(3, "a poller that died leaves its leases to lapse");
+    }
+
+    [Fact]
+    public async Task Completing_or_renewing_an_unknown_subscription_is_not_found()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Live integration tests run only with NIGHTWARE_INTEGRATION=1.");
+        var store = new PostgresSubscriptionStore(_source!, new CredentialSealer(new string('c', 64)), new SubscriptionSchema(_source!));
+
+        (await store.CompletePollAsync("missing", "s", "r", null, DateTimeOffset.UtcNow, 0, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        (await store.UpdateAsync(New("frank"), "r", Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        (await store.RemoveExpiredAsync(DateTimeOffset.UtcNow, Ct)).Value.ShouldBeEmpty();
     }
 }

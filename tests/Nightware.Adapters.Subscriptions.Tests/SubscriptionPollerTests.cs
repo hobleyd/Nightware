@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 
 using Nightware.Adapters.Subscriptions;
 using Nightware.Application.Common.Identity;
@@ -41,11 +42,12 @@ public sealed class SubscriptionPollerTests
 
     private static readonly Uri Lifecycle = new("https://hooks.example.com/lifecycle");
 
-    private SubscriptionPoller Poller()
+    private SubscriptionPoller Poller(TimeProvider? time = null)
     {
+        time ??= _time;
         var services = new ServiceCollection();
         services.AddSubscriptionsUseCases();
-        services.AddSingleton(_store).AddSingleton(_sessions).AddSingleton(_endpoint).AddSingleton(_time);
+        services.AddSingleton(_store).AddSingleton(_sessions).AddSingleton(_endpoint).AddSingleton(time);
         services.AddSingleton(Substitute.For<IContactFolderStore>()).AddSingleton(Substitute.For<IContactDelta>())
             .AddSingleton(Substitute.For<ITaskDelta>()).AddSingleton(Substitute.For<IEventChangeFeed>());
         services.AddScoped<IUserContext>(sp => sp.GetRequiredService<SubscriberContext>().Current ?? throw new InvalidOperationException("no caller"));
@@ -55,7 +57,7 @@ public sealed class SubscriptionPollerTests
             return _mail;
         });
         var options = Options.Create(new SubscriptionOptions { ConnectionString = "x", SealingKey = "y", PollInterval = TimeSpan.FromSeconds(10) });
-        return new SubscriptionPoller(services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>(), options, _time, NullLogger<SubscriptionPoller>.Instance);
+        return new SubscriptionPoller(services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>(), options, time, NullLogger<SubscriptionPoller>.Instance);
     }
 
     private void Due(params LeasedSubscription[] leased) =>
@@ -104,26 +106,110 @@ public sealed class SubscriptionPollerTests
     }
 
     [Fact]
-    public async Task A_credential_that_no_longer_opens_backs_off()
+    public async Task A_credential_that_no_longer_opens_asks_for_reauthorization_and_backs_off()
     {
-        Due(new LeasedSubscription(Inbox, null, Now, 0));
+        Due(new LeasedSubscription(Inbox with { LifecycleNotificationUrl = Lifecycle }, null, Now, 0));
 
         await Poller().PollDueAsync(Ct);
 
         _sessions.ReceivedCalls().ShouldBeEmpty();
+        await _endpoint.Received(1).DeliverLifecycleAsync(Lifecycle, Arg.Is<LifecycleNotification>(n => n.LifecycleEvent == "reauthorizationRequired"), Arg.Any<CancellationToken>());
         await _store.Received().CompletePollAsync("s1", null, null, null, Now.AddSeconds(20), 1, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task An_unreachable_identity_provider_backs_off_without_asking_for_reauthorization()
+    {
+        Due(new LeasedSubscription(Inbox with { LifecycleNotificationUrl = Lifecycle }, "refresh-1", Now, 0));
+        _sessions.RenewAsync("refresh-1", Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("keycloak down"));
+
+        await Poller().PollDueAsync(Ct);
+
+        _endpoint.ReceivedCalls().ShouldBeEmpty();
+        await _store.Received().CompletePollAsync("s1", null, null, null, Now.AddSeconds(20), 1, Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData(0, 20)]
+    [InlineData(4, 320)]
+    [InlineData(8, 3600)]
+    [InlineData(40, 3600)]
+    public async Task The_backoff_doubles_with_each_failure_up_to_an_hour(int failures, int seconds)
+    {
+        Due(new LeasedSubscription(Inbox, null, Now, failures));
+
+        await Poller().PollDueAsync(Ct);
+
+        await _store.Received().CompletePollAsync("s1", null, null, null, Now.AddSeconds(seconds), failures + 1, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_failed_lease_polls_nothing()
+    {
+        _store.LeaseDueAsync(default, default, default, Ct).ReturnsForAnyArgs(Error.BackendUnavailable("db down"));
+
+        await Poller().PollDueAsync(Ct);
+
+        _sessions.ReceivedCalls().ShouldBeEmpty();
+        await _store.DidNotReceiveWithAnyArgs().CompletePollAsync(default!, default, default, default, default, default, Ct);
+    }
+
+    [Fact]
+    public async Task One_failing_subscription_does_not_hold_up_the_others()
+    {
+        Due(new LeasedSubscription(Inbox with { Id = "s0" }, null, Now, 0), new LeasedSubscription(Inbox, "refresh-1", Now, 0));
+        _sessions.RenewAsync("refresh-1", Arg.Any<CancellationToken>()).Returns(new SubscriberSession("access-1", "refresh-2"));
+        _mail.DeltaAsync(Arg.Any<MailboxRef>(), Arg.Any<FolderRef>(), new DeltaToken("t0"), Arg.Any<DeltaRequest>(), Arg.Any<CancellationToken>())
+            .Returns(DeltaPage<MailMessage>.Done([], new DeltaToken("t1")));
+
+        await Poller().PollDueAsync(Ct);
+
+        await _store.Received().CompletePollAsync("s0", null, null, null, Now.AddSeconds(20), 1, Arg.Any<CancellationToken>());
+        await _store.Received().CompletePollAsync("s1", "t1", "refresh-2", Now, Now.AddSeconds(10), 0, Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task Unconfigured_the_poller_does_nothing()
     {
-        var poller = new SubscriptionPoller(new ServiceCollection().BuildServiceProvider().GetRequiredService<IServiceScopeFactory>(),
-            Options.Create(new SubscriptionOptions()), _time, NullLogger<SubscriptionPoller>.Instance);
+        Due();
+        var poller = new SubscriptionPoller(new ServiceCollection().AddSingleton(_store).BuildServiceProvider().GetRequiredService<IServiceScopeFactory>(),
+            Options.Create(new SubscriptionOptions()), new FakeTimeProvider(Now), NullLogger<SubscriptionPoller>.Instance);
 
         await poller.StartAsync(Ct);
-        await poller.StopAsync(Ct);
 
+        await poller.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(5), Ct); // it returns without starting its timer
+        await poller.StopAsync(Ct);
         _store.ReceivedCalls().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_round_that_throws_is_logged_and_the_next_tick_polls_again()
+    {
+        var clock = new FakeTimeProvider(Now);
+        var firstRound = new TaskCompletionSource();
+        var secondRound = new TaskCompletionSource();
+        var rounds = 0;
+        _store.RemoveExpiredAsync(Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (Interlocked.Increment(ref rounds) == 1)
+            {
+                firstRound.TrySetResult();
+                throw new InvalidOperationException("the store blew up");
+            }
+
+            secondRound.TrySetResult();
+            return Result<IReadOnlyList<Subscription>>.Success([]);
+        });
+        _store.LeaseDueAsync(default, default, default, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<LeasedSubscription>>.Success([]));
+        var poller = Poller(clock);
+
+        await poller.StartAsync(Ct);
+        await firstRound.Task.WaitAsync(TimeSpan.FromSeconds(5), Ct);
+        clock.Advance(TimeSpan.FromSeconds(10));
+
+        await secondRound.Task.WaitAsync(TimeSpan.FromSeconds(5), Ct);
+        poller.ExecuteTask!.IsCompleted.ShouldBeFalse();
+        await poller.StopAsync(Ct);
     }
 
     [Fact]
@@ -156,6 +242,19 @@ public sealed class SubscriptionPollerTests
         await _endpoint.Received(1).DeliverLifecycleAsync(Lifecycle, Arg.Is<LifecycleNotification>(n => n.LifecycleEvent == "missed"), Arg.Any<CancellationToken>());
         await _endpoint.DidNotReceiveWithAnyArgs().DeliverAsync(default!, default!, Ct);
         await _store.Received().CompletePollAsync("s1", "fresh", "refresh-2", Now, Now.AddSeconds(10), 0, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_failed_recovery_backs_off_and_keeps_the_new_credential()
+    {
+        Due(new LeasedSubscription(Inbox, "refresh-1", Now, 0));
+        _sessions.RenewAsync("refresh-1", Arg.Any<CancellationToken>()).Returns(new SubscriberSession("access-1", "refresh-2"));
+        _mail.DeltaAsync(Arg.Any<MailboxRef>(), Arg.Any<FolderRef>(), Arg.Any<DeltaToken?>(), Arg.Any<DeltaRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Error.SyncStateGone("expired"), Error.BackendUnavailable("down"));
+
+        await Poller().PollDueAsync(Ct);
+
+        await _store.Received().CompletePollAsync("s1", null, "refresh-2", null, Now.AddSeconds(20), 1, Arg.Any<CancellationToken>());
     }
 
     [Fact]

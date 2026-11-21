@@ -22,13 +22,13 @@ public sealed class WebhookNotificationEndpointTests : IDisposable
     public void Dispose() => _receiver.Dispose();
 
     /// <param name="allowLoopback">Whether the WireMock origin is exempt from the address guard (as only a test sets it).</param>
-    private INotificationEndpoint Endpoint(bool allowLoopback = true)
+    private INotificationEndpoint Endpoint(bool allowLoopback = true, string timeout = "00:00:02")
     {
         var settings = new Dictionary<string, string?>
         {
             ["Subscriptions:ConnectionString"] = "Host=unused",
             ["Subscriptions:SealingKey"] = new string('a', 64),
-            ["Subscriptions:EndpointTimeout"] = "00:00:02",
+            ["Subscriptions:EndpointTimeout"] = timeout,
         };
         if (allowLoopback)
         {
@@ -98,16 +98,45 @@ public sealed class WebhookNotificationEndpointTests : IDisposable
     }
 
     [Fact]
-    public async Task Unconfigured_the_store_and_endpoint_answer_501()
+    public async Task A_url_with_a_query_keeps_it_and_gains_the_token()
     {
-        var services = new ServiceCollection().AddLogging();
-        services.AddSubscriptionsAdapter(new ConfigurationBuilder().Build());
-        using var provider = services.BuildServiceProvider();
-        using var scope = provider.CreateScope();
+        Echo();
 
-        (await scope.ServiceProvider.GetRequiredService<ISubscriptionStore>().ListAsync("x", Ct)).Error!.Kind.ShouldBe(ErrorKind.Unsupported);
-        (await scope.ServiceProvider.GetRequiredService<INotificationEndpoint>().ValidateAsync(Notify, Ct)).Error!.Kind.ShouldBe(ErrorKind.Unsupported);
-        _receiver.LogEntries.ShouldBeEmpty();
+        (await Endpoint().ValidateAsync(new Uri($"{_receiver.Url}/notify?tenant=a"), Ct)).IsSuccess.ShouldBeTrue();
+
+        var query = _receiver.LogEntries.ShouldHaveSingleItem().RequestMessage!.Query!;
+        query["tenant"][0].ShouldBe("a");
+        query.ShouldContainKey("validationToken");
+    }
+
+    [Fact]
+    public async Task A_name_that_resolves_to_loopback_is_refused_after_resolution()
+    {
+        var endpoint = Endpoint(allowLoopback: false);
+
+        (await endpoint.ValidateAsync(new Uri("https://localhost:1/notify"), Ct)).Error!.Message.ShouldContain("public address");
+        (await endpoint.DeliverAsync(new Uri("https://localhost:1/notify"), [Created("a")], Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+    }
+
+    [Fact]
+    public async Task An_endpoint_slower_than_the_timeout_fails_validation_and_delivery()
+    {
+        _receiver.Given(Request.Create().WithPath("/notify").UsingPost()).RespondWith(Response.Create().WithStatusCode(200).WithDelay(TimeSpan.FromSeconds(5)));
+        var endpoint = Endpoint(timeout: "00:00:00.200");
+
+        (await endpoint.ValidateAsync(Notify, Ct)).Error!.Message.ShouldBe(WebhookNotificationEndpoint.ValidationFailed);
+        (await endpoint.DeliverAsync(Notify, [Created("a")], Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+    }
+
+    [Fact]
+    public async Task The_callers_cancellation_is_not_mistaken_for_a_failed_endpoint()
+    {
+        _receiver.Given(Request.Create().WithPath("/notify").UsingPost()).RespondWith(Response.Create().WithStatusCode(200));
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+
+        await Should.ThrowAsync<OperationCanceledException>(() => Endpoint().ValidateAsync(Notify, cancelled.Token));
+        await Should.ThrowAsync<OperationCanceledException>(() => Endpoint().DeliverAsync(Notify, [Created("a")], cancelled.Token));
     }
 
     private static ChangeNotification Created(string id) =>
@@ -165,5 +194,17 @@ public sealed class WebhookNotificationEndpointTests : IDisposable
 
         _receiver.LogEntries.Single().RequestMessage!.Body.ShouldBe(
             """{"value":[{"subscriptionId":"s1","subscriptionExpirationDateTime":"2026-11-22T00:00:00+00:00","lifecycleEvent":"reauthorizationRequired","clientState":"c"}]}""");
+    }
+
+    [Fact]
+    public async Task Without_a_client_state_none_is_sent()
+    {
+        _receiver.Given(Request.Create().WithPath("/notify").UsingPost()).RespondWith(Response.Create().WithStatusCode(202));
+        var lifecycle = new LifecycleNotification("s1", new DateTimeOffset(2026, 11, 22, 0, 0, 0, TimeSpan.Zero), LifecycleNotification.Missed);
+
+        (await Endpoint().DeliverLifecycleAsync(Notify, lifecycle, Ct)).IsSuccess.ShouldBeTrue();
+
+        _receiver.LogEntries.Single().RequestMessage!.Body!.ShouldNotContain("clientState");
+        WebhookNotificationEndpoint.Serialize([Created("a") with { ClientState = null }]).ShouldNotContain("clientState");
     }
 }

@@ -32,6 +32,16 @@ public sealed class CredentialSealerTests
         sealer.Open("s", [1, 2, 3]).Error!.Kind.ShouldBe(ErrorKind.Unauthorized);
     }
 
+    [Theory]
+    [InlineData("abcd")]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void A_short_or_empty_key_is_refused(string key) => Should.Throw<ArgumentException>(() => new CredentialSealer(key));
+
     [Fact]
-    public void A_short_key_is_refused() => Should.Throw<ArgumentException>(() => new CredentialSealer("abcd"));
+    public void A_key_that_is_not_hex_is_refused() => Should.Throw<FormatException>(() => new CredentialSealer(new string('z', 64)));
+
+    [Fact]
+    public void Space_around_the_key_is_ignored() =>
+        new CredentialSealer($"  {Key}\n").Open("s", new CredentialSealer(Key).Seal("s", "t")).Value.ShouldBe("t");
 }
