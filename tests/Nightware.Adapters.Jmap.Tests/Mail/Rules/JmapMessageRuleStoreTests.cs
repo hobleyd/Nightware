@@ -183,7 +183,7 @@ public sealed class JmapMessageRuleStoreTests : IAsyncLifetime
         var written = (await Replies().SetAsync(Alice, setting, ["acme.example", "nightware.localhost"], Ct)).Value;
 
         (written.InternalReplyMessage, written.ExternalReplyMessage, written.ExternalAudience).ShouldBe(("<p>Back Monday, ping me on chat</p>", "<p>Out of the office</p>", ExternalAudience.All));
-        Uploaded().ShouldContain("if address :domain :is \"from\" [\"acme.example\", \"nightware.localhost\"] {");
+        Uploaded().ShouldContain("if envelope :domain :is \"from\" [\"acme.example\", \"nightware.localhost\"] {");
         Uploaded().ShouldContain("ping me on chat");
         Uploaded().ShouldContain("} else {");
         _jmap.Calls().ShouldNotContain(c => c.Method == "VacationResponse/set");
@@ -200,7 +200,7 @@ public sealed class JmapMessageRuleStoreTests : IAsyncLifetime
         (read.ExternalAudience, read.InternalReplyMessage, read.ExternalReplyMessage).ShouldBe((ExternalAudience.None, "<p>in</p>", "<p>out</p>"));
 
         (await Store().SaveAsync(Alice, [Filing], Ct)).IsSuccess.ShouldBeTrue();
-        Uploaded().ShouldContain("if address :domain :is \"from\" [\"acme.example\"] {");
+        Uploaded().ShouldContain("if envelope :domain :is \"from\" [\"acme.example\"] {");
         Uploaded().ShouldNotContain("} else {", Case.Sensitive, "audience none: nobody outside gets a reply");
     }
 

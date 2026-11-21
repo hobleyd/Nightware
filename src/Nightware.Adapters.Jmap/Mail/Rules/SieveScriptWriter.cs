@@ -12,7 +12,7 @@ namespace Nightware.Adapters.Jmap.Mail.Rules;
 /// <summary>
 /// Writes Nightware's Sieve script (ADR 0006 D5): the automatic reply first, in the shape of Stalwart's own
 /// <c>VacationResponse</c> script so replies behave as before, then each enabled rule in sequence order. A reply
-/// whose internal and external parts differ tests the sender's domain against the entity's
+/// whose internal and external parts differ tests the envelope sender's domain (where the reply goes) against the entity's
 /// (<see cref="FilterState.InternalDomains"/>): those get the internal message, everyone else the external one when
 /// the audience is <c>all</c> and nothing otherwise (<c>contactsOnly</c> too: contacts live in Nextcloud, out of
 /// Sieve's reach, so the safe reading is "no strangers").
@@ -22,7 +22,7 @@ internal static class SieveScriptWriter
 {
     public const string ScriptName = "nightware-rules";
 
-    private static readonly string[] Extensions = ["body", "copy", "date", "fileinto", "imap4flags", "mailboxid", "mime", "relational", "vacation"];
+    private static readonly string[] Extensions = ["body", "copy", "date", "envelope", "fileinto", "imap4flags", "mailboxid", "mime", "relational", "vacation"];
 
     /// <param name="trashId">The Deleted Items mailbox, for <c>delete</c> actions.</param>
     public static string Write(FilterState state, string? trashId)
@@ -81,7 +81,9 @@ internal static class SieveScriptWriter
         }
         else
         {
-            script.Append("if address :domain :is \"from\" ").Append(List(internalDomains)).Append(" {\n");
+            // The envelope sender, not the From header: vacation replies to the envelope sender (RFC 5230 §4.4), so a
+            // forged From can't steer the internal message to a stranger.
+            script.Append("if envelope :domain :is \"from\" ").Append(List(internalDomains)).Append(" {\n");
             WriteVacationAction(script, InternalMessage(reply));
             script.Append('}');
             if (reply.ExternalAudience == ExternalAudience.All)

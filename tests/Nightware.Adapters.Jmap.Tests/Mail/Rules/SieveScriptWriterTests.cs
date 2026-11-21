@@ -39,7 +39,7 @@ public sealed class SieveScriptWriterTests
 
         var script = SieveScriptWriter.Write(new FilterState([rule], null), "trash");
 
-        script.ShouldStartWith("require [\"body\", \"copy\", \"date\", \"fileinto\", \"imap4flags\", \"mailboxid\", \"mime\", \"relational\", \"vacation\"];\n");
+        script.ShouldStartWith("require [\"body\", \"copy\", \"date\", \"envelope\", \"fileinto\", \"imap4flags\", \"mailboxid\", \"mime\", \"relational\", \"vacation\"];\n");
         script.ShouldContain("""
             if allof(header :contains "subject" ["Invoice", "Bill"], address :is "from" ["billing@example.com"], header :mime :anychild :contains "Content-Disposition" "attachment", anyof(header :is "importance" "high", header :matches "x-priority" ["1*", "2*"]), not anyof(header :contains "from" ["noreply"])) {
               addflag "\\Seen";
@@ -134,7 +134,7 @@ public sealed class SieveScriptWriterTests
 
         var script = SieveScriptWriter.Write(new FilterState([], reply) { InternalDomains = ["acme.example"] }, null);
 
-        script.ShouldContain("if address :domain :is \"from\" [\"acme.example\"] {");
+        script.ShouldContain("if envelope :domain :is \"from\" [\"acme.example\"] {");
         script.ShouldNotContain("<p>out</p>");
     }
 }
