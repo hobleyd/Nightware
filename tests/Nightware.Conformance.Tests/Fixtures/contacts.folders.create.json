@@ -1,0 +1,31 @@
+{
+  "operationId": "contacts.folders.create",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/contactFolders",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "displayName": "Nightware 12fa34"
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8",
+      "Location": "https://graph.microsoft.com/v1.0/users('22222222-2222-2222-2222-222222222222')/contactFolders('AAMk-id-0001=')"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/contactFolders/$entity",
+      "id": "AAMk-id-0001=",
+      "parentFolderId": "AAMk-parentFolderId-0001=",
+      "displayName": "Nightware 12fa34",
+      "wellKnownName": null
+    }
+  }
+}

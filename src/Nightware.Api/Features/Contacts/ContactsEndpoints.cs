@@ -7,6 +7,7 @@ using Nightware.Api.Features.Contacts.Dto;
 using Nightware.Api.Graph;
 using Nightware.Api.Graph.OData;
 using Nightware.Api.Graph.Routing;
+using Nightware.Application.Common.Query;
 using Nightware.Application.Contacts;
 using Nightware.Domain.Kernel;
 
@@ -30,12 +31,25 @@ public static class ContactsEndpoints
             scope.MapDelete("/contacts/{contactId}", DeleteAsync);
             scope.MapGet("/contacts/{contactId}/photo/$value", GetPhotoAsync);
             scope.MapPut("/contacts/{contactId}/photo/$value", SetPhotoAsync);
+
+            scope.MapGet("/contactFolders", ListFoldersAsync);
+            scope.MapPost("/contactFolders", CreateFolderAsync);
+            scope.MapGet("/contactFolders/{folderId}", GetFolderAsync);
+            scope.MapPatch("/contactFolders/{folderId}", RenameFolderAsync);
+            scope.MapDelete("/contactFolders/{folderId}", DeleteFolderAsync);
+            scope.MapGet("/contactFolders/{folderId}/childFolders", ChildFoldersAsync);
+            scope.MapGet("/contactFolders/{folderId}/contacts", FolderContactsAsync);
+            scope.MapPost("/contactFolders/{folderId}/contacts", CreateInFolderAsync);
         }
 
         return graph;
     }
 
     private static string Contacts(Mailbox mailbox) => $"{mailbox.ContextSegment}/contacts";
+
+    private static string Folders(Mailbox mailbox) => $"{mailbox.ContextSegment}/contactFolders";
+
+    private static string Folder(Mailbox mailbox, string folderId) => $"{Folders(mailbox)}('{Uri.EscapeDataString(folderId)}')";
 
     private static async Task<IResult> ListAsync(Mailbox mailbox, ODataQuery odata, ListContacts useCase, CancellationToken cancellationToken) =>
         GraphResults.Match(
@@ -73,6 +87,52 @@ public static class ContactsEndpoints
 
     private static async Task<IResult> DeleteAsync(Mailbox mailbox, string contactId, DeleteContact useCase, CancellationToken cancellationToken) =>
         GraphResults.Match(await useCase.ExecuteAsync(mailbox.Ref, new ContactId(contactId), cancellationToken).ConfigureAwait(false), GraphResults.NoContent);
+
+    private static async Task<IResult> ListFoldersAsync(Mailbox mailbox, ContactFoldersUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.ListAsync(mailbox.Ref, cancellationToken).ConfigureAwait(false),
+            folders => GraphResults.Collection(folders.Select(ContactFolderDto.From), Folders(mailbox), ItemQuery.Default));
+
+    private static async Task<IResult> GetFolderAsync(Mailbox mailbox, string folderId, ContactFoldersUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.GetAsync(mailbox.Ref, folderId, cancellationToken).ConfigureAwait(false),
+            f => GraphResults.Entity(ContactFolderDto.From(f), Folders(mailbox)));
+
+    private static async Task<IResult> CreateFolderAsync(Mailbox mailbox, ContactFolderWriteDto? body, ContactFoldersUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.CreateAsync(mailbox.Ref, body?.DisplayName, cancellationToken).ConfigureAwait(false),
+            f => GraphResults.CreatedAt(ContactFolderDto.From(f), Folders(mailbox), Folder(mailbox, f.Id.Value)));
+
+    private static async Task<IResult> RenameFolderAsync(Mailbox mailbox, string folderId, ContactFolderWriteDto? body, ContactFoldersUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.RenameAsync(mailbox.Ref, folderId, body?.DisplayName, cancellationToken).ConfigureAwait(false),
+            f => GraphResults.Entity(ContactFolderDto.From(f), Folders(mailbox)));
+
+    private static async Task<IResult> DeleteFolderAsync(Mailbox mailbox, string folderId, ContactFoldersUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(await useCase.DeleteAsync(mailbox.Ref, folderId, cancellationToken).ConfigureAwait(false), GraphResults.NoContent);
+
+    private static async Task<IResult> ChildFoldersAsync(Mailbox mailbox, string folderId, ContactFoldersUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.ChildFoldersAsync(mailbox.Ref, folderId, cancellationToken).ConfigureAwait(false),
+            folders => GraphResults.Collection(folders.Select(ContactFolderDto.From), $"{Folder(mailbox, folderId)}/childFolders", ItemQuery.Default));
+
+    private static async Task<IResult> FolderContactsAsync(Mailbox mailbox, string folderId, ODataQuery odata, ContactFoldersUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.ContactsAsync(mailbox.Ref, folderId, odata.Query, cancellationToken).ConfigureAwait(false),
+            page => GraphResults.Page(page, ContactDtoMapper.ToDto, $"{Folder(mailbox, folderId)}/contacts", odata.Query));
+
+    private static async Task<IResult> CreateInFolderAsync(Mailbox mailbox, string folderId, JsonObject? body, ContactFoldersUseCase useCase, CancellationToken cancellationToken)
+    {
+        var draft = ContactDtoMapper.ReadDraft(body);
+        if (!draft.IsSuccess)
+        {
+            return GraphResults.Error(draft.Error);
+        }
+
+        var created = await useCase.CreateContactAsync(mailbox.Ref, folderId, draft.Value, cancellationToken).ConfigureAwait(false);
+        return GraphResults.Match(created, c => GraphResults.CreatedAt(
+            ContactDtoMapper.ToDto(c), $"{Folder(mailbox, folderId)}/contacts", $"{Folder(mailbox, folderId)}/contacts('{Uri.EscapeDataString(c.Id.Value)}')"));
+    }
 
     private static async Task<IResult> GetPhotoAsync(Mailbox mailbox, string contactId, GetContactPhoto useCase, CancellationToken cancellationToken)
     {

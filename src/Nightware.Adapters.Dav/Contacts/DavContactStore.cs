@@ -58,15 +58,33 @@ internal sealed partial class DavContactStore(
         }
 
         var books = await AddressBooksAsync(mailbox, cancellationToken).ConfigureAwait(false);
-        if (!books.IsSuccess)
+        return books.IsSuccess ? await PageAsync(books.Value, offset, query, cancellationToken).ConfigureAwait(false) : books.Error;
+    }
+
+    public async Task<Result<Page<Contact>>> ListInAsync(MailboxRef mailbox, ContactFolderId folder, ItemQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        if (Unsupported(query) is { } option)
         {
-            return books.Error;
+            return Error.Validation($"{option} is not supported on contacts.", option);
         }
 
+        var offset = 0;
+        if (query.SkipToken is { } token && !ContactPageToken.TryDecode(token, out offset))
+        {
+            return Error.Validation("The $skiptoken is not valid.", "$skiptoken");
+        }
+
+        var book = await BookAsync(mailbox, folder, cancellationToken).ConfigureAwait(false);
+        return book.IsSuccess ? await PageAsync([book.Value], offset, query, cancellationToken).ConfigureAwait(false) : book.Error;
+    }
+
+    private async Task<Result<Page<Contact>>> PageAsync(IReadOnlyList<DavAddressBook> books, int offset, ItemQuery query, CancellationToken cancellationToken)
+    {
         // Href: relative to the DAV root (the id form); Absolute: as Sabre returned it, which is what a
         // multiget must name (Sabre refuses hrefs outside its base URI).
         var cards = new List<(DavAddressBook Book, string Href, string Absolute)>();
-        foreach (var book in books.Value)
+        foreach (var book in books)
         {
             var members = await dav.ReportAsync(book.Href, DavDepth.One, DavRequestBodies.AddressBookQuery(includeData: false), cancellationToken).ConfigureAwait(false);
             if (!members.IsSuccess)
@@ -255,7 +273,7 @@ internal sealed partial class DavContactStore(
     }
 
     /// <summary>The address book to create in: the named folder, or the default book.</summary>
-    private async Task<Result<DavAddressBook>> BookAsync(MailboxRef mailbox, ContactFolderId? folder, CancellationToken cancellationToken)
+    internal async Task<Result<DavAddressBook>> BookAsync(MailboxRef mailbox, ContactFolderId? folder, CancellationToken cancellationToken)
     {
         var books = await AddressBooksAsync(mailbox, cancellationToken).ConfigureAwait(false);
         if (!books.IsSuccess)
@@ -281,7 +299,7 @@ internal sealed partial class DavContactStore(
         return GeneratedBookPrefixes.Any(p => segment.StartsWith(p, StringComparison.Ordinal));
     }
 
-    private async Task<Result<IReadOnlyList<DavAddressBook>>> AddressBooksAsync(MailboxRef mailbox, CancellationToken cancellationToken)
+    internal async Task<Result<IReadOnlyList<DavAddressBook>>> AddressBooksAsync(MailboxRef mailbox, CancellationToken cancellationToken)
     {
         var principal = await discovery.DiscoverAsync(mailbox, cancellationToken).ConfigureAwait(false);
         if (!principal.IsSuccess)

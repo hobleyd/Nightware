@@ -325,8 +325,8 @@ operation:
 | Phase 11 — JSON batching (Graph parity) | 2 |
 | Phase 12 — Mail (Graph parity) | 19 |
 | Phase 13 — Calendar (Graph parity) | 27 |
-| Phase 14 — Contacts (Graph parity) | 7 |
-| **Total** | **131** |
+| Phase 14 — Contacts (Graph parity) | 15 |
+| **Total** | **139** |
 
 ### Phase 2 — Mail, read side
 
@@ -1755,6 +1755,14 @@ operation:
 | [`contacts.list-full`](#contactslist-full) | GET | v1.0 | `{mailbox}/contacts` | none |
 | [`contacts.photo-put`](#contactsphoto-put) | PUT | v1.0 | `{mailbox}/contacts/{contactId}/photo/$value` | none |
 | [`contacts.photo-get`](#contactsphoto-get) | GET | v1.0 | `{mailbox}/contacts/{contactId}/photo/$value` | none |
+| [`contacts.folders.list`](#contactsfolderslist) | GET | v1.0 | `{mailbox}/contactFolders` | none |
+| [`contacts.folders.get`](#contactsfoldersget) | GET | v1.0 | `{mailbox}/contactFolders/{folderId}` | none |
+| [`contacts.folders.create`](#contactsfolderscreate) | POST | v1.0 | `{mailbox}/contactFolders` | none |
+| [`contacts.folders.update`](#contactsfoldersupdate) | PATCH | v1.0 | `{mailbox}/contactFolders/{folderId}` | none |
+| [`contacts.folders.delete`](#contactsfoldersdelete) | DELETE | v1.0 | `{mailbox}/contactFolders/{folderId}` | none |
+| [`contacts.folders.child-folders.list`](#contactsfolderschild-folderslist) | GET | v1.0 | `{mailbox}/contactFolders/{folderId}/childFolders` | none |
+| [`contacts.folders.contacts.list`](#contactsfolderscontactslist) | GET | v1.0 | `{mailbox}/contactFolders/{folderId}/contacts` | none |
+| [`contacts.folders.contacts.create`](#contactsfolderscontactscreate) | POST | v1.0 | `{mailbox}/contactFolders/{folderId}/contacts` | none |
 
 #### `contacts.create`
 
@@ -1817,5 +1825,79 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-get
 - Notes: CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). 404 when the contact has no photo.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.photo-get.json`
+
+#### `contacts.folders.list`
+
+**GET v1.0 `{mailbox}/contactFolders`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].parentFolderId`, `value[].displayName`, `value[].wellKnownName`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/contactfolder
+- Notes: CardDAV address books (ADR 0006 D7). The books below the default one; generated books (system, recently contacted) are not folders.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.list.json`
+
+#### `contacts.folders.get`
+
+**GET v1.0 `{mailbox}/contactFolders/{folderId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `parentFolderId`, `displayName`, `wellKnownName`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/contactfolder
+- Notes: CardDAV address books (ADR 0006 D7). The default book is reachable by id or as 'contacts' (wellKnownName contacts).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.get.json`
+
+#### `contacts.folders.create`
+
+**POST v1.0 `{mailbox}/contactFolders`** — forms: me, users; success: 201; paging: none
+
+- Request body: `displayName`
+- Client reads: `id`, `parentFolderId`, `displayName`, `wellKnownName`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/contactfolder
+- Notes: CardDAV address books (ADR 0006 D7). Extended MKCOL; a name already taken is 409.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.create.json`
+
+#### `contacts.folders.update`
+
+**PATCH v1.0 `{mailbox}/contactFolders/{folderId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `displayName`
+- Client reads: `id`, `parentFolderId`, `displayName`, `wellKnownName`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/contactfolder
+- Notes: CardDAV address books (ADR 0006 D7). PROPPATCH displayname; the default folder cannot be renamed (400).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.update.json`
+
+#### `contacts.folders.delete`
+
+**DELETE v1.0 `{mailbox}/contactFolders/{folderId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/contactfolder
+- Notes: CardDAV address books (ADR 0006 D7). The default folder cannot be deleted (400).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.delete.json`
+
+#### `contacts.folders.child-folders.list`
+
+**GET v1.0 `{mailbox}/contactFolders/{folderId}/childFolders`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[]`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/contactfolder
+- Notes: CardDAV address books (ADR 0006 D7). Always empty: CardDAV is flat.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.child-folders.list.json`
+
+#### `contacts.folders.contacts.list`
+
+**GET v1.0 `{mailbox}/contactFolders/{folderId}/contacts`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[]`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/contact
+- Notes: CardDAV address books (ADR 0006 D7). The contacts of that one book.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.contacts.list.json`
+
+#### `contacts.folders.contacts.create`
+
+**POST v1.0 `{mailbox}/contactFolders/{folderId}/contacts`** — forms: me, users; success: 201; paging: none
+
+- Request body: `givenName`; `surname`; `emailAddresses`
+- Client reads: `id`, `parentFolderId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/contact
+- Notes: CardDAV address books (ADR 0006 D7). As contacts.create, in the named book.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.contacts.create.json`
 
 <!-- END GENERATED -->

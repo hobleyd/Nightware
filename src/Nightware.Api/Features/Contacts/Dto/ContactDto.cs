@@ -110,3 +110,27 @@ public sealed record PhysicalAddressDto
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? PostalCode { get; init; }
 }
+
+/// <summary>Graph <c>contactFolder</c>.</summary>
+public sealed record ContactFolderDto
+{
+    public required string Id { get; init; }
+
+    public string? ParentFolderId { get; init; }
+
+    public string? DisplayName { get; init; }
+
+    public string? WellKnownName { get; init; }
+
+    public static ContactFolderDto From(Nightware.Domain.Contacts.ContactFolder folder)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        return new ContactFolderDto { Id = folder.Id.Value, ParentFolderId = folder.ParentFolderId?.Value, DisplayName = folder.DisplayName, WellKnownName = folder.WellKnownName };
+    }
+}
+
+/// <summary>The body of a <c>contactFolder</c> create or PATCH.</summary>
+public sealed record ContactFolderWriteDto
+{
+    public string? DisplayName { get; init; }
+}

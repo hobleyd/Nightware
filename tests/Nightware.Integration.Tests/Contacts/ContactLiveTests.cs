@@ -135,4 +135,40 @@ public sealed class ContactLiveTests : IAsyncLifetime
 
         await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/contacts/{id}", expected: HttpStatusCode.NotFound);
     }
+
+    [Fact]
+    public async Task A_folder_is_an_address_book_that_holds_its_own_contacts()
+    {
+        var alice = await _stack.GraphClientAsync(Alice, Ct);
+        var defaultFolder = await SendAsync(alice, HttpMethod.Get, "/v1.0/me/contactFolders/contacts");
+        defaultFolder["wellKnownName"]!.GetValue<string>().ShouldBe("contacts");
+
+        var folder = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/contactFolders", $$"""{"displayName":"Live {{_run}}"}""", HttpStatusCode.Created);
+        var folderId = folder["id"]!.GetValue<string>();
+        try
+        {
+            folder["parentFolderId"]!.GetValue<string>().ShouldBe(defaultFolder["id"]!.GetValue<string>());
+            (await SendAsync(alice, HttpMethod.Post, "/v1.0/me/contactFolders", $$"""{"displayName":"live {{_run}}"}""", HttpStatusCode.Conflict)).ShouldNotBeNull();
+            (await SendAsync(alice, HttpMethod.Get, "/v1.0/me/contactFolders"))["value"]!.AsArray()
+                .ShouldContain(f => f!["id"]!.GetValue<string>() == folderId);
+
+            var renamed = await SendAsync(alice, HttpMethod.Patch, $"/v1.0/me/contactFolders/{folderId}", $$"""{"displayName":"Live {{_run}} renamed"}""");
+            renamed["displayName"]!.GetValue<string>().ShouldBe($"Live {_run} renamed");
+            (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/contactFolders/{folderId}"))["displayName"]!.GetValue<string>().ShouldBe($"Live {_run} renamed");
+
+            var sam = await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/contactFolders/{folderId}/contacts", """{"givenName":"Sam","surname":"Folder"}""", HttpStatusCode.Created);
+            sam["parentFolderId"]!.GetValue<string>().ShouldBe(folderId);
+            var inFolder = await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/contactFolders/{folderId}/contacts");
+            inFolder["value"]!.AsArray().ShouldHaveSingleItem()!["displayName"]!.GetValue<string>().ShouldBe("Sam Folder");
+            (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/contactFolders/{folderId}/childFolders"))["value"]!.AsArray().ShouldBeEmpty();
+
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/contactFolders/{defaultFolder["id"]!.GetValue<string>()}", expected: HttpStatusCode.BadRequest);
+        }
+        finally
+        {
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/contactFolders/{folderId}", expected: HttpStatusCode.NoContent);
+        }
+
+        await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/contactFolders/{folderId}", expected: HttpStatusCode.NotFound);
+    }
 }

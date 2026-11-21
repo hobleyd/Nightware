@@ -1,0 +1,82 @@
+{
+  "operationId": "contacts.folders.contacts.create",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/contactFolders/AAMk-id-0001=/contacts",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "givenName": "Sam",
+      "surname": "Folder",
+      "emailAddresses": [
+        {
+          "name": "Sam Folder",
+          "address": "sam.folder@example.com"
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8",
+      "Location": "https://graph.microsoft.com/v1.0/users('22222222-2222-2222-2222-222222222222')/contacts('AAMk-id-0002=')"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/contactFolders('AAMk-id-0001%3D')/contacts/$entity",
+      "@odata.etag": "W/\"AAMk-changeKey-0001=\"",
+      "id": "AAMk-id-0002=",
+      "createdDateTime": "2026-11-20T22:39:01Z",
+      "lastModifiedDateTime": "2026-11-20T22:39:01Z",
+      "changeKey": "AAMk-changeKey-0001=",
+      "categories": [],
+      "parentFolderId": "AAMk-id-0001=",
+      "birthday": null,
+      "fileAs": "",
+      "displayName": "Sam Folder",
+      "givenName": "Sam",
+      "initials": null,
+      "middleName": null,
+      "nickName": null,
+      "surname": "Folder",
+      "title": null,
+      "yomiGivenName": null,
+      "yomiSurname": null,
+      "yomiCompanyName": null,
+      "generation": null,
+      "imAddresses": [],
+      "jobTitle": null,
+      "companyName": null,
+      "department": null,
+      "officeLocation": null,
+      "profession": null,
+      "businessHomePage": null,
+      "assistantName": null,
+      "manager": null,
+      "homePhones": [],
+      "mobilePhone": null,
+      "businessPhones": [],
+      "spouseName": null,
+      "personalNotes": "",
+      "children": [],
+      "emailAddresses": [
+        {
+          "name": "Sam Folder",
+          "address": "sam.folder@example.com"
+        }
+      ],
+      "primaryEmailAddress": {
+        "name": "Sam Folder",
+        "address": "sam.folder@example.com"
+      },
+      "homeAddress": {},
+      "businessAddress": {},
+      "otherAddress": {}
+    }
+  }
+}

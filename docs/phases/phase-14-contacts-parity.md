@@ -1,6 +1,6 @@
 # Phase 14 — Contacts parity
 
-> **Status (2026-11-21): in progress** — 14a (contact CRUD, photo) done. Decisions: [ADR 0006](../adr/0006-graph-parity.md) D7.
+> **Status (2026-11-21): in progress** — 14a (contact CRUD, photo) and 14b (folders) done. Decisions: [ADR 0006](../adr/0006-graph-parity.md) D7.
 
 **Goal:** full contact read/write across address books, with photos and delta.
 
@@ -49,3 +49,7 @@
   the default book (`contacts`).
 - The Graph birthday is shown at 11:59 UTC, as Exchange stores it, so no time zone
   moves it to another day.
+- `contactFolders` are the address books below the default one (`contacts`), which
+  is their `parentFolderId` and is reachable by id or as `contacts`. The default
+  folder cannot be renamed or deleted (400); a name already taken is 409. New books
+  are `nightware-{guid}` by extended MKCOL.

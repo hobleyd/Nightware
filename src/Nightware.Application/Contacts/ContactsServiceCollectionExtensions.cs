@@ -15,6 +15,7 @@ public static class ContactsServiceCollectionExtensions
         services.TryAddScoped<DeleteContact>();
         services.TryAddScoped<GetContactPhoto>();
         services.TryAddScoped<SetContactPhoto>();
+        services.TryAddScoped<ContactFoldersUseCase>();
         return services;
     }
 }

@@ -5697,5 +5697,286 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/profilephoto-get",
     "notes": "CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). 404 when the contact has no photo."
+  },
+  {
+    "id": "contacts.folders.list",
+    "phase": 14,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/contactFolders",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].parentFolderId",
+      "value[].displayName",
+      "value[].wellKnownName"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/contactfolder",
+    "notes": "CardDAV address books (ADR 0006 D7). The books below the default one; generated books (system, recently contacted) are not folders."
+  },
+  {
+    "id": "contacts.folders.get",
+    "phase": 14,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/contactFolders/{folderId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "parentFolderId",
+      "displayName",
+      "wellKnownName"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/contactfolder",
+    "notes": "CardDAV address books (ADR 0006 D7). The default book is reachable by id or as 'contacts' (wellKnownName contacts)."
+  },
+  {
+    "id": "contacts.folders.create",
+    "phase": 14,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/contactFolders",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "displayName"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "parentFolderId",
+      "displayName",
+      "wellKnownName"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/contactfolder",
+    "notes": "CardDAV address books (ADR 0006 D7). Extended MKCOL; a name already taken is 409."
+  },
+  {
+    "id": "contacts.folders.update",
+    "phase": 14,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/contactFolders/{folderId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "displayName"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "parentFolderId",
+      "displayName",
+      "wellKnownName"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/contactfolder",
+    "notes": "CardDAV address books (ADR 0006 D7). PROPPATCH displayname; the default folder cannot be renamed (400)."
+  },
+  {
+    "id": "contacts.folders.delete",
+    "phase": 14,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/contactFolders/{folderId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/contactfolder",
+    "notes": "CardDAV address books (ADR 0006 D7). The default folder cannot be deleted (400)."
+  },
+  {
+    "id": "contacts.folders.child-folders.list",
+    "phase": 14,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/contactFolders/{folderId}/childFolders",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[]"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/contactfolder",
+    "notes": "CardDAV address books (ADR 0006 D7). Always empty: CardDAV is flat."
+  },
+  {
+    "id": "contacts.folders.contacts.list",
+    "phase": 14,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/contactFolders/{folderId}/contacts",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[]"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/contact",
+    "notes": "CardDAV address books (ADR 0006 D7). The contacts of that one book."
+  },
+  {
+    "id": "contacts.folders.contacts.create",
+    "phase": 14,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/contactFolders/{folderId}/contacts",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "givenName",
+        "surname",
+        "emailAddresses"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "parentFolderId"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/contact",
+    "notes": "CardDAV address books (ADR 0006 D7). As contacts.create, in the named book."
   }
 ]

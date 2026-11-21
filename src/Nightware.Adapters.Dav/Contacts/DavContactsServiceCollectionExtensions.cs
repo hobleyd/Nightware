@@ -7,10 +7,12 @@ namespace Nightware.Adapters.Dav.Contacts;
 
 internal static class DavContactsServiceCollectionExtensions
 {
-    /// <summary>Registers this feature's port implementations (Phase 5A): <see cref="IContactStore"/>.</summary>
+    /// <summary>Registers this feature's port implementations: <see cref="IContactStore"/> and <see cref="IContactFolderStore"/>.</summary>
     public static IServiceCollection AddDavContacts(this IServiceCollection services)
     {
-        services.TryAddScoped<IContactStore, DavContactStore>();
+        services.TryAddScoped<DavContactStore>();
+        services.TryAddScoped<IContactStore>(static sp => sp.GetRequiredService<DavContactStore>());
+        services.TryAddScoped<IContactFolderStore, DavContactFolderStore>();
         return services;
     }
 }

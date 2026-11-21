@@ -166,7 +166,8 @@ public sealed record ContactDraft
 }
 
 /// <summary>A contact folder (Graph <c>contactFolder</c>): a CardDAV address book.</summary>
-public sealed record ContactFolder(ContactFolderId Id, string DisplayName, ContactFolderId? ParentFolderId);
+/// <param name="WellKnownName"><c>contacts</c> for the default folder; null otherwise.</param>
+public sealed record ContactFolder(ContactFolderId Id, string DisplayName, ContactFolderId? ParentFolderId, string? WellKnownName = null);
 
 /// <summary>A ranked person relevant to the user (Graph <c>person</c>).</summary>
 public sealed record Person(string Id, string DisplayName, IReadOnlyList<EmailAddress> ScoredEmailAddresses)
