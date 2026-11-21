@@ -85,31 +85,30 @@ receives Graph notifications at its own HTTPS endpoint.
   from now (the gap is not replayed). Expired subscriptions are removed with their
   credentials each round, without a notification (Graph sends none on expiry).
 
-- **Polling cost.** Each poll of each subscription is a Keycloak refresh grant
-  plus one or two token exchanges (the renewed token is new each time, so the
-  exchange cache misses): about three Keycloak calls per subscription per
-  `PollInterval`, plus the backend's own delta call. **Side effect:** the refresh
-  keeps the subscriber's SSO session active, so while a subscription lives the
-  session never reaches its 24-hour idle timeout; only the 10-day maximum
-  (`ssoSessionMaxLifespan`) ends it, and then `reauthorizationRequired` follows.
-  Caching the renewed access token per subscription until near its expiry would
-  cut the refresh grants to one per 15 minutes; not done.
+- **Polling cost.** A subscriber's renewed session is cached (under a hash of the
+  refresh token) until its access token is 30 s from expiring, so a poll reuses
+  the access token, and the backend tokens already exchanged from it: one refresh
+  grant and one or two token exchanges per subscription per access-token lifetime
+  (15 minutes), plus the backend's own delta call each `PollInterval`. The cache
+  is per instance and follows `BackendCredentials:Cache` (`Enabled`,
+  `ExpirySkew`). **Side effect:** the refresh grant still keeps the subscriber's
+  SSO session active, so while a subscription lives the session never reaches its
+  24-hour idle timeout; only the 10-day maximum (`ssoSessionMaxLifespan`) ends it,
+  and then `reauthorizationRequired` follows (up to 15 minutes later, while the
+  cached access token lasts). An admin who ends a session in Keycloak sees the
+  same delay.
 - The integration tests for the store use a throwaway Postgres (Testcontainers).
   On the colima dev machine they need `DOCKER_HOST=unix://$HOME/.colima/default/docker.sock`
   and `TESTCONTAINERS_RYUK_DISABLED=true` besides `NIGHTWARE_INTEGRATION=1`.
 
-## Deployment (not done: the live stack is ansible's)
+## Deployment
 This repo's `deploy/docker-compose.yml` gains `subscriptions-db` (Postgres 17) and
 the API's `Subscriptions__ConnectionString` / `Subscriptions__SealingKey`;
 `init-env.sh` generates `SUBSCRIPTIONS_DB_PASSWORD` and
-`NIGHTWARE_SUBSCRIPTION_KEY`. For the live stack, `../ansible` needs:
-- the `subscriptions-db` service and volume in
-  `roles/docker_apps/files/compose/nightware.yml`, with the API depending on it;
-- the two `Subscriptions__*` variables on `nightware-api`, from new vault entries
-  for the database password and the sealing key (32 bytes hex);
-- `keycloak/configure.sh` run on the VM (it switches on same-session refresh tokens
-  for `nightware-api`). The configure scripts run `init-env.sh` first, which adds
-  `SUBSCRIPTIONS_DB_PASSWORD` and `NIGHTWARE_SUBSCRIPTION_KEY` to the checkout's
-  `deploy/.env` if missing; the live values must come from the vault through
-  ansible instead.
-Until then `/subscriptions` answers 501 on live.
+`NIGHTWARE_SUBSCRIPTION_KEY`. The live stack's `../ansible` has the same
+(2026-11-21): `nightware-subscriptions-db` in `compose/nightware.yml`, the two
+variables in `api.env` from the vault (`nightware_subscriptions_db_password`,
+`nightware_subscription_key`), and both in its templated `deploy/.env`, so
+`init-env.sh` generates none there. The playbook's run of `keycloak/configure.sh`
+switches on same-session refresh tokens for `nightware-api`. Until the playbook
+has run with a checkout that has this phase, `/subscriptions` answers 501 on live.
