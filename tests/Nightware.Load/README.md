@@ -63,3 +63,23 @@ so runs longer than the realm's access-token lifespan work.
   delta calls were answered 429: not the façade's limiter but Stalwart's per-account
   `maxConcurrentRequests` (4), reached because ten devices shared one mailbox — see the runbook.
 
+## Results (2026-11-21, Apple Silicon, colima)
+
+`poll-cycle.js`, 20 VUs (10 per account), 3 min, 30 s cycle, façade started cold:
+
+| | calendarView median | calendarView worst after the first cycle | first cycle |
+|---|---|---|---|
+| before | 164 ms | about 1.3 s | up to 4.3 s |
+| after | 99 ms | 151 ms | 1.6–2.1 s |
+
+Two changes made the difference:
+- Nextcloud's Apache keeps 20–40 idle workers (`deploy/nextcloud/mpm_prefork.conf`) instead of the
+  image's 5–10, which it grew by 1, 2, 4… per second. A burst of more than 10 requests used to wait
+  up to 4 s for workers.
+- calendarView remembers the default calendar per caller (`DavCalendarScopes.DefaultAsync`), so a warm
+  call is one REPORT instead of a PROPFIND and a REPORT.
+
+The k6 thresholds on calendarView and task lists still fail. Their p90/p95 come from the first cycle,
+where all 20 devices hit a freshly started façade in the same second (`docs/known-issues.md`). Inbox
+delta p95 219 ms, folders 10 ms, 0 failures, 0 throttled.
+

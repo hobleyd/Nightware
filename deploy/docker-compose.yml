@@ -246,6 +246,8 @@ services:
     volumes:
       - nextcloud-html:/var/www/html
       - nextcloud-data:/var/www/html/data
+      # More idle Apache workers than the image's 5-10 (see the file).
+      - ./nextcloud/mpm_prefork.conf:/etc/apache2/mods-available/mpm_prefork.conf:ro
     networks: [nightware]
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/status.php | grep -q '\"installed\":true'"]

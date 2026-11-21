@@ -9,8 +9,8 @@ using Nightware.Domain.Kernel;
 namespace Nightware.Adapters.Dav.Calendar;
 
 /// <summary>
-/// <see cref="ICalendarReader"/> over CalDAV. <c>calendarView</c> reads the default calendar with Sabre's
-/// server-side expansion; single events, masters and occurrences are read from their resource.
+/// <see cref="ICalendarReader"/> over CalDAV. <c>calendarView</c> reads the default calendar
+/// (<see cref="DavCalendarScopes.DefaultAsync"/>, remembered) with Sabre's server-side expansion: one REPORT when warm; single events, masters and occurrences are read from their resource.
 /// </summary>
 internal sealed class DavCalendarReader(
     DavCalendarScopes scopes, DavEventResources resources, IDavClient dav, DavPaths paths, IcalNetCalendarCodec codec, IcsEditor editor)
@@ -33,15 +33,29 @@ internal sealed class DavCalendarReader(
             return tooLong;
         }
 
-        var scope = await scopes.ResolveAsync(mailbox, cancellationToken).ConfigureAwait(false);
-        if (!scope.IsSuccess)
+        for (var attempt = 0; ; attempt++)
         {
-            return scope.Error;
-        }
+            var calendar = await scopes.DefaultAsync(mailbox, cancellationToken).ConfigureAwait(false);
+            if (!calendar.IsSuccess)
+            {
+                return calendar.Error;
+            }
 
-        return scope.Value.Default is { } calendar
-            ? await ViewAsync(calendar.Href, mailbox, start, end, query, cancellationToken).ConfigureAwait(false)
-            : OffsetPaging.Slice<CalendarEvent>([], query, DefaultPageSize);
+            if (calendar.Value is null)
+            {
+                return OffsetPaging.Slice<CalendarEvent>([], query, DefaultPageSize);
+            }
+
+            var view = await ViewAsync(calendar.Value.Href, mailbox, start, end, query, cancellationToken).ConfigureAwait(false);
+            if (view is { IsSuccess: false, Error.Kind: ErrorKind.NotFound or ErrorKind.Forbidden } && attempt == 0)
+            {
+                // The remembered default calendar was deleted or unshared since: look again.
+                await scopes.ForgetDefault(mailbox, cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
+            return view;
+        }
     }
 
     /// <summary>The expanded occurrences of one calendar overlapping [start, end).</summary>

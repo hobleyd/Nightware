@@ -41,7 +41,7 @@ internal sealed class CalendarAdapterHarness : IDisposable
 
         Codec = new IcalNetCalendarCodec(Dav.Time);
         Editor = new IcsEditor(Dav.Time);
-        Scopes = new DavCalendarScopes(Discovery, Catalog, Dav.Paths);
+        Scopes = new DavCalendarScopes(Discovery, Catalog, Dav.Paths, Cache, Microsoft.Extensions.Options.Options.Create(new DavOptions()));
         Resources = new DavEventResources(Dav.Client, Scopes);
         Reader = new DavCalendarReader(Scopes, Resources, Dav.Client, Dav.Paths, Codec, Editor);
         Writer = new DavCalendarWriter(Scopes, Resources, Reader, Dav.Client, Dav.Paths, Codec, Editor, Dav.Time);
@@ -69,6 +69,8 @@ internal sealed class CalendarAdapterHarness : IDisposable
     public IDavPrincipalDiscovery Discovery { get; } = Substitute.For<IDavPrincipalDiscovery>();
 
     public IDavCollectionCatalog Catalog { get; } = Substitute.For<IDavCollectionCatalog>();
+
+    public Microsoft.Extensions.Caching.Memory.MemoryCache Cache { get; } = new(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions());
 
     public IcalNetCalendarCodec Codec { get; }
 
@@ -126,5 +128,9 @@ internal sealed class CalendarAdapterHarness : IDisposable
     public static string? Header(ILogEntry entry, string name) =>
         entry.RequestMessage!.Headers!.TryGetValue(name, out var values) ? values[0] : null;
 
-    public void Dispose() => Dav.Dispose();
+    public void Dispose()
+    {
+        Cache.Dispose();
+        Dav.Dispose();
+    }
 }

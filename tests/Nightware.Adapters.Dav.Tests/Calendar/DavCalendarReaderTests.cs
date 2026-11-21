@@ -83,6 +83,53 @@ public sealed class DavCalendarReaderTests : IDisposable
     }
 
     [Fact]
+    public async Task Calendar_view_lists_the_calendar_home_once_then_remembers_the_default_calendar()
+    {
+        _h.Serve("REPORT", AlicePersonal, 207, Read("../Recorded/03-calendar-query-timerange.response.xml"));
+
+        await _h.Reader.CalendarViewAsync(AliceMailbox, Window, Window.AddDays(7), ItemQuery.Default, Ct);
+        var again = await _h.Reader.CalendarViewAsync(AliceMailbox, Window, Window.AddDays(7), ItemQuery.Default, Ct);
+
+        again.Value.Items.Count.ShouldBe(4);
+        await _h.Catalog.Received(1).ListCalendarsAsync(Arg.Any<Nightware.Adapters.Dav.Core.Discovery.DavPrincipal>(), Arg.Any<CancellationToken>());
+        _h.Requests("REPORT").Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task A_remembered_default_calendar_that_is_gone_is_looked_up_again()
+    {
+        await _h.Scopes.DefaultAsync(AliceMailbox, Ct);
+        _h.Catalog.ListCalendarsAsync(Arg.Is<Nightware.Adapters.Dav.Core.Discovery.DavPrincipal>(p => p.Href == AlicePrincipal.Href), Arg.Any<CancellationToken>())
+            .Returns(Result<IReadOnlyList<Nightware.Adapters.Dav.Core.Collections.DavCalendar>>.Success([Personal(AliceHome + "work/")]));
+        _h.Serve("REPORT", AlicePersonal, 404, "");
+        _h.Serve("REPORT", AliceHome + "work/", 207, Read("../Recorded/03-calendar-query-timerange.response.xml"));
+
+        var page = await _h.Reader.CalendarViewAsync(AliceMailbox, Window, Window.AddDays(7), ItemQuery.Default, Ct);
+
+        page.Value.Items.Count.ShouldBe(4);
+        (await _h.Scopes.DefaultAsync(AliceMailbox, Ct)).Value!.Href.ShouldBe(AliceHome + "work/");
+    }
+
+    [Fact]
+    public async Task A_shared_calendars_default_is_remembered_per_caller()
+    {
+        var bob = BobPrincipal with { IsCurrentUser = false };
+        _h.Discovery.DiscoverAsync(BobMailbox, Arg.Any<CancellationToken>()).Returns(bob);
+        var sharedWithAlice = Personal(AliceHome + "personal_shared_by_bob/") with { IsShared = true, OwnerPrincipal = "principals/users/bob" };
+        _h.Catalog.ListCalendarsAsync(Arg.Any<Nightware.Adapters.Dav.Core.Discovery.DavPrincipal>(), Arg.Any<CancellationToken>())
+            .Returns(Result<IReadOnlyList<Nightware.Adapters.Dav.Core.Collections.DavCalendar>>.Success([sharedWithAlice]));
+
+        (await _h.Scopes.DefaultAsync(BobMailbox, Ct)).Value!.Href.ShouldBe(sharedWithAlice.Href);
+        (await _h.Scopes.DefaultAsync(BobMailbox, Ct)).IsSuccess.ShouldBeTrue();
+        await _h.Catalog.Received(1).ListCalendarsAsync(Arg.Any<Nightware.Adapters.Dav.Core.Discovery.DavPrincipal>(), Arg.Any<CancellationToken>());
+
+        _h.Discovery.CurrentUserAsync(Arg.Any<CancellationToken>()).Returns(AlicePrincipal with { Href = "/remote.php/dav/principals/users/carol/" });
+        await _h.Scopes.DefaultAsync(BobMailbox, Ct);
+
+        await _h.Catalog.Received(2).ListCalendarsAsync(Arg.Any<Nightware.Adapters.Dav.Core.Discovery.DavPrincipal>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Calendar_view_refuses_a_window_over_the_cap_before_asking_the_server()
     {
         ServeView();

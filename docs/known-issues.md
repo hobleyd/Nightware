@@ -111,16 +111,15 @@ what a fix needs. Ordered by impact within each section.
   re-sign-in. Keep Keycloak highly available; never put a maintenance page in
   front of its token endpoint.
 - Per-user rate limits are per façade instance.
-- **calendarView misses its 300 ms p95 under load.** Idle-machine poll cycle
-  (2026-11-16: 20 devices on two accounts, 30 s interval, 5 min, Stalwart at
-  32 concurrent JMAP requests): 0 failures, 0 throttled; p95 inbox delta 25 ms,
-  folders 3 ms, task lists 299 ms, calendarView 1.08 s (median 156 ms). One
-  calendarView alone takes ~140 ms; ten in parallel for one user take
-  330–440 ms each, because Nextcloud serves one user's CalDAV requests largely
-  one after another, and the tail is calendarView queued behind the same user's
-  task-list calls. Ten devices per user polling in step is pessimistic; if real
-  use shows it, look at the façade's DAV round trips per calendarView and at
-  Nextcloud's PHP-FPM workers.
+- **A cold start is slow when many devices poll at the same instant.** On a
+  façade that has just started, every device's first calendarView (and task
+  list) does the token exchange, principal discovery and calendar-home listing
+  before its REPORT. Twenty devices on two accounts arriving in the same second
+  took 1.6–2 s each on the dev stack (2026-11-21); every later cycle stayed
+  under 160 ms (median 90 ms). Real devices don't start in step, so this shows
+  up only in the load test's first cycle, which fills its p90/p95. Discovery is
+  cached per exchanged token, so each device pays it again when its token is
+  refreshed (every 15 minutes).
 - Backup procedures: only the `pg_dump`s were exercised; exports, the Stalwart
   tar and every restore are untested (`docs/operations/backup.md`).
 - Docker's VM disk filled up during development (Postgres couldn't start);
