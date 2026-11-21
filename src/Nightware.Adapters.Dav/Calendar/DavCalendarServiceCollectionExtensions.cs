@@ -18,6 +18,7 @@ internal static class DavCalendarServiceCollectionExtensions
         services.TryAddScoped<DavCalendarStore>();
         services.TryAddScoped<Application.Calendar.Calendars.ICalendarStore>(sp => sp.GetRequiredService<DavCalendarStore>());
         services.TryAddScoped<Application.Calendar.Calendars.ICalendarEventsIn>(sp => sp.GetRequiredService<DavCalendarStore>());
+        services.TryAddScoped<Application.Calendar.Calendars.ICalendarViewDelta, DavCalendarViewDelta>();
         services.TryAddScoped<ISchedulingActions, DavSchedulingActions>();
         services.TryAddScoped<IFreeBusyReader, DavFreeBusyReader>();
         return services;

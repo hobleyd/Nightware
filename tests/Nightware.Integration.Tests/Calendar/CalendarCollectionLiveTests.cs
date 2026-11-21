@@ -89,4 +89,26 @@ public sealed class CalendarCollectionLiveTests : IAsyncLifetime
 
         (await SendAsync(alice, HttpMethod.Get, "/v1.0/me/calendars"))["value"]!.AsArray().ShouldNotContain(c => c!["id"]!.GetValue<string>() == id);
     }
+
+    [Fact]
+    public async Task Calendar_view_delta_reports_a_new_event_and_its_deletion()
+    {
+        var alice = await _stack.GraphClientAsync(Alice, Ct);
+        var start = DateTime.UtcNow.Date.AddDays(2);
+        var window = $"startDateTime={start:yyyy-MM-ddTHH:mm:ssZ}&endDateTime={start.AddDays(2):yyyy-MM-ddTHH:mm:ssZ}";
+        var initial = await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/calendarView/delta?{window}");
+        var link = LiveStack.Local(initial["@odata.deltaLink"]!.GetValue<string>());
+
+        var created = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/events", $$$"""
+            {"subject":"Delta {{{_run}}}","start":{"dateTime":"{{{start.AddHours(9):yyyy-MM-ddTHH:mm:ss}}}","timeZone":"UTC"},
+             "end":{"dateTime":"{{{start.AddHours(10):yyyy-MM-ddTHH:mm:ss}}}","timeZone":"UTC"}}
+            """, HttpStatusCode.Created);
+        var id = created["id"]!.GetValue<string>();
+        var afterCreate = await SendAsync(alice, HttpMethod.Get, link);
+        afterCreate["value"]!.AsArray().ShouldContain(e => e!["id"]!.GetValue<string>() == id);
+
+        await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/events/{id}", expected: HttpStatusCode.NoContent);
+        var afterDelete = await SendAsync(alice, HttpMethod.Get, LiveStack.Local(afterCreate["@odata.deltaLink"]!.GetValue<string>()));
+        afterDelete["value"]!.AsArray().ShouldContain(e => e!["id"]!.GetValue<string>() == id && e["@removed"] != null);
+    }
 }

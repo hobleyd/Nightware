@@ -31,6 +31,7 @@ public static class CalendarServiceCollectionExtensions
         services.TryAddScoped<Calendars.DeleteCalendar>();
         services.TryAddScoped<Calendars.ListGroupCalendars>();
         services.TryAddScoped<Calendars.CalendarEventsIn>();
+        services.TryAddScoped<Calendars.SyncCalendarView>();
         return services;
     }
 }

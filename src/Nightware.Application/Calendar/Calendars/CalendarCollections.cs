@@ -179,3 +179,35 @@ public sealed class CalendarEventsIn(ICalendarEventsIn events)
             ? Task.FromResult<Result<Page<CalendarEvent>>>(tooLong)
             : events.InstancesAsync(mailbox, series, start, end, query, cancellationToken);
 }
+
+/// <summary>
+/// Graph <c>calendarView/delta</c> on the default calendar (ADR 0006 D6): the window's occurrences first, then
+/// what changed. The window rides in the token, as Graph freezes it into the delta link.
+/// </summary>
+public interface ICalendarViewDelta
+{
+    /// <param name="start">Required (with <paramref name="end"/>) without a token; ignored with one.</param>
+    Task<Result<DeltaPage<CalendarEvent>>> DeltaAsync(
+        MailboxRef mailbox, DateTimeOffset? start, DateTimeOffset? end, DeltaToken? token, CancellationToken cancellationToken);
+}
+
+/// <summary>Graph <c>GET calendarView/delta</c>.</summary>
+public sealed class SyncCalendarView(ICalendarViewDelta delta)
+{
+    public Task<Result<DeltaPage<CalendarEvent>>> ExecuteAsync(
+        MailboxRef mailbox, DateTimeOffset? start, DateTimeOffset? end, DeltaToken? token, CancellationToken cancellationToken)
+    {
+        if (token is null && (start is null || end is null))
+        {
+            return Task.FromResult<Result<DeltaPage<CalendarEvent>>>(
+                Error.Validation("This request requires a time window specified by the query string parameters startDateTime and endDateTime.", "startDateTime"));
+        }
+
+        if (token is null && CalendarViewLimits.Check(start!.Value, end!.Value) is { } tooLong)
+        {
+            return Task.FromResult<Result<DeltaPage<CalendarEvent>>>(tooLong);
+        }
+
+        return delta.DeltaAsync(mailbox, start, end, token, cancellationToken);
+    }
+}

@@ -31,7 +31,7 @@ public sealed class CalendarCollectionArrangements : IConformanceArrangements
 
     public IEnumerable<ConformanceArrangement> Arrangements()
     {
-        foreach (var listing in EventListings())
+        foreach (var listing in EventListings().Concat(ViewDelta()))
         {
             yield return listing;
         }
@@ -113,6 +113,25 @@ public sealed class CalendarCollectionArrangements : IConformanceArrangements
                 ])))
         {
             Normalise = ParityNormalisers.Only("id", "subject", "start", "end"),
+        };
+    }
+
+    /// <summary>The default calendar's view delta: empty at first, then the single event created after it.</summary>
+    internal static IEnumerable<ConformanceArrangement> ViewDelta()
+    {
+        yield return new ConformanceArrangement("calendar.calendar-view.delta", static fakes =>
+            fakes.For<ICalendarViewDelta>().DeltaAsync(Me, Arg.Any<DateTimeOffset?>(), Arg.Any<DateTimeOffset?>(), null, Arg.Any<CancellationToken>())
+                .Returns(DeltaPage<CalendarEvent>.Done([], new DeltaToken("since-start"))));
+
+        yield return new ConformanceArrangement("calendar.calendar-view.delta-changes", static fakes =>
+            fakes.For<ICalendarViewDelta>().DeltaAsync(Me, null, null, new DeltaToken("since-start"), Arg.Any<CancellationToken>())
+                .Returns(DeltaPage<CalendarEvent>.Done(
+                    [new DeltaEntry<CalendarEvent>.Upsert(new CalendarEvent(new EventId("AAMk-id-0010="), "Nightware capture ae6347 single",
+                        new DateTimeTimeZone(new DateTime(2026, 11, 20, 23, 38, 0), "UTC"), new DateTimeTimeZone(new DateTime(2026, 11, 21, 0, 8, 0), "UTC")))],
+                    new DeltaToken("after"))))
+        {
+            RequestToken = new DeltaToken("since-start"),
+            Normalise = ParityNormalisers.Only("id", "subject", "start"),
         };
     }
 

@@ -4740,5 +4740,75 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/event-list-instances",
     "notes": "The series' occurrences and exceptions in the window, from Sabre's expansion of its calendar."
+  },
+  {
+    "id": "calendar.calendar-view.delta",
+    "phase": 13,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendarView/delta",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].subject",
+      "value[].start",
+      "value[].end",
+      "@odata.deltaLink"
+    ],
+    "successStatus": 200,
+    "paging": "deltaLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-delta",
+    "notes": "The default calendar's window, expanded; the window and the collection's sync token are frozen into the link (ADR 0006 D6)."
+  },
+  {
+    "id": "calendar.calendar-view.delta-changes",
+    "phase": 13,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendarView/delta",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].@removed",
+      "@odata.deltaLink"
+    ],
+    "successStatus": 200,
+    "paging": "deltaLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-delta",
+    "notes": "sync-collection: a changed resource's occurrences in the window are upserts; a removed one is @removed under its series' id (its occurrences are dropped by seriesMasterId). 410 when the token has expired."
   }
 ]

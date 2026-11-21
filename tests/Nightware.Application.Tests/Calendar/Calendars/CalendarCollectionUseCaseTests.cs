@@ -79,6 +79,18 @@ public sealed class CalendarCollectionUseCaseTests
         await events.Received(1).ListAsync(Me, Work.Id, ItemQuery.Default, Ct);
     }
 
+    [Fact]
+    public async Task Calendar_view_delta_needs_a_window_without_a_token()
+    {
+        var delta = Substitute.For<ICalendarViewDelta>();
+        var start = DateTimeOffset.UnixEpoch;
+
+        (await new SyncCalendarView(delta).ExecuteAsync(Me, null, null, null, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await new SyncCalendarView(delta).ExecuteAsync(Me, start, start.AddYears(11), null, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        await new SyncCalendarView(delta).ExecuteAsync(Me, null, null, new DeltaToken("t"), Ct);
+        await delta.Received(1).DeltaAsync(Me, null, null, new DeltaToken("t"), Ct);
+    }
+
     [Theory]
     [InlineData("#87d28e", "lightGreen")]
     [InlineData("#0082C9", "auto")]

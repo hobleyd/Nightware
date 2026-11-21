@@ -112,6 +112,7 @@ internal static class CalendarCollectionEndpoints
             scope.MapPost("/calendars/{calendarId}/events", CreateEventAsync);
             scope.MapGet("/calendars/{calendarId}/calendarView", CalendarViewAsync);
             scope.MapGet("/events/{eventId}/instances", InstancesAsync);
+            scope.MapGet("/calendarView/delta", CalendarViewDeltaAsync);
             scope.MapGet("/calendarGroups", ListGroupsAsync);
             scope.MapGet("/calendarGroups/{groupId}/calendars", ListGroupCalendarsAsync);
         }
@@ -187,6 +188,37 @@ internal static class CalendarCollectionEndpoints
         {
             prefer.MarkTimeZoneApplied(http.Response);
             return GraphResults.Page(p, e => EventDtoMapper.ToDto(e, prefer), $"{mailbox.ContextSegment}/events('{eventId}')/instances", odata.Query);
+        });
+    }
+
+    private static async Task<IResult> CalendarViewDeltaAsync(
+        Mailbox mailbox, ODataQuery odata, PreferHeader prefer, HttpContext http, Graph.Json.DeltaLinkCodec links, SyncCalendarView useCase, CancellationToken cancellationToken)
+    {
+        var cursor = links.ReadCursor(http.Request.Query, odata.Query);
+        if (!cursor.IsSuccess)
+        {
+            return GraphResults.Error(cursor.Error);
+        }
+
+        var c = cursor.Value;
+        DateTimeOffset? start = null, end = null;
+        if (c.Token is null)
+        {
+            var from = EventEndpoints.ParseBound(http.Request.Query, EventEndpoints.StartDateTime);
+            var to = EventEndpoints.ParseBound(http.Request.Query, EventEndpoints.EndDateTime);
+            if (!from.IsSuccess || !to.IsSuccess)
+            {
+                return GraphResults.Error(from.Error ?? to.Error!);
+            }
+
+            (start, end) = (from.Value, to.Value);
+        }
+
+        var page = await useCase.ExecuteAsync(mailbox.Ref, start, end, c.Token, cancellationToken).ConfigureAwait(false);
+        return GraphResults.Match(page, p =>
+        {
+            prefer.MarkTimeZoneApplied(http.Response);
+            return GraphResults.Delta(p, e => EventDtoMapper.ToDto(e, prefer), c, "event", "#microsoft.graph.event");
         });
     }
 

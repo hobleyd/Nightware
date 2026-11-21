@@ -324,8 +324,8 @@ operation:
 | Phase 5B — Tasks, mailbox settings, files, threat submission | 14 |
 | Phase 11 — JSON batching (Graph parity) | 2 |
 | Phase 12 — Mail (Graph parity) | 19 |
-| Phase 13 — Calendar (Graph parity) | 13 |
-| **Total** | **110** |
+| Phase 13 — Calendar (Graph parity) | 15 |
+| **Total** | **112** |
 
 ### Phase 2 — Mail, read side
 
@@ -1482,6 +1482,8 @@ operation:
 | [`calendar.calendar-groups.calendars`](#calendarcalendar-groupscalendars) | GET | v1.0 | `{mailbox}/calendarGroups/{groupId}/calendars` | none |
 | [`calendar.events.list`](#calendareventslist) | GET | v1.0 | `{mailbox}/events` | none |
 | [`calendar.events.instances`](#calendareventsinstances) | GET | v1.0 | `{mailbox}/events/{eventId}/instances` | none |
+| [`calendar.calendar-view.delta`](#calendarcalendar-viewdelta) | GET | v1.0 | `{mailbox}/calendarView/delta` | deltaLink |
+| [`calendar.calendar-view.delta-changes`](#calendarcalendar-viewdelta-changes) | GET | v1.0 | `{mailbox}/calendarView/delta` | deltaLink |
 
 #### `calendar.calendars.list`
 
@@ -1601,5 +1603,23 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-list-instances
 - Notes: The series' occurrences and exceptions in the window, from Sabre's expansion of its calendar.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.instances.json`
+
+#### `calendar.calendar-view.delta`
+
+**GET v1.0 `{mailbox}/calendarView/delta`** — forms: me, users; success: 200; paging: deltaLink
+
+- Client reads: `value[].id`, `value[].subject`, `value[].start`, `value[].end`, `@odata.deltaLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-delta
+- Notes: The default calendar's window, expanded; the window and the collection's sync token are frozen into the link (ADR 0006 D6).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendar-view.delta.json`
+
+#### `calendar.calendar-view.delta-changes`
+
+**GET v1.0 `{mailbox}/calendarView/delta`** — forms: me, users; success: 200; paging: deltaLink
+
+- Client reads: `value[].id`, `value[].@removed`, `@odata.deltaLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-delta
+- Notes: sync-collection: a changed resource's occurrences in the window are upserts; a removed one is @removed under its series' id (its occurrences are dropped by seriesMasterId). 410 when the token has expired.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendar-view.delta-changes.json`
 
 <!-- END GENERATED -->

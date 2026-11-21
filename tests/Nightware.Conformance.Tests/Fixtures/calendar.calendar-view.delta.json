@@ -1,0 +1,29 @@
+{
+  "operationId": "calendar.calendar-view.delta",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/calendarView/delta",
+    "query": {
+      "startDateTime": "2026-11-20T22:38:00",
+      "endDateTime": "2026-12-25T22:38:00"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Prefer": "outlook.timezone=\"UTC\""
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(event)",
+      "value": [],
+      "@odata.deltaLink": "https://graph.microsoft.com/v1.0/me/calendarView/delta?$deltatoken={token}"
+    }
+  }
+}
