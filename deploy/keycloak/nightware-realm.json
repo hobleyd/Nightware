@@ -103,7 +103,7 @@
       "serviceAccountsEnabled": true,
       "attributes": {
         "standard.token.exchange.enabled": "true",
-        "standard.token.exchange.enableRefreshRequestedTokenType": "NO"
+        "standard.token.exchange.enableRefreshRequestedTokenType": "SAME_SESSION"
       },
       "defaultClientScopes": ["web-origins", "acr", "basic", "profile", "email", "roles"],
       "optionalClientScopes": ["offline_access", "kc-admin-api"],

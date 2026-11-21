@@ -86,6 +86,19 @@ else
   fi
 fi
 
+# Change notifications (phase 16): the notifier acts for a subscriber when no request
+# is in flight, so the façade exchanges the subscriber's token for a refresh token
+# tied to their session ("same session": it lives no longer than they stay signed in).
+client=$(ccurl -f -H "Authorization: Bearer ${ADMIN}" "${API}/clients/${API_CLIENT_UUID}")
+if [[ "$(jq -r '.attributes["standard.token.exchange.enableRefreshRequestedTokenType"] // ""' <<<"$client")" == "SAME_SESSION" ]]; then
+  log "Keycloak: nightware-api already issues same-session refresh tokens by exchange"
+else
+  log "Keycloak: nightware-api issues same-session refresh tokens by exchange"
+  jq '.attributes["standard.token.exchange.enableRefreshRequestedTokenType"] = "SAME_SESSION"' <<<"$client" \
+    | ccurl -f -X PUT -H "Authorization: Bearer ${ADMIN}" -H 'Content-Type: application/json' \
+        "${API}/clients/${API_CLIENT_UUID}" --data-binary @- >/dev/null
+fi
+
 # NIGHTWARE_KC_SEED=0 applies only the realm/user-profile steps above, leaving
 # the test users' attributes as they are (re-running on a live shared stack).
 if [[ "${NIGHTWARE_KC_SEED:-1}" == "0" ]]; then
