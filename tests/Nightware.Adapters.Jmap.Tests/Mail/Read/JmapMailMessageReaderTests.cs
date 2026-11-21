@@ -259,6 +259,24 @@ public sealed class JmapMailMessageReaderTests
     }
 
     [Fact]
+    public async Task A_file_too_large_to_carry_inline_is_413_without_downloading_it()
+    {
+        await using var host = Host();
+        host.On("Email/get", """
+            [["Email/get",{"accountId":"c","state":"s","list":[{"id":"m1","receivedAt":"2026-11-14T21:25:54Z",
+              "bodyStructure":{"partId":"1","blobId":"G9","type":"application/zip","name":"big.zip","size":60000000,"disposition":"attachment"},
+              "attachments":[{"partId":"1","blobId":"G9","type":"application/zip","name":"big.zip","size":60000000,"disposition":"attachment"}]}],"notFound":[]},"c0"]]
+            """);
+        var big = AttachmentItemId.Of("big.zip", 60_000_000, 0).ToAttachmentId();
+
+        var result = await Reader(host).GetAttachmentAsync(Alice, new MessageId("e.m1"), big, includeContent: true, Ct);
+
+        result.Error!.Kind.ShouldBe(ErrorKind.PayloadTooLarge);
+        host.Requests("/jmap/download/c/G9/big.zip", "GET").ShouldBeEmpty();
+        (await Reader(host).GetAttachmentAsync(Alice, new MessageId("e.m1"), big, includeContent: false, Ct)).Value.Size.ShouldBe(60_000_000);
+    }
+
+    [Fact]
     public async Task Attachment_content_is_the_part_blob_and_an_attached_message_is_rfc822()
     {
         await using var host = Host();

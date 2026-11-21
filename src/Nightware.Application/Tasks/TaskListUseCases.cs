@@ -1,3 +1,4 @@
+using Nightware.Application.Common.Content;
 using Nightware.Domain.Kernel;
 using Nightware.Domain.Tasks;
 
@@ -87,9 +88,8 @@ public sealed class GetTaskAttachment(ITaskAttachmentStore attachments)
         var stream = await content.Value.Open(cancellationToken).ConfigureAwait(false);
         await using (stream.ConfigureAwait(false))
         {
-            using var buffer = new MemoryStream();
-            await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
-            return (found, buffer.ToArray());
+            var bytes = await InlineContent.ReadAsync(stream, cancellationToken).ConfigureAwait(false);
+            return bytes.IsSuccess ? (found, bytes.Value) : bytes.Error;
         }
     }
 }

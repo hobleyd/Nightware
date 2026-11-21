@@ -2,6 +2,7 @@ using Nightware.Adapters.Dav.Calendar.ICal;
 using Nightware.Adapters.Dav.Core;
 using Nightware.Adapters.Dav.Tasks.Attachments;
 using Nightware.Application.Calendar.Calendars;
+using Nightware.Application.Common.Content;
 using Nightware.Domain.Calendar;
 using Nightware.Domain.Kernel;
 
@@ -38,9 +39,8 @@ internal sealed class DavEventAttachmentStore(DavEventResources resources, DavCa
         }
 
         using var file = download.Value;
-        using var buffer = new MemoryStream();
-        await file.Content.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
-        return found.Value.Attachment with { Content = buffer.ToArray(), Size = buffer.Length };
+        var bytes = await InlineContent.ReadAsync(file.Content, cancellationToken).ConfigureAwait(false);
+        return bytes.IsSuccess ? found.Value.Attachment with { Content = bytes.Value, Size = bytes.Value.Length } : bytes.Error;
     }
 
     public async Task<Result<EventAttachment>> AddAsync(MailboxRef mailbox, EventId eventId, string name, string contentType, ReadOnlyMemory<byte> content, CancellationToken cancellationToken)

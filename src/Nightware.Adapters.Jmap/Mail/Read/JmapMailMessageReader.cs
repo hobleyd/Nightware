@@ -4,6 +4,7 @@ using Nightware.Adapters.Jmap.Core.Protocol;
 using Nightware.Adapters.Jmap.Core.Requests;
 using Nightware.Adapters.Jmap.Core.Session;
 using Nightware.Adapters.Jmap.Mail.Ids;
+using Nightware.Application.Common.Content;
 using Nightware.Application.Common.Query;
 using Nightware.Application.Mail;
 using Nightware.Domain.Kernel;
@@ -110,6 +111,11 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
             return result;
         }
 
+        if (bodyPart.Size > InlineContent.MaxBytes)
+        {
+            return InlineContent.TooLarge();
+        }
+
         var content = await DownloadAsync(account, bodyPart, cancellationToken).ConfigureAwait(false);
         if (!content.IsSuccess)
         {
@@ -119,9 +125,8 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
         var stream = await content.Value.Open(cancellationToken).ConfigureAwait(false);
         await using (stream.ConfigureAwait(false))
         {
-            using var buffer = new MemoryStream();
-            await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
-            return result with { ContentBytes = buffer.ToArray() };
+            var bytes = await InlineContent.ReadAsync(stream, cancellationToken).ConfigureAwait(false);
+            return bytes.IsSuccess ? result with { ContentBytes = bytes.Value } : bytes.Error;
         }
     }
 

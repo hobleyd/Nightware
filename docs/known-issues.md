@@ -110,7 +110,6 @@ what a fix needs. Ordered by impact within each section.
   refresh (including a proxy 502/503) as revoked credentials and forces
   re-sign-in. Keep Keycloak highly available; never put a maintenance page in
   front of its token endpoint.
-- Fetching an attachment with its content buffers it whole, with no size cap.
 - **No circuit breakers** on the backend HttpClients; they must count only 5xx,
   timeouts and network errors. The JMAP retry policy also retries 429 (DAV and
   Keycloak exclude it), so a Stalwart 429 can stall until the request budget
