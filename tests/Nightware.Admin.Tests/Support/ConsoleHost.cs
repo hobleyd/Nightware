@@ -166,6 +166,8 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
 
     public Nightware.Application.Subscriptions.INotificationEndpoint Webhooks { get; } = Substitute.For<Nightware.Application.Subscriptions.INotificationEndpoint>();
 
+    public Nightware.Application.Administration.AutoReplies.IMailboxAutoReplies AutoReplies { get; } = Substitute.For<Nightware.Application.Administration.AutoReplies.IMailboxAutoReplies>();
+
     public IEntityMailboxes Mailboxes { get; } = Substitute.For<IEntityMailboxes>();
 
     public ISharedMailAccounts SharedMail { get; } = Substitute.For<ISharedMailAccounts>();
@@ -275,6 +277,8 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
             services.RemoveAll<Nightware.Application.Administration.Subscriptions.IChangeSubscriptions>();
             services.RemoveAll<Nightware.Application.Subscriptions.INotificationEndpoint>();
             services.AddSingleton(Subscriptions).AddSingleton(Webhooks);
+            services.RemoveAll<Nightware.Application.Administration.AutoReplies.IMailboxAutoReplies>();
+            services.AddSingleton(AutoReplies);
             services.RemoveAll<IGrafanaStatus>();
             services.AddSingleton(Grafana);
             services.RemoveAll<IBackendStatus>();

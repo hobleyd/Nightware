@@ -72,6 +72,9 @@ internal sealed partial class JmapSession
     /// Builds a session from its document. Relative URLs resolve against <paramref name="sessionUrl"/>;
     /// with <paramref name="useSessionOrigin"/> absolute ones are moved onto its scheme/host/port.
     /// </summary>
+    /// <summary>The same server URLs and limits over another document (the admin console's view of one account).</summary>
+    public JmapSession WithDocument(JmapSessionDocument document) => new(document, ApiUrl, UploadUrlTemplate, DownloadUrlTemplate, Limits);
+
     public static JmapSession Create(JmapSessionDocument document, Uri sessionUrl, bool useSessionOrigin, int maxObjectsInGetFallback, int maxCallsInRequestFallback)
     {
         ArgumentNullException.ThrowIfNull(document);

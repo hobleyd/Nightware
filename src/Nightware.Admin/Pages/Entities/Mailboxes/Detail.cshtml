@@ -28,6 +28,7 @@
         </form>
     }
     <p>Mail to <strong>@mailbox.Address</strong>@(mailbox.Aliases.Count > 0 ? $" (or {string.Join(", ", mailbox.Aliases.Select(a => a.Value))})" : "") lands in this mailbox. Its members see it in NightMail beside their own mailbox, and can send as it.</p>
+    <p><a asp-page="/Entities/Mailboxes/AutoReply" asp-route-id="@mailbox.EntityId" asp-route-mailboxId="@mailbox.Id">Automatic replies</a> <span class="hint">What people get back when they write to it.</span></p>
 </section>
 
 @{ var calendar = Model.Detail.Links.FirstOrDefault(l => l.Backend == BackendKind.Groupware); }

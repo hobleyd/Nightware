@@ -118,6 +118,7 @@
                 <button type="submit">Mark email verified</button>
             </form>
         }
+        <p><a asp-page="/Users/AutoReply" asp-route-id="@id.Id">Automatic replies</a> <span class="hint">Set their out-of-office while they are away.</span></p>
         <form method="post" asp-page-handler="Repair"><button type="submit" class="@(status == Nightware.Application.Administration.Users.UserStatus.NeedsRepair ? null : "secondary")">Repair</button> <span class="hint">Creates what is missing; never changes a conflicting account.</span></form>
     }
 </section>

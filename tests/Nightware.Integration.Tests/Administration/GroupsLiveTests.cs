@@ -212,4 +212,37 @@ public sealed class GroupsLiveTests : IAsyncDisposable
             await scope.ServiceProvider.GetRequiredService<IIdentityAccounts>().SetProfileAsync(bob.Id, before, Ct);
         }
     }
+
+    [Fact]
+    public async Task Replies_set_in_the_console_are_the_users_own_through_the_graph()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
+        using IServiceScope scope = _services!.CreateScope();
+        IdentityAccount bob = (await scope.ServiceProvider.GetRequiredService<IIdentityAccounts>().FindByUsernameAsync("bob", Ct)).Value;
+        var replies = scope.ServiceProvider.GetRequiredService<Nightware.Application.Administration.AutoReplies.MailboxAutoReplies>();
+        var marker = "console-" + Guid.NewGuid().ToString("N")[..8];
+        try
+        {
+            var set = await replies.SetForUserAsync(bob.Id, new Nightware.Domain.MailboxSettings.AutoReplySetting(Nightware.Domain.MailboxSettings.AutoReplyStatus.AlwaysEnabled)
+            {
+                ExternalAudience = Nightware.Domain.MailboxSettings.ExternalAudience.None,
+                InternalReplyMessage = $"<p>Inside {marker}</p>",
+                ExternalReplyMessage = $"<p>Outside {marker}</p>",
+            }, Ct);
+            set.IsSuccess.ShouldBeTrue(set.IsSuccess ? null : set.Error.Message);
+            (await replies.GetForUserAsync(bob.Id, Ct)).Value.InternalReplyMessage!.ShouldContain(marker);
+
+            await using var stack = Nightware.Integration.Tests.Directory.LiveStack.Start();
+            using var client = await stack.GraphClientAsync("bob", Ct);
+            var settings = (await System.Net.Http.Json.HttpClientJsonExtensions.GetFromJsonAsync<System.Text.Json.Nodes.JsonObject>(client, "/v1.0/me/mailboxSettings?$select=automaticRepliesSetting", Ct))!["automaticRepliesSetting"]!;
+            settings["status"]!.GetValue<string>().ShouldBe("alwaysEnabled");
+            settings["externalAudience"]!.GetValue<string>().ShouldBe("none");
+            settings["internalReplyMessage"]!.GetValue<string>().ShouldContain("Inside " + marker);
+            settings["externalReplyMessage"]!.GetValue<string>().ShouldContain("Outside " + marker);
+        }
+        finally
+        {
+            await replies.SetForUserAsync(bob.Id, new Nightware.Domain.MailboxSettings.AutoReplySetting(Nightware.Domain.MailboxSettings.AutoReplyStatus.Disabled), Ct);
+        }
+    }
 }

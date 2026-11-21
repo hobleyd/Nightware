@@ -1,0 +1,11 @@
+@page "/entities/{id}/mailboxes/{mailboxId}/autoreply"
+@model Nightware.Admin.Pages.Entities.Mailboxes.AutoReplyModel
+@{ ViewData["Title"] = "Automatic replies"; }
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
+<section class="panel">
+    <h1>@Model.Name <small>automatic replies</small></h1>
+    <partial name="_Messages" />
+    <p>What people get back when they write to @Model.Name.</p>
+    <p><a asp-page="/Entities/Mailboxes/Detail" asp-route-id="@Model.Id" asp-route-mailboxId="@Model.MailboxId">Back to @Model.Name</a></p>
+</section>
+<partial name="_AutoReplyForm" model="Model.Form" />

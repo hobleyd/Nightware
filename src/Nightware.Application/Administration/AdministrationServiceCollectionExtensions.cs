@@ -66,6 +66,7 @@ public static class AdministrationServiceCollectionExtensions
         services.TryAddScoped<Subscriptions.ListUserSubscriptions>();
         services.TryAddScoped<Subscriptions.ListAllSubscriptions>();
         services.TryAddScoped<Subscriptions.RemoveSubscription>();
+        services.TryAddScoped<AutoReplies.MailboxAutoReplies>();
         services.TryAddScoped<ResetUserCredential>();
         services.TryAddScoped<OffboardUser>();
         services.TryAddScoped<ReinstateUser>();

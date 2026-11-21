@@ -10,6 +10,7 @@ using Nightware.Adapters.Jmap.Core;
 using Nightware.Adapters.Jmap.Core.Auth;
 using Nightware.Adapters.Jmap.Core.Http;
 using Nightware.Adapters.Jmap.Core.Protocol;
+using Nightware.Adapters.Jmap.Core.Session;
 using Nightware.Adapters.Jmap.Core.Requests;
 using Nightware.Application.Common.Identity;
 using Nightware.Domain.Kernel;
@@ -24,6 +25,12 @@ internal interface IStalwartManagementClient
     /// here; method errors per call through <see cref="JmapResponse.Get{T}"/>.
     /// </summary>
     Task<Result<JmapResponse>> SendAsync(JmapRequestBuilder request, CancellationToken cancellationToken);
+
+    /// <summary>The console principal's JMAP session (its URLs; whose accounts it lists does not matter).</summary>
+    Task<Result<JmapSession>> GetSessionAsync(CancellationToken cancellationToken);
+
+    /// <summary>Sends a request (an upload or download) with the console's credential; the caller owns the response.</summary>
+    Task<Result<HttpResponseMessage>> SendRawAsync(HttpRequestMessage request, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -98,6 +105,40 @@ internal sealed partial class StalwartManagementClient(
         return new JmapResponse(parsed.Value.Responses, parsed.Value.SessionState ?? string.Empty, parsed.Value.CreatedIds, NoChunking);
     }
 
+    public async Task<Result<JmapSession>> GetSessionAsync(CancellationToken cancellationToken)
+    {
+        StalwartManagementOptions settings = options.Value;
+        var sessionUrl = new Uri(settings.ApiUrl!, "session");
+        using var message = new HttpRequestMessage(HttpMethod.Get, sessionUrl);
+        message.Headers.Accept.ParseAdd("application/json");
+        message.Headers.Authorization = Authorization(settings);
+        message.MarkSafe(true);
+        Result<HttpResponseMessage> sent = await JmapHttp.SendAsync(http, message, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
+        if (!sent.IsSuccess)
+        {
+            return sent.Error;
+        }
+
+        using HttpResponseMessage response = sent.Value;
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            return await JmapHttp.ReadFailureAsync(response, time, "management session", CredentialStrategy.ServiceAccount, cancellationToken).ConfigureAwait(false);
+        }
+
+        await using Stream body = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        JmapSessionDocument? document = await System.Text.Json.JsonSerializer.DeserializeAsync(body, JmapJsonContext.Default.JmapSessionDocument, cancellationToken).ConfigureAwait(false);
+        return document is null
+            ? Error.BackendUnavailable("The mail server sent an unreadable session.")
+            : JmapSession.Create(document, sessionUrl, useSessionOrigin: true, maxObjectsInGetFallback: 500, maxCallsInRequestFallback: 16);
+    }
+
+    public Task<Result<HttpResponseMessage>> SendRawAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        request.Headers.Authorization = Authorization(options.Value);
+        return JmapHttp.SendAsync(http, request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+    }
+
     private static AuthenticationHeaderValue Authorization(StalwartManagementOptions settings) =>
         string.IsNullOrEmpty(settings.ApiKey)
             ? new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{settings.Username}:{settings.Password}")))
@@ -113,7 +154,9 @@ internal sealed partial class StalwartManagementClient(
 
         var body = new JsonObject
         {
-            ["using"] = new JsonArray(JmapCapabilities.Core, StalwartMethods.Capability),
+            // The management capability, and whatever standard ones the calls need (an account's VacationResponse, …).
+            ["using"] = new JsonArray([.. request.Invocations.SelectMany(static i => i.Capabilities).Prepend(StalwartMethods.Capability).Prepend(JmapCapabilities.Core)
+                .Distinct(StringComparer.Ordinal).Select(static c => (JsonNode?)JsonValue.Create(c))]),
             ["methodCalls"] = calls,
         };
         return Encoding.UTF8.GetBytes(body.ToJsonString());

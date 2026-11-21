@@ -17,6 +17,22 @@
 | Shared mailboxes have a calendar | 1.39.0 | ADR 0004 D6 |
 | RSVP `sendResponse: false`; comments and proposed times to outside organizers by iMIP | 1.40.0 | `Adapters.Dav/README.md` |
 
+## Console additions
+| What | Version |
+|---|---|
+| Users whose email is not verified are flagged, with "Mark email verified" | 1.41.0 |
+| A shared mailbox's page shows its calendar | 1.41.1 |
+| Change notifications: per-user list with Remove, and a page of every subscription for global admins | 1.42.0 |
+| Automatic replies for users and shared mailboxes | 1.43.0 |
+| API reference (OpenAPI and Swagger UI) | 1.44.0 |
+
+The console sets automatic replies with its own Stalwart credential: a principal
+with the Admin role may act on any account by its id over JMAP (an API key can't
+impersonate, and Keycloak-backed accounts have no password to impersonate
+with). Where global admins don't administer the servers, the console's role is
+narrower and Stalwart refuses; the page says so. The façade's own reply store
+and Sieve writer run unchanged against the account.
+
 ## Step 0 findings (local stack, 2026-11-21)
 - **Stalwart** answers `Email/queryChanges` with a folder filter and
   `receivedAt` sort (`canCalculateChanges: true`), and `Email/parse` on a part's

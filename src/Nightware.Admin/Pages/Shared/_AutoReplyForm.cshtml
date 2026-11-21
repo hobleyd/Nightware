@@ -1,0 +1,27 @@
+@model Nightware.Admin.Pages.AutoReplyForm
+@* The automatic-reply form a user's and a shared mailbox's pages share. Times are UTC. *@
+<form method="post" class="panel">
+    <h2>Automatic replies</h2>
+    <fieldset>
+        <legend>Send them</legend>
+        <label class="choice"><input type="radio" name="Form.Status" value="off" checked="@(Model.Status == "off")"> Off</label>
+        <label class="choice"><input type="radio" name="Form.Status" value="on" checked="@(Model.Status == "on")"> On until turned off</label>
+        <label class="choice"><input type="radio" name="Form.Status" value="scheduled" checked="@(Model.Status == "scheduled")"> Only between (UTC)</label>
+        <div class="row">
+            <label>From <input type="datetime-local" name="Form.Start" value="@Model.Start"></label>
+            <label>Until <input type="datetime-local" name="Form.End" value="@Model.End"></label>
+        </div>
+    </fieldset>
+    <label>Reply to people in the organisation
+        <textarea name="Form.InternalMessage" rows="5">@Model.InternalMessage</textarea>
+    </label>
+    <fieldset>
+        <legend>People outside the organisation</legend>
+        <label class="choice"><input type="radio" name="Form.Audience" value="all" checked="@(Model.Audience == "all")"> Reply to them too</label>
+        <label class="choice"><input type="radio" name="Form.Audience" value="internal" checked="@(Model.Audience == "internal")"> Don't reply to them</label>
+    </fieldset>
+    <label>Reply to people outside the organisation <span class="hint">(blank: the same as above)</span>
+        <textarea name="Form.ExternalMessage" rows="5">@Model.ExternalMessage</textarea>
+    </label>
+    <button type="submit">Save automatic replies</button>
+</form>

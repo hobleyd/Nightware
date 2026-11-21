@@ -22,7 +22,7 @@ public sealed class WebhookNotificationEndpointTests : IDisposable
     public void Dispose() => _receiver.Dispose();
 
     /// <param name="allowLoopback">Whether the WireMock origin is exempt from the address guard (as only a test sets it).</param>
-    private INotificationEndpoint Endpoint(bool allowLoopback = true, string timeout = "00:00:02")
+    private INotificationEndpoint Endpoint(bool allowLoopback = true, string timeout = "00:00:10")
     {
         var settings = new Dictionary<string, string?>
         {

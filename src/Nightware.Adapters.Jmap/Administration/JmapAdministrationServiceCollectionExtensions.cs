@@ -36,6 +36,7 @@ public static class JmapAdministrationServiceCollectionExtensions
         services.TryAddScoped<IMailDomains, StalwartMailDomains>();
         services.TryAddScoped<IMailingLists, StalwartMailingLists>();
         services.TryAddScoped<ISharedMailAccounts, StalwartSharedMailboxes>();
+        services.TryAddScoped<Nightware.Application.Administration.AutoReplies.IMailboxAutoReplies, StalwartMailboxAutoReplies>();
         services.TryAddEnumerable(ServiceDescriptor.Scoped<IBackendStatus, StalwartBackendStatus>());
         return services;
     }
