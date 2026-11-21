@@ -39,6 +39,9 @@ CADDY_ADDRESS="${CADDY_ADDRESS:-172.31.250.253}"
 occ config:system:set overwritecondaddr --value="^${CADDY_ADDRESS//./\\.}\$" >/dev/null
 occ config:system:set default_phone_region --value=AU >/dev/null
 occ config:system:set maintenance_window_start --value=1 --type=integer >/dev/null
+# Deleted files go 30 days after deletion, sooner if space runs short. The
+# default (auto) never expires them by age for a user without a quota.
+occ config:system:set trashbin_retention_obligation --value="auto, 30" >/dev/null
 occ background:cron >/dev/null
 # Trust Caddy's local CA for Nextcloud's HTTP client (anything fetched via the
 # public URL). Keycloak itself is reached on the backchannel, see below. A
