@@ -1,6 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
 
+using Nightware.Application.Contacts;
+using Nightware.Application.Mail;
 using Nightware.Application.Subscriptions;
+using Nightware.Application.Tasks;
+using Nightware.Domain.Contacts;
+using Nightware.Domain.Mail;
+using Nightware.Domain.Tasks;
 using Nightware.Conformance.Tests.Harness;
 using Nightware.Domain.Kernel;
 using Nightware.Domain.Subscriptions;
@@ -34,6 +40,7 @@ public sealed class SubscriptionArrangements : IConformanceArrangements
         {
             fakes.For<INotificationEndpoint>().ValidateAsync(new Uri("https://webhook.example.com/notify"), Arg.Any<CancellationToken>()).Returns(Result.Success());
             fakes.For<ISubscriberCredentials>().IssueAsync(Arg.Any<CancellationToken>()).Returns("refresh");
+            Baselines(fakes);
             fakes.For<ISubscriptionStore>()
                 .CreateAsync(Arg.Is<Subscription>(s => s.Target == target && s.ExpirationDateTime == Expiry && s.ClientState == "nightware-capture-state"), "refresh", Arg.Any<CancellationToken>())
                 .Returns(call => call.Arg<Subscription>() with { Id = id, CreatorId = Creator, ApplicationId = Application });
@@ -41,6 +48,17 @@ public sealed class SubscriptionArrangements : IConformanceArrangements
         {
             Services = Services,
         };
+
+    /// <summary>Each resource's change feed answers "nothing yet" with a baseline state.</summary>
+    private static void Baselines(PortFakes fakes)
+    {
+        fakes.For<IMailDeltaReader>().DeltaAsync(Me, Arg.Any<FolderRef>(), null, Arg.Any<DeltaRequest>(), Arg.Any<CancellationToken>())
+            .Returns(DeltaPage<MailMessage>.Done([], new DeltaToken("mail")));
+        fakes.For<IContactFolderStore>().GetAsync(Me, "contacts", Arg.Any<CancellationToken>()).Returns(new ContactFolder(new ContactFolderId("c"), "Contacts", null, "contacts"));
+        fakes.For<IContactDelta>().DeltaAsync(Me, new ContactFolderId("c"), null, Arg.Any<CancellationToken>()).Returns(DeltaPage<Contact>.Done([], new DeltaToken("contacts")));
+        fakes.For<ITaskDelta>().DeltaAsync(Me, Arg.Any<TaskListId>(), null, Arg.Any<CancellationToken>()).Returns(DeltaPage<TodoTask>.Done([], new DeltaToken("tasks")));
+        fakes.For<IEventChangeFeed>().BaselineAsync(Me, Arg.Any<CancellationToken>()).Returns("events");
+    }
 
     public IEnumerable<ConformanceArrangement> Arrangements()
     {

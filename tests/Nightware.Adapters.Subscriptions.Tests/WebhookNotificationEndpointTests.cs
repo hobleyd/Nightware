@@ -109,4 +109,49 @@ public sealed class WebhookNotificationEndpointTests : IDisposable
         (await scope.ServiceProvider.GetRequiredService<INotificationEndpoint>().ValidateAsync(Notify, Ct)).Error!.Kind.ShouldBe(ErrorKind.Unsupported);
         _receiver.LogEntries.ShouldBeEmpty();
     }
+
+    private static ChangeNotification Created(string id) =>
+        new("00000000-0000-0000-0000-000000000001", new DateTimeOffset(2026, 11, 20, 23, 40, 0, TimeSpan.Zero), "created",
+            $"Users/me@example.com/Messages/{id}", "#Microsoft.Graph.Message", id) { ClientState = "nightware-capture-state" };
+
+    [Fact]
+    public void The_notification_has_the_captured_shape()
+    {
+        var fixture = JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "subscriptions.notification.json")))!["request"]!["body"]!["value"]![0]!.AsObject();
+        var built = JsonNode.Parse(WebhookNotificationEndpoint.Serialize([Created("AAMk-id-0002=")]))!["value"]!.AsArray().ShouldHaveSingleItem()!.AsObject();
+
+        // Nightware has no tenants and no change keys: tenantId and the resourceData etag are left out.
+        built.Select(p => p.Key).ShouldBe(fixture.Select(p => p.Key).Where(k => k != "tenantId"));
+        built["resourceData"]!.AsObject().Select(p => p.Key).ShouldBe(fixture["resourceData"]!.AsObject().Select(p => p.Key).Where(k => k != "@odata.etag"));
+        foreach (var key in new[] { "subscriptionId", "subscriptionExpirationDateTime", "changeType", "clientState" })
+        {
+            built[key]!.GetValue<string>().ShouldBe(fixture[key]!.GetValue<string>());
+        }
+
+        built["resourceData"]!["@odata.type"]!.GetValue<string>().ShouldBe(fixture["resourceData"]!["@odata.type"]!.GetValue<string>());
+        built["resourceData"]!["id"]!.GetValue<string>().ShouldBe("AAMk-id-0002=");
+    }
+
+    [Fact]
+    public async Task Notifications_are_posted_as_json_and_a_2xx_is_delivery()
+    {
+        _receiver.Given(Request.Create().WithPath("/notify").UsingPost()).RespondWith(Response.Create().WithStatusCode(202));
+
+        (await Endpoint().DeliverAsync(Notify, [Created("a"), Created("b")], Ct)).IsSuccess.ShouldBeTrue();
+
+        var sent = _receiver.LogEntries.ShouldHaveSingleItem().RequestMessage!;
+        sent.Headers!["Content-Type"][0].ShouldStartWith("application/json");
+        sent.Headers.ContainsKey("Authorization").ShouldBeFalse();
+        JsonNode.Parse(sent.Body!)!["value"]!.AsArray().Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task A_refusal_or_an_unreachable_endpoint_is_not_delivery()
+    {
+        _receiver.Given(Request.Create().WithPath("/notify").UsingPost()).RespondWith(Response.Create().WithStatusCode(500));
+
+        (await Endpoint().DeliverAsync(Notify, [Created("a")], Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+        (await Endpoint().DeliverAsync(new Uri("https://10.0.0.1/n"), [Created("a")], Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+        (await Endpoint(allowLoopback: false).DeliverAsync(Notify, [Created("a")], Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+    }
 }

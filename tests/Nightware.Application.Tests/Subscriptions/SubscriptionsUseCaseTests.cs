@@ -1,5 +1,9 @@
 using Nightware.Application.Common.Identity;
+using Nightware.Application.Contacts;
+using Nightware.Application.Mail;
 using Nightware.Application.Subscriptions;
+using Nightware.Application.Tasks;
+using Nightware.Domain.Contacts;
 using Nightware.Domain.Kernel;
 using Nightware.Domain.Subscriptions;
 
@@ -16,6 +20,11 @@ public sealed class SubscriptionsUseCaseTests
     private readonly IUserContext _caller = Substitute.For<IUserContext>();
     private readonly IMailboxResolver _mailboxes = Substitute.For<IMailboxResolver>();
     private readonly TimeProvider _time = Substitute.For<TimeProvider>();
+    private readonly IMailDeltaReader _mail = Substitute.For<IMailDeltaReader>();
+    private readonly IContactFolderStore _folders = Substitute.For<IContactFolderStore>();
+    private readonly IContactDelta _contacts = Substitute.For<IContactDelta>();
+    private readonly ITaskDelta _tasks = Substitute.For<ITaskDelta>();
+    private readonly IEventChangeFeed _events = Substitute.For<IEventChangeFeed>();
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -30,9 +39,16 @@ public sealed class SubscriptionsUseCaseTests
         _credentials.IssueAsync(Arg.Any<CancellationToken>()).Returns("refresh");
         _store.CreateAsync(Arg.Any<Subscription>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(call => call.Arg<Subscription>());
         _store.UpdateAsync(Arg.Any<Subscription>(), Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(call => call.Arg<Subscription>());
+        _mail.DeltaAsync(Arg.Any<MailboxRef>(), Arg.Any<Nightware.Domain.Mail.FolderRef>(), null, Arg.Any<DeltaRequest>(), Arg.Any<CancellationToken>())
+            .Returns(DeltaPage<Nightware.Domain.Mail.MailMessage>.Done([], new DeltaToken("mail-baseline")));
+        _folders.GetAsync(Arg.Any<MailboxRef>(), "contacts", Arg.Any<CancellationToken>()).Returns(new ContactFolder(new ContactFolderId("c"), "Contacts", null, "contacts"));
+        _contacts.DeltaAsync(Arg.Any<MailboxRef>(), new ContactFolderId("c"), null, Arg.Any<CancellationToken>()).Returns(DeltaPage<Contact>.Done([], new DeltaToken("contacts-baseline")));
+        _tasks.DeltaAsync(Arg.Any<MailboxRef>(), Arg.Any<TaskListId>(), null, Arg.Any<CancellationToken>())
+            .Returns(DeltaPage<Nightware.Domain.Tasks.TodoTask>.Done([], new DeltaToken("tasks-baseline")));
+        _events.BaselineAsync(Arg.Any<MailboxRef>(), Arg.Any<CancellationToken>()).Returns("events-baseline");
     }
 
-    private SubscriptionsUseCase UseCase => new(_store, _credentials, _endpoint, _caller, _mailboxes, _time);
+    private SubscriptionsUseCase UseCase => new(_store, _credentials, _endpoint, new ChangeFeed(_mail, _folders, _contacts, _tasks, _events), _caller, _mailboxes, _time);
 
     private static SubscriptionRequest Request(string resource = "me/mailFolders('Inbox')/messages", string changeType = "created,updated", TimeSpan? lifetime = null) =>
         new(resource, changeType, Hook.AbsoluteUri, Now + (lifetime ?? TimeSpan.FromHours(2))) { ClientState = "state", ApplicationId = "app" };
@@ -40,7 +56,6 @@ public sealed class SubscriptionsUseCaseTests
     [Theory]
     [InlineData("me/mailFolders('Inbox')/messages", SubscriptionResourceKind.Messages, "Inbox", "me@example.com")]
     [InlineData("me/mailFolders/AAMk=/messages", SubscriptionResourceKind.Messages, "AAMk=", "me@example.com")]
-    [InlineData("/me/messages", SubscriptionResourceKind.Messages, null, "me@example.com")]
     [InlineData("users/bob@example.com/events", SubscriptionResourceKind.Events, null, "bob@example.com")]
     [InlineData("me/contacts", SubscriptionResourceKind.Contacts, null, "me@example.com")]
     [InlineData("me/todo/lists/L1/tasks", SubscriptionResourceKind.Tasks, "L1", "me@example.com")]
@@ -53,6 +68,7 @@ public sealed class SubscriptionsUseCaseTests
         created.CreatorId.ShouldBe("sub-1");
         created.ChangeType.ShouldBe(SubscriptionChangeType.Created | SubscriptionChangeType.Updated);
         created.ApplicationId.ShouldBe("app");
+        created.SyncState.ShouldEndWith("-baseline");
         await _store.Received().CreateAsync(Arg.Any<Subscription>(), "refresh", Arg.Any<CancellationToken>());
     }
 
@@ -62,6 +78,20 @@ public sealed class SubscriptionsUseCaseTests
     [InlineData("")]
     public async Task Other_resources_are_400(string resource) =>
         (await UseCase.CreateAsync(Request(resource), Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+
+    [Fact]
+    public async Task Every_message_in_the_mailbox_is_not_offered() =>
+        (await UseCase.CreateAsync(Request("me/messages"), Ct)).Error!.Kind.ShouldBe(ErrorKind.Unsupported);
+
+    [Fact]
+    public async Task A_folder_that_cannot_be_read_stores_nothing()
+    {
+        _mail.DeltaAsync(Arg.Any<MailboxRef>(), Arg.Any<Nightware.Domain.Mail.FolderRef>(), null, Arg.Any<DeltaRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Error.NotFound("no such folder"));
+
+        (await UseCase.CreateAsync(Request(), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        await _store.DidNotReceiveWithAnyArgs().CreateAsync(default!, default!, Ct);
+    }
 
     [Fact]
     public async Task An_unknown_user_is_their_resolvers_error() =>

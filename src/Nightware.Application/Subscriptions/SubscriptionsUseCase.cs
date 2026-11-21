@@ -26,7 +26,7 @@ public sealed record SubscriptionPatch(DateTimeOffset? ExpirationDateTime, strin
 /// subscription with a refresh credential for the caller. Only the creator sees or changes a subscription.
 /// </summary>
 public sealed partial class SubscriptionsUseCase(
-    ISubscriptionStore store, ISubscriberCredentials credentials, INotificationEndpoint endpoint, IUserContext caller, IMailboxResolver mailboxes, TimeProvider time)
+    ISubscriptionStore store, ISubscriberCredentials credentials, INotificationEndpoint endpoint, ChangeFeed feed, IUserContext caller, IMailboxResolver mailboxes, TimeProvider time)
 {
     /// <summary>Graph raises any expiry sooner than this to it.</summary>
     public static readonly TimeSpan MinimumLifetime = TimeSpan.FromMinutes(45);
@@ -107,12 +107,20 @@ public sealed partial class SubscriptionsUseCase(
             return credential.Error;
         }
 
+        // The state as of now, read with the caller's own credential: what exists already is never announced.
+        var baseline = await feed.BaselineAsync(target.Value, cancellationToken).ConfigureAwait(false);
+        if (!baseline.IsSuccess)
+        {
+            return baseline.Error;
+        }
+
         var subscription = new Subscription(
             Guid.NewGuid().ToString(), caller.Principal.Id, request.Resource!.Trim(), target.Value, changeType.Value, url.Value, expiry.Value)
         {
             ClientState = request.ClientState,
             LifecycleNotificationUrl = lifecycle,
             ApplicationId = request.ApplicationId,
+            SyncState = baseline.Value,
         };
         return await store.CreateAsync(subscription, credential.Value, cancellationToken).ConfigureAwait(false);
     }
@@ -212,7 +220,7 @@ public sealed partial class SubscriptionsUseCase(
             : Error.Validation($"{target} must be an absolute HTTPS URL.", target);
 
     /// <summary>
-    /// The resources Nightware notifies on: <c>{me|users/{id}}/messages</c>, <c>…/mailFolders('{id}')/messages</c>
+    /// The resources Nightware notifies on: <c>{me|users/{id}}/mailFolders('{id}')/messages</c>
     /// (or <c>/mailFolders/{id}/messages</c>), <c>…/events</c>, <c>…/contacts</c> and <c>…/todo/lists/{id}/tasks</c>.
     /// </summary>
     internal async Task<Result<SubscriptionTarget>> ParseResourceAsync(string? resource, CancellationToken cancellationToken)
@@ -234,6 +242,8 @@ public sealed partial class SubscriptionsUseCase(
         var list = match.Groups["list"].Success ? Uri.UnescapeDataString(match.Groups["list"].Value) : null;
         return match.Groups["kind"].Value.ToUpperInvariant() switch
         {
+            // Mail delta is per folder, so a subscription names one: me/messages (every folder) is not offered.
+            "MESSAGES" when folder is null => Error.Unsupported("Subscribe to one folder's messages: {mailbox}/mailFolders('{id}')/messages.", "resource"),
             "MESSAGES" => new SubscriptionTarget(mailbox.Value, SubscriptionResourceKind.Messages, folder),
             "EVENTS" => new SubscriptionTarget(mailbox.Value, SubscriptionResourceKind.Events, null),
             "CONTACTS" => new SubscriptionTarget(mailbox.Value, SubscriptionResourceKind.Contacts, null),

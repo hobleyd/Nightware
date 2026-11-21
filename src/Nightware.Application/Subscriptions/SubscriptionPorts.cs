@@ -20,6 +20,47 @@ public interface ISubscriptionStore
     Task<Result<Subscription>> UpdateAsync(Subscription subscription, string? refreshToken, CancellationToken cancellationToken);
 
     Task<Result> DeleteAsync(string creatorId, string id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Leases up to <paramref name="max"/> unexpired subscriptions that are due a poll, with their opened credentials.
+    /// A lease keeps another instance from polling the same subscription until it lapses or is completed.
+    /// </summary>
+    Task<Result<IReadOnlyList<LeasedSubscription>>> LeaseDueAsync(DateTimeOffset now, TimeSpan lease, int max, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Ends a lease: the new sync state and credential (null keeps each), when the delivered state was read (null
+    /// keeps the last poll time), when to poll next, and the failure count.
+    /// </summary>
+    Task<Result> CompletePollAsync(
+        string id, string? syncState, string? refreshToken, DateTimeOffset? polledAt, DateTimeOffset nextPoll, int failures, CancellationToken cancellationToken);
+
+    /// <summary>Removes subscriptions that expired before <paramref name="now"/> (with their credentials) and returns them.</summary>
+    Task<Result<IReadOnlyList<Subscription>>> RemoveExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken);
+}
+
+/// <param name="RefreshToken">Opened from its seal; null when it no longer opens (the key changed).</param>
+/// <param name="Failures">Consecutive failed polls or deliveries, for backoff.</param>
+public sealed record LeasedSubscription(Subscription Subscription, string? RefreshToken, DateTimeOffset LastPoll, int Failures);
+
+/// <summary>A fresh access token for a subscriber, and the refresh token to keep for next time.</summary>
+public sealed record SubscriberSession(string AccessToken, string RefreshToken)
+{
+    public override string ToString() => "SubscriberSession ***";
+}
+
+/// <summary>Renews a subscriber's session from their stored refresh token, when no request is in flight.</summary>
+public interface ISubscriberSessions
+{
+    /// <returns><see cref="ErrorKind.BackendAuthFailed"/> when the session has ended: the subscriber must reauthorize.</returns>
+    Task<Result<SubscriberSession>> RenewAsync(string refreshToken, CancellationToken cancellationToken);
+}
+
+/// <summary>A Graph <c>changeNotification</c> (without resource data).</summary>
+/// <param name="Resource">The item's Graph path, e.g. <c>Users/{user}/Messages/{id}</c>.</param>
+/// <param name="ODataType">e.g. <c>#Microsoft.Graph.Message</c>.</param>
+public sealed record ChangeNotification(string SubscriptionId, DateTimeOffset SubscriptionExpirationDateTime, string ChangeType, string Resource, string ODataType, string Id)
+{
+    public string? ClientState { get; init; }
 }
 
 /// <summary>
@@ -40,4 +81,7 @@ public interface INotificationEndpoint
     /// 10 seconds. An address that is not allowed (loopback, private, …) fails as a validation error.
     /// </summary>
     Task<Result> ValidateAsync(Uri notificationUrl, CancellationToken cancellationToken);
+
+    /// <summary>POSTs a <c>changeNotificationCollection</c>; success only when the endpoint answers 2xx.</summary>
+    Task<Result> DeliverAsync(Uri notificationUrl, IReadOnlyList<ChangeNotification> notifications, CancellationToken cancellationToken);
 }

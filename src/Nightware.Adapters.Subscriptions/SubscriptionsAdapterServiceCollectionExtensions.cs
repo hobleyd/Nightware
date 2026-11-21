@@ -14,7 +14,7 @@ namespace Nightware.Adapters.Subscriptions;
 public static class SubscriptionsAdapterServiceCollectionExtensions
 {
     /// <summary>
-    /// The change-notification store and webhook client (ADR 0006 D10). Whether <c>Subscriptions</c> is configured is
+    /// The change-notification store, webhook client and notifier (ADR 0006 D10). Whether <c>Subscriptions</c> is configured is
     /// read when they are first resolved (hosts and tests layer configuration after registration); unconfigured,
     /// both answer 501 like any other unbuilt surface.
     /// </summary>
@@ -31,6 +31,7 @@ public static class SubscriptionsAdapterServiceCollectionExtensions
         services.TryAddScoped<WebhookNotificationEndpoint>();
         services.TryAddScoped<INotificationEndpoint>(static sp =>
             Settings(sp).IsConfigured ? sp.GetRequiredService<WebhookNotificationEndpoint>() : UnconfiguredSubscriptions.Instance);
+        services.AddHostedService<SubscriptionPoller>();
         services.AddHttpClient(WebhookNotificationEndpoint.ClientName)
             .ConfigurePrimaryHttpMessageHandler(static sp =>
             {

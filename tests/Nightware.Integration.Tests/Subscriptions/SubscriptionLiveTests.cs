@@ -33,6 +33,7 @@ public sealed class SubscriptionLiveTests : IAsyncLifetime
             ["Subscriptions:ConnectionString"] = _database.ConnectionString,
             ["Subscriptions:SealingKey"] = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)),
             ["Subscriptions:TestOnlyAllowedOrigins:0"] = _receiver.Origin,
+            ["Subscriptions:PollInterval"] = "00:00:02",
         });
     }
 
@@ -110,5 +111,46 @@ public sealed class SubscriptionLiveTests : IAsyncLifetime
 
         error["error"]!["message"]!.GetValue<string>().ShouldNotContain("validation request failed");
         (await SendAsync(alice, HttpMethod.Get, "/v1.0/subscriptions"))["value"]!.AsArray().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_delivery_to_the_inbox_is_notified_as_created_within_30_seconds()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Live integration tests run only with NIGHTWARE_INTEGRATION=1.");
+        var alice = await _stack!.GraphClientAsync("alice", Ct);
+        var bob = await _stack.GraphClientAsync("bob", Ct);
+        var run = Guid.NewGuid().ToString("N")[..8];
+        var created = await SendAsync(alice, HttpMethod.Post, "/v1.0/subscriptions", $$"""
+            {"changeType":"created","notificationUrl":"{{_receiver!.NotifyUrl}}","resource":"me/mailFolders('Inbox')/messages",
+             "expirationDateTime":"{{DateTimeOffset.UtcNow.AddHours(1):O}}","clientState":"inbox-{{run}}"}
+            """, HttpStatusCode.Created);
+        var id = created["id"]!.GetValue<string>();
+        try
+        {
+            await SendAsync(bob, HttpMethod.Post, "/v1.0/me/sendMail", $$$"""
+                {"message":{"subject":"Notify {{{run}}}","body":{"contentType":"text","content":"hello"},
+                  "toRecipients":[{"emailAddress":{"address":"{{{DevStack.Address("alice")}}}"}}]},"saveToSentItems":false}
+                """, HttpStatusCode.Accepted);
+
+            JsonObject? notification = null;
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
+            while (notification is null && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(500, Ct);
+                notification = _receiver.Notifications.Select(n => JsonNode.Parse(n)!["value"]!.AsArray())
+                    .SelectMany(v => v).OfType<JsonObject>()
+                    .FirstOrDefault(n => n["subscriptionId"]!.GetValue<string>() == id && n["changeType"]!.GetValue<string>() == "created");
+            }
+
+            notification.ShouldNotBeNull("a created notification within 30 s");
+            notification["clientState"]!.GetValue<string>().ShouldBe($"inbox-{run}");
+            var messageId = notification["resourceData"]!["id"]!.GetValue<string>();
+            (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/messages/{messageId}?$select=subject"))["subject"]!.GetValue<string>().ShouldBe($"Notify {run}");
+            (await SendAsync(alice, HttpMethod.Get, $"/v1.0/{notification["resource"]!.GetValue<string>()}?$select=subject"))["subject"]!.GetValue<string>().ShouldBe($"Notify {run}");
+        }
+        finally
+        {
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/subscriptions/{id}", expected: HttpStatusCode.NoContent);
+        }
     }
 }

@@ -6804,7 +6804,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/resources/subscription",
-    "notes": "The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. Messages: {mailbox}/messages or {mailbox}/mailFolders('{id}')/messages."
+    "notes": "The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. Messages: {mailbox}/mailFolders('{id}')/messages ({mailbox}/messages, every folder, is 501)."
   },
   {
     "id": "subscriptions.create-events",

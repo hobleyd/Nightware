@@ -26,7 +26,10 @@ public static class AuthServiceCollectionExtensions
 
         services.AddHttpContextAccessor();
         services.TryAddScoped<CurrentRequest>();
-        services.TryAddScoped<IUserContext, HttpUserContext>();
+        // The request's caller, unless the scope is the change notifier's, acting as a subscriber.
+        services.TryAddScoped<HttpUserContext>();
+        services.TryAddScoped<IUserContext>(static sp =>
+            sp.GetService<Nightware.Application.Subscriptions.SubscriberContext>()?.Current ?? sp.GetRequiredService<HttpUserContext>());
         return services;
     }
 

@@ -11,6 +11,7 @@ internal static class DirectorySubscriptionsServiceCollectionExtensions
     public static IServiceCollection AddDirectorySubscriptions(this IServiceCollection services)
     {
         services.TryAddScoped<ISubscriberCredentials, KeycloakSubscriberCredentials>();
+        services.TryAddSingleton<ISubscriberSessions, KeycloakSubscriberSessions>();
         return services;
     }
 }

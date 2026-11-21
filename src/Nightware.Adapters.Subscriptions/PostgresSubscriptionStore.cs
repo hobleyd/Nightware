@@ -15,13 +15,14 @@ internal sealed class PostgresSubscriptionStore(NpgsqlDataSource database, Crede
 {
     internal const string Columns = "id, creator_id, resource, mailbox, kind, folder, change_type, notification_url, lifecycle_url, client_state, application_id, expiration, sync_state";
 
+    /// <summary>The baseline state was read just now, so "now" is the first poll's starting point.</summary>
     public async Task<Result<Subscription>> CreateAsync(Subscription subscription, string refreshToken, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(subscription);
         await schema.EnsureAsync(cancellationToken).ConfigureAwait(false);
         await using var command = database.CreateCommand($"""
-            INSERT INTO nightware_subscriptions ({Columns}, credential)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            INSERT INTO nightware_subscriptions ({Columns}, credential, last_poll)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, now())
             """);
         Bind(command, subscription);
         command.Parameters.Add(new NpgsqlParameter { Value = sealer.Seal(subscription.Id, refreshToken) });
@@ -76,6 +77,70 @@ internal sealed class PostgresSubscriptionStore(NpgsqlDataSource database, Crede
         command.Parameters.Add(new NpgsqlParameter { Value = creatorId });
         command.Parameters.Add(new NpgsqlParameter { Value = id });
         return await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) == 1 ? Result.Success() : NotFound();
+    }
+
+    public async Task<Result<IReadOnlyList<LeasedSubscription>>> LeaseDueAsync(DateTimeOffset now, TimeSpan lease, int max, CancellationToken cancellationToken)
+    {
+        await schema.EnsureAsync(cancellationToken).ConfigureAwait(false);
+        var prefixed = string.Join(", ", Columns.Split(", ").Select(c => "s." + c));
+        await using var command = database.CreateCommand($"""
+            WITH due AS (
+                SELECT id FROM nightware_subscriptions
+                 WHERE next_poll <= $1 AND expiration > $1 AND (leased_until IS NULL OR leased_until < $1)
+                 ORDER BY next_poll
+                 LIMIT $3
+                 FOR UPDATE SKIP LOCKED)
+            UPDATE nightware_subscriptions s SET leased_until = $2 FROM due WHERE s.id = due.id
+            RETURNING {prefixed}, s.credential, s.last_poll, s.failures
+            """);
+        command.Parameters.Add(new NpgsqlParameter { Value = now.UtcDateTime });
+        command.Parameters.Add(new NpgsqlParameter { Value = (now + lease).UtcDateTime });
+        command.Parameters.Add(new NpgsqlParameter { Value = max });
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        var leased = new List<LeasedSubscription>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var subscription = Read(reader);
+            var credential = sealer.Open(subscription.Id, (byte[])reader[13]);
+            var lastPoll = reader.IsDBNull(14) ? now : new DateTimeOffset(DateTime.SpecifyKind(reader.GetDateTime(14), DateTimeKind.Utc));
+            leased.Add(new LeasedSubscription(subscription, credential.IsSuccess ? credential.Value : null, lastPoll, reader.GetInt32(15)));
+        }
+
+        return leased;
+    }
+
+    public async Task<Result> CompletePollAsync(
+        string id, string? syncState, string? refreshToken, DateTimeOffset? polledAt, DateTimeOffset nextPoll, int failures, CancellationToken cancellationToken)
+    {
+        await schema.EnsureAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = database.CreateCommand("""
+            UPDATE nightware_subscriptions
+               SET sync_state = COALESCE($2, sync_state), credential = COALESCE($3, credential), last_poll = COALESCE($4, last_poll),
+                   next_poll = $5, failures = $6, leased_until = NULL
+             WHERE id = $1
+            """);
+        command.Parameters.Add(new NpgsqlParameter { Value = id });
+        command.Parameters.Add(new NpgsqlParameter { Value = (object?)syncState ?? DBNull.Value, NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Text });
+        command.Parameters.Add(new NpgsqlParameter { Value = refreshToken is null ? DBNull.Value : sealer.Seal(id, refreshToken), NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Bytea });
+        command.Parameters.Add(new NpgsqlParameter { Value = polledAt is { } at ? at.UtcDateTime : DBNull.Value, NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.TimestampTz });
+        command.Parameters.Add(new NpgsqlParameter { Value = nextPoll.UtcDateTime });
+        command.Parameters.Add(new NpgsqlParameter { Value = failures });
+        return await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) == 1 ? Result.Success() : NotFound();
+    }
+
+    public async Task<Result<IReadOnlyList<Subscription>>> RemoveExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        await schema.EnsureAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = database.CreateCommand($"DELETE FROM nightware_subscriptions WHERE expiration <= $1 RETURNING {Columns}");
+        command.Parameters.Add(new NpgsqlParameter { Value = now.UtcDateTime });
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        var removed = new List<Subscription>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            removed.Add(Read(reader));
+        }
+
+        return removed;
     }
 
     private static void Bind(NpgsqlCommand command, Subscription s)
@@ -157,6 +222,7 @@ internal sealed class SubscriptionSchema(NpgsqlDataSource database) : IDisposabl
                         credential       bytea NOT NULL,
                         next_poll        timestamptz NOT NULL DEFAULT now(),
                         leased_until     timestamptz,
+                        last_poll        timestamptz,
                         failures         integer NOT NULL DEFAULT 0
                     );
                     CREATE INDEX IF NOT EXISTS nightware_subscriptions_creator ON nightware_subscriptions (creator_id);

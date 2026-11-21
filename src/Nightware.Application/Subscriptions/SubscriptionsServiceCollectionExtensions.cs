@@ -10,6 +10,9 @@ public static class SubscriptionsServiceCollectionExtensions
     {
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddScoped<SubscriptionsUseCase>();
+        services.TryAddScoped<ChangeFeed>();
+        services.TryAddScoped<SubscriptionNotifier>();
+        services.TryAddScoped<SubscriberContext>();
         return services;
     }
 }

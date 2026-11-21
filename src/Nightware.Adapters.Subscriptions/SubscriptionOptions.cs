@@ -18,6 +18,9 @@ public sealed class SubscriptionOptions
     /// </summary>
     public string? SealingKey { get; set; }
 
+    /// <summary>How often each subscription is polled for changes.</summary>
+    public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(10);
+
     /// <summary>How long a validation or notification POST may take (Graph allows 10 seconds).</summary>
     public TimeSpan EndpointTimeout { get; set; } = TimeSpan.FromSeconds(10);
 

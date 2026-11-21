@@ -59,11 +59,83 @@ internal sealed partial class WebhookNotificationEndpoint(IHttpClientFactory cli
         return Error.Validation(ValidationFailed, "notificationUrl");
     }
 
+    /// <summary>
+    /// A <c>changeNotificationCollection</c> as Graph writes one (capture <c>subscriptions.notification</c>), without
+    /// <c>tenantId</c> (Nightware has no tenants) or an etag in <c>resourceData</c>.
+    /// </summary>
+    public async Task<Result> DeliverAsync(Uri notificationUrl, IReadOnlyList<ChangeNotification> notifications, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(notificationUrl);
+        ArgumentNullException.ThrowIfNull(notifications);
+        if (Refused(notificationUrl) is { } refused)
+        {
+            return refused;
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, notificationUrl)
+        {
+            Content = new StringContent(Serialize(notifications), Encoding.UTF8, "application/json"),
+        };
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(options.Value.EndpointTimeout);
+        try
+        {
+            using var response = await clients.CreateClient(ClientName).SendAsync(request, timeout.Token).ConfigureAwait(false);
+            if (response.IsSuccessStatusCode)
+            {
+                return Result.Success();
+            }
+
+            LogDeliveryRejected(logger, notificationUrl.Host, (int)response.StatusCode);
+            return Error.BackendUnavailable($"The notification endpoint answered {(int)response.StatusCode}.");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            LogDeliveryFailed(logger, notificationUrl.Host, ex);
+            return Error.BackendUnavailable("The notification endpoint could not be reached.");
+        }
+    }
+
+    internal static string Serialize(IReadOnlyList<ChangeNotification> notifications)
+    {
+        var value = new System.Text.Json.Nodes.JsonArray();
+        foreach (var n in notifications)
+        {
+            var item = new System.Text.Json.Nodes.JsonObject
+            {
+                ["subscriptionId"] = n.SubscriptionId,
+                ["subscriptionExpirationDateTime"] = n.SubscriptionExpirationDateTime.ToString("yyyy-MM-dd'T'HH:mm:sszzz", System.Globalization.CultureInfo.InvariantCulture),
+                ["changeType"] = n.ChangeType,
+                ["resource"] = n.Resource,
+                ["resourceData"] = new System.Text.Json.Nodes.JsonObject
+                {
+                    ["@odata.type"] = n.ODataType,
+                    ["@odata.id"] = n.Resource,
+                    ["id"] = n.Id,
+                },
+            };
+            if (n.ClientState is not null)
+            {
+                item["clientState"] = n.ClientState;
+            }
+
+            value.Add(item);
+        }
+
+        return new System.Text.Json.Nodes.JsonObject { ["value"] = value }.ToJsonString();
+    }
+
     private Error? Refused(Uri url)
     {
         var exempt = options.Value.TestOnlyAllowedOrigins.Contains(url.GetLeftPart(UriPartial.Authority), StringComparer.OrdinalIgnoreCase);
         return url.Scheme == Uri.UriSchemeHttps || exempt ? null : Error.Validation("notificationUrl must be an HTTPS URL.", "notificationUrl");
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Change notification to {Host} answered {Status}")]
+    private static partial void LogDeliveryRejected(ILogger logger, string host, int status);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Change notification to {Host} failed")]
+    private static partial void LogDeliveryFailed(ILogger logger, string host, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Subscription validation at {Host} answered {Status} or a wrong token")]
     private static partial void LogValidationRejected(ILogger logger, string host, int status);

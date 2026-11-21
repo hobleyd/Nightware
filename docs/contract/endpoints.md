@@ -2150,7 +2150,7 @@ operation:
 - Request body: `resource`; `changeType`; `notificationUrl`; `expirationDateTime`; `clientState`; `lifecycleNotificationUrl`
 - Client reads: `id`, `resource`, `applicationId`, `changeType`, `clientState`, `notificationUrl`, `lifecycleNotificationUrl`, `expirationDateTime`, `creatorId`
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/subscription
-- Notes: The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. Messages: {mailbox}/messages or {mailbox}/mailFolders('{id}')/messages.
+- Notes: The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. Messages: {mailbox}/mailFolders('{id}')/messages ({mailbox}/messages, every folder, is 501).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/subscriptions.create.json`
 
 #### `subscriptions.create-events`

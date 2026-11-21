@@ -78,4 +78,35 @@ public sealed class SubscriptionStoreTests : IAsyncLifetime
         (await store.DeleteAsync("alice", mine.Id, Ct)).IsSuccess.ShouldBeTrue();
         (await store.ListAsync("alice", Ct)).Value.ShouldBeEmpty();
     }
+
+    [Fact]
+    public async Task Due_subscriptions_are_leased_once_completed_and_swept_when_expired()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Live integration tests run only with NIGHTWARE_INTEGRATION=1.");
+        var store = new PostgresSubscriptionStore(_source!, new CredentialSealer(new string('c', 64)), new SubscriptionSchema(_source!));
+        var now = new DateTimeOffset(2026, 11, 21, 12, 0, 0, TimeSpan.Zero);
+        var live = New("alice") with { ExpirationDateTime = now.AddDays(1) };
+        var expired = New("alice") with { ExpirationDateTime = now.AddMinutes(-1) };
+        await store.CreateAsync(live, "r1", Ct);
+        await store.CreateAsync(expired, "r0", Ct);
+
+        var leased = (await store.LeaseDueAsync(now, TimeSpan.FromMinutes(2), 10, Ct)).Value.ShouldHaveSingleItem();
+        leased.Subscription.Id.ShouldBe(live.Id);
+        leased.RefreshToken.ShouldBe("r1");
+        (await store.LeaseDueAsync(now, TimeSpan.FromMinutes(2), 10, Ct)).Value.ShouldBeEmpty("a leased subscription is not leased twice");
+
+        (await store.CompletePollAsync(live.Id, "s1", "r2", now, now.AddSeconds(10), 0, Ct)).IsSuccess.ShouldBeTrue();
+        (await store.LeaseDueAsync(now, TimeSpan.FromMinutes(2), 10, Ct)).Value.ShouldBeEmpty("not due again yet");
+        var again = (await store.LeaseDueAsync(now.AddSeconds(11), TimeSpan.FromMinutes(2), 10, Ct)).Value.ShouldHaveSingleItem();
+        again.Subscription.SyncState.ShouldBe("s1");
+        again.RefreshToken.ShouldBe("r2");
+        again.LastPoll.ShouldBe(now);
+
+        (await store.CompletePollAsync(live.Id, null, null, null, now.AddSeconds(20), 1, Ct)).IsSuccess.ShouldBeTrue();
+        var kept = (await store.LeaseDueAsync(now.AddSeconds(21), TimeSpan.FromMinutes(2), 10, Ct)).Value.ShouldHaveSingleItem();
+        (kept.Subscription.SyncState, kept.RefreshToken, kept.Failures).ShouldBe(("s1", "r2", 1));
+
+        (await store.RemoveExpiredAsync(now, Ct)).Value.ShouldHaveSingleItem().Id.ShouldBe(expired.Id);
+        (await store.GetAsync("alice", expired.Id, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
 }

@@ -1,6 +1,6 @@
 # Phase 16 — Change notifications
 
-> **Status (2026-11-21): in progress; option A (façade subscription store)** — 16a (store, CRUD, handshake, SSRF guard) done. Decisions: [ADR 0006](../adr/0006-graph-parity.md) D10.
+> **Status (2026-11-21): in progress; option A (façade subscription store)** — 16a (store, CRUD, handshake, SSRF guard) and 16b (the notifier, mail) done. Decisions: [ADR 0006](../adr/0006-graph-parity.md) D10.
 
 **Goal:** a client subscribes to messages, events, contacts or To Do tasks and
 receives Graph notifications at its own HTTPS endpoint.
@@ -53,6 +53,25 @@ receives Graph notifications at its own HTTPS endpoint.
   tested in `Nightware.Adapters.Subscriptions.Tests`.
 - Configuration is read when the store is first resolved, not at registration
   (test hosts add settings afterwards); unconfigured, `/subscriptions` is 501.
+
+- **The notifier** (`SubscriptionPoller`, every `Subscriptions:PollInterval`,
+  10 s by default) leases due subscriptions (`FOR UPDATE SKIP LOCKED`, 2-minute
+  lease), renews each subscriber's session from the sealed refresh token (storing
+  the new one), and polls as them in a scope whose `IUserContext` is the subscriber.
+  Changes come from the same delta ports clients use; the state advances only after
+  the endpoint answers 2xx (at-least-once). Failures back off (interval × 2ⁿ, at
+  most an hour) without losing state.
+- At creation the baseline state is read with the caller's own credential, so what
+  already exists is never announced, and `last_poll` starts then.
+- **created vs updated** is a heuristic: delta does not say. An item whose
+  `createdDateTime` is later than the previous poll, less 2 seconds (Stalwart keeps
+  whole seconds), is `created`; otherwise `updated`. An item updated within those 2
+  seconds of its creation can be reported as `created` twice.
+- Notifications name items `Users/{address}/Messages/{id}` (and `…/Events/`,
+  `…/Contacts/`, `…/todo/lists/{list}/tasks/`), which resolve over Graph. They carry
+  no `tenantId` and no etag in `resourceData`.
+- `{mailbox}/messages` (every folder) is 501: mail delta is per folder, so a
+  subscription names one with `mailFolders('{id}')/messages`.
 
 ## Deployment (not done: the live stack is ansible's)
 This repo's `deploy/docker-compose.yml` gains `subscriptions-db` (Postgres 17) and
