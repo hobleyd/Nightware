@@ -1807,7 +1807,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars events: list",
-        "description": "CalDAV collections. Unexpanded; $orderby start/dateTime, $top, $skip.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. Unexpanded; $orderby start/dateTime, $top, $skip. $count=true adds an exact @odata.count (phase 18; odata-subset §10).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "calendarId",
@@ -1816,6 +1816,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": true
           }
         ],
         "responses": {
@@ -1943,7 +1952,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars events: list",
-        "description": "CalDAV collections. Unexpanded; $orderby start/dateTime, $top, $skip.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. Unexpanded; $orderby start/dateTime, $top, $skip. $count=true adds an exact @odata.count (phase 18; odata-subset §10).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "userId",
@@ -1960,6 +1969,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": true
           }
         ],
         "responses": {
@@ -3011,8 +3029,18 @@
           "Calendar"
         ],
         "summary": "Calendar default events: list",
-        "description": "Graph's alias of calendar.calendars.events.list (calendar calendars events list): the same handling. The default calendar's, through the calendars/{id}/… handling.\n\nGraph reference: https://learn.microsoft.com/graph/api/calendar-list-events",
-        "parameters": [],
+        "description": "Graph's alias of calendar.calendars.events.list (calendar calendars events list): the same handling. The default calendar's, through the calendars/{id}/… handling. $count=true adds an exact @odata.count (phase 18; odata-subset §10).\n\nGraph reference: https://learn.microsoft.com/graph/api/calendar-list-events",
+        "parameters": [
+          {
+            "name": "$count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": true
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success.",
@@ -3130,7 +3158,7 @@
           "Calendar"
         ],
         "summary": "Calendar default events: list",
-        "description": "Graph's alias of calendar.calendars.events.list (calendar calendars events list): the same handling. The default calendar's, through the calendars/{id}/… handling.\n\nGraph reference: https://learn.microsoft.com/graph/api/calendar-list-events",
+        "description": "Graph's alias of calendar.calendars.events.list (calendar calendars events list): the same handling. The default calendar's, through the calendars/{id}/… handling. $count=true adds an exact @odata.count (phase 18; odata-subset §10).\n\nGraph reference: https://learn.microsoft.com/graph/api/calendar-list-events",
         "parameters": [
           {
             "name": "userId",
@@ -3139,6 +3167,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": true
           }
         ],
         "responses": {
@@ -9082,6 +9119,15 @@
               "type": "integer"
             },
             "example": 999
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": true
           }
         ],
         "responses": {
@@ -9339,6 +9385,15 @@
               "type": "integer"
             },
             "example": 999
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": true
           }
         ],
         "responses": {
@@ -10402,7 +10457,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders contacts: list",
-        "description": "CardDAV address books. The contacts of that one book.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "CardDAV address books. The contacts of that one book. $count=true adds an exact @odata.count (phase 18; odata-subset §10).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [
           {
             "name": "folderId",
@@ -10411,6 +10466,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": true
           }
         ],
         "responses": {
@@ -10530,7 +10594,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders contacts: list",
-        "description": "CardDAV address books. The contacts of that one book.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "CardDAV address books. The contacts of that one book. $count=true adds an exact @odata.count (phase 18; odata-subset §10).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [
           {
             "name": "userId",
@@ -10547,6 +10611,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": true
           }
         ],
         "responses": {
@@ -13402,6 +13475,15 @@
               "type": "string"
             },
             "example": 0
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": true
           }
         ],
         "responses": {
@@ -13661,6 +13743,15 @@
               "type": "string"
             },
             "example": 0
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": true
           }
         ],
         "responses": {
@@ -18526,6 +18617,15 @@
               "type": "string"
             },
             "example": 0
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": true
           }
         ],
         "responses": {
@@ -18710,6 +18810,15 @@
               "type": "string"
             },
             "example": 0
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": true
           }
         ],
         "responses": {
@@ -25013,6 +25122,15 @@
               "type": "integer"
             },
             "example": 200
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": true
           }
         ],
         "responses": {
@@ -25243,6 +25361,15 @@
               "type": "integer"
             },
             "example": 200
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": true
           }
         ],
         "responses": {

@@ -377,4 +377,29 @@ public sealed class JmapMailMessageReaderTests
         (await Reader(host).ListAsync(Alice, null, new ItemQuery { Filter = new FilterNode.Compare("conversationId", CompareOp.Eq, new FilterValue.Text("t1")) }, Ct))
             .Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
     }
+
+    [Fact]
+    public async Task Count_is_the_servers_total_for_the_query_not_the_page()
+    {
+        await using var host = Host();
+        StubQuery(host, "\"m1\"", 41, MailReadStubs.Email("m1"));
+
+        var page = (await Reader(host).ListAsync(Alice, Inbox, new ItemQuery { Top = 1, Count = true, Filter = new FilterNode.Compare("isRead", CompareOp.Eq, new FilterValue.Bool(false)) }, Ct)).Value;
+
+        page.Total.ShouldBe(41);
+        host.Calls("Email/query")[0][0]![1]!["calculateTotal"]!.GetValue<bool>().ShouldBeTrue();
+        (await Reader(host).ListAsync(Alice, Inbox, new ItemQuery { Top = 1 }, Ct)).Value.Total.ShouldBeNull("only when asked");
+    }
+
+    [Fact]
+    public async Task A_conversation_has_no_exact_count_so_it_is_refused()
+    {
+        await using var host = Host();
+        var query = new ItemQuery { Filter = new FilterNode.Compare("conversationId", CompareOp.Eq, new FilterValue.Text("t1")), Count = true };
+
+        var result = await Reader(host).ListAsync(Alice, null, query, Ct);
+
+        result.Error!.Target.ShouldBe("$count");
+        host.Calls("Email/query").ShouldBeEmpty();
+    }
 }

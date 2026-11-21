@@ -1,6 +1,6 @@
 # Phase 18 — Settings, aliases, single items and `$count`
 
-> **Status (2026-11-22): in progress, local only.** Asked for: the gaps
+> **Status (2026-11-22): done, local only.** Asked for: the gaps
 > recommended after phase 17 — anchor-based initial mail delta, the
 > default-calendar and nested-item aliases, To Do single-item GETs,
 > `mailboxSettings` sub-routes with `outlook/supportedTimeZones` and
@@ -32,6 +32,7 @@
 | `mailboxSettings/{automaticRepliesSetting,timeZone,language,workingHours,dateFormat,timeFormat}`; `outlook/supportedTimeZones` (both standards), `outlook/supportedLanguages` | 1.45.0 |
 | Aliases: `calendar/events` (list, create), `calendar/calendarView`, `calendar/events/{id}` and `calendars/{id}/events/{id}`, `mailFolders/{id}/messages/{id}`, `contactFolders/{id}/contacts/{id}` (get, update, delete) | 1.46.0 |
 | `checklistItems/{id}` and `linkedResources/{id}` GET | 1.47.0 |
+| `$count=true` on message, event, contact and task lists | 1.48.0 |
 
 ## Decisions
 - An alias maps the base operation's own handler on Graph's other route, so
@@ -47,6 +48,10 @@
   them (the stores read the whole task anyway). `linkedResource` comes back as
   the entity; the reference page's sample wraps it in `value`, unlike every
   other single GET.
+- `$count` is opt-in per route (`.WithCount()`): each such route's adapter
+  reports an exact total (`Page.Total`), and the result writer refuses to
+  emit a count it wasn't given. A `$count` silently ignored would be worse
+  than the 400 it still gets elsewhere.
 - `mailboxSettings/userPurpose` and `delegateMeetingMessageDeliveryOptions`
   are 404: Nightware has no source for either. The single settings are
   read-only, as in Graph (PATCH goes to `mailboxSettings`).

@@ -130,4 +130,20 @@ public sealed class ODataQueryParserTests
         result.IsSuccess.ShouldBeTrue(result.Error?.Message);
         return result.Value;
     }
+
+    [Theory]
+    [InlineData("$count=true", true)]
+    [InlineData("$count=FALSE", false)]
+    public void Count_is_read_where_the_route_offers_it(string queryString, bool expected)
+    {
+        var result = ODataQueryParser.Parse(QueryHelpers.ParseQuery(queryString), countSupported: true);
+
+        result.Value.Count.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("$count=yes")]
+    [InlineData("$count=true&$count=true")]
+    public void A_count_that_is_not_true_or_false_is_refused(string queryString) =>
+        ODataQueryParser.Parse(QueryHelpers.ParseQuery(queryString), countSupported: true).Error!.Target.ShouldBe("$count");
 }

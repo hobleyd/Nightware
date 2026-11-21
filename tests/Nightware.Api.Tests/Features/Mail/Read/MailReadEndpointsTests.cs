@@ -326,4 +326,27 @@ public sealed class MailReadEndpointsTests : IAsyncLifetime
 
         (await Client.GetAsync("/beta/me/mailFolders/inbox", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
     }
+
+    [Fact]
+    public async Task Count_comes_before_the_value_on_a_listing_that_offers_it()
+    {
+        _messages.ListAsync(Arg.Any<MailboxRef>(), Arg.Any<FolderRef?>(), Arg.Is<Nightware.Application.Common.Query.ItemQuery>(q => q.Count), Arg.Any<CancellationToken>())
+            .Returns(new Page<MailMessage>([Message()]) { Total = 41 });
+
+        var response = await Client.GetAsync("/v1.0/me/messages?$count=true&$top=1&$select=id", Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(Ct));
+        var body = await response.ReadObjectAsync();
+        body.Select(static p => p.Key).ToList().ShouldBe(["@odata.context", "@odata.count", "value"]);
+        body["@odata.count"]!.GetValue<int>().ShouldBe(41);
+    }
+
+    [Fact]
+    public async Task A_route_that_does_not_offer_count_still_refuses_it()
+    {
+        var response = await Client.GetAsync("/v1.0/me/mailFolders?$count=true", Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        _folders.ReceivedCalls().ShouldBeEmpty();
+    }
 }

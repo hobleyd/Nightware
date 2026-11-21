@@ -33,6 +33,7 @@ public sealed class ODataQuery : IGraphBoundParameter
     public static ValueTask<ODataQuery?> BindAsync(HttpContext context, ParameterInfo parameter)
     {
         ArgumentNullException.ThrowIfNull(context);
-        return ValueTask.FromResult<ODataQuery?>(From(ODataQueryParser.Parse(context.Request.Query)));
+        var countSupported = context.GetEndpoint()?.Metadata.GetMetadata<CountSupported>() is not null;
+        return ValueTask.FromResult<ODataQuery?>(From(ODataQueryParser.Parse(context.Request.Query, countSupported)));
     }
 }

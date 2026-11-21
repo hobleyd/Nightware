@@ -35,10 +35,10 @@ public static class MailReadEndpoints
             scope.MapGet("/mailFolders", ListFoldersAsync);
             scope.MapGet("/mailFolders/{folderId}", GetFolderAsync);
             scope.MapGet("/mailFolders/{folderId}/childFolders", ListChildFoldersAsync);
-            scope.MapGet("/mailFolders/{folderId}/messages", ListFolderMessagesAsync);
+            scope.MapGet("/mailFolders/{folderId}/messages", ListFolderMessagesAsync).WithCount();
             scope.MapGet("/mailFolders/{folderId}/messages/delta", DeltaAsync);
             scope.MapGet("/mailFolders/delta", FolderDeltaAsync);
-            scope.MapGet("/messages", ListMessagesAsync);
+            scope.MapGet("/messages", ListMessagesAsync).WithCount();
             scope.MapGet("/messages/{messageId}", GetMessageAsync);
             // Graph's folder-scoped item route. Message ids are unique in the mailbox, so the folder is not checked.
             scope.MapGet("/mailFolders/{folderId}/messages/{messageId}", GetMessageAsync);

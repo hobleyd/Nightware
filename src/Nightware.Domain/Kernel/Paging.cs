@@ -15,6 +15,9 @@ public sealed record Page<T>(IReadOnlyList<T> Items, string? SkipToken = null)
 {
     public static Page<T> Empty { get; } = new([]);
 
+    /// <summary>Every item the query matches, across all pages (Graph <c>@odata.count</c>); set when the query asked for it.</summary>
+    public int? Total { get; init; }
+
     public bool HasMore => SkipToken is not null;
 }
 

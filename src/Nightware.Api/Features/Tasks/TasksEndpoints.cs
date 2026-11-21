@@ -65,7 +65,7 @@ public static partial class TasksEndpoints
             scope.MapGet(Linked + "/{resourceId}", GetLinkedAsync);
             scope.MapPatch(Linked + "/{resourceId}", UpdateLinkedAsync);
             scope.MapDelete(Linked + "/{resourceId}", DeleteLinkedAsync);
-            scope.MapGet(Tasks, ListTasksAsync);
+            scope.MapGet(Tasks, ListTasksAsync).WithCount();
             scope.MapPost(Tasks, CreateTaskAsync);
             scope.MapPatch(Task, UpdateTaskAsync);
             scope.MapGet(Attachments, ListAttachmentsAsync);

@@ -74,7 +74,7 @@ public static class GraphResults
     /// A collection page. When <paramref name="skipToken"/> is set an <c>@odata.nextLink</c> is emitted that
     /// repeats the request's own query options plus <c>$skiptoken</c> (see <see cref="GraphLinkBuilder.NextLink"/>).
     /// </summary>
-    public static IResult Collection(IEnumerable<object> items, string contextFragment, ItemQuery query, string? skipToken = null)
+    public static IResult Collection(IEnumerable<object> items, string contextFragment, ItemQuery query, string? skipToken = null, int? count = null)
     {
         ArgumentNullException.ThrowIfNull(items);
         ArgumentNullException.ThrowIfNull(query);
@@ -91,8 +91,14 @@ public static class GraphResults
             var body = new JsonObject
             {
                 ["@odata.context"] = links.Context(http.Request, WithSelect(contextFragment, query.Select)),
-                ["value"] = value,
             };
+            if (query.Count)
+            {
+                // A route marked CountSupported whose adapter reported no total is a bug, not a guess to make.
+                body["@odata.count"] = count ?? throw new InvalidOperationException("$count was accepted but the page has no total.");
+            }
+
+            body["value"] = value;
             if (skipToken is not null)
             {
                 body["@odata.nextLink"] = links.NextLink(http.Request, skipToken);
@@ -107,7 +113,7 @@ public static class GraphResults
     {
         ArgumentNullException.ThrowIfNull(page);
         ArgumentNullException.ThrowIfNull(toDto);
-        return Collection(page.Items.Select(toDto), contextFragment, query, page.SkipToken);
+        return Collection(page.Items.Select(toDto), contextFragment, query, page.SkipToken, page.Total);
     }
 
     /// <summary>

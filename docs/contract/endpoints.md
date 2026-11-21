@@ -387,22 +387,22 @@ operation:
 
 **GET v1.0 `{mailbox}/mailFolders/{folderIdOrWellKnownName}/messages`** — forms: me, users; success: 200; paging: none
 
-- Query: `$select` (variant 1): `id,subject,from,toRecipients,ccRecipients,bccRecipients,bodyPreview,isRead,flag,receivedDateTime,sentDateTime,importance,conversationId,hasAttachments,parentFolderId`; `$select` (variant 2): `id`; `$filter`: `isRead eq false`; `$orderby`: `receivedDateTime desc`; `$top`: `25`, `10`, `5`, `100`, `1..100`; `$skip`: `0`, `25`, `50`
+- Query: `$select` (variant 1): `id,subject,from,toRecipients,ccRecipients,bccRecipients,bodyPreview,isRead,flag,receivedDateTime,sentDateTime,importance,conversationId,hasAttachments,parentFolderId`; `$select` (variant 2): `id`; `$filter`: `isRead eq false`; `$orderby`: `receivedDateTime desc`; `$top`: `25`, `10`, `5`, `100`, `1..100`; `$skip`: `0`, `25`, `50`; `$count`: `True`
 - Client reads: `value[].id`, `value[].subject`, `value[].from.emailAddress.address`, `value[].from.emailAddress.name`, `value[].toRecipients[].emailAddress.{address,name}`, `value[].ccRecipients[].emailAddress.{address,name}`, `value[].bccRecipients[].emailAddress.{address,name}`, `value[].bodyPreview`, `value[].isRead`, `value[].flag.flagStatus`, `value[].receivedDateTime`, `value[].sentDateTime`, `value[].importance`, `value[].conversationId`, `value[].hasAttachments`, `value[].parentFolderId`
 - On error: Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).
 - Call sites: `…/remote/graph_api_datasource_impl.dart:145`, `…/remote/graph_api_datasource_impl.dart:2729`
-- Notes: Folder page (getEmails): always sends $top, $skip (0 on the first page — offset paging, not nextLink), $select=list projection, $orderby=receivedDateTime desc; $filter only from the AI agent tool (isRead eq false). @odata.nextLink is ignored here. emptyFolder sends only $top=100&$select=id and loops until a page has < 100 rows (it deletes as it goes, so it always re-reads page 1). After each page the client expands every conversationId on it via mail.messages.list-by-conversation.
+- Notes: Folder page (getEmails): always sends $top, $skip (0 on the first page — offset paging, not nextLink), $select=list projection, $orderby=receivedDateTime desc; $filter only from the AI agent tool (isRead eq false). @odata.nextLink is ignored here. emptyFolder sends only $top=100&$select=id and loops until a page has < 100 rows (it deletes as it goes, so it always re-reads page 1). After each page the client expands every conversationId on it via mail.messages.list-by-conversation. $count=true adds an exact @odata.count (phase 18; odata-subset §10).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.messages.list-in-folder.json`
 
 #### `mail.messages.list`
 
 **GET v1.0 `{mailbox}/messages`** — forms: me, users; success: 200; paging: none
 
-- Query: `$select` (always): `id,subject,from,toRecipients,ccRecipients,bccRecipients,bodyPreview,isRead,flag,receivedDateTime,sentDateTime,importance,conversationId,hasAttachments,parentFolderId`; `$filter`: `isRead eq false`; `$orderby`: `receivedDateTime desc`; `$top`: `25`, `1..100`; `$skip`: `0`, `25`
+- Query: `$select` (always): `id,subject,from,toRecipients,ccRecipients,bccRecipients,bodyPreview,isRead,flag,receivedDateTime,sentDateTime,importance,conversationId,hasAttachments,parentFolderId`; `$filter`: `isRead eq false`; `$orderby`: `receivedDateTime desc`; `$top`: `25`, `1..100`; `$skip`: `0`, `25`; `$count`: `True`
 - Client reads: `value[].id`, `value[].subject`, `value[].from.emailAddress.address`, `value[].from.emailAddress.name`, `value[].toRecipients[].emailAddress.{address,name}`, `value[].ccRecipients[].emailAddress.{address,name}`, `value[].bccRecipients[].emailAddress.{address,name}`, `value[].bodyPreview`, `value[].isRead`, `value[].flag.flagStatus`, `value[].receivedDateTime`, `value[].sentDateTime`, `value[].importance`, `value[].conversationId`, `value[].hasAttachments`, `value[].parentFolderId`
 - On error: Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).
 - Call sites: `…/remote/graph_api_datasource_impl.dart:146`
-- Notes: getEmails with folderId == null (the AI agent tool without a folder): the newest mail of the whole mailbox. Same parameters as mail.messages.list-in-folder.
+- Notes: getEmails with folderId == null (the AI agent tool without a folder): the newest mail of the whole mailbox. Same parameters as mail.messages.list-in-folder. $count=true adds an exact @odata.count (phase 18; odata-subset §10).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.messages.list.json`
 
 #### `mail.messages.list-by-conversation`
@@ -797,11 +797,11 @@ operation:
 
 **GET v1.0 `{mailbox}/events`** — forms: me, users; success: 200; paging: none
 
-- Query: `$select` (variant 1): `id`; `$select` (variant 2): `id,isOrganizer`; `$filter`: `iCalUId eq '040000008200E00074C5B7101A82E00800000000A1B2C3D4E5F6D901000000000000000010000000F1E2D3C4B5A69788'`; `$top`: `1`, `5`
+- Query: `$select` (variant 1): `id`; `$select` (variant 2): `id,isOrganizer`; `$filter`: `iCalUId eq '040000008200E00074C5B7101A82E00800000000A1B2C3D4E5F6D901000000000000000010000000F1E2D3C4B5A69788'`; `$top`: `1`, `5`; `$count`: `True`
 - Client reads: `value[].id`, `value[].isOrganizer`
 - On error: Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).
 - Call sites: `…/remote/graph_api_datasource_impl.dart:1430`, `…/remote/graph_api_datasource_impl.dart:1620`
-- Notes: Finds the user's own copy of a meeting by the UID from an invitation's text/calendar part. Single quotes inside the literal are doubled. Must match the series master (not occurrences).
+- Notes: Finds the user's own copy of a meeting by the UID from an invitation's text/calendar part. Single quotes inside the literal are doubled. Must match the series master (not occurrences). $count=true adds an exact @odata.count (phase 18; odata-subset §10).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.list-by-ical-uid.json`
 
 #### `calendar.events.create`
@@ -1048,11 +1048,11 @@ operation:
 
 **GET v1.0 `{mailbox}/contacts`** — forms: me, users; success: 200; paging: nextLink
 
-- Query: `$select` (always): `displayName,emailAddresses`; `$top`: `999`
+- Query: `$select` (always): `displayName,emailAddresses`; `$top`: `999`; `$count`: `True`
 - Client reads: `value[].displayName`, `value[].emailAddresses[].address`, `value[].emailAddresses[].name`, `@odata.nextLink`
 - On error: Failure recorded as partial sync.
 - Call sites: `…/remote/graph_api_datasource_impl.dart:2245`
-- Notes: Personal contacts for the typeahead cache (read-only: the client never creates/updates contacts). Follows nextLink up to 25 pages.
+- Notes: Personal contacts for the typeahead cache (read-only: the client never creates/updates contacts). Follows nextLink up to 25 pages. $count=true adds an exact @odata.count (phase 18; odata-subset §10).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.list.json`
 
 #### `people.list`
@@ -1100,11 +1100,11 @@ operation:
 
 **GET v1.0 `{mailbox}/todo/lists/{listId}/tasks`** — forms: me, users; success: 200; paging: none
 
-- Query: `$filter`: `status ne 'completed'`; `$orderby`: `createdDateTime desc`; `$top`: `200`
+- Query: `$filter`: `status ne 'completed'`; `$orderby`: `createdDateTime desc`; `$top`: `200`; `$count`: `True`
 - Client reads: `value[].id`, `value[].title`, `value[].status`, `value[].importance`, `value[].body.content`, `value[].dueDateTime.dateTime`, `value[].completedDateTime.dateTime`, `value[].isReminderOn`, `value[].reminderDateTime.dateTime`, `value[].createdDateTime`, `value[].lastModifiedDateTime`, `value[].hasAttachments`
 - On error: Any non-2xx → _mapDioException: 401 → AuthException (after AuthInterceptor's one refresh+retry), else ServerException(error.message, status).
 - Call sites: `…/remote/graph_api_datasource_impl.dart:2828`
-- Notes: $filter present unless completed tasks are included. No paging followed. Task datetimes ({dateTime,timeZone}) are parsed with DateTime.tryParse(dateTime) and converted to local — dateTime without Z is read as LOCAL time, so return dueDateTime in the form Graph does ('YYYY-MM-DDT00:00:00.0000000', timeZone 'UTC').
+- Notes: $filter present unless completed tasks are included. No paging followed. Task datetimes ({dateTime,timeZone}) are parsed with DateTime.tryParse(dateTime) and converted to local — dateTime without Z is read as LOCAL time, so return dueDateTime in the form Graph does ('YYYY-MM-DDT00:00:00.0000000', timeZone 'UTC'). $count=true adds an exact @odata.count (phase 18; odata-subset §10).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.tasks.list.json`
 
 #### `tasks.tasks.create`
@@ -1560,9 +1560,10 @@ operation:
 
 **GET v1.0 `{mailbox}/calendars/{calendarId}/events`** — forms: me, users; success: 200; paging: none
 
+- Query: `$count`: `True`
 - Client reads: `value[].id`, `value[].subject`, `value[].start`, `value[].end`
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendar
-- Notes: CalDAV collections (ADR 0006 D6). Unexpanded; $orderby start/dateTime, $top, $skip.
+- Notes: CalDAV collections (ADR 0006 D6). Unexpanded; $orderby start/dateTime, $top, $skip. $count=true adds an exact @odata.count (phase 18; odata-subset §10).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.list.json`
 
 #### `calendar.calendars.events.create`
@@ -1891,9 +1892,10 @@ operation:
 
 **GET v1.0 `{mailbox}/contactFolders/{folderId}/contacts`** — forms: me, users; success: 200; paging: none
 
+- Query: `$count`: `True`
 - Client reads: `value[]`
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/contact
-- Notes: CardDAV address books (ADR 0006 D7). The contacts of that one book.
+- Notes: CardDAV address books (ADR 0006 D7). The contacts of that one book. $count=true adds an exact @odata.count (phase 18; odata-subset §10).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.contacts.list.json`
 
 #### `contacts.folders.contacts.create`
@@ -2353,9 +2355,10 @@ operation:
 
 **GET v1.0 `{mailbox}/calendar/events`** — forms: me, users; success: 200; paging: none
 
+- Query: `$count`: `True`
 - Client reads: `value[].id`, `value[].subject`, `value[].start`, `value[].end`
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/calendar-list-events
-- Notes: Graph's alias of calendar.calendars.events.list (calendar calendars events list): the same handling. The default calendar's, through the calendars/{id}/… handling.
+- Notes: Graph's alias of calendar.calendars.events.list (calendar calendars events list): the same handling. The default calendar's, through the calendars/{id}/… handling. $count=true adds an exact @odata.count (phase 18; odata-subset §10).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.list.json`
 
 #### `calendar.default.events.create`

@@ -14,7 +14,7 @@ namespace Nightware.Api.Graph.OData;
 /// Accepted: <c>$select $filter $orderby $top $skip $skiptoken $search $expand</c>.
 /// <c>$deltatoken</c> is accepted and ignored here (delta endpoints read it through
 /// <see cref="Json.DeltaLinkCodec"/>). <c>$count</c> and every other <c>$</c>-option is a 400
-/// naming the option. Non-<c>$</c> parameters (<c>startDateTime</c>, <c>format</c>) are left to
+/// naming the option, except on routes marked <see cref="CountSupported"/>, where <c>$count=true|false</c> is read. Non-<c>$</c> parameters (<c>startDateTime</c>, <c>format</c>) are left to
 /// the endpoint. Option names match case-insensitively; a repeated option is a 400.
 /// <c>$top</c> above <see cref="MaxTop"/> is clamped silently (the client sends 999 to
 /// <c>/users</c> and <c>/people</c>).
@@ -40,10 +40,11 @@ public static class ODataQueryParser
         SelectOption, FilterOption, OrderByOption, TopOption, SkipOption, SkipTokenOption, DeltaTokenOption, SearchOption, ExpandOption,
     };
 
-    public static Result<ItemQuery> Parse(IEnumerable<KeyValuePair<string, StringValues>> query)
+    public static Result<ItemQuery> Parse(IEnumerable<KeyValuePair<string, StringValues>> query, bool countSupported = false)
     {
         ArgumentNullException.ThrowIfNull(query);
         var options = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var count = false;
         foreach (var (key, values) in query)
         {
             if (!key.StartsWith('$'))
@@ -53,7 +54,17 @@ public static class ODataQueryParser
 
             if (string.Equals(key, CountOption, StringComparison.OrdinalIgnoreCase))
             {
-                return Error.Validation("The query option '$count' is not supported.", CountOption);
+                if (!countSupported)
+                {
+                    return Error.Validation("The query option '$count' is not supported.", CountOption);
+                }
+
+                if (values.Count != 1 || !bool.TryParse(values[0], out count))
+                {
+                    return Error.Validation("$count must be true or false.", CountOption);
+                }
+
+                continue;
             }
 
             if (!Known.Contains(key))
@@ -69,7 +80,7 @@ public static class ODataQueryParser
             options[key] = values[0] ?? string.Empty;
         }
 
-        var result = ItemQuery.Default;
+        var result = count ? ItemQuery.Default with { Count = true } : ItemQuery.Default;
         if (options.TryGetValue(SelectOption, out var select))
         {
             var parsed = ParseSelect(select, SelectOption);
@@ -303,4 +314,23 @@ public static class ODataQueryParser
 
     private static bool IsPropertyPath(string path) =>
         path.Split('/').All(IsPropertyName);
+}
+
+/// <summary>
+/// Endpoint metadata: the route answers <c>$count=true</c> with an exact <c>@odata.count</c> (its adapter reports
+/// <see cref="Page{T}.Total"/>). Elsewhere <c>$count</c> stays a 400 rather than being silently ignored.
+/// </summary>
+public sealed class CountSupported
+{
+    public static readonly CountSupported Instance = new();
+
+    private CountSupported()
+    {
+    }
+}
+
+public static class CountSupportedExtensions
+{
+    /// <summary>Marks the route as answering <c>$count</c>.</summary>
+    public static RouteHandlerBuilder WithCount(this RouteHandlerBuilder builder) => builder.WithMetadata(CountSupported.Instance);
 }

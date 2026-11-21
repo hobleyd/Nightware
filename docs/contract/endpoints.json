@@ -192,6 +192,9 @@
           0,
           25,
           50
+        ],
+        "$count": [
+          true
         ]
       }
     },
@@ -222,7 +225,7 @@
       "lib/data/datasources/remote/graph_api_datasource_impl.dart:145",
       "lib/data/datasources/remote/graph_api_datasource_impl.dart:2729"
     ],
-    "notes": "Folder page (getEmails): always sends $top, $skip (0 on the first page — offset paging, not nextLink), $select=list projection, $orderby=receivedDateTime desc; $filter only from the AI agent tool (isRead eq false). @odata.nextLink is ignored here. emptyFolder sends only $top=100&$select=id and loops until a page has < 100 rows (it deletes as it goes, so it always re-reads page 1). After each page the client expands every conversationId on it via mail.messages.list-by-conversation."
+    "notes": "Folder page (getEmails): always sends $top, $skip (0 on the first page — offset paging, not nextLink), $select=list projection, $orderby=receivedDateTime desc; $filter only from the AI agent tool (isRead eq false). @odata.nextLink is ignored here. emptyFolder sends only $top=100&$select=id and loops until a page has < 100 rows (it deletes as it goes, so it always re-reads page 1). After each page the client expands every conversationId on it via mail.messages.list-by-conversation. $count=true adds an exact @odata.count (phase 18; odata-subset §10)."
   },
   {
     "id": "mail.messages.list",
@@ -270,6 +273,9 @@
         "$skip": [
           0,
           25
+        ],
+        "$count": [
+          true
         ]
       }
     },
@@ -299,7 +305,7 @@
     "clientCallSites": [
       "lib/data/datasources/remote/graph_api_datasource_impl.dart:146"
     ],
-    "notes": "getEmails with folderId == null (the AI agent tool without a folder): the newest mail of the whole mailbox. Same parameters as mail.messages.list-in-folder."
+    "notes": "getEmails with folderId == null (the AI agent tool without a folder): the newest mail of the whole mailbox. Same parameters as mail.messages.list-in-folder. $count=true adds an exact @odata.count (phase 18; odata-subset §10)."
   },
   {
     "id": "mail.messages.list-by-conversation",
@@ -1801,7 +1807,11 @@
       ],
       "search": [],
       "expand": [],
-      "other": {}
+      "other": {
+        "$count": [
+          true
+        ]
+      }
     },
     "headers": {},
     "requestBody": null,
@@ -1816,7 +1826,7 @@
       "lib/data/datasources/remote/graph_api_datasource_impl.dart:1430",
       "lib/data/datasources/remote/graph_api_datasource_impl.dart:1620"
     ],
-    "notes": "Finds the user's own copy of a meeting by the UID from an invitation's text/calendar part. Single quotes inside the literal are doubled. Must match the series master (not occurrences)."
+    "notes": "Finds the user's own copy of a meeting by the UID from an invitation's text/calendar part. Single quotes inside the literal are doubled. Must match the series master (not occurrences). $count=true adds an exact @odata.count (phase 18; odata-subset §10)."
   },
   {
     "id": "calendar.events.create",
@@ -2776,7 +2786,11 @@
       ],
       "search": [],
       "expand": [],
-      "other": {}
+      "other": {
+        "$count": [
+          true
+        ]
+      }
     },
     "headers": {},
     "requestBody": null,
@@ -2792,7 +2806,7 @@
     "clientCallSites": [
       "lib/data/datasources/remote/graph_api_datasource_impl.dart:2245"
     ],
-    "notes": "Personal contacts for the typeahead cache (read-only: the client never creates/updates contacts). Follows nextLink up to 25 pages."
+    "notes": "Personal contacts for the typeahead cache (read-only: the client never creates/updates contacts). Follows nextLink up to 25 pages. $count=true adds an exact @odata.count (phase 18; odata-subset §10)."
   },
   {
     "id": "people.list",
@@ -2894,7 +2908,11 @@
       ],
       "search": [],
       "expand": [],
-      "other": {}
+      "other": {
+        "$count": [
+          true
+        ]
+      }
     },
     "headers": {},
     "requestBody": null,
@@ -2918,7 +2936,7 @@
     "clientCallSites": [
       "lib/data/datasources/remote/graph_api_datasource_impl.dart:2828"
     ],
-    "notes": "$filter present unless completed tasks are included. No paging followed. Task datetimes ({dateTime,timeZone}) are parsed with DateTime.tryParse(dateTime) and converted to local — dateTime without Z is read as LOCAL time, so return dueDateTime in the form Graph does ('YYYY-MM-DDT00:00:00.0000000', timeZone 'UTC')."
+    "notes": "$filter present unless completed tasks are included. No paging followed. Task datetimes ({dateTime,timeZone}) are parsed with DateTime.tryParse(dateTime) and converted to local — dateTime without Z is read as LOCAL time, so return dueDateTime in the form Graph does ('YYYY-MM-DDT00:00:00.0000000', timeZone 'UTC'). $count=true adds an exact @odata.count (phase 18; odata-subset §10)."
   },
   {
     "id": "tasks.tasks.create",
@@ -4502,7 +4520,11 @@
       "top": [],
       "search": [],
       "expand": [],
-      "other": {}
+      "other": {
+        "$count": [
+          true
+        ]
+      }
     },
     "headers": {},
     "requestBody": null,
@@ -4518,7 +4540,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/resources/calendar",
-    "notes": "CalDAV collections (ADR 0006 D6). Unexpanded; $orderby start/dateTime, $top, $skip."
+    "notes": "CalDAV collections (ADR 0006 D6). Unexpanded; $orderby start/dateTime, $top, $skip. $count=true adds an exact @odata.count (phase 18; odata-subset §10)."
   },
   {
     "id": "calendar.calendars.events.create",
@@ -5925,7 +5947,11 @@
       "top": [],
       "search": [],
       "expand": [],
-      "other": {}
+      "other": {
+        "$count": [
+          true
+        ]
+      }
     },
     "headers": {},
     "requestBody": null,
@@ -5938,7 +5964,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/resources/contact",
-    "notes": "CardDAV address books (ADR 0006 D7). The contacts of that one book."
+    "notes": "CardDAV address books (ADR 0006 D7). The contacts of that one book. $count=true adds an exact @odata.count (phase 18; odata-subset §10)."
   },
   {
     "id": "contacts.folders.contacts.create",
@@ -7482,7 +7508,11 @@
       "top": [],
       "search": [],
       "expand": [],
-      "other": {}
+      "other": {
+        "$count": [
+          true
+        ]
+      }
     },
     "headers": {},
     "requestBody": null,
@@ -7498,7 +7528,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/calendar-list-events",
-    "notes": "Graph's alias of calendar.calendars.events.list (calendar calendars events list): the same handling. The default calendar's, through the calendars/{id}/… handling."
+    "notes": "Graph's alias of calendar.calendars.events.list (calendar calendars events list): the same handling. The default calendar's, through the calendars/{id}/… handling. $count=true adds an exact @odata.count (phase 18; odata-subset §10)."
   },
   {
     "id": "calendar.default.events.create",

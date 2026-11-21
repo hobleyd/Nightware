@@ -48,7 +48,8 @@ internal static class TaskQueryEvaluator
             };
         }
 
-        return TaskPaging.Page((ordered ?? result).ToList(), query);
+        var matched = (ordered ?? result).ToList();
+        return TaskPaging.Page(matched, query).Map(page => query.Count ? page with { Total = matched.Count } : page);
     }
 
     private static Result<Func<TodoTask, bool>> Predicate(FilterNode node)

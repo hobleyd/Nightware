@@ -22,7 +22,7 @@ internal static class EventEndpoints
         foreach (var scope in graph.MapMailboxGroups())
         {
             scope.MapGet("/calendarView", CalendarViewAsync);
-            scope.MapGet("/events", ListAsync);
+            scope.MapGet("/events", ListAsync).WithCount();
             scope.MapPost("/events", CreateAsync);
             scope.MapGet("/events/{eventId}", GetAsync);
             scope.MapPatch("/events/{eventId}", UpdateAsync);

@@ -30,6 +30,6 @@ internal static class OffsetPaging
         var size = Math.Max(1, query.Top ?? defaultPageSize);
         var items = ordered.Skip(offset).Take(size).ToList();
         var next = (long)offset + size < ordered.Count ? (offset + size).ToString(CultureInfo.InvariantCulture) : null;
-        return new Page<T>(items, next);
+        return new Page<T>(items, next) { Total = query.Count ? ordered.Count : null };
     }
 }

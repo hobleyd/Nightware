@@ -21,6 +21,9 @@ public sealed record ItemQuery
 {
     public static ItemQuery Default { get; } = new();
 
+    /// <summary><c>$count=true</c>: the page also reports how many items match in all (only routes that offer it).</summary>
+    public bool Count { get; init; }
+
     public FilterNode? Filter { get; init; }
 
     public IReadOnlyList<OrderBy> OrderBy { get; init; } = [];

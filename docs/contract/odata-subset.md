@@ -225,3 +225,19 @@ wall-clock. Top-level timestamps (`receivedDateTime`, `sentDateTime`,
 | `outlook.supported-time-zones`, `-standard`, `outlook.supported-languages` | nothing; `TimeZoneStandard` is a function argument, `Windows` or `Iana` (anything else 400) |
 | The aliases (`calendar.default.*`, `calendar.calendars.events.{get,update,delete}`, `mail.folders.messages.*`, `contacts.folders.contacts.*`) | exactly what their base operation accepts (same handler) |
 | `tasks.checklist-items.get`, `tasks.linked-resources.get` | nothing |
+
+### `$count` (phase 18)
+
+`$count=true` (or `false`) is accepted on these routes only, and adds an exact
+`@odata.count` before `value`, counting every item the query matches
+(`$filter` and `$search` included), not the page:
+
+| Route | Counted by |
+|---|---|
+| `messages`, `mailFolders/{id}/messages` | Stalwart's `Email/query` `total` (`calculateTotal`). A `conversationId` filter is 400: the thread is read whole and cut to `$top`. |
+| `events`, `calendar/events`, `calendars/{id}/events` | the listed (filtered) events |
+| `contacts`, `contactFolders/{id}/contacts` | every card in the address books listed |
+| `todo/lists/{id}/tasks` | the tasks the filter matches |
+
+Anywhere else `$count` is still 400, rather than ignored. Delta routes never
+accept it. The `/$count` path segment is not offered.

@@ -108,6 +108,19 @@ public sealed class DavContactStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task Count_is_every_card_across_the_books_not_the_page()
+    {
+        GivenBooks(new DavAddressBook(Team, "Team") { IsShared = true }, new DavAddressBook(Book, "Contacts"));
+        GivenContactsBook();
+        GivenReport(Team, "addressbook-query", "Contacts/query-team.xml");
+        GivenReport(Team, "addressbook-multiget", "Contacts/multiget-team.xml");
+
+        var page = (await Store.ListAsync(Alice, new ItemQuery { Top = 3, Count = true }, Ct)).Value;
+
+        page.Total.ShouldBe(4, "three in the first page's slots (one card is broken) plus one more");
+    }
+
+    [Fact]
     public async Task Only_the_pages_slice_is_fetched()
     {
         GivenContactsBook();

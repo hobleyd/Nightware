@@ -120,7 +120,7 @@ internal sealed partial class DavContactStore(
 
         IReadOnlyList<Contact> page = [.. window.Select(c => contacts.GetValueOrDefault(c.Href)).OfType<Contact>()];
         var next = offset + window.Count < cards.Count ? ContactPageToken.Encode(offset + window.Count) : null;
-        return new Page<Contact>(page, next);
+        return new Page<Contact>(page, next) { Total = query.Count ? cards.Count : null };
     }
 
     public async Task<Result<Contact>> GetAsync(MailboxRef mailbox, ContactId id, CancellationToken cancellationToken)

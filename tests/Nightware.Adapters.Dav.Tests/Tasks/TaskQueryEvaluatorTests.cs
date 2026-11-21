@@ -129,4 +129,15 @@ public sealed class TaskQueryEvaluatorTests
     [InlineData("-1")]
     public void Refuses_a_bad_skiptoken(string token) =>
         TaskQueryEvaluator.Apply(Tasks, new ItemQuery { SkipToken = token }).Error!.Target.ShouldBe("$skiptoken");
+
+    [Fact]
+    public void Count_reports_every_task_the_filter_matches_not_just_the_page()
+    {
+        var query = new ItemQuery { Filter = new FilterNode.Compare("status", CompareOp.Ne, new FilterValue.Text("completed")), Top = 1, Count = true };
+
+        var page = TaskQueryEvaluator.Apply(Tasks, query).Value;
+
+        (page.Items.Count, page.Total).ShouldBe((1, 2));
+        TaskQueryEvaluator.Apply(Tasks, new ItemQuery()).Value.Total.ShouldBeNull("only when asked");
+    }
 }

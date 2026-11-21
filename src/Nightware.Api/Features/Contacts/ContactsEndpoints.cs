@@ -24,7 +24,7 @@ public static class ContactsEndpoints
     {
         foreach (var scope in graph.MapMailboxGroups())
         {
-            scope.MapGet("/contacts", ListAsync);
+            scope.MapGet("/contacts", ListAsync).WithCount();
             scope.MapPost("/contacts", CreateAsync);
             scope.MapGet("/contacts/{contactId}", GetAsync);
             scope.MapPatch("/contacts/{contactId}", UpdateAsync);
@@ -47,7 +47,7 @@ public static class ContactsEndpoints
             scope.MapPatch("/contactFolders/{folderId}", RenameFolderAsync);
             scope.MapDelete("/contactFolders/{folderId}", DeleteFolderAsync);
             scope.MapGet("/contactFolders/{folderId}/childFolders", ChildFoldersAsync);
-            scope.MapGet("/contactFolders/{folderId}/contacts", FolderContactsAsync);
+            scope.MapGet("/contactFolders/{folderId}/contacts", FolderContactsAsync).WithCount();
             scope.MapPost("/contactFolders/{folderId}/contacts", CreateInFolderAsync);
         }
 

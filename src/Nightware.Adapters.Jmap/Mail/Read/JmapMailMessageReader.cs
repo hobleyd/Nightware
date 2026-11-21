@@ -1,5 +1,6 @@
 using Nightware.Adapters.Jmap.Core;
 using Nightware.Adapters.Jmap.Core.Blobs;
+using Nightware.Adapters.Jmap.Core.Errors;
 using Nightware.Adapters.Jmap.Core.Protocol;
 using Nightware.Adapters.Jmap.Core.Requests;
 using Nightware.Adapters.Jmap.Core.Session;
@@ -61,6 +62,9 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
 
         return plan.Value switch
         {
+            // A conversation is read whole, then cut to $top: no exact total to report.
+            MessageQueryPlan.Conversation when query.Count =>
+                Error.Validation("$count is not supported with a conversationId filter.", "$count"),
             MessageQueryPlan.Conversation conversation =>
                 await ConversationAsync(account.Value, folderId, conversation, Paging.Size(query, int.MaxValue), cancellationToken).ConfigureAwait(false),
             MessageQueryPlan.Query listing =>
@@ -212,7 +216,7 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
             Sort = plan.Sort,
             Position = offset,
             Limit = limit,
-            CalculateTotal = plan.Paged ? true : null,
+            CalculateTotal = plan.Paged || query.Count ? true : null,
         });
         var get = request.Add(EmailProperties.Get(account), EmailProperties.ListRequest(account), emailQuery.Ref("ids", JmapPaths.Ids));
         var response = await jmap.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -235,7 +239,13 @@ internal sealed class JmapMailMessageReader(IJmapClient jmap, IJmapBlobService b
 
         var messages = InOrder(ids.Value.Ids, emails.Value.List).Select(e => EmailMapper.ToMessage(e, folderId)).ToList();
         var next = plan.Paged && ids.Value.Total is { } total ? Paging.Next(offset, ids.Value.Ids.Count, total) : null;
-        return new Page<MailMessage>(messages, next);
+        if (query.Count && ids.Value.Total is null)
+        {
+            return JmapErrors.Unexpected("Email/query returned no total.");
+        }
+
+        // The server's own count of the query (filter and search included), not of this page.
+        return new Page<MailMessage>(messages, next) { Total = query.Count ? ids.Value.Total : null };
     }
 
     /// <summary>Every message of the named threads, newest first, minus those filed in an excluded folder.</summary>

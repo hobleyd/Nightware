@@ -30,4 +30,11 @@ public sealed class OffsetPagingTests
     [InlineData("-1")]
     public void Rejects_a_token_it_did_not_mint(string token) =>
         OffsetPaging.Slice(Items, new ItemQuery { SkipToken = token }, 10).Error!.Kind.ShouldBe(ErrorKind.Validation);
+
+    [Fact]
+    public void Count_is_every_item_not_the_page()
+    {
+        OffsetPaging.Slice(Items, new ItemQuery { Top = 2, Count = true }, 10).Value.Total.ShouldBe(5);
+        OffsetPaging.Slice(Items, new ItemQuery { Top = 2 }, 10).Value.Total.ShouldBeNull();
+    }
 }
