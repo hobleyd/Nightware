@@ -8,6 +8,10 @@ What the façade enforces, where, and why. Code references are under `src/Nightw
   audience (`nightware-api`), signature and lifetime are all validated (`Auth/`). A missing or bad
   token is Graph's `401 InvalidAuthenticationToken`; "not allowed" is always 403, never 401, because
   NightMail treats 401 as an expired token.
+- The token must also carry `email_verified: true` (`Auth:RequireVerifiedEmail`), checked before
+  any backend token is exchanged: `email` names the caller's mailbox here and at Stalwart. Users
+  can't change their own email (the realm's user profile), and every way Nightware creates a user
+  marks it verified.
 - The façade never forwards the user's token to a backend as-is (default `TokenExchange`): Stalwart
   and Nextcloud each receive a token exchanged for their own audience, and reject an un-exchanged
   NightMail token (asserted by `deploy/smoke.sh`).

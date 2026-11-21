@@ -89,7 +89,7 @@ internal sealed class TestHost : IAsyncDisposable
     };
 
     /// <summary>Mints an access token the host accepts.</summary>
-    public static string Token(string? email = UserEmail, string sub = "user-1", DateTime? expires = null, string audience = Audience, SecurityKey? key = null)
+    public static string Token(string? email = UserEmail, string sub = "user-1", DateTime? expires = null, string audience = Audience, SecurityKey? key = null, bool? emailVerified = true)
     {
         var claims = new Dictionary<string, object>
         {
@@ -100,6 +100,11 @@ internal sealed class TestHost : IAsyncDisposable
         if (email is not null)
         {
             claims["email"] = email;
+        }
+
+        if (email is not null && emailVerified is { } verified)
+        {
+            claims["email_verified"] = verified;
         }
 
         var descriptor = new SecurityTokenDescriptor

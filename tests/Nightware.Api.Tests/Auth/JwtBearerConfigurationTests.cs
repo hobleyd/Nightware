@@ -1,4 +1,8 @@
+using System.Security.Claims;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 
 using Nightware.Api.Auth;
 
@@ -42,5 +46,30 @@ public sealed class JwtBearerConfigurationTests
         options.MetadataAddress.ShouldBeNullOrEmpty();
         options.TokenValidationParameters.ValidateAudience.ShouldBeFalse();
         options.TokenValidationParameters.ValidIssuers.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("true", true, true)]
+    [InlineData("True", true, true)]
+    [InlineData("false", true, false)]
+    [InlineData(null, true, false)]
+    [InlineData(null, false, true)]
+    public async Task The_default_policy_requires_a_verified_email_unless_turned_off(string? claim, bool required, bool allowed)
+    {
+        var policy = AuthServiceCollectionExtensions.DefaultPolicy(new AuthOptions { RequireVerifiedEmail = required });
+        List<Claim> claims = [new("sub", "u")];
+        if (claim is not null)
+        {
+            claims.Add(new Claim("email_verified", claim));
+        }
+
+        var context = new AuthorizationHandlerContext(policy.Requirements, new ClaimsPrincipal(new ClaimsIdentity(claims, "test")), null);
+        foreach (var handler in policy.Requirements.OfType<IAuthorizationHandler>())
+        {
+            await handler.HandleAsync(context);
+        }
+
+        context.HasSucceeded.ShouldBe(allowed);
+        policy.Requirements.ShouldContain(r => r is DenyAnonymousAuthorizationRequirement);
     }
 }

@@ -56,7 +56,7 @@ public sealed class DeltaLinkCodecTests
     }
 
     [Fact]
-    public void A_tampered_payload_is_a_400()
+    public void A_payload_that_fails_its_signature_is_gone()
     {
         var codec = Codec();
         var link = codec.Encode(new DeltaLinkState(new DeltaToken("t"), null, 50));
@@ -65,15 +65,15 @@ public sealed class DeltaLinkCodecTests
 
         var result = codec.Decode(forged);
 
-        result.Error!.Kind.ShouldBe(ErrorKind.Validation);
+        result.Error!.Kind.ShouldBe(ErrorKind.SyncStateGone);
     }
 
     [Fact]
-    public void A_link_signed_with_another_key_is_a_400()
+    public void A_link_signed_with_another_key_is_gone_so_a_rotation_resyncs()
     {
         var link = Codec("key-1").Encode(new DeltaLinkState(new DeltaToken("t"), null, null));
 
-        Codec("key-2").Decode(link).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        Codec("key-2").Decode(link).Error!.Kind.ShouldBe(ErrorKind.SyncStateGone);
     }
 
     [Theory]

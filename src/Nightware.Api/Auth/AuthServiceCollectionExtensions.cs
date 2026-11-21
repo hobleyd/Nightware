@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +23,7 @@ public static class AuthServiceCollectionExtensions
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options => ConfigureJwtBearer(options, auth));
-        services.AddAuthorization();
+        services.AddAuthorization(options => options.DefaultPolicy = DefaultPolicy(auth));
 
         services.AddHttpContextAccessor();
         services.TryAddScoped<CurrentRequest>();
@@ -32,6 +33,25 @@ public static class AuthServiceCollectionExtensions
             sp.GetService<Nightware.Application.Subscriptions.SubscriberContext>()?.Current ?? sp.GetRequiredService<HttpUserContext>());
         return services;
     }
+
+    /// <summary>
+    /// What <c>RequireAuthorization()</c> demands of a Graph caller: a valid token and, unless
+    /// <see cref="AuthOptions.RequireVerifiedEmail"/> is off, a verified email. A token without one is 403
+    /// <c>ErrorAccessDenied</c>, decided before any backend token is exchanged.
+    /// </summary>
+    internal static AuthorizationPolicy DefaultPolicy(AuthOptions auth)
+    {
+        var policy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser();
+        if (auth.RequireVerifiedEmail)
+        {
+            policy.RequireAssertion(static context =>
+                string.Equals(context.User.FindFirst(EmailVerifiedClaim)?.Value, "true", StringComparison.OrdinalIgnoreCase));
+        }
+
+        return policy.Build();
+    }
+
+    internal const string EmailVerifiedClaim = "email_verified";
 
     /// <summary>Self-authorising URLs (ADR 0001 §39): the sealer that mints them and the source the middleware asks when a request has no bearer.</summary>
     public static IServiceCollection AddSelfAuthorisingUrls(this IServiceCollection services)

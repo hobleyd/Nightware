@@ -160,7 +160,7 @@ The worked example is in
 
 ```csharp
 var cursor = links.ReadCursor(request.Query, odata.Query);      // DeltaLinkCodec links (inject it)
-if (!cursor.IsSuccess) return GraphResults.Error(cursor.Error); // tampered → 400, expired/garbage → 410
+if (!cursor.IsSuccess) return GraphResults.Error(cursor.Error); // bad signature, expired or garbage → 410
 var c = cursor.Value;                                           // c.Token null = initial sync
 var page = await reader.DeltaAsync(mailbox.Ref, folder, c.Token,
     new DeltaRequest(c.Top ?? DeltaRequest.DefaultPageSize, c.Select), ct);
@@ -298,7 +298,7 @@ The worked example is `Arrangements/ExampleArrangements.cs` together with
 
 | Section | Owner | Keys |
 |---|---|---|
-| `Auth` | Api | `Authority` (public issuer), `MetadataAddress` (internal JWKS URL, e.g. `http://keycloak:8080/realms/nightware/.well-known/openid-configuration`), `Audience` (`nightware-api`), `RequireHttpsMetadata`, `ValidIssuers[]` |
+| `Auth` | Api | `Authority` (public issuer), `MetadataAddress` (internal JWKS URL, e.g. `http://keycloak:8080/realms/nightware/.well-known/openid-configuration`), `Audience` (`nightware-api`), `RequireHttpsMetadata`, `ValidIssuers[]`, `RequireVerifiedEmail` (default true) |
 | `Discovery` | Api | `GraphBaseUrl`, `GraphBetaBaseUrl`, `AuthorizationEndpoint`, `TokenEndpoint`, `ClientId`, `Scopes[]`. All are required, validated on start, and served at `/.well-known/nightware`. |
 | `DeltaLinks` | Api | `SigningKey` (shared across instances; if empty, a per-process key is used), `Lifetime` |
 | `Directory`, `BackendCredentials` | Directory adapter | validated on start |

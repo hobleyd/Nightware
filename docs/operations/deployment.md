@@ -104,9 +104,9 @@ So:
 Do it on all instances at once, because a mixed fleet rejects half of each other's links. It
 invalidates:
 
-- **every stored delta and next link.** A link signed with the old key answers `400 invalidRequest`
-  (not 410; see `docs/known-issues.md`). NightMail clears its cursor on 400 or 410 and does a
-  **full resync** of each folder: correct, but a burst of backend load as every device re-pulls.
+- **every stored delta and next link.** A link signed with the old key answers `410
+  syncStateNotFound`. Clients clear their cursor and do a **full resync** of each folder: correct,
+  but a burst of backend load as every device re-pulls.
 - **every in-flight upload and download URL.** An upload session `uploadUrl` or a 5-minute
   download redirect sealed with the old key no longer recovers a credential and answers `401`.
   NightMail uses an upload URL right after creating the session and follows a download redirect

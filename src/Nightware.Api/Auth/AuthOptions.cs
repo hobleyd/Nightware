@@ -21,6 +21,14 @@ public sealed class AuthOptions
 
     public bool RequireHttpsMetadata { get; set; } = true;
 
+    /// <summary>
+    /// Every Graph request's token must carry <c>email_verified: true</c>, since the <c>email</c> claim names the
+    /// caller's mailbox (here and at Stalwart, through the exchanged token). Users created by the console, the
+    /// realm import and the deployment are verified; turn this off only for an identity provider that never
+    /// sends the claim.
+    /// </summary>
+    public bool RequireVerifiedEmail { get; set; } = true;
+
     /// <summary>Extra accepted <c>iss</c> values (e.g. the realm's internal and external URLs).</summary>
     public IList<string> ValidIssuers { get; } = [];
 }

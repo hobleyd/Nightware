@@ -19,6 +19,7 @@ process with a message naming the key, instead of failing on the first request.
 | `Auth:Audience` | `nightware-api` | Required `aud`. Empty disables the audience check — never do that in production. |
 | `Auth:RequireHttpsMetadata` | `true` | `false` only for an internal `http://` metadata address. |
 | `Auth:ValidIssuers:N` | none | Extra accepted issuers. |
+| `Auth:RequireVerifiedEmail` | `true` | Every Graph token must carry `email_verified: true` (403 `ErrorAccessDenied` otherwise), since `email` names the mailbox. `false` only for an identity provider that never sends the claim. |
 | `Discovery:GraphBaseUrl` | `https://nightware.localhost/graph/v1.0` | Public v1.0 root, path prefix included (the compose stack serves the façade under `/graph`). Every `@odata.nextLink`/`deltaLink` and sealed upload/download URL is built on it; NightMail ignores links on any other scheme/host/port. Required. |
 | `Discovery:GraphBetaBaseUrl` | `…/beta` | Public beta root. Required. |
 | `Discovery:AuthorizationEndpoint` | Keycloak `…/auth` | Published to NightMail. Required. |

@@ -133,6 +133,17 @@ public sealed class PipelineTests : IAsyncLifetime
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(null)]
+    public async Task A_token_whose_email_is_not_verified_is_forbidden(bool? verified)
+    {
+        var response = await _host.AuthorizedClient(TestHost.Token(emailVerified: verified)).GetAsync("/v1.0/me/probe", Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await response.ReadObjectAsync()).Str("error.code").ShouldBe("ErrorAccessDenied");
+    }
+
     [Fact]
     public async Task Unsupported_odata_is_a_400_naming_the_construct()
     {

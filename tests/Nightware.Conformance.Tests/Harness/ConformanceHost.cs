@@ -78,6 +78,7 @@ public sealed class ConformanceHost : WebApplicationFactory<Program>
                 [
                     new Claim("sub", "conformance-user"),
                     new Claim("email", UserEmail),
+                    new Claim("email_verified", "true"),
                     new Claim("preferred_username", "me"),
                     new Claim("name", "Me Example"),
                 ],

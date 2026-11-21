@@ -103,20 +103,6 @@ what a fix needs. Ordered by impact within each section.
   Production refuses to start without one of at least 32 bytes, and compose has
   no default (`deploy/scripts/init-env.sh` generates it). Rotating it is
   disruptive: see `docs/operations/deployment.md`.
-- **A delta link signed with another key answers 400, not 410.** The codec
-  treats a bad signature as tampering (`invalidRequest`). NightMail's poller
-  clears its cursor and resyncs on 400 as on 410, so a key rotation still
-  recovers. A Graph client that only resyncs on 410 would not. Fix (frozen
-  `Api/Graph/Json/DeltaLinkCodec.cs`): answer 410 for a signature mismatch.
-- **The façade doesn't require `email_verified`.** Identity is the `email`
-  claim (`/me`, and Stalwart's `claimUsername`). Users can no longer change
-  their email or username themselves (the realm user profile makes both
-  admin-only; `deploy/keycloak/configure.sh`), so the remaining exposure is an
-  admin entering the wrong address. A check in `HttpUserContext` alone wouldn't
-  help: the exchanged token still carries the email to Stalwart. Fix: an
-  authorization policy on every Graph route that requires `email_verified=true`,
-  enforced before token exchange. The realm has `verifyEmail` off, so
-  admin-created users must then be marked verified. alice and bob already are.
 - **Email is required but no longer user-editable.** A user created without an
   email can't add one in the account console. An admin must set it, which is
   the intended path because the address is the mailbox.

@@ -48,10 +48,11 @@ public sealed record DeltaCursor(DeltaToken? Token, IReadOnlySet<string>? Select
 /// </summary>
 /// <remarks>
 /// Format: <c>base64url(json) "." base64url(HMAC-SHA256(json))</c>, no padding, so it survives a
-/// query string verbatim. Decoding errors: a well-formed link whose signature does not verify is
-/// <b>tampered</b> → <see cref="ErrorKind.Validation"/> (400); anything undecodable, of an unknown
-/// version, or older than <see cref="DeltaLinkOptions.Lifetime"/> is <see cref="ErrorKind.SyncStateGone"/>
-/// (410, the client resyncs). <c>$deltatoken</c> and <c>$skiptoken</c> are interchangeable inputs.
+/// query string verbatim. Decoding errors are all <see cref="ErrorKind.SyncStateGone"/> (410, the
+/// client resyncs): anything undecodable, of an unknown version, older than
+/// <see cref="DeltaLinkOptions.Lifetime"/>, or whose signature does not verify. A bad signature is
+/// usually a link signed before the key was rotated, and a Graph client resyncs only on 410; a
+/// forged link gains nothing, since its payload is never read. <c>$deltatoken</c> and <c>$skiptoken</c> are interchangeable inputs.
 /// </remarks>
 public sealed partial class DeltaLinkCodec
 {
@@ -113,7 +114,7 @@ public sealed partial class DeltaLinkCodec
 
         if (!CryptographicOperations.FixedTimeEquals(HMACSHA256.HashData(_key, json), signature))
         {
-            return Error.Validation("The delta or skip token has been modified.", ODataQueryParser.DeltaTokenOption);
+            return Gone();
         }
 
         Payload? payload;

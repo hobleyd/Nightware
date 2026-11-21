@@ -111,7 +111,7 @@ public sealed class DeltaEndpointTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_tampered_link_is_a_400()
+    public async Task A_link_that_fails_its_signature_is_a_410_so_the_client_resyncs()
     {
         var codec = _host.App.Services.GetRequiredService<DeltaLinkCodec>();
         var link = codec.Encode(new DeltaLinkState(new DeltaToken("t"), null, 50));
@@ -119,8 +119,8 @@ public sealed class DeltaEndpointTests : IAsyncLifetime
 
         var response = await _host.AuthorizedClient().GetAsync($"/v1.0/me/testFolders/inbox/messages/delta?$deltatoken={tampered}", Ct);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        (await response.ReadObjectAsync()).Str("error.code").ShouldBe("invalidRequest");
+        response.StatusCode.ShouldBe(HttpStatusCode.Gone);
+        (await response.ReadObjectAsync()).Str("error.code").ShouldBe("syncStateNotFound");
     }
 
     [Fact]
