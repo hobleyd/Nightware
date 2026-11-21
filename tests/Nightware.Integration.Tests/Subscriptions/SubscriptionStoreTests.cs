@@ -69,9 +69,10 @@ public sealed class SubscriptionStoreTests : IAsyncLifetime
             }
         }
 
-        var renewed = mine with { ExpirationDateTime = mine.ExpirationDateTime.AddDays(1), SyncState = "s1" };
-        (await store.UpdateAsync(renewed, null, Ct)).IsSuccess.ShouldBeTrue();
-        (await store.GetAsync("alice", mine.Id, Ct)).Value.ShouldBe(renewed);
+        // A renewal changes what the client set, never the poller's sync state.
+        var renewed = mine with { ExpirationDateTime = mine.ExpirationDateTime.AddDays(1), SyncState = "stale" };
+        (await store.UpdateAsync(renewed, null, Ct)).Value.ShouldBe(renewed with { SyncState = mine.SyncState });
+        (await store.GetAsync("alice", mine.Id, Ct)).Value.ExpirationDateTime.ShouldBe(renewed.ExpirationDateTime);
         (await store.UpdateAsync(renewed with { CreatorId = "bob" }, null, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
 
         (await store.DeleteAsync("bob", mine.Id, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
@@ -108,5 +109,21 @@ public sealed class SubscriptionStoreTests : IAsyncLifetime
 
         (await store.RemoveExpiredAsync(now, Ct)).Value.ShouldHaveSingleItem().Id.ShouldBe(expired.Id);
         (await store.GetAsync("alice", expired.Id, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task A_renewal_with_a_new_credential_ends_the_backoff_at_once()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Live integration tests run only with NIGHTWARE_INTEGRATION=1.");
+        var store = new PostgresSubscriptionStore(_source!, new CredentialSealer(new string('c', 64)), new SubscriptionSchema(_source!));
+        var sub = New("carol") with { ExpirationDateTime = DateTimeOffset.UtcNow.AddDays(1) };
+        await store.CreateAsync(sub, "r1", Ct);
+        var leased = (await store.LeaseDueAsync(DateTimeOffset.UtcNow.AddSeconds(1), TimeSpan.FromMinutes(2), 10, Ct)).Value.Single(l => l.Subscription.Id == sub.Id);
+        await store.CompletePollAsync(sub.Id, "s9", null, null, DateTimeOffset.UtcNow.AddHours(1), 5, Ct);
+
+        (await store.UpdateAsync(leased.Subscription, "r2", Ct)).IsSuccess.ShouldBeTrue();
+
+        var again = (await store.LeaseDueAsync(DateTimeOffset.UtcNow.AddSeconds(1), TimeSpan.FromMinutes(2), 10, Ct)).Value.Single(l => l.Subscription.Id == sub.Id);
+        (again.RefreshToken, again.Failures, again.Subscription.SyncState).ShouldBe(("r2", 0, "s9"));
     }
 }

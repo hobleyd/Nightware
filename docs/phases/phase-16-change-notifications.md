@@ -85,6 +85,19 @@ receives Graph notifications at its own HTTPS endpoint.
   from now (the gap is not replayed). Expired subscriptions are removed with their
   credentials each round, without a notification (Graph sends none on expiry).
 
+- **Polling cost.** Each poll of each subscription is a Keycloak refresh grant
+  plus one or two token exchanges (the renewed token is new each time, so the
+  exchange cache misses): about three Keycloak calls per subscription per
+  `PollInterval`, plus the backend's own delta call. **Side effect:** the refresh
+  keeps the subscriber's SSO session active, so while a subscription lives the
+  session never reaches its 24-hour idle timeout; only the 10-day maximum
+  (`ssoSessionMaxLifespan`) ends it, and then `reauthorizationRequired` follows.
+  Caching the renewed access token per subscription until near its expiry would
+  cut the refresh grants to one per 15 minutes; not done.
+- The integration tests for the store use a throwaway Postgres (Testcontainers).
+  On the colima dev machine they need `DOCKER_HOST=unix://$HOME/.colima/default/docker.sock`
+  and `TESTCONTAINERS_RYUK_DISABLED=true` besides `NIGHTWARE_INTEGRATION=1`.
+
 ## Deployment (not done: the live stack is ansible's)
 This repo's `deploy/docker-compose.yml` gains `subscriptions-db` (Postgres 17) and
 the API's `Subscriptions__ConnectionString` / `Subscriptions__SealingKey`;
@@ -95,5 +108,8 @@ the API's `Subscriptions__ConnectionString` / `Subscriptions__SealingKey`;
 - the two `Subscriptions__*` variables on `nightware-api`, from new vault entries
   for the database password and the sealing key (32 bytes hex);
 - `keycloak/configure.sh` run on the VM (it switches on same-session refresh tokens
-  for `nightware-api`).
+  for `nightware-api`). The configure scripts run `init-env.sh` first, which adds
+  `SUBSCRIPTIONS_DB_PASSWORD` and `NIGHTWARE_SUBSCRIPTION_KEY` to the checkout's
+  `deploy/.env` if missing; the live values must come from the vault through
+  ansible instead.
 Until then `/subscriptions` answers 501 on live.

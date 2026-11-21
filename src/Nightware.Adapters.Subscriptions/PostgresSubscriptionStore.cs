@@ -15,14 +15,14 @@ internal sealed class PostgresSubscriptionStore(NpgsqlDataSource database, Crede
 {
     internal const string Columns = "id, creator_id, resource, mailbox, kind, folder, change_type, notification_url, lifecycle_url, client_state, application_id, expiration, sync_state";
 
-    /// <summary>The baseline state was read just now, so "now" is the first poll's starting point.</summary>
+    /// <summary>The baseline state was read just now, so "now" is the first poll's starting point; it is due at once.</summary>
     public async Task<Result<Subscription>> CreateAsync(Subscription subscription, string refreshToken, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(subscription);
         await schema.EnsureAsync(cancellationToken).ConfigureAwait(false);
         await using var command = database.CreateCommand($"""
-            INSERT INTO nightware_subscriptions ({Columns}, credential, last_poll)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, now())
+            INSERT INTO nightware_subscriptions ({Columns}, credential, last_poll, next_poll)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, now(), '-infinity')
             """);
         Bind(command, subscription);
         command.Parameters.Add(new NpgsqlParameter { Value = sealer.Seal(subscription.Id, refreshToken) });
@@ -59,15 +59,24 @@ internal sealed class PostgresSubscriptionStore(NpgsqlDataSource database, Crede
     {
         ArgumentNullException.ThrowIfNull(subscription);
         await schema.EnsureAsync(cancellationToken).ConfigureAwait(false);
+        // The sync state is the poller's ($13 is bound, typed, and not written): a renewal must not rewind it. A new credential
+        // (a renewal is also a reauthorization) clears the backoff so polling resumes at once, whatever the clocks say.
         await using var command = database.CreateCommand($"""
             UPDATE nightware_subscriptions
                SET resource = $3, mailbox = $4, kind = $5, folder = $6, change_type = $7, notification_url = $8, lifecycle_url = $9,
-                   client_state = $10, application_id = $11, expiration = $12, sync_state = $13, credential = COALESCE($14, credential)
+                   client_state = $10, application_id = $11, expiration = $12, credential = COALESCE($14, credential),
+                   failures = CASE WHEN $14 IS NULL THEN failures ELSE 0 END,
+                   next_poll = CASE WHEN $14 IS NULL THEN next_poll ELSE '-infinity'::timestamptz END
              WHERE id = $1 AND creator_id = $2
             """);
         Bind(command, subscription);
         command.Parameters.Add(new NpgsqlParameter { Value = refreshToken is null ? DBNull.Value : sealer.Seal(subscription.Id, refreshToken), NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Bytea });
-        return await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) == 1 ? subscription : NotFound();
+        if (await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) != 1)
+        {
+            return NotFound();
+        }
+
+        return await GetAsync(subscription.CreatorId, subscription.Id, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result> DeleteAsync(string creatorId, string id, CancellationToken cancellationToken)

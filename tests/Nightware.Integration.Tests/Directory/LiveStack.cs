@@ -20,6 +20,8 @@ namespace Nightware.Integration.Tests.Directory;
 /// <para>The stack's host, secrets and (with <c>CADDY_TLS=internal</c>) Caddy root CA live in the bootstrapped
 /// deploy folder (<c>deploy/.env</c>, <c>deploy/.certs/caddy-root.crt</c>), which is git-ignored. Set
 /// <c>NIGHTWARE_DEPLOY_DIR</c> when that is not this checkout's own <c>deploy/</c>.</para>
+/// <para>The subscription tests also start a throwaway Postgres with Testcontainers; with colima set
+/// <c>DOCKER_HOST=unix://$HOME/.colima/default/docker.sock</c> and <c>TESTCONTAINERS_RYUK_DISABLED=true</c>.</para>
 /// <para>Every backend is reached on its public URL (<c>https://{PUBLIC_HOST}/auth</c>, <c>/cloud</c>, …) through
 /// Caddy; the CA is trusted for Nightware's outgoing HTTP clients and JWKS fetch only, never process-wide.</para>
 /// </remarks>
