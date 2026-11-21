@@ -21,10 +21,13 @@ what a fix needs. Ordered by impact within each section.
   404 on `messages/{id}/event` (the client falls back to its other lookups).
   Fix: an `ICalendarWriter.ImportAsync(MailboxRef, string ics)` port, or
   `NewEvent.ICalUId`.
-- **Not carried by Nextcloud's iMIP:** RSVP/cancel/forward comments,
-  `sendResponse: false` (Sabre always replies), and a decline's
-  `proposedNewTime` (Sabre has no iTIP COUNTER). Inbound COUNTERs from external
-  organizers do work.
+- **RSVP comments and proposed times reach outside organizers only.** For an
+  organizer outside Nextcloud the façade mails the answer itself (an iTIP
+  REPLY, or COUNTER with the proposed time) and keeps Nextcloud quiet. For an
+  organizer inside Nextcloud, Sabre delivers the answer straight to their
+  calendar and can't carry either, so they stay on the attendee's copy.
+  `sendResponse: false` works for both. Cancel and forward comments are still
+  not carried. Inbound COUNTERs from external organizers do work.
 - **Every `calendarView` page re-expands the whole window.** The CalDAV
   expand REPORT has no paging, so each `$skiptoken` page expands, materialises
   and sorts every occurrence in the window again before slicing. The window is

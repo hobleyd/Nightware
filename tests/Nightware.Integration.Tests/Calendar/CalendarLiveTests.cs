@@ -123,6 +123,48 @@ public sealed class CalendarLiveTests
     }
 
     [Fact]
+    public async Task An_answer_without_a_response_leaves_the_organizer_unaware_until_one_is_sent()
+    {
+        await using var stack = CalendarLiveStack.Start();
+        using var alice = await stack.GraphClientAsync("alice", Ct);
+        using var bob = await stack.GraphClientAsync("bob", Ct);
+        var subject = $"P17 silent rsvp {Guid.NewGuid():N}";
+        var slot = UniqueSlot();
+        var created = await SendJsonAsync(alice, HttpMethod.Post, "/v1.0/me/events", $$$"""
+            {"subject":"{{{subject}}}","start":{"dateTime":"{{{Wall(slot)}}}","timeZone":"Australia/Sydney"},"end":{"dateTime":"{{{Wall(slot.AddHours(1))}}}","timeZone":"Australia/Sydney"},
+             "attendees":[{"emailAddress":{"address":"{{{Bob}}}"},"type":"required"}]}
+            """, HttpStatusCode.Created);
+        var eventId = created["id"]!.GetValue<string>();
+        try
+        {
+            var startUtc = TimeZoneInfo.ConvertTimeToUtc(slot, TimeZoneInfo.FindSystemTimeZoneById("Australia/Sydney"));
+            var window = $"startDateTime={startUtc.AddHours(-1):yyyy-MM-ddTHH:mm:ss}Z&endDateTime={startUtc.AddHours(2):yyyy-MM-ddTHH:mm:ss}Z";
+            JsonObject? copy = null;
+            for (var attempt = 0; attempt < 20 && copy is null; attempt++)
+            {
+                await Task.Delay(500, Ct);
+                copy = (await SendJsonAsync(bob, HttpMethod.Get, $"/v1.0/me/calendarView?{window}&$select=id,subject"))["value"]!.AsArray()
+                    .Select(v => v!.AsObject()).FirstOrDefault(v => v["subject"]!.GetValue<string>() == subject);
+            }
+
+            var bobsId = copy.ShouldNotBeNull("Bob has the invitation")["id"]!.GetValue<string>();
+            static string BobsAnswer(JsonObject e) => e["attendees"]!.AsArray().Single(a => a!["emailAddress"]!["address"]!.GetValue<string>() == Bob)!["status"]!["response"]!.GetValue<string>();
+
+            await SendJsonAsync(bob, HttpMethod.Post, $"/v1.0/me/events/{bobsId}/decline", """{"sendResponse":false}""", HttpStatusCode.Accepted);
+            await Task.Delay(2000, Ct);
+            BobsAnswer(await SendJsonAsync(alice, HttpMethod.Get, $"/v1.0/me/events/{eventId}?$select=attendees")).ShouldBe("notResponded");
+            (await SendJsonAsync(bob, HttpMethod.Get, $"/v1.0/me/events/{bobsId}?$select=responseStatus"))["responseStatus"]!["response"]!.GetValue<string>().ShouldBe("declined");
+
+            await SendJsonAsync(bob, HttpMethod.Post, $"/v1.0/me/events/{bobsId}/accept", """{"sendResponse":true}""", HttpStatusCode.Accepted);
+            BobsAnswer(await SendJsonAsync(alice, HttpMethod.Get, $"/v1.0/me/events/{eventId}?$select=attendees")).ShouldBe("accepted");
+        }
+        finally
+        {
+            await SendJsonAsync(alice, HttpMethod.Post, $"/v1.0/me/events/{eventId}/cancel", """{"comment":""}""", HttpStatusCode.Accepted);
+        }
+    }
+
+    [Fact]
     public async Task Calendar_view_expands_a_series_and_types_its_moved_occurrence_as_an_exception()
     {
         await using var stack = CalendarLiveStack.Start();

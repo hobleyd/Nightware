@@ -157,8 +157,8 @@ public sealed class MessageEventUseCaseTests
     {
         ArrangeInvitation(Meeting(string.Empty));
         ArrangeCopies(Meeting("master"));
-        _scheduling.RespondAsync(Me, new EventId("master"), RsvpResponse.TentativelyAccept, null, true, null, Ct).Returns(Result.Success());
-        var respond = new RespondToMessage(Resolve(), new RespondToEvent(_scheduling));
+        _scheduling.RespondAsync(Me, new EventId("master"), RsvpResponse.TentativelyAccept, null, true, null, Ct).Returns(Result<ItipMessage?>.Success(null));
+        var respond = new RespondToMessage(Resolve(), new RespondToEvent(_scheduling, Substitute.For<IItipMail>()));
 
         (await respond.ExecuteAsync(Me, Message, new RsvpRequest(RsvpResponse.TentativelyAccept, string.Empty, true), Ct)).IsSuccess.ShouldBeTrue();
     }
@@ -168,7 +168,7 @@ public sealed class MessageEventUseCaseTests
     {
         ArrangeInvitation(Meeting(string.Empty));
         ArrangeCopies(Meeting("master") with { IsOrganizer = true });
-        var respond = new RespondToMessage(Resolve(), new RespondToEvent(_scheduling));
+        var respond = new RespondToMessage(Resolve(), new RespondToEvent(_scheduling, Substitute.For<IItipMail>()));
 
         (await respond.ExecuteAsync(Me, Message, new RsvpRequest(RsvpResponse.Accept, null, true), Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
         await _scheduling.DidNotReceiveWithAnyArgs().RespondAsync(default, default, default, default, default, default, Ct);

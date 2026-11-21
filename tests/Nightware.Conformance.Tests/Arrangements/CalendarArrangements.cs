@@ -88,7 +88,7 @@ public sealed class CalendarArrangements : IConformanceArrangements
                 .RespondAsync(Me, EventIdOf, RsvpResponse.Decline, null, true,
                     new TimeSlot(new DateTimeTimeZone(new DateTime(2026, 6, 10, 11, 30, 0), "Australia/Sydney"), new DateTimeTimeZone(new DateTime(2026, 6, 10, 12, 30, 0), "Australia/Sydney")),
                     Arg.Any<CancellationToken>())
-                .Returns(Result.Success()));
+                .Returns(Result<ItipMessage?>.Success(null)));
 
         yield return MessageRsvp("calendar.messages.accept", RsvpResponse.Accept);
         yield return MessageRsvp("calendar.messages.tentatively-accept", RsvpResponse.TentativelyAccept);
@@ -128,7 +128,7 @@ public sealed class CalendarArrangements : IConformanceArrangements
         new(operationId, fakes =>
             fakes.For<ISchedulingActions>()
                 .RespondAsync(Me, EventIdOf, response, comment, true, null, Arg.Any<CancellationToken>())
-                .Returns(Result.Success()));
+                .Returns(Result<ItipMessage?>.Success(null)));
 
     private static ConformanceArrangement MessageRsvp(string operationId, RsvpResponse response) =>
         new(operationId, fakes =>
@@ -137,7 +137,7 @@ public sealed class CalendarArrangements : IConformanceArrangements
             ArrangeUidLookup(fakes, isOrganizer: false);
             fakes.For<ISchedulingActions>()
                 .RespondAsync(Me, EventIdOf, response, null, true, null, Arg.Any<CancellationToken>())
-                .Returns(Result.Success());
+                .Returns(Result<ItipMessage?>.Success(null));
         });
 
     private static ConformanceArrangement LinkedEvent(string operationId, bool isOrganizer) =>

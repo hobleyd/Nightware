@@ -1,6 +1,6 @@
 # Phase 17 — Remaining Graph gaps
 
-> **Status (2026-11-21): in progress, local only.** Asked for: clearing a
+> **Status (2026-11-21): done, local only.** Asked for: clearing a
 > recurrence with PATCH, calendars for shared mailboxes, and the client-visible
 > behaviour gaps listed in `docs/known-issues.md` where possible.
 
@@ -15,6 +15,7 @@
 | Graph profile fields set in the console, declared in Keycloak | 1.37.0 | `docs/known-issues.md` |
 | Notifications: exact created/updated; `subscriptionRemoved` | 1.38.0 | phase 16 doc, ADR 0006 D10 |
 | Shared mailboxes have a calendar | 1.39.0 | ADR 0004 D6 |
+| RSVP `sendResponse: false`; comments and proposed times to outside organizers by iMIP | 1.40.0 | `Adapters.Dav/README.md` |
 
 ## Step 0 findings (local stack, 2026-11-21)
 - **Stalwart** answers `Email/queryChanges` with a folder filter and
@@ -34,3 +35,12 @@
     as ORGANIZER; the attendee gets it in their calendar and an invitation mail
     "{name} via Nextcloud" from the calendar sender.
 - **Nextcloud, Apache:** prefork kept 5–10 idle workers (see the load README).
+- **Sabre scheduling:** an attendee's copy written with
+  `ORGANIZER;SCHEDULE-AGENT=CLIENT` and a new PARTSTAT sends no REPLY (the
+  organizer's copy keeps "needs action"); without it the REPLY lands at once.
+  A stored calendar object must not carry `METHOD` (415).
+- **Stalwart submission:** recipients on reserved test domains (`.example`,
+  `.test`) are dropped from the envelope ("No recipients found").
+- **Not possible:** a comment or proposed time for an organizer inside
+  Nextcloud. Sabre delivers the REPLY into their calendar and can't carry
+  either; a mailed iTIP message would arrive as mail, not update the calendar.

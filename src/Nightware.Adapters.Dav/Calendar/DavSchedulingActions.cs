@@ -10,13 +10,17 @@ namespace Nightware.Adapters.Dav.Calendar;
 /// lets Sabre's scheduling plugin send the iTIP message (REPLY, CANCEL, REQUEST) by iMIP.
 /// </summary>
 /// <remarks>
-/// What Sabre's messages cannot carry is dropped, and documented in the adapter README: the RSVP and
-/// cancellation comments (kept on the stored copy only), <c>sendResponse: false</c> (Sabre always replies),
-/// and a counter-proposal's new time (Sabre has no iTIP COUNTER).
+/// An RSVP with <c>sendResponse: false</c> marks the organizer <c>SCHEDULE-AGENT=CLIENT</c>, so Sabre sends nothing.
+/// Sabre's REPLY carries no comment and it has no COUNTER, so a comment or a proposed time for an organizer outside
+/// Nextcloud is suppressed the same way and handed back as an <see cref="ItipMessage"/> for the caller to mail. For an
+/// organizer inside Nextcloud Sabre delivers the reply to their calendar directly; a mail would not, so there the
+/// comment and the proposal stay on the attendee's copy only (adapter README).
 /// </remarks>
-internal sealed class DavSchedulingActions(DavEventResources resources, DavCalendarReader reader, IcsEditor editor) : ISchedulingActions
+internal sealed class DavSchedulingActions(DavEventResources resources, DavCalendarReader reader, IcsEditor editor, Core.Discovery.IDavPrincipalDiscovery discovery)
+    : ISchedulingActions
 {
-    public async Task<Result> RespondAsync(MailboxRef mailbox, EventId id, RsvpResponse response, string? comment, bool sendResponse, TimeSlot? proposedNewTime, CancellationToken cancellationToken)
+    public async Task<Result<ItipMessage?>> RespondAsync(
+        MailboxRef mailbox, EventId id, RsvpResponse response, string? comment, bool sendResponse, TimeSlot? proposedNewTime, CancellationToken cancellationToken)
     {
         var meeting = await LoadAsync(mailbox, id, cancellationToken).ConfigureAwait(false);
         if (!meeting.IsSuccess)
@@ -30,11 +34,43 @@ internal sealed class DavSchedulingActions(DavEventResources resources, DavCalen
             return Error.Validation("The organizer of a meeting cannot respond to it.", "id");
         }
 
-        var edited = editor.SetParticipation(stored.Body, mailbox.Address, response, stored.Id.RecurrenceId, comment);
-        return edited.IsSuccess
-            ? await resources.SaveAsync(stored, edited.Value, cancellationToken).ConfigureAwait(false)
-            : edited.Error;
+        // The façade answers an outside organizer itself only when Sabre's reply would lose something.
+        ItipMessage? mailed = null;
+        if (sendResponse && (comment is not null || proposedNewTime is not null) && current.Organizer is { Address.Length: > 0 } organizer
+            && await IsOutsideAsync(organizer.Address, cancellationToken).ConfigureAwait(false))
+        {
+            var reply = editor.Reply(stored.Body, mailbox.Address, response, stored.Id.RecurrenceId, comment, proposedNewTime);
+            if (!reply.IsSuccess)
+            {
+                return reply.Error;
+            }
+
+            var method = proposedNewTime is null ? "REPLY" : "COUNTER";
+            mailed = new ItipMessage(organizer.Address, Subject(response, proposedNewTime, current.Subject), comment ?? string.Empty, reply.Value, method);
+        }
+
+        var edited = editor.SetParticipation(stored.Body, mailbox.Address, response, stored.Id.RecurrenceId, comment, serverReplies: sendResponse && mailed is null);
+        if (!edited.IsSuccess)
+        {
+            return edited.Error;
+        }
+
+        var saved = await resources.SaveAsync(stored, edited.Value, cancellationToken).ConfigureAwait(false);
+        return saved.IsSuccess ? mailed : saved.Error;
     }
+
+    /// <summary>True when no Nextcloud principal has the address: the organizer gets iTIP by mail, not into a calendar here.</summary>
+    private async Task<bool> IsOutsideAsync(string address, CancellationToken cancellationToken) =>
+        await discovery.DiscoverAsync(new MailboxRef(address), cancellationToken).ConfigureAwait(false) is { IsSuccess: false, Error.Kind: ErrorKind.NotFound };
+
+    /// <summary>As Outlook titles an answer: "Accepted: …", "Tentative: …", "Declined: …", "New Time Proposed: …".</summary>
+    internal static string Subject(RsvpResponse response, TimeSlot? proposed, string? subject) =>
+        (proposed is not null ? "New Time Proposed" : response switch
+        {
+            RsvpResponse.Accept => "Accepted",
+            RsvpResponse.Decline => "Declined",
+            _ => "Tentative",
+        }) + ": " + (subject ?? string.Empty);
 
     /// <summary>
     /// Graph removes a cancelled meeting from the organizer's calendar and tells the attendees. Deleting

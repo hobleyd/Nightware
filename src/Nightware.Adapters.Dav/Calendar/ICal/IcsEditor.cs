@@ -18,8 +18,83 @@ public sealed partial class IcsEditor
 {
     private readonly TimeProvider _timeProvider;
 
+    private const string ScheduleAgent = "SCHEDULE-AGENT";
+
     public IcsEditor(TimeProvider timeProvider) =>
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+
+    /// <summary>
+    /// The attendee's iTIP answer as its own object (RFC 5546 §3.2.3, §3.2.7) for mailing to an organizer the server
+    /// can't reach with it: <c>REPLY</c>, or <c>COUNTER</c> with <paramref name="proposed"/> as the new times. It
+    /// carries the meeting's UID, SEQUENCE, ORGANIZER and (for one occurrence) RECURRENCE-ID, the attendee alone with
+    /// their PARTSTAT, and the comment.
+    /// </summary>
+    public Result<string> Reply(string ics, string attendeeAddress, RsvpResponse response, DavRecurrenceId? occurrence, string? comment, TimeSlot? proposed)
+    {
+        var loaded = IcalNetCalendarCodec.Load(ics);
+        if (!loaded.IsSuccess)
+        {
+            return loaded.Error;
+        }
+
+        var stored = loaded.Value;
+        var zones = new IcalZoneContext(stored, "UTC");
+        var source = occurrence is { } rid
+            ? stored.Events.FirstOrDefault(e => e.RecurrenceIdentifier?.StartTime is { } start && SameInstance(zones, start, rid)) ?? Master(stored)
+            : Master(stored) ?? stored.Events.FirstOrDefault();
+        var me = source?.Attendees.FirstOrDefault(a => string.Equals(IcalNetCalendarCodec.AddressOf(a.Value), attendeeAddress.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (source is null || me is null || source.Organizer is null)
+        {
+            return Error.NotFound("The mailbox is not an attendee of this event.");
+        }
+
+        var method = proposed is null ? "REPLY" : "COUNTER";
+        var reply = new IcalCalendar { Method = method, ProductId = "-//Nightware//Graph façade//EN" };
+        var vevent = new IcalEvent
+        {
+            Uid = source.Uid,
+            Sequence = source.Sequence,
+            Summary = source.Summary,
+            DtStamp = IcalNetCalendarCodec.Utc(_timeProvider.GetUtcNow()),
+            Organizer = new Ical.Net.DataTypes.Organizer(source.Organizer.Value?.ToString() ?? string.Empty) { CommonName = source.Organizer.CommonName },
+        };
+        if (occurrence is not null && source.RecurrenceIdentifier is { } recurrence)
+        {
+            vevent.RecurrenceIdentifier = recurrence;
+        }
+
+        if (proposed is { } slot)
+        {
+            vevent.DtStart = IcalNetCalendarCodec.Utc(GraphTimeZoneInstant(slot.Start));
+            vevent.DtEnd = IcalNetCalendarCodec.Utc(GraphTimeZoneInstant(slot.End));
+        }
+        else
+        {
+            vevent.DtStart = source.DtStart;
+            vevent.DtEnd = source.DtEnd;
+        }
+
+        vevent.Attendees.Add(new Ical.Net.DataTypes.Attendee(me.Value?.ToString() ?? string.Empty)
+        {
+            CommonName = me.CommonName,
+            ParticipationStatus = response switch
+            {
+                RsvpResponse.Accept => EventParticipationStatus.Accepted,
+                RsvpResponse.Decline => EventParticipationStatus.Declined,
+                _ => EventParticipationStatus.Tentative,
+            },
+        });
+        if (!string.IsNullOrEmpty(comment))
+        {
+            vevent.Comments = [comment];
+        }
+
+        reply.Events.Add(vevent);
+        return new CalendarSerializer().SerializeToString(reply) ?? string.Empty;
+    }
+
+    private static DateTimeOffset GraphTimeZoneInstant(DateTimeTimeZone value) =>
+        Nightware.Application.Common.Time.GraphTimeZone.ToInstant(value.DateTime, value.TimeZone);
 
     /// <summary>
     /// "Delete this occurrence": adds an EXDATE for <paramref name="occurrence"/> to the series
@@ -51,7 +126,11 @@ public sealed partial class IcsEditor
     /// when the occurrence is still unmodified). Removes RSVP
     /// and, when <paramref name="comment"/> is given, records it as the component's COMMENT.
     /// </summary>
-    public Result<string> SetParticipation(string ics, string attendeeAddress, RsvpResponse response, DavRecurrenceId? occurrence = null, string? comment = null) =>
+    /// <param name="serverReplies">
+    /// False marks the ORGANIZER <c>SCHEDULE-AGENT=CLIENT</c> on the edited components, which tells Sabre to send no
+    /// REPLY (RFC 6638 §7.1); true clears that mark, so a later answer is sent again.
+    /// </param>
+    public Result<string> SetParticipation(string ics, string attendeeAddress, RsvpResponse response, DavRecurrenceId? occurrence = null, string? comment = null, bool serverReplies = true) =>
         Edit(ics, calendar =>
         {
             var zones = new IcalZoneContext(calendar, "UTC");
@@ -97,6 +176,15 @@ public sealed partial class IcsEditor
                 if (comment is not null)
                 {
                     vevent.Comments = [comment];
+                }
+
+                if (vevent.Organizer is { } organizer)
+                {
+                    organizer.Parameters.Remove(ScheduleAgent);
+                    if (!serverReplies)
+                    {
+                        organizer.Parameters.Add(ScheduleAgent, "CLIENT");
+                    }
                 }
 
                 Touch(vevent);

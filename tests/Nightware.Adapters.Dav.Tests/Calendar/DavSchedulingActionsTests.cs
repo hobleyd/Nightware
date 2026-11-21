@@ -28,6 +28,64 @@ public sealed class DavSchedulingActionsTests : IDisposable
         body.ShouldContain("COMMENT:See you");
     }
 
+    private void OutsideOrganizer() =>
+        _h.Discovery.DiscoverAsync(new MailboxRef("dana@contoso.example"), Arg.Any<CancellationToken>()).Returns(Error.NotFound("no principal"));
+
+    private static string FromOutside(string ics) => ics.Replace("CN=Alice Anderson:mailto:alice@nightware.localhost", "CN=Dana:mailto:dana@contoso.example", StringComparison.Ordinal);
+
+    [Fact]
+    public async Task A_comment_for_an_outside_organizer_is_handed_back_to_mail_and_the_server_stays_silent()
+    {
+        OutsideOrganizer();
+        _h.ServeIcs(BobSeriesHref, FromOutside(Read("series-bob.ics")));
+        _h.Serve("PUT", BobSeriesHref, 204);
+
+        var mail = (await _h.Scheduling.RespondAsync(BobMailbox, _h.IdOf(BobSeriesHref), RsvpResponse.Decline, "Away that week", true, null, Ct)).Value;
+
+        mail.ShouldNotBeNull();
+        (mail.To, mail.Method, mail.Body).ShouldBe(("dana@contoso.example", "REPLY", "Away that week"));
+        mail.Subject.ShouldStartWith("Declined: ");
+        mail.Calendar.ShouldContain("METHOD:REPLY");
+        Body().ShouldContain("SCHEDULE-AGENT=CLIENT");
+    }
+
+    [Fact]
+    public async Task A_proposal_for_an_outside_organizer_is_a_counter()
+    {
+        OutsideOrganizer();
+        _h.ServeIcs(BobSeriesHref, FromOutside(Read("series-bob.ics")));
+        _h.Serve("PUT", BobSeriesHref, 204);
+        var slot = new TimeSlot(new DateTimeTimeZone(new DateTime(2027, 1, 5, 1, 0, 0), "UTC"), new DateTimeTimeZone(new DateTime(2027, 1, 5, 2, 0, 0), "UTC"));
+
+        var mail = (await _h.Scheduling.RespondAsync(BobMailbox, _h.IdOf(BobSeriesHref), RsvpResponse.TentativelyAccept, null, true, slot, Ct)).Value!;
+
+        (mail.Method, mail.Subject.StartsWith("New Time Proposed: ", StringComparison.Ordinal)).ShouldBe(("COUNTER", true));
+        mail.Calendar.ShouldContain("DTSTART:20270105T010000Z");
+    }
+
+    [Fact]
+    public async Task An_inside_organizer_gets_the_servers_reply_and_nothing_is_mailed()
+    {
+        _h.ServeIcs(BobSeriesHref, Read("series-bob.ics"));
+        _h.Serve("PUT", BobSeriesHref, 204);
+
+        (await _h.Scheduling.RespondAsync(BobMailbox, _h.IdOf(BobSeriesHref), RsvpResponse.Accept, "See you", true, null, Ct)).Value.ShouldBeNull();
+
+        Body().ShouldNotContain("SCHEDULE-AGENT");
+    }
+
+    [Fact]
+    public async Task Not_sending_a_response_silences_the_server_and_mails_nothing()
+    {
+        OutsideOrganizer();
+        _h.ServeIcs(BobSeriesHref, FromOutside(Read("series-bob.ics")));
+        _h.Serve("PUT", BobSeriesHref, 204);
+
+        (await _h.Scheduling.RespondAsync(BobMailbox, _h.IdOf(BobSeriesHref), RsvpResponse.Decline, "busy", false, null, Ct)).Value.ShouldBeNull();
+
+        Body().ShouldContain("SCHEDULE-AGENT=CLIENT");
+    }
+
     [Fact]
     public async Task An_attendee_declines_one_unmodified_occurrence()
     {

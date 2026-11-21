@@ -37,7 +37,7 @@ public sealed class SchedulingEndpointsTests : IAsyncLifetime
     [InlineData("/v1.0/me", "me@example.com", "decline", RsvpResponse.Decline)]
     public async Task Event_rsvps_answer_202(string prefix, string mailbox, string action, RsvpResponse response)
     {
-        _scheduling.RespondAsync(new MailboxRef(mailbox), Id, response, "ok", true, null, Arg.Any<CancellationToken>()).Returns(Result.Success());
+        _scheduling.RespondAsync(new MailboxRef(mailbox), Id, response, "ok", true, null, Arg.Any<CancellationToken>()).Returns(Result<ItipMessage?>.Success(null));
 
         var result = await _host.AuthorizedClient().PostAsync($"{prefix}/events/ev-1/{action}", Json("""{"sendResponse":true,"comment":"ok"}"""), Ct);
 
@@ -49,7 +49,7 @@ public sealed class SchedulingEndpointsTests : IAsyncLifetime
     {
         _scheduling.RespondAsync(new MailboxRef(TestHost.UserEmail), Id, RsvpResponse.Decline, null, true,
                 new TimeSlot(new DateTimeTimeZone(new DateTime(2026, 6, 10, 11, 30, 0), "UTC"), new DateTimeTimeZone(new DateTime(2026, 6, 10, 12, 30, 0), "UTC")), Arg.Any<CancellationToken>())
-            .Returns(Result.Success());
+            .Returns(Result<ItipMessage?>.Success(null));
 
         var result = await _host.AuthorizedClient().PostAsync("/v1.0/me/events/ev-1/decline",
             Json("""{"sendResponse":true,"comment":"","proposedNewTime":{"start":{"dateTime":"2026-06-10T11:30:00.000","timeZone":"UTC"},"end":{"dateTime":"2026-06-10T12:30:00.000","timeZone":"UTC"}}}"""), Ct);
@@ -66,7 +66,7 @@ public sealed class SchedulingEndpointsTests : IAsyncLifetime
         (await _host.AuthorizedClient().PostAsync("/v1.0/me/events/ev-1/decline", Json("""{"proposedNewTime":{"start":{"dateTime":"2026-06-10T11:30:00","timeZone":"UTC"}}}"""), Ct))
             .StatusCode.ShouldBe(HttpStatusCode.BadRequest);
 
-        _scheduling.RespondAsync(Arg.Any<MailboxRef>(), Id, RsvpResponse.Accept, null, true, null, Arg.Any<CancellationToken>()).Returns(Error.NotFound("gone"));
+        _scheduling.RespondAsync(Arg.Any<MailboxRef>(), Id, RsvpResponse.Accept, null, true, null, Arg.Any<CancellationToken>()).Returns(Result<ItipMessage?>.Failure(Error.NotFound("gone")));
         (await _host.AuthorizedClient().PostAsync("/v1.0/me/events/ev-1/accept", Json("{}"), Ct)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
@@ -143,7 +143,7 @@ public sealed class SchedulingEndpointsTests : IAsyncLifetime
     public async Task Message_rsvps_answer_the_linked_event(string prefix, string mailbox, string action, RsvpResponse response)
     {
         ArrangeInvitation(mailbox);
-        _scheduling.RespondAsync(new MailboxRef(mailbox), Id, response, null, true, null, Arg.Any<CancellationToken>()).Returns(Result.Success());
+        _scheduling.RespondAsync(new MailboxRef(mailbox), Id, response, null, true, null, Arg.Any<CancellationToken>()).Returns(Result<ItipMessage?>.Success(null));
 
         (await _host.AuthorizedClient().PostAsync($"{prefix}/messages/msg-1/{action}", Json("""{"sendResponse":true,"comment":""}"""), Ct)).StatusCode.ShouldBe(HttpStatusCode.Accepted);
     }

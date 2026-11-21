@@ -124,4 +124,48 @@ public sealed class IcsEditorTests
     [Fact]
     public void Invalid_input_is_a_validation_error() =>
         _editor.BumpSequence("nope").Error!.Kind.ShouldBe(ErrorKind.Validation);
+
+    [Fact]
+    public void An_answer_without_a_reply_marks_the_organizer_for_the_client_and_a_later_answer_clears_it()
+    {
+        var silent = Unfolded(_editor.SetParticipation(Ics("outlook-request.ics"), "alice@example.com", RsvpResponse.Decline, serverReplies: false).Value);
+        silent.ShouldContain("SCHEDULE-AGENT=CLIENT");
+        silent.ShouldContain("PARTSTAT=DECLINED");
+
+        var told = Unfolded(_editor.SetParticipation(silent, "alice@example.com", RsvpResponse.Accept).Value);
+        told.ShouldNotContain("SCHEDULE-AGENT");
+    }
+
+    [Fact]
+    public void A_reply_carries_the_meeting_the_attendee_alone_and_the_comment()
+    {
+        var reply = Unfolded(_editor.Reply(Ics("outlook-request.ics"), "ALICE@example.com", RsvpResponse.Accept, null, "See you there", null).Value);
+
+        reply.ShouldContain("METHOD:REPLY");
+        reply.ShouldContain("UID:040000008200E00074C5B7101A82E00800000000A0B1C2D3E4F5D901000000000000000010000000F1E2D3C4B5A69788");
+        reply.ShouldContain("mailto:dana@contoso.com");
+        reply.ShouldContain("PARTSTAT=ACCEPTED");
+        reply.ShouldContain("mailto:alice@example.com");
+        reply.ShouldNotContain("bob@example.com");
+        reply.ShouldContain("COMMENT:See you there");
+        reply.ShouldContain("SEQUENCE:0");
+    }
+
+    [Fact]
+    public void A_proposed_time_makes_a_counter_with_the_new_times()
+    {
+        var proposed = new TimeSlot(new DateTimeTimeZone(new DateTime(2026, 7, 21, 9, 0, 0), "UTC"), new DateTimeTimeZone(new DateTime(2026, 7, 21, 10, 0, 0), "UTC"));
+
+        var counter = Unfolded(_editor.Reply(Ics("outlook-request.ics"), "alice@example.com", RsvpResponse.TentativelyAccept, null, null, proposed).Value);
+
+        counter.ShouldContain("METHOD:COUNTER");
+        counter.ShouldContain("DTSTART:20260721T090000Z");
+        counter.ShouldContain("DTEND:20260721T100000Z");
+        counter.ShouldContain("PARTSTAT=TENTATIVE");
+        counter.ShouldNotContain("COMMENT");
+    }
+
+    [Fact]
+    public void Someone_not_invited_cannot_reply() =>
+        _editor.Reply(Ics("outlook-request.ics"), "eve@example.com", RsvpResponse.Accept, null, null, null).Error!.Kind.ShouldBe(ErrorKind.NotFound);
 }
