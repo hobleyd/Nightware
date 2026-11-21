@@ -145,6 +145,33 @@ public sealed record EventAttachmentDto
     }
 }
 
+/// <summary>Graph <c>calendarPermission</c>.</summary>
+public sealed record CalendarPermissionDto
+{
+    public string? Id { get; init; }
+
+    public bool IsRemovable { get; init; } = true;
+
+    public bool IsInsideOrganization { get; init; } = true;
+
+    public string? Role { get; init; }
+
+    public IReadOnlyList<string> AllowedRoles { get; init; } = [];
+
+    public CalendarOwnerDto? EmailAddress { get; init; }
+
+    public static CalendarPermissionDto From(CalendarShare share)
+    {
+        ArgumentNullException.ThrowIfNull(share);
+        return new CalendarPermissionDto
+        {
+            Id = share.Id,
+            Role = share.Role == CalendarRole.Write ? "write" : "read",
+            EmailAddress = new CalendarOwnerDto { Name = share.EmailAddress.Name ?? share.EmailAddress.Address, Address = share.EmailAddress.Address },
+        };
+    }
+}
+
 /// <summary>Request body of <c>snoozeReminder</c>.</summary>
 public sealed record SnoozeRequestDto
 {
@@ -194,6 +221,10 @@ internal static class CalendarCollectionEndpoints
             scope.MapPost("/events/{eventId}/attachments", AddAttachmentAsync);
             scope.MapGet("/events/{eventId}/attachments/{attachmentId}", GetAttachmentAsync);
             scope.MapDelete("/events/{eventId}/attachments/{attachmentId}", DeleteAttachmentAsync);
+            scope.MapGet("/calendars/{calendarId}/calendarPermissions", ListPermissionsAsync);
+            scope.MapPost("/calendars/{calendarId}/calendarPermissions", CreatePermissionAsync);
+            scope.MapPatch("/calendars/{calendarId}/calendarPermissions/{permissionId}", UpdatePermissionAsync);
+            scope.MapDelete("/calendars/{calendarId}/calendarPermissions/{permissionId}", DeletePermissionAsync);
             scope.MapGet("/calendarGroups", ListGroupsAsync);
             scope.MapGet("/calendarGroups/{groupId}/calendars", ListGroupCalendarsAsync);
         }
@@ -381,6 +412,28 @@ internal static class CalendarCollectionEndpoints
     private static async Task<IResult> DeleteAttachmentAsync(
         Mailbox mailbox, string eventId, string attachmentId, EventAttachmentsUseCase useCase, CancellationToken cancellationToken) =>
         GraphResults.Match(await useCase.DeleteAsync(mailbox.Ref, new Nightware.Domain.Kernel.EventId(eventId), new AttachmentId(attachmentId), cancellationToken).ConfigureAwait(false));
+
+    private static string Permissions(Mailbox mailbox, string calendarId) => $"{Calendars(mailbox)}('{calendarId}')/calendarPermissions";
+
+    private static async Task<IResult> ListPermissionsAsync(
+        Mailbox mailbox, string calendarId, ODataQuery odata, CalendarPermissionsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(await useCase.ListAsync(mailbox.Ref, new CalendarId(calendarId), cancellationToken).ConfigureAwait(false),
+            list => GraphResults.Collection(list.Select(CalendarPermissionDto.From), Permissions(mailbox, calendarId), odata.Query));
+
+    private static async Task<IResult> CreatePermissionAsync(
+        Mailbox mailbox, string calendarId, [FromBody] CalendarPermissionDto? body, CalendarPermissionsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(await useCase.CreateAsync(mailbox.Ref, new CalendarId(calendarId), body?.EmailAddress?.Address, body?.Role, cancellationToken).ConfigureAwait(false),
+            p => GraphResults.CreatedAt(CalendarPermissionDto.From(p), Permissions(mailbox, calendarId),
+                $"{mailbox.ContextSegment}/calendars('{Uri.EscapeDataString(calendarId)}')/calendarPermissions('{Uri.EscapeDataString(p.Id)}')"));
+
+    private static async Task<IResult> UpdatePermissionAsync(
+        Mailbox mailbox, string calendarId, string permissionId, ODataQuery odata, [FromBody] CalendarPermissionDto? body, CalendarPermissionsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(await useCase.UpdateAsync(mailbox.Ref, new CalendarId(calendarId), permissionId, body?.Role, cancellationToken).ConfigureAwait(false),
+            p => GraphResults.Entity(CalendarPermissionDto.From(p), Permissions(mailbox, calendarId), odata.Query.Select));
+
+    private static async Task<IResult> DeletePermissionAsync(
+        Mailbox mailbox, string calendarId, string permissionId, CalendarPermissionsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(await useCase.DeleteAsync(mailbox.Ref, new CalendarId(calendarId), permissionId, cancellationToken).ConfigureAwait(false));
 
     private static async Task<IResult> CreateEventAsync(
         Mailbox mailbox, string calendarId, EventWriteDto? body, ODataQuery odata, PreferHeader prefer, HttpContext http, CalendarEventsIn useCase, CancellationToken cancellationToken)

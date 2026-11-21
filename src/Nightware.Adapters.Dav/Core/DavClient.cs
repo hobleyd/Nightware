@@ -173,6 +173,14 @@ public sealed class DavClient : IDavClient
         return response.ToResult();
     }
 
+    public async Task<Result> PostXmlAsync(string href, XDocument body, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        using var response = await SendAsync(HttpMethod.Post, href, r => r.Content = XmlContent(body), DavRequestIntent.Default, HttpCompletionOption.ResponseContentRead, cancellationToken)
+            .ConfigureAwait(false);
+        return response.ToResult();
+    }
+
     public async Task<Result> MkCalendarAsync(string href, string? displayName, IEnumerable<string> components, string? color, CancellationToken cancellationToken)
     {
         var body = DavRequestBodies.MkCalendar(displayName, components, color);

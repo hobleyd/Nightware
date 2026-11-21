@@ -176,3 +176,33 @@ public sealed class EventAttachmentUseCaseTests
         await _store.Received(1).DeleteAsync(Me, Event, new AttachmentId("a"), Ct);
     }
 }
+
+public sealed class CalendarPermissionUseCaseTests
+{
+    private static readonly MailboxRef Me = new("me@example.com");
+    private static readonly CalendarId Calendar = new("c");
+    private static readonly CalendarShare Bob = new("p1", new EmailAddress("bob@example.com", "Bob"), CalendarRole.Read);
+    private readonly ICalendarPermissionStore _store = Substitute.For<ICalendarPermissionStore>();
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task Only_read_and_write_can_be_granted()
+    {
+        _store.GrantAsync(Me, Calendar, "bob@example.com", CalendarRole.Write, Ct).Returns(Bob with { Role = CalendarRole.Write });
+
+        (await new CalendarPermissionsUseCase(_store).CreateAsync(Me, Calendar, " bob@example.com ", "Write", Ct)).Value.Role.ShouldBe(CalendarRole.Write);
+        (await new CalendarPermissionsUseCase(_store).CreateAsync(Me, Calendar, "bob@example.com", "freeBusyRead", Ct)).Error!.Kind.ShouldBe(ErrorKind.Unsupported);
+        (await new CalendarPermissionsUseCase(_store).CreateAsync(Me, Calendar, null, "read", Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+    }
+
+    [Fact]
+    public async Task Update_regrants_the_existing_sharee_with_the_new_role()
+    {
+        _store.ListAsync(Me, Calendar, Ct).Returns(Result<IReadOnlyList<CalendarShare>>.Success([Bob]));
+        _store.GrantAsync(Me, Calendar, "bob@example.com", CalendarRole.Write, Ct).Returns(Bob with { Role = CalendarRole.Write });
+
+        (await new CalendarPermissionsUseCase(_store).UpdateAsync(Me, Calendar, "p1", "write", Ct)).Value.Role.ShouldBe(CalendarRole.Write);
+        (await new CalendarPermissionsUseCase(_store).UpdateAsync(Me, Calendar, "nope", "write", Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+}

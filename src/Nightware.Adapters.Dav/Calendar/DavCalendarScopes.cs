@@ -12,6 +12,9 @@ namespace Nightware.Adapters.Dav.Calendar;
 /// <param name="Relative">The calendars' hrefs relative to the DAV root, for <see cref="DavItemId.IsWithin"/>.</param>
 internal sealed record CalendarScope(DavPrincipal Owner, IReadOnlyList<DavCalendar> Calendars, IReadOnlyList<string> Relative, DavCalendar? Default)
 {
+    /// <summary>For the caller's own mailbox: other people's calendars shared with the caller (listed, not in <see cref="Contains"/>).</summary>
+    public IReadOnlyList<DavCalendar> SharedWithMe { get; init; } = [];
+
     /// <summary>
     /// True when the id names a resource in one of the mailbox's calendars. An id only proves its href is
     /// inside the DAV root (README "Ids"); this is what stops <c>/me/events/{id}</c> reaching other collections.
@@ -44,6 +47,7 @@ internal sealed class DavCalendarScopes(IDavPrincipalDiscovery discovery, IDavCo
         }
 
         List<DavCalendar> calendars;
+        List<DavCalendar> sharedWithMe = [];
         if (owner.Value.IsCurrentUser)
         {
             var own = await catalog.ListCalendarsAsync(owner.Value, cancellationToken).ConfigureAwait(false);
@@ -53,6 +57,7 @@ internal sealed class DavCalendarScopes(IDavPrincipalDiscovery discovery, IDavCo
             }
 
             calendars = own.Value.Where(c => c.SupportsEvents && !c.IsShared).ToList();
+            sharedWithMe = own.Value.Where(c => c.SupportsEvents && c.IsShared).ToList();
         }
         else
         {
@@ -82,7 +87,7 @@ internal sealed class DavCalendarScopes(IDavPrincipalDiscovery discovery, IDavCo
             .ThenBy(c => c.Order ?? int.MaxValue)
             .ThenBy(c => c.Href, StringComparer.Ordinal)
             .FirstOrDefault();
-        return new CalendarScope(owner.Value, calendars, relative, defaultCalendar);
+        return new CalendarScope(owner.Value, calendars, relative, defaultCalendar) { SharedWithMe = sharedWithMe };
     }
 
     /// <summary>Nextcloud reports <c>owner-principal</c> relative to the DAV root (<c>principals/users/bob</c>).</summary>

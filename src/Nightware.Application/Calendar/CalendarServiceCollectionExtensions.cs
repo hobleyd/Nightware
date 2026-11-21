@@ -36,6 +36,7 @@ public static class CalendarServiceCollectionExtensions
         services.TryAddScoped<Calendars.SnoozeReminder>();
         services.TryAddScoped<Calendars.DismissReminder>();
         services.TryAddScoped<Calendars.EventAttachmentsUseCase>();
+        services.TryAddScoped<Calendars.CalendarPermissionsUseCase>();
         return services;
     }
 }

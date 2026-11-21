@@ -24,7 +24,7 @@ internal sealed class DavCalendarStore(
         return scope.Map(s => (IReadOnlyList<EventCalendar>)[.. s.Calendars
             .OrderBy(c => ReferenceEquals(c, s.Default) ? 0 : 1)
             .ThenBy(static c => c.Order ?? int.MaxValue)
-            .Select(c => ToCalendar(c, s))]);
+            .Select(c => ToCalendar(c, s)), .. s.SharedWithMe.Select(c => ToCalendar(c, s))]);
     }
 
     public async Task<Result<EventCalendar>> CreateAsync(MailboxRef mailbox, string name, string? hexColor, CancellationToken cancellationToken)
@@ -160,7 +160,7 @@ internal sealed class DavCalendarStore(
             : Error.NotFound("The specified calendar could not be found."));
     }
 
-    private async Task<Result<(CalendarScope Scope, DavCalendar Calendar, DavItemId Id)>> ResolveAsync(MailboxRef mailbox, CalendarId id, CancellationToken cancellationToken)
+    internal async Task<Result<(CalendarScope Scope, DavCalendar Calendar, DavItemId Id)>> ResolveAsync(MailboxRef mailbox, CalendarId id, CancellationToken cancellationToken)
     {
         var parsed = DavItemId.Parse(id.Value, "id");
         if (!parsed.IsSuccess)
@@ -174,7 +174,8 @@ internal sealed class DavCalendarStore(
             return scope.Error;
         }
 
-        var calendar = scope.Value.Calendars.FirstOrDefault(c => string.Equals(paths.ToRelative(c.Href), parsed.Value.Href, StringComparison.Ordinal));
+        var calendar = scope.Value.Calendars.Concat(scope.Value.SharedWithMe)
+            .FirstOrDefault(c => string.Equals(paths.ToRelative(c.Href), parsed.Value.Href, StringComparison.Ordinal));
         return calendar is null
             ? Error.NotFound("The specified calendar could not be found.")
             : (scope.Value, calendar, parsed.Value);
@@ -182,15 +183,18 @@ internal sealed class DavCalendarStore(
 
     private EventCalendar ToCalendar(DavCalendar calendar, CalendarScope scope)
     {
-        var owner = scope.Owner.EmailAddresses is [var address, ..] ? new EmailAddress(address, scope.Owner.DisplayName ?? address) : null;
+        var sharedWithMe = scope.SharedWithMe.Contains(calendar);
+        var owner = sharedWithMe
+            ? calendar.OwnerDisplayName is { } sharer ? new EmailAddress(string.Empty, sharer) : null
+            : scope.Owner.EmailAddresses is [var address, ..] ? new EmailAddress(address, scope.Owner.DisplayName ?? address) : null;
         var isDefault = ReferenceEquals(calendar, scope.Default);
         return new EventCalendar(new CalendarId(DavItemId.Resource(paths.ToRelative(calendar.Href)!).ToString()), calendar.DisplayName)
         {
             HexColor = calendar.Color is { Length: >= 7 } color ? color[..7].ToUpperInvariant() : null,
             IsDefault = isDefault,
             CanEdit = !calendar.IsReadOnly,
-            IsSharedWithMe = !scope.Owner.IsCurrentUser,
-            IsRemovable = !isDefault && scope.Owner.IsCurrentUser,
+            IsSharedWithMe = sharedWithMe || !scope.Owner.IsCurrentUser,
+            IsRemovable = !isDefault && scope.Owner.IsCurrentUser && !sharedWithMe,
             Owner = owner,
         };
     }

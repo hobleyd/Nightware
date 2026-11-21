@@ -36,3 +36,12 @@ reminders, attachments, sharing and meeting-time suggestions.
 - Create a second calendar, add a weekly series and list its instances.
 - Delta reports an edit and a delete in the window.
 - Share the calendar with bob, who sees it in his `/calendars`.
+
+## Findings
+- Nextcloud limits calendar creation (about ten MKCALENDARs per user per hour); past
+  it Sabre answers 429 "groupware server is throttling", which the façade passes on.
+  The live sharing test therefore shares the default calendar instead of a new one.
+- Sharing is `POST oc:share` (`oc:set`, plus `oc:read-write` for write) on the
+  calendar collection; sharees are read back from PROPFIND `oc:invite`. Only the
+  owner may share, and only with a principal of this server (400 otherwise).
+  Graph roles other than read/write answer 501.

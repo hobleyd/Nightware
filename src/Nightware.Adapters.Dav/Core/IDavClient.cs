@@ -38,6 +38,9 @@ public interface IDavClient
     /// <summary>Plain MKCOL, or RFC 5689 extended MKCOL when <paramref name="body"/> is given (address books).</summary>
     Task<Result> MkColAsync(string href, XDocument? body, CancellationToken cancellationToken);
 
+    /// <summary>A plain <c>POST</c> of an XML body (e.g. Nextcloud's <c>oc:share</c> on a calendar).</summary>
+    Task<Result> PostXmlAsync(string href, XDocument body, CancellationToken cancellationToken);
+
     Task<Result> MkCalendarAsync(string href, string? displayName, IEnumerable<string> components, string? color, CancellationToken cancellationToken);
 
     Task<Result> MoveAsync(string sourceHref, string destinationHref, bool overwrite, CancellationToken cancellationToken);

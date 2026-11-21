@@ -324,8 +324,8 @@ operation:
 | Phase 5B — Tasks, mailbox settings, files, threat submission | 14 |
 | Phase 11 — JSON batching (Graph parity) | 2 |
 | Phase 12 — Mail (Graph parity) | 19 |
-| Phase 13 — Calendar (Graph parity) | 22 |
-| **Total** | **119** |
+| Phase 13 — Calendar (Graph parity) | 26 |
+| **Total** | **123** |
 
 ### Phase 2 — Mail, read side
 
@@ -1491,6 +1491,10 @@ operation:
 | [`calendar.events.attachments.get`](#calendareventsattachmentsget) | GET | v1.0 | `{mailbox}/events/{eventId}/attachments/{attachmentId}` | none |
 | [`calendar.events.attachments.create`](#calendareventsattachmentscreate) | POST | v1.0 | `{mailbox}/events/{eventId}/attachments` | none |
 | [`calendar.events.attachments.delete`](#calendareventsattachmentsdelete) | DELETE | v1.0 | `{mailbox}/events/{eventId}/attachments/{attachmentId}` | none |
+| [`calendar.permissions.list`](#calendarpermissionslist) | GET | v1.0 | `{mailbox}/calendars/{calendarId}/calendarPermissions` | none |
+| [`calendar.permissions.create`](#calendarpermissionscreate) | POST | v1.0 | `{mailbox}/calendars/{calendarId}/calendarPermissions` | none |
+| [`calendar.permissions.update`](#calendarpermissionsupdate) | PATCH | v1.0 | `{mailbox}/calendars/{calendarId}/calendarPermissions/{permissionId}` | none |
+| [`calendar.permissions.delete`](#calendarpermissionsdelete) | DELETE | v1.0 | `{mailbox}/calendars/{calendarId}/calendarPermissions/{permissionId}` | none |
 
 #### `calendar.calendars.list`
 
@@ -1690,5 +1694,42 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/fileattachment
 - Notes: Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). The file goes too.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.attachments.delete.json`
+
+#### `calendar.permissions.list`
+
+**GET v1.0 `{mailbox}/calendars/{calendarId}/calendarPermissions`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].role`, `value[].emailAddress`, `value[].isRemovable`, `value[].isInsideOrganization`, `value[].allowedRoles`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendarpermission
+- Notes: Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares. 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.permissions.list.json`
+
+#### `calendar.permissions.create`
+
+**POST v1.0 `{mailbox}/calendars/{calendarId}/calendarPermissions`** — forms: me, users; success: 201; paging: none
+
+- Request body: `emailAddress`; `role`
+- Client reads: `id`, `role`, `emailAddress`, `isRemovable`, `isInsideOrganization`, `allowedRoles`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendarpermission
+- Notes: Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares. read or write (other roles 501); the sharee must be a user of this server (400 otherwise).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.permissions.create.json`
+
+#### `calendar.permissions.update`
+
+**PATCH v1.0 `{mailbox}/calendars/{calendarId}/calendarPermissions/{permissionId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `role`
+- Client reads: `id`, `role`, `emailAddress`, `isRemovable`, `isInsideOrganization`, `allowedRoles`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendarpermission
+- Notes: Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares. 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.permissions.update.json`
+
+#### `calendar.permissions.delete`
+
+**DELETE v1.0 `{mailbox}/calendars/{calendarId}/calendarPermissions/{permissionId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendarpermission
+- Notes: Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares. 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.permissions.delete.json`
 
 <!-- END GENERATED -->

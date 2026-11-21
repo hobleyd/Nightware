@@ -5059,5 +5059,155 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/resources/fileattachment",
     "notes": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). The file goes too."
+  },
+  {
+    "id": "calendar.permissions.list",
+    "phase": 13,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/calendarPermissions",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].role",
+      "value[].emailAddress",
+      "value[].isRemovable",
+      "value[].isInsideOrganization",
+      "value[].allowedRoles"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/calendarpermission",
+    "notes": "Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares. "
+  },
+  {
+    "id": "calendar.permissions.create",
+    "phase": 13,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/calendarPermissions",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "emailAddress",
+        "role"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "role",
+      "emailAddress",
+      "isRemovable",
+      "isInsideOrganization",
+      "allowedRoles"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/calendarpermission",
+    "notes": "Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares. read or write (other roles 501); the sharee must be a user of this server (400 otherwise)."
+  },
+  {
+    "id": "calendar.permissions.update",
+    "phase": 13,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/calendarPermissions/{permissionId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "role"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "role",
+      "emailAddress",
+      "isRemovable",
+      "isInsideOrganization",
+      "allowedRoles"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/calendarpermission",
+    "notes": "Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares. "
+  },
+  {
+    "id": "calendar.permissions.delete",
+    "phase": 13,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/calendarPermissions/{permissionId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/calendarpermission",
+    "notes": "Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares. "
   }
 ]

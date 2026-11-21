@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
 using Nightware.Integration.Tests.Directory;
+using Nightware.Integration.Tests.Support;
 
 namespace Nightware.Integration.Tests.Calendar;
 
@@ -166,6 +167,43 @@ public sealed class CalendarCollectionLiveTests : IAsyncLifetime
         finally
         {
             await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/events/{id}", expected: HttpStatusCode.NoContent);
+        }
+    }
+
+    [Fact]
+    public async Task A_calendar_shared_with_bob_shows_in_his_calendars_until_it_is_unshared()
+    {
+        var alice = await _stack.GraphClientAsync(Alice, Ct);
+        var bob = await _stack.GraphClientAsync("bob", Ct);
+        // Alice's default calendar: Nextcloud limits new calendars to about ten an hour per user.
+        var calendar = await SendAsync(alice, HttpMethod.Get, "/v1.0/me/calendar");
+        var id = calendar["id"]!.GetValue<string>();
+        var name = calendar["name"]!.GetValue<string>();
+        string? permissionId = null;
+        try
+        {
+            var permission = await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/calendars/{id}/calendarPermissions",
+                $$"""{"emailAddress":{"address":"{{DevStack.Address("bob")}}"},"role":"read"}""", HttpStatusCode.Created);
+            permissionId = permission["id"]!.GetValue<string>();
+            var listed = (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/calendars/{id}/calendarPermissions"))["value"]!.AsArray().Single()!;
+            listed["role"]!.GetValue<string>().ShouldBe("read");
+            listed["emailAddress"]!["address"]!.GetValue<string>().ShouldBe(DevStack.Address("bob"));
+
+            (await SendAsync(alice, HttpMethod.Patch, $"/v1.0/me/calendars/{id}/calendarPermissions/{permissionId}", """{"role":"write"}"""))["role"]!.GetValue<string>().ShouldBe("write");
+            var bobs = (await SendAsync(bob, HttpMethod.Get, "/v1.0/me/calendars"))["value"]!.AsArray();
+            bobs.ShouldContain(c => c!["isSharedWithMe"]!.GetValue<bool>() && c["name"]!.GetValue<string>().StartsWith(name, StringComparison.Ordinal), bobs.ToJsonString());
+
+            await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/calendars/{id}/calendarPermissions", """{"emailAddress":{"address":"x@nowhere.invalid"},"role":"read"}""", HttpStatusCode.BadRequest);
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/calendars/{id}/calendarPermissions/{permissionId}", expected: HttpStatusCode.NoContent);
+            permissionId = null;
+            (await SendAsync(bob, HttpMethod.Get, "/v1.0/me/calendars"))["value"]!.AsArray().ShouldNotContain(c => c!["isSharedWithMe"]!.GetValue<bool>() && c["name"]!.GetValue<string>().StartsWith(name, StringComparison.Ordinal));
+        }
+        finally
+        {
+            if (permissionId is not null)
+            {
+                await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/calendars/{id}/calendarPermissions/{permissionId}", expected: HttpStatusCode.NoContent);
+            }
         }
     }
 }
