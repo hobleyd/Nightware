@@ -32,7 +32,21 @@ public sealed class ApiReferencePagesTests : IAsyncDisposable
         csp.ShouldNotContain("unsafe-eval");
 
         using HttpResponseMessage other = await client.GetAsync("/", Ct);
-        other.Headers.GetValues("Content-Security-Policy").Single().ShouldNotContain("script-src", Case.Sensitive, "other pages keep the console's policy");
+        string console = other.Headers.GetValues("Content-Security-Policy").Single();
+        console.ShouldNotContain("script-src", Case.Sensitive, "other pages keep the console's policy");
+        FormAction(csp).ShouldBe(FormAction(console), "sign-out still posts to Keycloak from this page");
+    }
+
+    private static string FormAction(string policy) =>
+        policy.Split(';', StringSplitOptions.TrimEntries).Single(d => d.StartsWith("form-action ", StringComparison.Ordinal));
+
+    [Fact]
+    public void Widening_keeps_every_other_directive_of_the_consoles_policy()
+    {
+        var widened = Nightware.Admin.Pages.Api.IndexModel.Widen(
+            "default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self' https://id.example; frame-ancestors 'none'; base-uri 'none'");
+
+        widened.ShouldBe("default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; form-action 'self' https://id.example; frame-ancestors 'none'; base-uri 'none'");
     }
 
     [Fact]

@@ -62,7 +62,7 @@
           "Batching"
         ],
         "summary": "Batch: post",
-        "description": "Batch: post: Up to 20 independent requests, one of them failing. Graph returns the responses in any order; the façade returns request order. Also served under /beta. ADR 0006 D9.\n\nBatch: post depends on: dependsOn chain whose first request fails: the dependant is answered 424 FailedDependency without running, with no headers.\n\nGraph reference: https://learn.microsoft.com/graph/json-batching",
+        "description": "Batch: post: Up to 20 independent requests, one of them failing. Graph returns the responses in any order; Nightware returns request order. Also served under /beta.\n\nBatch: post depends on: dependsOn chain whose first request fails: the dependant is answered 424 FailedDependency without running, with no headers.\n\nGraph reference: https://learn.microsoft.com/graph/json-batching",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -288,7 +288,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendar groups: list",
-        "description": "One synthetic group, My Calendars (ADR 0006 D6); Exchange's other groups have no Nextcloud counterpart.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendargroup",
+        "description": "One synthetic group, My Calendars; Exchange's other groups have no Nextcloud counterpart.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendargroup",
         "parameters": [],
         "responses": {
           "200": {
@@ -339,7 +339,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendar groups: list",
-        "description": "One synthetic group, My Calendars (ADR 0006 D6); Exchange's other groups have no Nextcloud counterpart.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendargroup",
+        "description": "One synthetic group, My Calendars; Exchange's other groups have no Nextcloud counterpart.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendargroup",
         "parameters": [
           {
             "name": "userId",
@@ -399,7 +399,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendar view: delta",
-        "description": "Calendar calendar view: delta: The default calendar's window, expanded; the window and the collection's sync token are frozen into the link (ADR 0006 D6).\n\nCalendar calendar view: delta changes: sync-collection: a changed resource's occurrences in the window are upserts; a removed one is @removed under its series' id (its occurrences are dropped by seriesMasterId). 410 when the token has expired.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-delta",
+        "description": "Calendar calendar view: delta: The default calendar's window, expanded; the window and the collection's sync token are frozen into the link.\n\nCalendar calendar view: delta changes: sync-collection: a changed resource's occurrences in the window are upserts; a removed one is @removed under its series' id (its occurrences are dropped by seriesMasterId). 410 when the token has expired.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-delta",
         "parameters": [],
         "responses": {
           "200": {
@@ -453,7 +453,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendar view: delta",
-        "description": "Calendar calendar view: delta: The default calendar's window, expanded; the window and the collection's sync token are frozen into the link (ADR 0006 D6).\n\nCalendar calendar view: delta changes: sync-collection: a changed resource's occurrences in the window are upserts; a removed one is @removed under its series' id (its occurrences are dropped by seriesMasterId). 410 when the token has expired.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-delta",
+        "description": "Calendar calendar view: delta: The default calendar's window, expanded; the window and the collection's sync token are frozen into the link.\n\nCalendar calendar view: delta changes: sync-collection: a changed resource's occurrences in the window are upserts; a removed one is @removed under its series' id (its occurrences are dropped by seriesMasterId). 410 when the token has expired.\n\nGraph reference: https://learn.microsoft.com/graph/api/event-delta",
         "parameters": [
           {
             "name": "userId",
@@ -900,7 +900,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendar: get",
-        "description": "CalDAV collections (ADR 0006 D6). The default (Nextcloud's personal) calendar.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. The default (Nextcloud's personal) calendar.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [],
         "responses": {
           "200": {
@@ -948,7 +948,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendar: get",
-        "description": "CalDAV collections (ADR 0006 D6). The default (Nextcloud's personal) calendar.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. The default (Nextcloud's personal) calendar.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "userId",
@@ -1005,7 +1005,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars: calendar view",
-        "description": "CalDAV collections (ADR 0006 D6). startDateTime/endDateTime required; expanded on the server.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. startDateTime/endDateTime required; expanded on the server.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "calendarId",
@@ -1066,7 +1066,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars: calendar view",
-        "description": "CalDAV collections (ADR 0006 D6). startDateTime/endDateTime required; expanded on the server.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. startDateTime/endDateTime required; expanded on the server.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "userId",
@@ -1135,7 +1135,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars: create",
-        "description": "CalDAV collections (ADR 0006 D6). MKCALENDAR in the caller's own home; Location as Graph.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. MKCALENDAR in the caller's own home; Location as Graph.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1195,7 +1195,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars: list",
-        "description": "CalDAV collections (ADR 0006 D6). The default first; the read-only birthday calendar included.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. The default first; the read-only birthday calendar included.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [],
         "responses": {
           "200": {
@@ -1251,7 +1251,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars: create",
-        "description": "CalDAV collections (ADR 0006 D6). MKCALENDAR in the caller's own home; Location as Graph.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. MKCALENDAR in the caller's own home; Location as Graph.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "userId",
@@ -1320,7 +1320,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars: list",
-        "description": "CalDAV collections (ADR 0006 D6). The default first; the read-only birthday calendar included.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. The default first; the read-only birthday calendar included.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "userId",
@@ -1385,7 +1385,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars: delete",
-        "description": "CalDAV collections (ADR 0006 D6). The default calendar is 400 ErrorCannotDeleteDefaultCalendar.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. The default calendar is 400 ErrorCannotDeleteDefaultCalendar.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "calendarId",
@@ -1423,7 +1423,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars: get",
-        "description": "CalDAV collections (ADR 0006 D6).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "calendarId",
@@ -1478,7 +1478,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars: update",
-        "description": "CalDAV collections (ADR 0006 D6). PROPPATCH displayname and calendar-color; Graph colour names map to hex, auto removes it.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. PROPPATCH displayname and calendar-color; Graph colour names map to hex, auto removes it.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "calendarId",
@@ -1549,7 +1549,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars: delete",
-        "description": "CalDAV collections (ADR 0006 D6). The default calendar is 400 ErrorCannotDeleteDefaultCalendar.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. The default calendar is 400 ErrorCannotDeleteDefaultCalendar.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "userId",
@@ -1595,7 +1595,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars: get",
-        "description": "CalDAV collections (ADR 0006 D6).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "userId",
@@ -1658,7 +1658,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars: update",
-        "description": "CalDAV collections (ADR 0006 D6). PROPPATCH displayname and calendar-color; Graph colour names map to hex, auto removes it.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. PROPPATCH displayname and calendar-color; Graph colour names map to hex, auto removes it.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "userId",
@@ -1737,7 +1737,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars events: create",
-        "description": "CalDAV collections (ADR 0006 D6). Refused (403) in a read-only calendar.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. Refused (403) in a read-only calendar.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "calendarId",
@@ -1804,7 +1804,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars events: list",
-        "description": "CalDAV collections (ADR 0006 D6). Unexpanded; $orderby start/dateTime, $top, $skip.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. Unexpanded; $orderby start/dateTime, $top, $skip.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "calendarId",
@@ -1865,7 +1865,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars events: create",
-        "description": "CalDAV collections (ADR 0006 D6). Refused (403) in a read-only calendar.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. Refused (403) in a read-only calendar.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "userId",
@@ -1940,7 +1940,7 @@
           "Calendar"
         ],
         "summary": "Calendar calendars events: list",
-        "description": "CalDAV collections (ADR 0006 D6). Unexpanded; $orderby start/dateTime, $top, $skip.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
+        "description": "CalDAV collections. Unexpanded; $orderby start/dateTime, $top, $skip.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendar",
         "parameters": [
           {
             "name": "userId",
@@ -2125,7 +2125,7 @@
           "Calendar"
         ],
         "summary": "Calendar events attachments: create",
-        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). fileAttachment only, up to 3 MB; Location as Graph.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
+        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are. fileAttachment only, up to 3 MB; Location as Graph.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
         "parameters": [
           {
             "name": "eventId",
@@ -2194,7 +2194,7 @@
           "Calendar"
         ],
         "summary": "Calendar events attachments: list",
-        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). No content in the listing.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
+        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are. No content in the listing.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
         "parameters": [
           {
             "name": "eventId",
@@ -2257,7 +2257,7 @@
           "Calendar"
         ],
         "summary": "Calendar events attachments: create",
-        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). fileAttachment only, up to 3 MB; Location as Graph.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
+        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are. fileAttachment only, up to 3 MB; Location as Graph.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
         "parameters": [
           {
             "name": "userId",
@@ -2334,7 +2334,7 @@
           "Calendar"
         ],
         "summary": "Calendar events attachments: list",
-        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). No content in the listing.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
+        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are. No content in the listing.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
         "parameters": [
           {
             "name": "userId",
@@ -2405,7 +2405,7 @@
           "Calendar"
         ],
         "summary": "Calendar events attachments: delete",
-        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). The file goes too.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
+        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are. The file goes too.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
         "parameters": [
           {
             "name": "eventId",
@@ -2451,7 +2451,7 @@
           "Calendar"
         ],
         "summary": "Calendar events attachments: get",
-        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
+        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
         "parameters": [
           {
             "name": "eventId",
@@ -2515,7 +2515,7 @@
           "Calendar"
         ],
         "summary": "Calendar events attachments: delete",
-        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). The file goes too.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
+        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are. The file goes too.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
         "parameters": [
           {
             "name": "userId",
@@ -2569,7 +2569,7 @@
           "Calendar"
         ],
         "summary": "Calendar events attachments: get",
-        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
+        "description": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/fileattachment",
         "parameters": [
           {
             "name": "userId",
@@ -4699,7 +4699,7 @@
           "Calendar"
         ],
         "summary": "Calendar: find meeting times",
-        "description": "Computed over CalDAV free/busy and the organizer's working hours (ADR 0006 D6): half-hour starts, confidence is the share of attendees free (tentative/unknown half, optional attendees half weight). locationConstraint is ignored; no locations are suggested.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-findmeetingtimes",
+        "description": "Computed over CalDAV free/busy and the organizer's working hours: half-hour starts, confidence is the share of attendees free (tentative/unknown half, optional attendees half weight). locationConstraint is ignored; no locations are suggested.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-findmeetingtimes",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -4771,7 +4771,7 @@
           "Calendar"
         ],
         "summary": "Calendar: find meeting times",
-        "description": "Computed over CalDAV free/busy and the organizer's working hours (ADR 0006 D6): half-hour starts, confidence is the share of attendees free (tentative/unknown half, optional attendees half weight). locationConstraint is ignored; no locations are suggested.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-findmeetingtimes",
+        "description": "Computed over CalDAV free/busy and the organizer's working hours: half-hour starts, confidence is the share of attendees free (tentative/unknown half, optional attendees half weight). locationConstraint is ignored; no locations are suggested.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-findmeetingtimes",
         "parameters": [
           {
             "name": "userId",
@@ -5895,7 +5895,7 @@
           "Calendar"
         ],
         "summary": "Calendar permissions: create",
-        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares. read or write (other roles 501); the sharee must be a user of this server (400 otherwise).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
+        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share;); only the owner shares. read or write (other roles 501); the sharee must be a user of this server (400 otherwise).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
         "parameters": [
           {
             "name": "calendarId",
@@ -5962,7 +5962,7 @@
           "Calendar"
         ],
         "summary": "Calendar permissions: list",
-        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
+        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share;); only the owner shares.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
         "parameters": [
           {
             "name": "calendarId",
@@ -6025,7 +6025,7 @@
           "Calendar"
         ],
         "summary": "Calendar permissions: create",
-        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares. read or write (other roles 501); the sharee must be a user of this server (400 otherwise).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
+        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share;); only the owner shares. read or write (other roles 501); the sharee must be a user of this server (400 otherwise).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
         "parameters": [
           {
             "name": "userId",
@@ -6100,7 +6100,7 @@
           "Calendar"
         ],
         "summary": "Calendar permissions: list",
-        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
+        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share;); only the owner shares.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
         "parameters": [
           {
             "name": "userId",
@@ -6171,7 +6171,7 @@
           "Calendar"
         ],
         "summary": "Calendar permissions: delete",
-        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
+        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share;); only the owner shares.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
         "parameters": [
           {
             "name": "calendarId",
@@ -6217,7 +6217,7 @@
           "Calendar"
         ],
         "summary": "Calendar permissions: update",
-        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
+        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share;); only the owner shares.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
         "parameters": [
           {
             "name": "calendarId",
@@ -6293,7 +6293,7 @@
           "Calendar"
         ],
         "summary": "Calendar permissions: delete",
-        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
+        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share;); only the owner shares.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
         "parameters": [
           {
             "name": "userId",
@@ -6347,7 +6347,7 @@
           "Calendar"
         ],
         "summary": "Calendar permissions: update",
-        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
+        "description": "Nextcloud CalDAV sharing (oc:invite / oc:share;); only the owner shares.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/calendarpermission",
         "parameters": [
           {
             "name": "userId",
@@ -6579,7 +6579,7 @@
           "Change notifications"
         ],
         "summary": "Subscriptions: create",
-        "description": "Subscriptions: create: The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. Messages: {mailbox}/mailFolders('{id}')/messages ({mailbox}/messages, every folder, is 501).\n\nSubscriptions: create contacts: The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. {mailbox}/contacts: the default address book.\n\nSubscriptions: create events: The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. {mailbox}/events: the default calendar.\n\nSubscriptions: create tasks: The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. {mailbox}/todo/lists/{id}/tasks.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/subscription",
+        "description": "Subscriptions: create: Nightware's subscription store. Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. Messages: {mailbox}/mailFolders('{id}')/messages ({mailbox}/messages, every folder, is 501).\n\nSubscriptions: create contacts: Nightware's subscription store. Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. {mailbox}/contacts: the default address book.\n\nSubscriptions: create events: Nightware's subscription store. Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. {mailbox}/events: the default calendar.\n\nSubscriptions: create tasks: Nightware's subscription store. Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. {mailbox}/todo/lists/{id}/tasks.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/subscription",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -6644,7 +6644,7 @@
           "Change notifications"
         ],
         "summary": "Subscriptions: list",
-        "description": "The façade's subscription store (ADR 0006 D10). The caller's own; clientState is left out, as Graph does.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/subscription",
+        "description": "Nightware's subscription store. The caller's own; clientState is left out, as Graph does.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/subscription",
         "parameters": [],
         "responses": {
           "200": {
@@ -6701,7 +6701,7 @@
           "Change notifications"
         ],
         "summary": "Subscriptions: delete",
-        "description": "The façade's subscription store (ADR 0006 D10). The sealed credential goes with the row; the Keycloak session is left alone.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/subscription",
+        "description": "Nightware's subscription store. The sealed credential goes with the row; the Keycloak session is left alone.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/subscription",
         "parameters": [
           {
             "name": "id",
@@ -6739,7 +6739,7 @@
           "Change notifications"
         ],
         "summary": "Subscriptions: get",
-        "description": "The façade's subscription store (ADR 0006 D10).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/subscription",
+        "description": "Nightware's subscription store.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/subscription",
         "parameters": [
           {
             "name": "id",
@@ -6795,7 +6795,7 @@
           "Change notifications"
         ],
         "summary": "Subscriptions: update",
-        "description": "The façade's subscription store (ADR 0006 D10). Renewal; it also exchanges the caller's current token afresh, so it reauthorizes a lapsed subscription.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/subscription",
+        "description": "Nightware's subscription store. Renewal; it also exchanges the caller's current token afresh, so it reauthorizes a lapsed subscription.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/subscription",
         "parameters": [
           {
             "name": "id",
@@ -6977,7 +6977,7 @@
           "Contacts"
         ],
         "summary": "Contacts: create",
-        "description": "CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). Created in the default address book; a null member clears, an unmapped one is 400.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "CardDAV vCard 3 in Nextcloud. Created in the default address book; a null member clears, an unmapped one is 400.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -7099,7 +7099,7 @@
           "Contacts"
         ],
         "summary": "Contacts: list",
-        "description": "Contacts: list full: CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). Spans every address book (NightMail's typeahead relies on it); Graph lists only the default folder.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "Contacts: list full: CardDAV vCard 3 in Nextcloud. Spans every address book (NightMail's typeahead relies on it); Graph lists only the default folder.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [
           {
             "name": "$select",
@@ -7217,7 +7217,7 @@
           "Contacts"
         ],
         "summary": "Contacts: create",
-        "description": "CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). Created in the default address book; a null member clears, an unmapped one is 400.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "CardDAV vCard 3 in Nextcloud. Created in the default address book; a null member clears, an unmapped one is 400.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [
           {
             "name": "userId",
@@ -7348,7 +7348,7 @@
           "Contacts"
         ],
         "summary": "Contacts: list",
-        "description": "Contacts: list full: CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). Spans every address book (NightMail's typeahead relies on it); Graph lists only the default folder.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "Contacts: list full: CardDAV vCard 3 in Nextcloud. Spans every address book (NightMail's typeahead relies on it); Graph lists only the default folder.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [
           {
             "name": "userId",
@@ -7474,7 +7474,7 @@
           "Contacts"
         ],
         "summary": "Contacts: delete",
-        "description": "CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "CardDAV vCard 3 in Nextcloud.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [
           {
             "name": "contactId",
@@ -7512,7 +7512,7 @@
           "Contacts"
         ],
         "summary": "Contacts: get",
-        "description": "CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "CardDAV vCard 3 in Nextcloud.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [
           {
             "name": "contactId",
@@ -7598,7 +7598,7 @@
           "Contacts"
         ],
         "summary": "Contacts: update",
-        "description": "CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). Conditional on the card's ETag; unmapped vCard properties are kept.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "CardDAV vCard 3 in Nextcloud. Conditional on the card's ETag; unmapped vCard properties are kept.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [
           {
             "name": "contactId",
@@ -7731,7 +7731,7 @@
           "Contacts"
         ],
         "summary": "Contacts: delete",
-        "description": "CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "CardDAV vCard 3 in Nextcloud.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [
           {
             "name": "userId",
@@ -7777,7 +7777,7 @@
           "Contacts"
         ],
         "summary": "Contacts: get",
-        "description": "CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "CardDAV vCard 3 in Nextcloud.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [
           {
             "name": "userId",
@@ -7871,7 +7871,7 @@
           "Contacts"
         ],
         "summary": "Contacts: update",
-        "description": "CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). Conditional on the card's ETag; unmapped vCard properties are kept.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "CardDAV vCard 3 in Nextcloud. Conditional on the card's ETag; unmapped vCard properties are kept.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [
           {
             "name": "userId",
@@ -8012,7 +8012,7 @@
           "Contacts"
         ],
         "summary": "Contacts: delta",
-        "description": "CardDAV sync-collection on the folder's book (ADR 0006 D7): the initial sync is every card.\n\nGraph reference: https://learn.microsoft.com/graph/api/contact-delta",
+        "description": "CardDAV sync-collection on the folder's book: the initial sync is every card.\n\nGraph reference: https://learn.microsoft.com/graph/api/contact-delta",
         "parameters": [
           {
             "name": "folderId",
@@ -8069,7 +8069,7 @@
           "Contacts"
         ],
         "summary": "Contacts: delta",
-        "description": "CardDAV sync-collection on the folder's book (ADR 0006 D7): the initial sync is every card.\n\nGraph reference: https://learn.microsoft.com/graph/api/contact-delta",
+        "description": "CardDAV sync-collection on the folder's book: the initial sync is every card.\n\nGraph reference: https://learn.microsoft.com/graph/api/contact-delta",
         "parameters": [
           {
             "name": "userId",
@@ -8256,7 +8256,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders child folders: list",
-        "description": "CardDAV address books (ADR 0006 D7). Always empty: CardDAV is flat.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
+        "description": "CardDAV address books. Always empty: CardDAV is flat.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
         "parameters": [
           {
             "name": "folderId",
@@ -8312,7 +8312,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders child folders: list",
-        "description": "CardDAV address books (ADR 0006 D7). Always empty: CardDAV is flat.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
+        "description": "CardDAV address books. Always empty: CardDAV is flat.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
         "parameters": [
           {
             "name": "userId",
@@ -8376,7 +8376,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders contacts: create",
-        "description": "CardDAV address books (ADR 0006 D7). As contacts.create, in the named book.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "CardDAV address books. As contacts.create, in the named book.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [
           {
             "name": "folderId",
@@ -8440,7 +8440,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders contacts: list",
-        "description": "CardDAV address books (ADR 0006 D7). The contacts of that one book.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "CardDAV address books. The contacts of that one book.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [
           {
             "name": "folderId",
@@ -8496,7 +8496,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders contacts: create",
-        "description": "CardDAV address books (ADR 0006 D7). As contacts.create, in the named book.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "CardDAV address books. As contacts.create, in the named book.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [
           {
             "name": "userId",
@@ -8568,7 +8568,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders contacts: list",
-        "description": "CardDAV address books (ADR 0006 D7). The contacts of that one book.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
+        "description": "CardDAV address books. The contacts of that one book.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contact",
         "parameters": [
           {
             "name": "userId",
@@ -8632,7 +8632,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders: create",
-        "description": "CardDAV address books (ADR 0006 D7). Extended MKCOL; a name already taken is 409.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
+        "description": "CardDAV address books. Extended MKCOL; a name already taken is 409.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -8687,7 +8687,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders: list",
-        "description": "CardDAV address books (ADR 0006 D7). The books below the default one; generated books (system, recently contacted) are not folders.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
+        "description": "CardDAV address books. The books below the default one; generated books (system, recently contacted) are not folders.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
         "parameters": [],
         "responses": {
           "200": {
@@ -8739,7 +8739,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders: create",
-        "description": "CardDAV address books (ADR 0006 D7). Extended MKCOL; a name already taken is 409.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
+        "description": "CardDAV address books. Extended MKCOL; a name already taken is 409.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
         "parameters": [
           {
             "name": "userId",
@@ -8803,7 +8803,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders: list",
-        "description": "CardDAV address books (ADR 0006 D7). The books below the default one; generated books (system, recently contacted) are not folders.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
+        "description": "CardDAV address books. The books below the default one; generated books (system, recently contacted) are not folders.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
         "parameters": [
           {
             "name": "userId",
@@ -8864,7 +8864,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders: delete",
-        "description": "CardDAV address books (ADR 0006 D7). The default folder cannot be deleted (400).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
+        "description": "CardDAV address books. The default folder cannot be deleted (400).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
         "parameters": [
           {
             "name": "folderId",
@@ -8902,7 +8902,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders: get",
-        "description": "CardDAV address books (ADR 0006 D7). The default book is reachable by id or as 'contacts' (wellKnownName contacts).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
+        "description": "CardDAV address books. The default book is reachable by id or as 'contacts' (wellKnownName contacts).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
         "parameters": [
           {
             "name": "folderId",
@@ -8953,7 +8953,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders: update",
-        "description": "CardDAV address books (ADR 0006 D7). PROPPATCH displayname; the default folder cannot be renamed (400).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
+        "description": "CardDAV address books. PROPPATCH displayname; the default folder cannot be renamed (400).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
         "parameters": [
           {
             "name": "folderId",
@@ -9019,7 +9019,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders: delete",
-        "description": "CardDAV address books (ADR 0006 D7). The default folder cannot be deleted (400).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
+        "description": "CardDAV address books. The default folder cannot be deleted (400).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
         "parameters": [
           {
             "name": "userId",
@@ -9065,7 +9065,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders: get",
-        "description": "CardDAV address books (ADR 0006 D7). The default book is reachable by id or as 'contacts' (wellKnownName contacts).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
+        "description": "CardDAV address books. The default book is reachable by id or as 'contacts' (wellKnownName contacts).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
         "parameters": [
           {
             "name": "userId",
@@ -9124,7 +9124,7 @@
           "Contacts"
         ],
         "summary": "Contacts folders: update",
-        "description": "CardDAV address books (ADR 0006 D7). PROPPATCH displayname; the default folder cannot be renamed (400).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
+        "description": "CardDAV address books. PROPPATCH displayname; the default folder cannot be renamed (400).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/contactfolder",
         "parameters": [
           {
             "name": "userId",
@@ -9303,7 +9303,7 @@
           "Contacts"
         ],
         "summary": "Contacts: photo get",
-        "description": "CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). 404 when the contact has no photo.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-get",
+        "description": "CardDAV vCard 3 in Nextcloud. 404 when the contact has no photo.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-get",
         "parameters": [
           {
             "name": "contactId",
@@ -9341,7 +9341,7 @@
           "Contacts"
         ],
         "summary": "Contacts: photo put",
-        "description": "CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). vCard PHOTO (v3 ENCODING=b); images up to 4 MB.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
+        "description": "CardDAV vCard 3 in Nextcloud. vCard PHOTO (v3 ENCODING=b); images up to 4 MB.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
         "parameters": [
           {
             "name": "contactId",
@@ -9381,7 +9381,7 @@
           "Contacts"
         ],
         "summary": "Contacts: photo get",
-        "description": "CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). 404 when the contact has no photo.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-get",
+        "description": "CardDAV vCard 3 in Nextcloud. 404 when the contact has no photo.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-get",
         "parameters": [
           {
             "name": "userId",
@@ -9427,7 +9427,7 @@
           "Contacts"
         ],
         "summary": "Contacts: photo put",
-        "description": "CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). vCard PHOTO (v3 ENCODING=b); images up to 4 MB.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
+        "description": "CardDAV vCard 3 in Nextcloud. vCard PHOTO (v3 ENCODING=b); images up to 4 MB.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
         "parameters": [
           {
             "name": "userId",
@@ -10211,7 +10211,7 @@
           "Mail"
         ],
         "summary": "Mail attachments: create upload session",
-        "description": "Drafts only, up to 50,000,000 bytes (Stalwart's maxSizeUpload). The uploadUrl is self-authorising (ADR 0001 §39, its own key purpose) and bound to the draft and session; the session lives in the draft's JMAP metadata (ADR 0006 D5).\n\nGraph reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession",
+        "description": "Drafts only, up to 50,000,000 bytes (Stalwart's maxSizeUpload). The uploadUrl is self-authorising and bound to the draft and session; the session lives in the draft's JMAP metadata.\n\nGraph reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession",
         "parameters": [
           {
             "name": "messageId",
@@ -10286,7 +10286,7 @@
           "Mail"
         ],
         "summary": "Mail attachments: create upload session",
-        "description": "Drafts only, up to 50,000,000 bytes (Stalwart's maxSizeUpload). The uploadUrl is self-authorising (ADR 0001 §39, its own key purpose) and bound to the draft and session; the session lives in the draft's JMAP metadata (ADR 0006 D5).\n\nGraph reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession",
+        "description": "Drafts only, up to 50,000,000 bytes (Stalwart's maxSizeUpload). The uploadUrl is self-authorising and bound to the draft and session; the session lives in the draft's JMAP metadata.\n\nGraph reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession",
         "parameters": [
           {
             "name": "userId",
@@ -11698,7 +11698,7 @@
           "Mail"
         ],
         "summary": "Mail folders: delta",
-        "description": "Mail folders: delta: Initial sync: every folder, parents first. Built on Mailbox/get + Mailbox/changes; $select frozen into the link (ADR 0001 §7).\n\nMail folders: delta changes: After a change: created/updated folders as upserts (a rename, move or count change), destroyed ones as @removed deleted.\n\nGraph reference: https://learn.microsoft.com/graph/api/mailfolder-delta",
+        "description": "Mail folders: delta: Initial sync: every folder, parents first. Built on Mailbox/get + Mailbox/changes; $select frozen into the link.\n\nMail folders: delta changes: After a change: created/updated folders as upserts (a rename, move or count change), destroyed ones as @removed deleted.\n\nGraph reference: https://learn.microsoft.com/graph/api/mailfolder-delta",
         "parameters": [
           {
             "name": "$select",
@@ -11763,7 +11763,7 @@
           "Mail"
         ],
         "summary": "Mail folders: delta",
-        "description": "Mail folders: delta: Initial sync: every folder, parents first. Built on Mailbox/get + Mailbox/changes; $select frozen into the link (ADR 0001 §7).\n\nMail folders: delta changes: After a change: created/updated folders as upserts (a rename, move or count change), destroyed ones as @removed deleted.\n\nGraph reference: https://learn.microsoft.com/graph/api/mailfolder-delta",
+        "description": "Mail folders: delta: Initial sync: every folder, parents first. Built on Mailbox/get + Mailbox/changes; $select frozen into the link.\n\nMail folders: delta changes: After a change: created/updated folders as upserts (a rename, move or count change), destroyed ones as @removed deleted.\n\nGraph reference: https://learn.microsoft.com/graph/api/mailfolder-delta",
         "parameters": [
           {
             "name": "userId",
@@ -14049,7 +14049,7 @@
           "Mail"
         ],
         "summary": "Mail messages: update",
-        "description": "Mail messages: update categories: Names need not be master categories. Kept in the message's shared metadata (nightware.ms), up to 8 KB.\n\nMail messages: update flag: Any message, not only drafts. flagged is the $flagged keyword; complete and the dates live in the message's JMAP metadata (ADR 0006 D5). The id is kept. Shares its route with mail.messages.update-read-state and mail.drafts.update.\n\nMail messages: update importance: Overrides the Importance header on read; normal clears the override.\n\nGraph reference: https://learn.microsoft.com/graph/api/message-update",
+        "description": "Mail messages: update categories: Names need not be master categories. Kept in the message's shared metadata (nightware.ms), up to 8 KB.\n\nMail messages: update flag: Any message, not only drafts. flagged is the $flagged keyword; complete and the dates live in the message's JMAP metadata. The id is kept. Shares its route with mail.messages.update-read-state and mail.drafts.update.\n\nMail messages: update importance: Overrides the Importance header on read; normal clears the override.\n\nGraph reference: https://learn.microsoft.com/graph/api/message-update",
         "parameters": [
           {
             "name": "messageId",
@@ -14419,7 +14419,7 @@
           "Mail"
         ],
         "summary": "Mail messages: update",
-        "description": "Mail messages: update categories: Names need not be master categories. Kept in the message's shared metadata (nightware.ms), up to 8 KB.\n\nMail messages: update flag: Any message, not only drafts. flagged is the $flagged keyword; complete and the dates live in the message's JMAP metadata (ADR 0006 D5). The id is kept. Shares its route with mail.messages.update-read-state and mail.drafts.update.\n\nMail messages: update importance: Overrides the Importance header on read; normal clears the override.\n\nGraph reference: https://learn.microsoft.com/graph/api/message-update",
+        "description": "Mail messages: update categories: Names need not be master categories. Kept in the message's shared metadata (nightware.ms), up to 8 KB.\n\nMail messages: update flag: Any message, not only drafts. flagged is the $flagged keyword; complete and the dates live in the message's JMAP metadata. The id is kept. Shares its route with mail.messages.update-read-state and mail.drafts.update.\n\nMail messages: update importance: Overrides the Importance header on read; normal clears the override.\n\nGraph reference: https://learn.microsoft.com/graph/api/message-update",
         "parameters": [
           {
             "name": "userId",
@@ -16114,7 +16114,7 @@
           "Mail"
         ],
         "summary": "Mail rules: create",
-        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). Supported predicates: subjectContains, bodyContains, bodyOrSubjectContains, senderContains, recipientContains, fromAddresses, sentToAddresses, hasAttachments, importance. Actions: moveToFolder, copyToFolder, delete, permanentDelete, markAsRead, forwardTo/redirectTo (one address in all), stopProcessingRules. Anything else is 501 naming the field. The first rule takes over an enabled VacationResponse.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
+        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart. Supported predicates: subjectContains, bodyContains, bodyOrSubjectContains, senderContains, recipientContains, fromAddresses, sentToAddresses, hasAttachments, importance. Actions: moveToFolder, copyToFolder, delete, permanentDelete, markAsRead, forwardTo/redirectTo (one address in all), stopProcessingRules. Anything else is 501 naming the field. The first rule takes over an enabled VacationResponse.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -16179,7 +16179,7 @@
           "Mail"
         ],
         "summary": "Mail rules: list",
-        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). In sequence order, numbered 1..n.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
+        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart. In sequence order, numbered 1..n.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
         "parameters": [],
         "responses": {
           "200": {
@@ -16236,7 +16236,7 @@
           "Mail"
         ],
         "summary": "Mail rules: create",
-        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). Supported predicates: subjectContains, bodyContains, bodyOrSubjectContains, senderContains, recipientContains, fromAddresses, sentToAddresses, hasAttachments, importance. Actions: moveToFolder, copyToFolder, delete, permanentDelete, markAsRead, forwardTo/redirectTo (one address in all), stopProcessingRules. Anything else is 501 naming the field. The first rule takes over an enabled VacationResponse.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
+        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart. Supported predicates: subjectContains, bodyContains, bodyOrSubjectContains, senderContains, recipientContains, fromAddresses, sentToAddresses, hasAttachments, importance. Actions: moveToFolder, copyToFolder, delete, permanentDelete, markAsRead, forwardTo/redirectTo (one address in all), stopProcessingRules. Anything else is 501 naming the field. The first rule takes over an enabled VacationResponse.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
         "parameters": [
           {
             "name": "userId",
@@ -16310,7 +16310,7 @@
           "Mail"
         ],
         "summary": "Mail rules: list",
-        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). In sequence order, numbered 1..n.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
+        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart. In sequence order, numbered 1..n.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
         "parameters": [
           {
             "name": "userId",
@@ -16376,7 +16376,7 @@
           "Mail"
         ],
         "summary": "Mail rules: delete",
-        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
+        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
         "parameters": [
           {
             "name": "ruleId",
@@ -16414,7 +16414,7 @@
           "Mail"
         ],
         "summary": "Mail rules: get",
-        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
+        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
         "parameters": [
           {
             "name": "ruleId",
@@ -16470,7 +16470,7 @@
           "Mail"
         ],
         "summary": "Mail rules: update",
-        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). Members sent replace the stored ones; a changed sequence moves the rule.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
+        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart. Members sent replace the stored ones; a changed sequence moves the rule.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
         "parameters": [
           {
             "name": "ruleId",
@@ -16546,7 +16546,7 @@
           "Mail"
         ],
         "summary": "Mail rules: delete",
-        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
+        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
         "parameters": [
           {
             "name": "userId",
@@ -16592,7 +16592,7 @@
           "Mail"
         ],
         "summary": "Mail rules: get",
-        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
+        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
         "parameters": [
           {
             "name": "userId",
@@ -16656,7 +16656,7 @@
           "Mail"
         ],
         "summary": "Mail rules: update",
-        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart (ADR 0006 D5). Members sent replace the stored ones; a changed sequence moves the rule.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
+        "description": "Rules and automatic replies share one Nightware Sieve script on Stalwart. Members sent replace the stored ones; a changed sequence moves the rule.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/messagerule",
         "parameters": [
           {
             "name": "userId",
@@ -18467,7 +18467,7 @@
           "To Do"
         ],
         "summary": "Tasks checklist items: create",
-        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
+        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
         "parameters": [
           {
             "name": "listId",
@@ -18541,7 +18541,7 @@
           "To Do"
         ],
         "summary": "Tasks checklist items: list",
-        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
+        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
         "parameters": [
           {
             "name": "listId",
@@ -18611,7 +18611,7 @@
           "To Do"
         ],
         "summary": "Tasks checklist items: create",
-        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
+        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
         "parameters": [
           {
             "name": "userId",
@@ -18693,7 +18693,7 @@
           "To Do"
         ],
         "summary": "Tasks checklist items: list",
-        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
+        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
         "parameters": [
           {
             "name": "userId",
@@ -18771,7 +18771,7 @@
           "To Do"
         ],
         "summary": "Tasks checklist items: delete",
-        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
+        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
         "parameters": [
           {
             "name": "listId",
@@ -18825,7 +18825,7 @@
           "To Do"
         ],
         "summary": "Tasks checklist items: update",
-        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8). isChecked is STATUS:COMPLETED with COMPLETED and PERCENT-COMPLETE:100.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
+        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing. isChecked is STATUS:COMPLETED with COMPLETED and PERCENT-COMPLETE:100.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
         "parameters": [
           {
             "name": "listId",
@@ -18909,7 +18909,7 @@
           "To Do"
         ],
         "summary": "Tasks checklist items: delete",
-        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
+        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
         "parameters": [
           {
             "name": "userId",
@@ -18971,7 +18971,7 @@
           "To Do"
         ],
         "summary": "Tasks checklist items: update",
-        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8). isChecked is STATUS:COMPLETED with COMPLETED and PERCENT-COMPLETE:100.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
+        "description": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing. isChecked is STATUS:COMPLETED with COMPLETED and PERCENT-COMPLETE:100.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/checklistitem",
         "parameters": [
           {
             "name": "userId",
@@ -19063,7 +19063,7 @@
           "To Do"
         ],
         "summary": "Tasks linked resources: create",
-        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
+        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
         "parameters": [
           {
             "name": "listId",
@@ -19139,7 +19139,7 @@
           "To Do"
         ],
         "summary": "Tasks linked resources: list",
-        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
+        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
         "parameters": [
           {
             "name": "listId",
@@ -19209,7 +19209,7 @@
           "To Do"
         ],
         "summary": "Tasks linked resources: create",
-        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
+        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
         "parameters": [
           {
             "name": "userId",
@@ -19293,7 +19293,7 @@
           "To Do"
         ],
         "summary": "Tasks linked resources: list",
-        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
+        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
         "parameters": [
           {
             "name": "userId",
@@ -19371,7 +19371,7 @@
           "To Do"
         ],
         "summary": "Tasks linked resources: delete",
-        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
+        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
         "parameters": [
           {
             "name": "listId",
@@ -19425,7 +19425,7 @@
           "To Do"
         ],
         "summary": "Tasks linked resources: update",
-        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
+        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
         "parameters": [
           {
             "name": "listId",
@@ -19511,7 +19511,7 @@
           "To Do"
         ],
         "summary": "Tasks linked resources: delete",
-        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
+        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
         "parameters": [
           {
             "name": "userId",
@@ -19573,7 +19573,7 @@
           "To Do"
         ],
         "summary": "Tasks linked resources: update",
-        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
+        "description": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/linkedresource",
         "parameters": [
           {
             "name": "userId",
@@ -19667,7 +19667,7 @@
           "To Do"
         ],
         "summary": "Tasks lists: create",
-        "description": "VTODO calendar collections (ADR 0006 D8). MKCALENDAR of a VTODO-only collection (Nextcloud limits calendar creation to about ten per hour).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
+        "description": "VTODO calendar collections. MKCALENDAR of a VTODO-only collection (Nextcloud limits calendar creation to about ten per hour).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -19785,7 +19785,7 @@
           "To Do"
         ],
         "summary": "Tasks lists: create",
-        "description": "VTODO calendar collections (ADR 0006 D8). MKCALENDAR of a VTODO-only collection (Nextcloud limits calendar creation to about ten per hour).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
+        "description": "VTODO calendar collections. MKCALENDAR of a VTODO-only collection (Nextcloud limits calendar creation to about ten per hour).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
         "parameters": [
           {
             "name": "userId",
@@ -19920,7 +19920,7 @@
           "To Do"
         ],
         "summary": "Tasks lists: delete",
-        "description": "VTODO calendar collections (ADR 0006 D8). The default list, shared lists and a collection that also holds events are not deleted (400/403/400).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
+        "description": "VTODO calendar collections. The default list, shared lists and a collection that also holds events are not deleted (400/403/400).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
         "parameters": [
           {
             "name": "listId",
@@ -19958,7 +19958,7 @@
           "To Do"
         ],
         "summary": "Tasks lists: get",
-        "description": "VTODO calendar collections (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
+        "description": "VTODO calendar collections.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
         "parameters": [
           {
             "name": "listId",
@@ -20010,7 +20010,7 @@
           "To Do"
         ],
         "summary": "Tasks lists: update",
-        "description": "VTODO calendar collections (ADR 0006 D8). PROPPATCH displayname; the default list and shared lists cannot be renamed (400/403).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
+        "description": "VTODO calendar collections. PROPPATCH displayname; the default list and shared lists cannot be renamed (400/403).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
         "parameters": [
           {
             "name": "listId",
@@ -20077,7 +20077,7 @@
           "To Do"
         ],
         "summary": "Tasks lists: delete",
-        "description": "VTODO calendar collections (ADR 0006 D8). The default list, shared lists and a collection that also holds events are not deleted (400/403/400).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
+        "description": "VTODO calendar collections. The default list, shared lists and a collection that also holds events are not deleted (400/403/400).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
         "parameters": [
           {
             "name": "userId",
@@ -20123,7 +20123,7 @@
           "To Do"
         ],
         "summary": "Tasks lists: get",
-        "description": "VTODO calendar collections (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
+        "description": "VTODO calendar collections.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
         "parameters": [
           {
             "name": "userId",
@@ -20183,7 +20183,7 @@
           "To Do"
         ],
         "summary": "Tasks lists: update",
-        "description": "VTODO calendar collections (ADR 0006 D8). PROPPATCH displayname; the default list and shared lists cannot be renamed (400/403).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
+        "description": "VTODO calendar collections. PROPPATCH displayname; the default list and shared lists cannot be renamed (400/403).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotasklist",
         "parameters": [
           {
             "name": "userId",
@@ -20809,7 +20809,7 @@
           "To Do"
         ],
         "summary": "Tasks tasks: delete",
-        "description": "VTODO calendar collections (ADR 0006 D8). Its checklist items (child VTODOs) go with it.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotask",
+        "description": "VTODO calendar collections. Its checklist items (child VTODOs) go with it.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotask",
         "parameters": [
           {
             "name": "listId",
@@ -20855,7 +20855,7 @@
           "To Do"
         ],
         "summary": "Tasks tasks: get",
-        "description": "VTODO calendar collections (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotask",
+        "description": "VTODO calendar collections.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotask",
         "parameters": [
           {
             "name": "listId",
@@ -21019,7 +21019,7 @@
           "To Do"
         ],
         "summary": "Tasks tasks: delete",
-        "description": "VTODO calendar collections (ADR 0006 D8). Its checklist items (child VTODOs) go with it.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotask",
+        "description": "VTODO calendar collections. Its checklist items (child VTODOs) go with it.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotask",
         "parameters": [
           {
             "name": "userId",
@@ -21073,7 +21073,7 @@
           "To Do"
         ],
         "summary": "Tasks tasks: get",
-        "description": "VTODO calendar collections (ADR 0006 D8).\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotask",
+        "description": "VTODO calendar collections.\n\nGraph reference: https://learn.microsoft.com/graph/api/resources/todotask",
         "parameters": [
           {
             "name": "userId",
@@ -21253,7 +21253,7 @@
           "To Do"
         ],
         "summary": "Tasks tasks: delta",
-        "description": "Tasks tasks: delta: CalDAV sync-collection on the list (ADR 0006 D8): the initial sync is every task, as a first page.\n\nTasks tasks: delta changes: Changed tasks (a changed checklist item stands for its task) and @removed; the token names its list; an expired one is 410. checklistItems are not embedded: read them from checklistItems.\n\nGraph reference: https://learn.microsoft.com/graph/api/todotask-delta",
+        "description": "Tasks tasks: delta: CalDAV sync-collection on the list: the initial sync is every task, as a first page.\n\nTasks tasks: delta changes: Changed tasks (a changed checklist item stands for its task) and @removed; the token names its list; an expired one is 410. checklistItems are not embedded: read them from checklistItems.\n\nGraph reference: https://learn.microsoft.com/graph/api/todotask-delta",
         "parameters": [
           {
             "name": "listId",
@@ -21311,7 +21311,7 @@
           "To Do"
         ],
         "summary": "Tasks tasks: delta",
-        "description": "Tasks tasks: delta: CalDAV sync-collection on the list (ADR 0006 D8): the initial sync is every task, as a first page.\n\nTasks tasks: delta changes: Changed tasks (a changed checklist item stands for its task) and @removed; the token names its list; an expired one is 410. checklistItems are not embedded: read them from checklistItems.\n\nGraph reference: https://learn.microsoft.com/graph/api/todotask-delta",
+        "description": "Tasks tasks: delta: CalDAV sync-collection on the list: the initial sync is every task, as a first page.\n\nTasks tasks: delta changes: Changed tasks (a changed checklist item stands for its task) and @removed; the token names its list; an expired one is 410. checklistItems are not embedded: read them from checklistItems.\n\nGraph reference: https://learn.microsoft.com/graph/api/todotask-delta",
         "parameters": [
           {
             "name": "userId",

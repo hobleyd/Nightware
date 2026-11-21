@@ -53,6 +53,13 @@ def area(op):
     return AREAS.get(head, head.capitalize())
 
 
+def public(note):
+    """A note as a third party reads it: without references to Nightware's internal decision records."""
+    note = re.sub(r"\s*\((?:see )?ADR \d+[^)]*\)", "", note)
+    note = re.sub(r"\s*ADR \d+(?: (?:D|§)\d+)*\.?", "", note)
+    return note.replace("The façade's", "Nightware's").replace("the façade", "Nightware").replace("The façade", "Nightware").strip()
+
+
 def title(op_id):
     """ "mail.messages.update-read-state" -> "Mail messages: update read state"."""
     parts = op_id.replace("-", " ").split(".")
@@ -105,7 +112,7 @@ def parameters(op, path):
 
 def operation(op, path):
     # NightMail's own operations carry notes about the app's code; only the parity ones describe the server.
-    notes = (op.get("notes") or "").strip() if op.get("source") == "graph-parity" else ""
+    notes = public((op.get("notes") or "").strip()) if op.get("source") == "graph-parity" else ""
     summary = title(op["id"])
     description = notes or "Behaves as Microsoft Graph's operation on the same route."
     if op.get("docs"):
@@ -166,7 +173,7 @@ def merged(ops):
         while not other["id"].startswith(stem):
             stem = stem[:-1]
     first["id"] = stem.rstrip(".-") or ops[0]["id"]
-    notes = [f"{title(o['id'])}: {o['notes'].strip()}" for o in ops if o.get("source") == "graph-parity" and (o.get("notes") or "").strip()]
+    notes = [f"{title(o['id'])}: {public(o['notes'].strip())}" for o in ops if o.get("source") == "graph-parity" and (o.get("notes") or "").strip()]
     first["notes"] = "\n\n".join(notes)
     first["source"] = "graph-parity" if notes else ops[0].get("source")
     bodies = [o["requestBody"] for o in ops if o.get("requestBody")]
