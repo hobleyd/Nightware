@@ -13998,6 +13998,441 @@
         }
       }
     },
+    "/me/mailFolders/{folderId}/copy": {
+      "post": {
+        "operationId": "mail.folders.copy",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail folders: copy",
+        "description": "Copies the folder, its subfolders and every message in them under the destination (each message a distinct copy, as messages/{id}/copy). 200 with the new folder, as Graph's reference. A name taken at the destination is 409 ErrorFolderExists; a destination inside the folder is 400. A well-known folder copies as a plain folder; a failure part-way leaves what was copied.\n\nGraph reference: https://learn.microsoft.com/graph/api/mailfolder-copy",
+        "parameters": [
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "destinationId": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "displayName": {},
+                    "parentFolderId": {},
+                    "childFolderCount": {},
+                    "unreadItemCount": {},
+                    "totalItemCount": {},
+                    "isHidden": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/mailFolders/{folderId}/copy": {
+      "post": {
+        "operationId": "mail.folders.copy.users",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail folders: copy",
+        "description": "Copies the folder, its subfolders and every message in them under the destination (each message a distinct copy, as messages/{id}/copy). 200 with the new folder, as Graph's reference. A name taken at the destination is 409 ErrorFolderExists; a destination inside the folder is 400. A well-known folder copies as a plain folder; a failure part-way leaves what was copied.\n\nGraph reference: https://learn.microsoft.com/graph/api/mailfolder-copy",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "destinationId": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "displayName": {},
+                    "parentFolderId": {},
+                    "childFolderCount": {},
+                    "unreadItemCount": {},
+                    "totalItemCount": {},
+                    "isHidden": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/mailFolders": {
+      "post": {
+        "operationId": "mail.folders.create",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail folders: create",
+        "description": "A top-level folder (under msgfolderroot), as NightMail's childFolders create of msgfolderroot. A name already used at the top level is 409 ErrorFolderExists. Hidden folders have no counterpart in the mail store, so isHidden: true is refused rather than ignored.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-post-mailfolders",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {},
+                  "isHidden": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "displayName": {},
+                    "parentFolderId": {},
+                    "childFolderCount": {},
+                    "unreadItemCount": {},
+                    "totalItemCount": {},
+                    "isHidden": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "mail.folders.list",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail folders: list",
+        "description": "Behaves as Microsoft Graph's operation on the same route.",
+        "parameters": [
+          {
+            "name": "$select",
+            "in": "query",
+            "required": false,
+            "description": "Properties to return, comma-separated.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "id,displayName,totalItemCount,unreadItemCount,parentFolderId,isHidden,childFolderCount"
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "required": false,
+            "description": "Page size.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 100
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {},
+                          "displayName": {},
+                          "totalItemCount": {},
+                          "unreadItemCount": {},
+                          "parentFolderId": {},
+                          "isHidden": {},
+                          "childFolderCount": {}
+                        }
+                      }
+                    },
+                    "@odata.nextLink": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/mailFolders": {
+      "post": {
+        "operationId": "mail.folders.create.users",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail folders: create",
+        "description": "A top-level folder (under msgfolderroot), as NightMail's childFolders create of msgfolderroot. A name already used at the top level is 409 ErrorFolderExists. Hidden folders have no counterpart in the mail store, so isHidden: true is refused rather than ignored.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-post-mailfolders",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {},
+                  "isHidden": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "displayName": {},
+                    "parentFolderId": {},
+                    "childFolderCount": {},
+                    "unreadItemCount": {},
+                    "totalItemCount": {},
+                    "isHidden": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "mail.folders.list.users",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail folders: list",
+        "description": "Behaves as Microsoft Graph's operation on the same route.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "required": false,
+            "description": "Properties to return, comma-separated.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "id,displayName,totalItemCount,unreadItemCount,parentFolderId,isHidden,childFolderCount"
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "required": false,
+            "description": "Page size.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 100
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {},
+                          "displayName": {},
+                          "totalItemCount": {},
+                          "unreadItemCount": {},
+                          "parentFolderId": {},
+                          "isHidden": {},
+                          "childFolderCount": {}
+                        }
+                      }
+                    },
+                    "@odata.nextLink": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me/mailFolders/{parentFolderIdOrWellKnownName}/childFolders": {
       "post": {
         "operationId": "mail.folders.create-child",
@@ -14573,168 +15008,6 @@
                   "type": "object",
                   "properties": {
                     "id": {}
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/Error"
-          },
-          "401": {
-            "$ref": "#/components/responses/Error"
-          },
-          "403": {
-            "$ref": "#/components/responses/Error"
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "429": {
-            "$ref": "#/components/responses/Throttled"
-          }
-        }
-      }
-    },
-    "/me/mailFolders": {
-      "get": {
-        "operationId": "mail.folders.list",
-        "tags": [
-          "Mail"
-        ],
-        "summary": "Mail folders: list",
-        "description": "Behaves as Microsoft Graph's operation on the same route.",
-        "parameters": [
-          {
-            "name": "$select",
-            "in": "query",
-            "required": false,
-            "description": "Properties to return, comma-separated.",
-            "schema": {
-              "type": "string"
-            },
-            "example": "id,displayName,totalItemCount,unreadItemCount,parentFolderId,isHidden,childFolderCount"
-          },
-          {
-            "name": "$top",
-            "in": "query",
-            "required": false,
-            "description": "Page size.",
-            "schema": {
-              "type": "integer"
-            },
-            "example": 100
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success. Paged by @odata.nextLink.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "value": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {},
-                          "displayName": {},
-                          "totalItemCount": {},
-                          "unreadItemCount": {},
-                          "parentFolderId": {},
-                          "isHidden": {},
-                          "childFolderCount": {}
-                        }
-                      }
-                    },
-                    "@odata.nextLink": {}
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/Error"
-          },
-          "401": {
-            "$ref": "#/components/responses/Error"
-          },
-          "403": {
-            "$ref": "#/components/responses/Error"
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "429": {
-            "$ref": "#/components/responses/Throttled"
-          }
-        }
-      }
-    },
-    "/users/{userId}/mailFolders": {
-      "get": {
-        "operationId": "mail.folders.list.users",
-        "tags": [
-          "Mail"
-        ],
-        "summary": "Mail folders: list",
-        "description": "Behaves as Microsoft Graph's operation on the same route.",
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "$select",
-            "in": "query",
-            "required": false,
-            "description": "Properties to return, comma-separated.",
-            "schema": {
-              "type": "string"
-            },
-            "example": "id,displayName,totalItemCount,unreadItemCount,parentFolderId,isHidden,childFolderCount"
-          },
-          {
-            "name": "$top",
-            "in": "query",
-            "required": false,
-            "description": "Page size.",
-            "schema": {
-              "type": "integer"
-            },
-            "example": 100
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success. Paged by @odata.nextLink.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "value": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {},
-                          "displayName": {},
-                          "totalItemCount": {},
-                          "unreadItemCount": {},
-                          "parentFolderId": {},
-                          "isHidden": {},
-                          "childFolderCount": {}
-                        }
-                      }
-                    },
-                    "@odata.nextLink": {}
                   }
                 }
               }

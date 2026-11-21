@@ -75,5 +75,15 @@ public sealed class FolderUseCaseTests
     {
         await Should.ThrowAsync<ArgumentNullException>(() => new CreateChildFolder(_folders).ExecuteAsync(Me, null!, "x", Ct));
         await Should.ThrowAsync<ArgumentNullException>(() => new MoveFolder(_folders).ExecuteAsync(Me, Id, null!, Ct));
+        await Should.ThrowAsync<ArgumentNullException>(() => new CopyFolder(_folders).ExecuteAsync(Me, Id, null!, Ct));
+    }
+
+    [Fact]
+    public async Task Copy_passes_through_to_the_writer()
+    {
+        var copy = Folder with { Id = new FolderId("f2") };
+        _folders.CopyAsync(Me, Id, Root, Arg.Any<CancellationToken>()).Returns(copy);
+
+        (await new CopyFolder(_folders).ExecuteAsync(Me, Id, Root, Ct)).Value.ShouldBe(copy);
     }
 }

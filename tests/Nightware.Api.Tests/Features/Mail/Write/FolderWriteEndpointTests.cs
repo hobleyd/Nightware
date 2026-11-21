@@ -128,4 +128,67 @@ public sealed class FolderWriteEndpointTests : MailWriteEndpointTestBase
         (await SendAsync(HttpMethod.Post, "/v1.0/me/mailFolders/mbx-1/move", """{"destinationId":"mbx-2"}""")).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         await Folders.Received(1).MoveAsync(Arg.Any<MailboxRef>(), new FolderId("mbx-1"), new FolderRef.ById(new FolderId("mbx-2")), Arg.Any<CancellationToken>());
     }
+
+    [Theory]
+    [MemberData(nameof(Forms))]
+    public async Task Create_at_the_top_level_is_201_under_the_root(string prefix, string address)
+    {
+        Folders.CreateAsync(Box(address), new FolderRef.WellKnown(WellKnownFolder.MsgFolderRoot), "Plans", Arg.Any<CancellationToken>()).Returns(Folder("Plans"));
+
+        var response = await SendAsync(HttpMethod.Post, $"{prefix}/mailFolders", """{"displayName":"Plans","isHidden":false}""");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var body = await response.ReadObjectAsync();
+        body["displayName"]!.GetValue<string>().ShouldBe("Plans");
+        body["@odata.context"]!.GetValue<string>().ShouldEndWith($"{Context(address)}/mailFolders/$entity");
+    }
+
+    [Fact]
+    public async Task Create_a_hidden_folder_is_400_notSupported()
+    {
+        var response = await SendAsync(HttpMethod.Post, "/v1.0/me/mailFolders", """{"displayName":"Clutter","isHidden":true}""");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.ReadObjectAsync()).Str("error.code").ShouldBe("notSupported");
+        await Folders.DidNotReceiveWithAnyArgs().CreateAsync(default, null, null!, Ct);
+    }
+
+    [Fact]
+    public async Task Create_at_the_top_level_without_a_name_is_400()
+    {
+        (await SendAsync(HttpMethod.Post, "/v1.0/me/mailFolders", "{}")).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Theory]
+    [MemberData(nameof(Forms))]
+    public async Task Copy_is_200_with_the_new_folder(string prefix, string address)
+    {
+        Folders.CopyAsync(Box(address), new FolderId("mbx-1"), new FolderRef.WellKnown(WellKnownFolder.Inbox), Arg.Any<CancellationToken>())
+            .Returns(new MailFolder(new FolderId("mbx-9"), "Projects", new FolderId("mbx-inbox"), 0, 1, 12));
+
+        var response = await SendAsync(HttpMethod.Post, $"{prefix}/mailFolders/mbx-1/copy", """{"destinationId":"inbox"}""");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await response.ReadObjectAsync();
+        body["id"]!.GetValue<string>().ShouldBe("mbx-9");
+        body["@odata.context"]!.GetValue<string>().ShouldEndWith($"{Context(address)}/mailFolders/$entity");
+    }
+
+    [Fact]
+    public async Task Copy_without_a_destination_is_400()
+    {
+        (await SendAsync(HttpMethod.Post, "/v1.0/me/mailFolders/mbx-1/copy", "{}")).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        await Folders.DidNotReceiveWithAnyArgs().CopyAsync(default, default, null!, Ct);
+    }
+
+    [Fact]
+    public async Task Copy_to_a_name_that_exists_is_409()
+    {
+        Folders.CopyAsync(default, default, null!, Ct)
+            .ReturnsForAnyArgs(Result<MailFolder>.Failure(new Error(ErrorKind.Conflict, "ErrorFolderExists", "exists", "displayName")));
+
+        var response = await SendAsync(HttpMethod.Post, "/v1.0/me/mailFolders/mbx-1/copy", """{"destinationId":"msgfolderroot"}""");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+    }
 }

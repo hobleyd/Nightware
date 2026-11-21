@@ -8,12 +8,13 @@ using Nightware.Api.Graph.OData;
 using Nightware.Api.Graph.Routing;
 using Nightware.Application.Mail.Write;
 using Nightware.Domain.Kernel;
+using Nightware.Domain.Mail;
 
 namespace Nightware.Api.Features.Mail.Write;
 
 /// <summary>
-/// Folder writes. <c>POST mailFolders</c> (a root create) is not in the contract: NightMail creates top-level
-/// folders as <c>childFolders</c> of <c>msgfolderroot</c>.
+/// Folder writes. NightMail creates top-level folders as <c>childFolders</c> of <c>msgfolderroot</c>; Graph's own
+/// <c>POST mailFolders</c> (phase 19) does the same.
 /// </summary>
 internal static class FolderWriteEndpoints
 {
@@ -21,11 +22,43 @@ internal static class FolderWriteEndpoints
     {
         foreach (var scope in graph.MapMailboxGroups())
         {
+            scope.MapPost("/mailFolders", CreateTopLevelAsync);
             scope.MapPost("/mailFolders/{folderId}/childFolders", CreateChildAsync);
             scope.MapPatch("/mailFolders/{folderId}", RenameAsync);
             scope.MapDelete("/mailFolders/{folderId}", DeleteAsync);
             scope.MapPost("/mailFolders/{folderId}/move", MoveAsync);
+            scope.MapPost("/mailFolders/{folderId}/copy", CopyAsync);
         }
+    }
+
+    /// <summary>
+    /// <c>POST mailFolders</c>: a top-level folder. Graph's <c>isHidden: true</c> has no counterpart in the mail store (a
+    /// hidden folder can't be made so later either), so it is refused rather than silently creating a visible one.
+    /// </summary>
+    private static async Task<IResult> CreateTopLevelAsync(
+        Mailbox mailbox, [FromBody] MailFolderRequestDto? body, CreateChildFolder useCase, CancellationToken cancellationToken)
+    {
+        if (body?.IsHidden == true)
+        {
+            return GraphResults.Error(new Error(ErrorKind.Validation, "notSupported", "Hidden folders are not supported.", "isHidden"));
+        }
+
+        var created = await useCase.ExecuteAsync(mailbox.Ref, new FolderRef.WellKnown(WellKnownFolder.MsgFolderRoot), body?.DisplayName, cancellationToken);
+        return GraphResults.Match(created, f => GraphResults.Created(MessageDtoMapper.ToDto(f), Folders(mailbox)));
+    }
+
+    /// <summary><c>POST mailFolders/{id}/copy</c>: 200 with the new folder (Graph's reference; a move is 201).</summary>
+    private static async Task<IResult> CopyAsync(
+        Mailbox mailbox, string folderId, [FromBody] MoveRequestDto? body, CopyFolder useCase, CancellationToken cancellationToken)
+    {
+        var destination = WriteFolders.Parse(body?.DestinationId, "destinationId");
+        if (!destination.IsSuccess)
+        {
+            return GraphResults.Error(destination.Error);
+        }
+
+        var copied = await useCase.ExecuteAsync(mailbox.Ref, new FolderId(folderId), destination.Value, cancellationToken);
+        return GraphResults.Match(copied, f => GraphResults.Entity(MessageDtoMapper.ToDto(f), Folders(mailbox)));
     }
 
     private static async Task<IResult> CreateChildAsync(

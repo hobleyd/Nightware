@@ -329,7 +329,8 @@ operation:
 | Phase 15 — To Do (Graph parity) | 19 |
 | Phase 16 — Change notifications (Graph parity) | 10 |
 | Phase 18 — Settings, aliases, single items and $count (Graph parity) | 26 |
-| **Total** | **197** |
+| Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 2 |
+| **Total** | **199** |
 
 ### Phase 2 — Mail, read side
 
@@ -2512,5 +2513,32 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/linkedresource-get
 - Notes: One link, read from the task's links. Returned as the entity, as the other single GETs (checklistItem included) are; the reference page's sample wraps it in "value".
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.linked-resources.get.json`
+
+### Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity)
+
+| Id | Method | Ver | Path | Paging |
+|---|---|---|---|---|
+| [`mail.folders.create`](#mailfolderscreate) | POST | v1.0 | `{mailbox}/mailFolders` | none |
+| [`mail.folders.copy`](#mailfolderscopy) | POST | v1.0 | `{mailbox}/mailFolders/{folderId}/copy` | none |
+
+#### `mail.folders.create`
+
+**POST v1.0 `{mailbox}/mailFolders`** — forms: me, users; success: 201; paging: none
+
+- Request body: `displayName`; `isHidden`
+- Client reads: `id`, `displayName`, `parentFolderId`, `childFolderCount`, `unreadItemCount`, `totalItemCount`, `isHidden`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-post-mailfolders
+- Notes: A top-level folder (under msgfolderroot), as NightMail's childFolders create of msgfolderroot. A name already used at the top level is 409 ErrorFolderExists. Hidden folders have no counterpart in the mail store, so isHidden: true is refused rather than ignored.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.create.json`
+
+#### `mail.folders.copy`
+
+**POST v1.0 `{mailbox}/mailFolders/{folderId}/copy`** — forms: me, users; success: 200; paging: none
+
+- Request body: `destinationId`
+- Client reads: `id`, `displayName`, `parentFolderId`, `childFolderCount`, `unreadItemCount`, `totalItemCount`, `isHidden`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/mailfolder-copy
+- Notes: Copies the folder, its subfolders and every message in them under the destination (each message a distinct copy, as messages/{id}/copy). 200 with the new folder, as Graph's reference. A name taken at the destination is 409 ErrorFolderExists; a destination inside the folder is 400. A well-known folder copies as a plain folder; a failure part-way leaves what was copied.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.copy.json`
 
 <!-- END GENERATED -->

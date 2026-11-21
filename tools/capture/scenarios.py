@@ -433,6 +433,14 @@ TODO_ITEMS = [
     setup("DELETE", "/v1.0/me/todo/lists/${listId}", always=True),
 ]
 
+FOLDERS = [
+    step("mail.folders.create", "POST", "/v1.0/me/mailFolders", body={"displayName": "Nightware capture ${run}", "isHidden": False},
+         save={"folderId": "id"}),
+    step("mail.folders.copy", "POST", "/v1.0/me/mailFolders/${folderId}/copy", body={"destinationId": "inbox"}, save={"copyId": "id"}),
+    setup("DELETE", "/v1.0/me/mailFolders/${copyId}", always=True),
+    setup("DELETE", "/v1.0/me/mailFolders/${folderId}", always=True),
+]
+
 PHASES = {
     11: [("batch", BATCH)],
     12: [("mail", MAIL)],
@@ -441,4 +449,5 @@ PHASES = {
     15: [("todo", TODO)],
     16: [("notifications", NOTIFICATIONS)],
     18: [("settings", SETTINGS), ("aliases", ALIASES), ("todo items", TODO_ITEMS)],
+    19: [("folders", FOLDERS)],
 }

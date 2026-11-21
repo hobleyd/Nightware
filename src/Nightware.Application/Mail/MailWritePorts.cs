@@ -33,6 +33,12 @@ public interface IMailFolderWriter
 
     Task<Result<MailFolder>> MoveAsync(MailboxRef mailbox, FolderId id, FolderRef destination, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Graph <c>POST mailFolders/{id}/copy</c>: a new folder under <paramref name="destination"/> with the same name, its
+    /// subfolders and a copy of every message in them (each a distinct message, as <see cref="IMailMessageWriter.CopyAsync"/>).
+    /// </summary>
+    Task<Result<MailFolder>> CopyAsync(MailboxRef mailbox, FolderId id, FolderRef destination, CancellationToken cancellationToken);
+
     Task<Result> DeleteAsync(MailboxRef mailbox, FolderId id, CancellationToken cancellationToken);
 }
 

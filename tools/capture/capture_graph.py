@@ -524,7 +524,7 @@ def main() -> int:
     ap.add_argument("--rescrub", action="store_true",
                     help="re-run the id/credential scrub over out/ (fixtures from an older version)")
     ap.add_argument("--phase", action="append",
-                    help="phase number (11-16, 18) or 'all'; repeatable")
+                    help="phase number (11-16, 18, 19) or 'all'; repeatable")
     ap.add_argument("--dry-run", action="store_true", help="print the requests without sending them")
     ap.add_argument("--notification-url", help="public https URL tunnelled to --listen (phase 16)")
     ap.add_argument("--listen", type=int, default=8765, help="local port for notifications (default 8765)")

@@ -18,7 +18,7 @@ namespace Nightware.Adapters.Jmap.Mail.Write;
 /// rename and move alike; that becomes Graph's 409 <c>ErrorFolderExists</c>, which NightMail treats as
 /// "use the existing folder".
 /// </remarks>
-internal sealed class JmapMailFolderWriter(IJmapClient jmap) : IMailFolderWriter
+internal sealed partial class JmapMailFolderWriter(IJmapClient jmap) : IMailFolderWriter
 {
     private const string NewFolder = "folder";
 

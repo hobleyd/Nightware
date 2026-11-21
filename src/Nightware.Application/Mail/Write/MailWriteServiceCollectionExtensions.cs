@@ -27,6 +27,7 @@ public static class MailWriteServiceCollectionExtensions
             .AddScoped<CreateChildFolder>()
             .AddScoped<RenameFolder>()
             .AddScoped<MoveFolder>()
+            .AddScoped<CopyFolder>()
             .AddScoped<DeleteFolder>()
             .AddScoped<Categories.ListMasterCategories>()
             .AddScoped<Categories.GetMasterCategory>()

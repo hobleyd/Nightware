@@ -37,4 +37,7 @@ public sealed record MoveRequestDto
 public sealed record MailFolderRequestDto
 {
     public string? DisplayName { get; init; }
+
+    /// <summary>Only on <c>POST mailFolders</c>; true is refused (see FolderWriteEndpoints).</summary>
+    public bool? IsHidden { get; init; }
 }
