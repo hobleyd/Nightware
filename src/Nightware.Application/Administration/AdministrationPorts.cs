@@ -85,6 +85,12 @@ public interface IIdentityAccounts
 
     Task<Result> SetEnabledAsync(string userId, bool enabled, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Marks the account's email verified: the façade refuses tokens without <c>email_verified</c>, since the email
+    /// names the mailbox. Linking an account to its mailbox is that verification.
+    /// </summary>
+    Task<Result> MarkEmailVerifiedAsync(string userId, CancellationToken cancellationToken);
+
     /// <summary>Signs the user out of every session.</summary>
     Task<Result> EndSessionsAsync(string userId, CancellationToken cancellationToken);
 

@@ -43,6 +43,7 @@ internal sealed class AdminTestBed
         Identities.SetNameAsync(default!, default, default, default).ReturnsForAnyArgs(Result.Success());
         Identities.SetAliasesAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
         Identities.SetEnabledAsync(default!, default, default).ReturnsForAnyArgs(Result.Success());
+        Identities.MarkEmailVerifiedAsync(default!, default).ReturnsForAnyArgs(Result.Success());
         Identities.EndSessionsAsync(default!, default).ReturnsForAnyArgs(Result.Success());
         Identities.SendActionEmailAsync(default!, default!, default, default).ReturnsForAnyArgs(Result.Success());
         Identities.SetTemporaryPasswordAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());

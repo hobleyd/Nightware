@@ -44,6 +44,7 @@ public sealed class ProvisioningTests
         await _bed.Mail.DidNotReceiveWithAnyArgs().CreateAsync(default!, default!, Ct);
         await _bed.Groupware.DidNotReceiveWithAnyArgs().PreProvisionAsync(default!, default!, default!, Ct);
         await _bed.Entities.Received(1).AddMemberAsync(AdminTestBed.Acme, "u-carol", Arg.Any<CancellationToken>());
+        await _bed.Identities.Received(1).MarkEmailVerifiedAsync("u-carol", Arg.Any<CancellationToken>());
     }
 
     [Fact]

@@ -176,6 +176,18 @@ public sealed class KeycloakIdentityAccountsTests : IDisposable
     }
 
     [Fact]
+    public async Task Marks_the_email_verified_only_when_it_is_not()
+    {
+        _keycloak.GivenAdmin(UserPath, 200, Fixture.Load("user-alice.json").Replace("\"emailVerified\": true", "\"emailVerified\": false", StringComparison.Ordinal));
+        _keycloak.GivenAdmin(UserPath, 204, method: "PUT");
+        await using AdapterHost host = Host();
+
+        (await host.Scoped<IIdentityAccounts>().MarkEmailVerifiedAsync(UserId, Ct)).IsSuccess.ShouldBeTrue();
+
+        PutBody()["emailVerified"]!.GetValue<bool>().ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task Ends_sessions()
     {
         _keycloak.GivenAdmin($"{UserPath}/logout", 204, method: "POST");

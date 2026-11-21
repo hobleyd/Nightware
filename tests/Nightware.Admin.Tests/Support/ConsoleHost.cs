@@ -61,6 +61,7 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
             : default);
         Identities.SetTemporaryPasswordAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
         Identities.SetEnabledAsync(default!, default, default).ReturnsForAnyArgs(Result.Success());
+        Identities.MarkEmailVerifiedAsync(default!, default).ReturnsForAnyArgs(Result.Success());
         Identities.EndSessionsAsync(default!, default).ReturnsForAnyArgs(Result.Success());
         Identities.SetDeletionMarkerAsync(default!, default, default, default).ReturnsForAnyArgs(Result.Success());
         Identities.AddAccessEventAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());

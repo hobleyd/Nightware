@@ -106,6 +106,26 @@ internal sealed class KeycloakIdentityAccounts(IKeycloakAdminClient keycloak, IO
         return updated.ToResult();
     }
 
+    public async Task<Result> MarkEmailVerifiedAsync(string userId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        Result<KeycloakUser> updated = await keycloak.UpdateUserAsync(
+                userId,
+                static user =>
+                {
+                    if (user["emailVerified"] is JsonValue current && current.TryGetValue(out bool value) && value)
+                    {
+                        return false;
+                    }
+
+                    user["emailVerified"] = true;
+                    return true;
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
+        return updated.ToResult();
+    }
+
     public Task<Result> EndSessionsAsync(string userId, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);

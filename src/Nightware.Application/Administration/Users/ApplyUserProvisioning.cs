@@ -68,6 +68,12 @@ public sealed class ApplyUserProvisioning(
 
         IdentityAccount user = identity.Value;
         Result step = await entities.AddMemberAsync(p.Entity.Id, user.Id, cancellationToken).ConfigureAwait(false);
+        if (step.IsSuccess && p.ExistingIdentity is not null)
+        {
+            // An account made elsewhere (Keycloak's own console) may be unverified, and the façade refuses those.
+            step = await identities.MarkEmailVerifiedAsync(user.Id, cancellationToken).ConfigureAwait(false);
+        }
+
         if (step.IsSuccess && p.Aliases.Count > 0)
         {
             step = await identities.SetAliasesAsync(user.Id, p.Aliases, cancellationToken).ConfigureAwait(false);
