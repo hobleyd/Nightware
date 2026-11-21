@@ -14,11 +14,14 @@ internal sealed record FilterState(IReadOnlyList<MessageRule> Rules, AutoReplySe
 {
     public static FilterState Empty { get; } = new([], null);
 
+    /// <summary>Senders from these domains get the internal automatic reply; empty for one reply to everyone.</summary>
+    public IReadOnlyList<string> InternalDomains { get; init; } = [];
+
     private const string Marker = "# nightware-state: ";
 
     public string ToComment()
     {
-        var json = JsonSerializer.SerializeToUtf8Bytes(new FilterStateDocument(1, Rules, AutoReply), FilterStateJsonContext.Default.FilterStateDocument);
+        var json = JsonSerializer.SerializeToUtf8Bytes(new FilterStateDocument(1, Rules, AutoReply) { InternalDomains = InternalDomains.Count == 0 ? null : InternalDomains }, FilterStateJsonContext.Default.FilterStateDocument);
         return Marker + Convert.ToBase64String(json);
     }
 
@@ -35,7 +38,7 @@ internal sealed record FilterState(IReadOnlyList<MessageRule> Rules, AutoReplySe
         try
         {
             var document = JsonSerializer.Deserialize(Convert.FromBase64String(line[Marker.Length..]), FilterStateJsonContext.Default.FilterStateDocument);
-            return document is { V: 1 } ? new FilterState(document.Rules ?? [], document.AutoReply) : null;
+            return document is { V: 1 } ? new FilterState(document.Rules ?? [], document.AutoReply) { InternalDomains = document.InternalDomains ?? [] } : null;
         }
         catch (Exception ex) when (ex is FormatException or JsonException)
         {
@@ -46,7 +49,10 @@ internal sealed record FilterState(IReadOnlyList<MessageRule> Rules, AutoReplySe
     internal static string Utf8(byte[] bytes) => Encoding.UTF8.GetString(bytes);
 }
 
-internal sealed record FilterStateDocument(int V, IReadOnlyList<MessageRule>? Rules, AutoReplySetting? AutoReply);
+internal sealed record FilterStateDocument(int V, IReadOnlyList<MessageRule>? Rules, AutoReplySetting? AutoReply)
+{
+    public IReadOnlyList<string>? InternalDomains { get; init; }
+}
 
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,

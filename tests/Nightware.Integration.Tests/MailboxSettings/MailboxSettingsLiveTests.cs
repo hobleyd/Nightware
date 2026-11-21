@@ -102,6 +102,42 @@ public sealed class MailboxSettingsLiveTests : IAsyncLifetime
         (await GetAsync(alice))["automaticRepliesSetting"]!["status"]!.GetValue<string>().ShouldBe("disabled");
     }
 
+    [Fact]
+    public async Task Internal_senders_get_the_internal_reply_when_the_two_differ()
+    {
+        using var alice = await _host.GraphAsync(GroupwareLiveHost.Alice, Ct);
+        var inside = "OOF-IN-" + Guid.NewGuid().ToString("N")[..10];
+        var outside = "OOF-OUT-" + Guid.NewGuid().ToString("N")[..10];
+        try
+        {
+            var set = await alice.PatchAsJsonAsync("/v1.0/me/mailboxSettings", new
+            {
+                automaticRepliesSetting = new
+                {
+                    status = "alwaysEnabled",
+                    externalAudience = "none",
+                    internalReplyMessage = $"<p>Back soon, colleague. {inside}</p>",
+                    externalReplyMessage = $"<p>Out of the office. {outside}</p>",
+                },
+            }, Ct);
+            set.StatusCode.ShouldBe(HttpStatusCode.OK, await set.Content.ReadAsStringAsync(Ct));
+
+            var replies = (await GetAsync(alice))["automaticRepliesSetting"]!;
+            replies["externalAudience"]!.GetValue<string>().ShouldBe("none");
+            replies["internalReplyMessage"]!.GetValue<string>().ShouldContain(inside);
+            replies["externalReplyMessage"]!.GetValue<string>().ShouldContain(outside);
+
+            // Bob shares Alice's domain, so he is inside the organisation.
+            await _host.SendAsync(GroupwareLiveHost.Bob, GroupwareLiveHost.Address(GroupwareLiveHost.Alice), "Live split OOF probe " + inside, "Are you there?", Ct);
+            var reply = await _host.WaitForMessageAsync(GroupwareLiveHost.Bob, inside, TimeSpan.FromSeconds(90), Ct);
+            reply.ShouldNotBeNull($"no internal automatic reply containing {inside} reached bob");
+        }
+        finally
+        {
+            await alice.PatchAsJsonAsync("/v1.0/me/mailboxSettings", new { automaticRepliesSetting = new { status = "disabled", externalAudience = "all", internalReplyMessage = string.Empty, externalReplyMessage = string.Empty } }, Ct);
+        }
+    }
+
     private static string Wall(DateTime utc) => utc.ToString("yyyy-MM-dd'T'HH:mm:ss'.0000000'", CultureInfo.InvariantCulture);
 
     private static async Task<JsonObject> GetAsync(HttpClient graph)

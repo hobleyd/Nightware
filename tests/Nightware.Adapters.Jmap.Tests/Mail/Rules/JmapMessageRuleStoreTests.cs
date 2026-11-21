@@ -149,7 +149,7 @@ public sealed class JmapMessageRuleStoreTests : IAsyncLifetime
         read.Status.ShouldBe(AutoReplyStatus.AlwaysEnabled);
         read.InternalReplyMessage.ShouldBe("<p>Out</p>");
 
-        var written = (await Replies().SetAsync(Alice, new AutoReplySetting(AutoReplyStatus.Disabled), Ct)).Value;
+        var written = (await Replies().SetAsync(Alice, new AutoReplySetting(AutoReplyStatus.Disabled), ["example.com"], Ct)).Value;
         written.Status.ShouldBe(AutoReplyStatus.Disabled);
         Uploaded().ShouldNotContain("vacation :mime");
         Uploaded().ShouldContain("invoice");
@@ -166,5 +166,54 @@ public sealed class JmapMessageRuleStoreTests : IAsyncLifetime
 
         read.Status.ShouldBe(AutoReplyStatus.AlwaysEnabled);
         read.ExternalReplyMessage.ShouldBe("<p>Set in webmail</p>");
+    }
+
+    [Fact]
+    public async Task A_reply_with_separate_internal_and_external_messages_creates_the_script()
+    {
+        NoScript();
+        _jmap.On("SieveScript/set", """{"accountId":"c","oldState":"1","newState":"2","created":{"script":{"id":"s9","blobId":"U1","isActive":true}}}""");
+        var setting = new AutoReplySetting(AutoReplyStatus.AlwaysEnabled)
+        {
+            ExternalAudience = ExternalAudience.All,
+            InternalReplyMessage = "<p>Back Monday, ping me on chat</p>",
+            ExternalReplyMessage = "<p>Out of the office</p>",
+        };
+
+        var written = (await Replies().SetAsync(Alice, setting, ["acme.example", "nightware.localhost"], Ct)).Value;
+
+        (written.InternalReplyMessage, written.ExternalReplyMessage, written.ExternalAudience).ShouldBe(("<p>Back Monday, ping me on chat</p>", "<p>Out of the office</p>", ExternalAudience.All));
+        Uploaded().ShouldContain("if address :domain :is \"from\" [\"acme.example\", \"nightware.localhost\"] {");
+        Uploaded().ShouldContain("ping me on chat");
+        Uploaded().ShouldContain("} else {");
+        _jmap.Calls().ShouldNotContain(c => c.Method == "VacationResponse/set");
+    }
+
+    [Fact]
+    public async Task The_split_reply_reads_back_with_both_messages_and_survives_a_rule_save()
+    {
+        var setting = new AutoReplySetting(AutoReplyStatus.AlwaysEnabled) { ExternalAudience = ExternalAudience.None, InternalReplyMessage = "<p>in</p>", ExternalReplyMessage = "<p>out</p>" };
+        Script(new FilterState([], setting) { InternalDomains = ["acme.example"] });
+        _jmap.On("SieveScript/set", """{"accountId":"c","oldState":"1","newState":"2","updated":{"s9":null}}""");
+
+        var read = (await Replies().GetAsync(Alice, Ct)).Value;
+        (read.ExternalAudience, read.InternalReplyMessage, read.ExternalReplyMessage).ShouldBe((ExternalAudience.None, "<p>in</p>", "<p>out</p>"));
+
+        (await Store().SaveAsync(Alice, [Filing], Ct)).IsSuccess.ShouldBeTrue();
+        Uploaded().ShouldContain("if address :domain :is \"from\" [\"acme.example\"] {");
+        Uploaded().ShouldNotContain("} else {", Case.Sensitive, "audience none: nobody outside gets a reply");
+    }
+
+    [Fact]
+    public async Task A_plain_reply_to_everyone_without_the_script_stays_a_vacation_response()
+    {
+        NoScript();
+        _jmap.On("VacationResponse/set", """{"accountId":"c","oldState":"1","newState":"2","updated":{"singleton":null}}""");
+        Vacation("\"isEnabled\":true,\"htmlBody\":\"<p>Away</p>\"");
+
+        await Replies().SetAsync(Alice, new AutoReplySetting(AutoReplyStatus.AlwaysEnabled) { InternalReplyMessage = "<p>Away</p>", ExternalReplyMessage = "<p>Away</p>" }, ["acme.example"], Ct);
+
+        _jmap.Calls().ShouldNotContain(c => c.Method == "SieveScript/set");
+        _jmap.Calls().ShouldContain(c => c.Method == "VacationResponse/set");
     }
 }

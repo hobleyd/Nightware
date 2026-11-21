@@ -96,6 +96,11 @@ into the phase doc before contracting operations (as phase 10 did).
     behaviour does not change, then the rules.
   - Its state is base64 JSON in comments. Every write is validated first.
   - Moving off `VacationResponse` is in the phase 12 doc.
+  - *Amended 2026-11-21:* a reply with separate internal and external
+    messages, or an `externalAudience` other than `all`, is written to the
+    script even without rules. It tests the sender's domain (`address :domain
+    "from"`) against the domains of the entity that owns the mailbox's domain,
+    stored in the script's state. `contactsOnly` answers internal senders only.
   - A rule using an unsupported condition or action gets `400 notSupported`
     naming the field.
 - **Large attachments.** `createUploadSession` returns a self-authorising URL

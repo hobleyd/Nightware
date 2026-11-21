@@ -11,7 +11,11 @@ namespace Nightware.Adapters.Jmap.Mail.Rules;
 
 /// <summary>
 /// Writes Nightware's Sieve script (ADR 0006 D5): the automatic reply first, in the shape of Stalwart's own
-/// <c>VacationResponse</c> script so replies behave as before, then each enabled rule in sequence order.
+/// <c>VacationResponse</c> script so replies behave as before, then each enabled rule in sequence order. A reply
+/// whose internal and external parts differ tests the sender's domain against the entity's
+/// (<see cref="FilterState.InternalDomains"/>): those get the internal message, everyone else the external one when
+/// the audience is <c>all</c> and nothing otherwise (<c>contactsOnly</c> too: contacts live in Nextcloud, out of
+/// Sieve's reach, so the safe reading is "no strangers").
 /// Client text only ever appears inside quoted strings (escaped) or a dot-stuffed <c>text:</c> block.
 /// </summary>
 internal static class SieveScriptWriter
@@ -30,7 +34,7 @@ internal static class SieveScriptWriter
         script.Append(state.ToComment()).Append('\n');
         if (state.AutoReply is { Status: not AutoReplyStatus.Disabled } reply)
         {
-            WriteVacation(script, reply);
+            WriteVacation(script, reply, state.InternalDomains);
         }
 
         foreach (var rule in state.Rules.Where(static r => r.IsEnabled).OrderBy(static r => r.Sequence))
@@ -41,18 +45,23 @@ internal static class SieveScriptWriter
         return script.ToString();
     }
 
-    private static void WriteVacation(StringBuilder script, AutoReplySetting reply)
+    /// <summary>True when one reply to everyone can't express <paramref name="reply"/>.</summary>
+    public static bool Splits(AutoReplySetting reply)
     {
-        var html = (string.IsNullOrEmpty(reply.ExternalReplyMessage) ? reply.InternalReplyMessage : reply.ExternalReplyMessage) ?? string.Empty;
-        var boundary = "nightware-" + Guid.NewGuid().ToString("N");
-        var body = new StringBuilder()
-            .Append("Content-Type: multipart/alternative;\n boundary=\"").Append(boundary).Append("\"\n\n")
-            .Append("--").Append(boundary).Append("\nContent-Type: text/plain; charset=\"utf-8\"\nContent-Transfer-Encoding: 8bit\n\n")
-            .Append(HtmlToText.Convert(html)).Append('\n')
-            .Append("--").Append(boundary).Append("\nContent-Type: text/html; charset=\"utf-8\"\nContent-Transfer-Encoding: 8bit\n\n")
-            .Append(html).Append('\n')
-            .Append("--").Append(boundary).Append("--\n");
+        ArgumentNullException.ThrowIfNull(reply);
+        return reply.Status != AutoReplyStatus.Disabled
+            && (reply.ExternalAudience != ExternalAudience.All || !string.Equals(InternalMessage(reply), ExternalMessage(reply), StringComparison.Ordinal));
+    }
 
+    /// <summary>The internal message, or the external one when it has none (Graph keeps both; one may be blank).</summary>
+    public static string InternalMessage(AutoReplySetting reply) =>
+        (string.IsNullOrEmpty(reply.InternalReplyMessage) ? reply.ExternalReplyMessage : reply.InternalReplyMessage) ?? string.Empty;
+
+    public static string ExternalMessage(AutoReplySetting reply) =>
+        (string.IsNullOrEmpty(reply.ExternalReplyMessage) ? reply.InternalReplyMessage : reply.ExternalReplyMessage) ?? string.Empty;
+
+    private static void WriteVacation(StringBuilder script, AutoReplySetting reply, IReadOnlyList<string> internalDomains)
+    {
         var opened = 0;
         if (reply.Status == AutoReplyStatus.Scheduled)
         {
@@ -66,12 +75,43 @@ internal static class SieveScriptWriter
             }
         }
 
-        script.Append("vacation :mime ").Append(Text(body.ToString())).Append(";\n");
+        if (!Splits(reply) || internalDomains.Count == 0)
+        {
+            WriteVacationAction(script, ExternalMessage(reply));
+        }
+        else
+        {
+            script.Append("if address :domain :is \"from\" ").Append(List(internalDomains)).Append(" {\n");
+            WriteVacationAction(script, InternalMessage(reply));
+            script.Append('}');
+            if (reply.ExternalAudience == ExternalAudience.All)
+            {
+                script.Append(" else {\n");
+                WriteVacationAction(script, ExternalMessage(reply));
+                script.Append('}');
+            }
+
+            script.Append('\n');
+        }
+
         script.Append('}', opened);
         if (opened > 0)
         {
             script.Append('\n');
         }
+    }
+
+    private static void WriteVacationAction(StringBuilder script, string html)
+    {
+        var boundary = "nightware-" + Guid.NewGuid().ToString("N");
+        var body = new StringBuilder()
+            .Append("Content-Type: multipart/alternative;\n boundary=\"").Append(boundary).Append("\"\n\n")
+            .Append("--").Append(boundary).Append("\nContent-Type: text/plain; charset=\"utf-8\"\nContent-Transfer-Encoding: 8bit\n\n")
+            .Append(HtmlToText.Convert(html)).Append('\n')
+            .Append("--").Append(boundary).Append("\nContent-Type: text/html; charset=\"utf-8\"\nContent-Transfer-Encoding: 8bit\n\n")
+            .Append(html).Append('\n')
+            .Append("--").Append(boundary).Append("--\n");
+        script.Append("vacation :mime ").Append(Text(body.ToString())).Append(";\n");
     }
 
     private static void WriteRule(StringBuilder script, MessageRule rule, string? trashId)

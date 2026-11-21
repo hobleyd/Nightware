@@ -39,8 +39,9 @@ public sealed class MailboxSettingsArrangements : IConformanceArrangements
                 .SetAsync(Me, Arg.Is<AutoReplySetting>(s => s.Status == AutoReplyStatus.Scheduled
                     && s.ExternalAudience == ExternalAudience.ContactsOnly
                     && s.ExternalReplyMessage == "<div>Out of the office.</div>"
-                    && s.ScheduledStartDateTime == new DateTimeTimeZone(new DateTime(2026, 9, 20), "AUS Eastern Standard Time")), Arg.Any<CancellationToken>())
+                    && s.ScheduledStartDateTime == new DateTimeTimeZone(new DateTime(2026, 9, 20), "AUS Eastern Standard Time")), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
                 .Returns(Stored);
+            fakes.For<IInternalDomains>().ForAsync(Me, Arg.Any<CancellationToken>()).Returns(["example.com"]);
             fakes.For<IUserPreferencesStore>().GetAsync(Me, Arg.Any<CancellationToken>()).Returns(new UserPreferences("Australia/Sydney", "en"));
         });
     }

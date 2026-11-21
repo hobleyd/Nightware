@@ -142,7 +142,7 @@ public sealed class JmapAutoReplyStoreTests : IAsyncDisposable
             ScheduledEndDateTime = new DateTimeTimeZone(new DateTime(2026, 9, 27, 23, 59, 59), "AUS Eastern Standard Time"),
         };
 
-        var stored = (await Store().SetAsync(Alice, setting, Ct)).Value;
+        var stored = (await Store().SetAsync(Alice, setting, ["example.com"], Ct)).Value;
 
         stored.Status.ShouldBe(AutoReplyStatus.Scheduled);
         stored.ExternalReplyMessage.ShouldBe("<div>Out of the office.</div>");
@@ -168,7 +168,7 @@ public sealed class JmapAutoReplyStoreTests : IAsyncDisposable
             ScheduledStartDateTime = new DateTimeTimeZone(new DateTime(2026, 9, 20), "UTC"),
         };
 
-        (await Store().SetAsync(Alice, setting, Ct)).Value.Status.ShouldBe(AutoReplyStatus.AlwaysEnabled);
+        (await Store().SetAsync(Alice, setting, ["example.com"], Ct)).Value.Status.ShouldBe(AutoReplyStatus.AlwaysEnabled);
 
         var patch = _host.ApiBodies().Single()["methodCalls"]![0]![1]!["update"]!["singleton"]!.AsObject();
         patch["isEnabled"]!.GetValue<bool>().ShouldBeTrue();
@@ -185,7 +185,7 @@ public sealed class JmapAutoReplyStoreTests : IAsyncDisposable
              ["VacationResponse/get",{"accountId":"c","state":"2","list":[{"id":"singleton","isEnabled":false,"htmlBody":"<p>Away</p>"}],"notFound":[]},"c1"]]
             """);
 
-        var stored = (await Store().SetAsync(Alice, new AutoReplySetting(AutoReplyStatus.Disabled) { ExternalReplyMessage = "<p>Away</p>" }, Ct)).Value;
+        var stored = (await Store().SetAsync(Alice, new AutoReplySetting(AutoReplyStatus.Disabled) { ExternalReplyMessage = "<p>Away</p>" }, ["example.com"], Ct)).Value;
 
         stored.Status.ShouldBe(AutoReplyStatus.Disabled);
         _host.ApiBodies().Single()["methodCalls"]![0]![1]!["update"]!["singleton"]!["isEnabled"]!.GetValue<bool>().ShouldBeFalse();
@@ -199,7 +199,7 @@ public sealed class JmapAutoReplyStoreTests : IAsyncDisposable
              ["VacationResponse/get",{"accountId":"c","state":"1","list":[],"notFound":[]},"c1"]]
             """);
 
-        var result = await Store().SetAsync(Alice, new AutoReplySetting(AutoReplyStatus.Disabled), Ct);
+        var result = await Store().SetAsync(Alice, new AutoReplySetting(AutoReplyStatus.Disabled), ["example.com"], Ct);
 
         result.Error!.Kind.ShouldBe(ErrorKind.Validation);
     }
@@ -209,7 +209,7 @@ public sealed class JmapAutoReplyStoreTests : IAsyncDisposable
     {
         _host.StubApi("""[["error",{"type":"accountReadOnly"},"c0"],["VacationResponse/get",{"accountId":"c","state":"1","list":[],"notFound":[]},"c1"]]""");
 
-        var result = await Store().SetAsync(Alice, new AutoReplySetting(AutoReplyStatus.Disabled), Ct);
+        var result = await Store().SetAsync(Alice, new AutoReplySetting(AutoReplyStatus.Disabled), ["example.com"], Ct);
 
         result.Error!.Kind.ShouldBe(ErrorKind.Forbidden);
     }
@@ -223,7 +223,7 @@ public sealed class JmapAutoReplyStoreTests : IAsyncDisposable
         host.StubSession(session.ToJsonString());
         var store = host.Services.CreateScope().ServiceProvider.GetRequiredService<IAutoReplyStore>();
 
-        var result = await store.SetAsync(new MailboxRef("reception@nightware.localhost"), new AutoReplySetting(AutoReplyStatus.Disabled), Ct);
+        var result = await store.SetAsync(new MailboxRef("reception@nightware.localhost"), new AutoReplySetting(AutoReplyStatus.Disabled), ["example.com"], Ct);
 
         result.Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         host.ApiBodies().ShouldBeEmpty();

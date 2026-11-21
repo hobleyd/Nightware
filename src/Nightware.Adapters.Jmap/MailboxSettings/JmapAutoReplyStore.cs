@@ -22,14 +22,13 @@ namespace Nightware.Adapters.Jmap.MailboxSettings;
 /// <para>Status: <c>disabled</c> ↔ <c>isEnabled: false</c>; <c>scheduled</c> ↔ enabled with
 /// <c>fromDate</c>/<c>toDate</c>; <c>alwaysEnabled</c> ↔ enabled without dates. A <c>scheduled</c>
 /// write without dates therefore reads back as <c>alwaysEnabled</c> — both mean "on".</para>
-/// <para>VacationResponse has one message and replies to every sender, so Graph's
-/// <c>externalAudience</c> and the internal/external split cannot be kept. The <b>external</b>
-/// message is stored (the internal one only when there is no external one): it is the text written
-/// for people outside the organisation, and outsiders are exactly whom Stalwart will also answer —
-/// storing the internal text could send internal detail to strangers. On read both messages carry
-/// the stored text and the audience is <c>all</c>, which is what the server actually does.</para>
-/// <para>Once the mailbox has Inbox rules, Nightware's Sieve script holds the reply too (one script is active at
-/// a time, ADR 0006 D5): while that script is active it is read and written there, with the same mapping.</para>
+/// <para>VacationResponse has one message and replies to every sender, so a setting with separate internal and
+/// external messages, or an <c>externalAudience</c> other than <c>all</c>, goes to Nightware's Sieve script instead
+/// (<see cref="SieveScriptWriter"/>), which keeps both and tests the sender's domain against the entity's. Once that
+/// script exists (it also holds Inbox rules; one script is active at a time, ADR 0006 D5) every reply is read and
+/// written there. A plain reply to everyone without the script stays a VacationResponse; its <b>external</b>
+/// message is stored (the internal one only when there is no external one), since outsiders are whom it answers.
+/// Only while the user's own filter is active does a split setting fall back to VacationResponse, as before.</para>
 /// </remarks>
 internal sealed class JmapAutoReplyStore(IJmapClient jmap, NightwareSieve sieve) : IAutoReplyStore
 {
@@ -60,9 +59,10 @@ internal sealed class JmapAutoReplyStore(IJmapClient jmap, NightwareSieve sieve)
         return response.Bind(r => r.Get(get)).Map(ToDomain);
     }
 
-    public async Task<Result<AutoReplySetting>> SetAsync(MailboxRef mailbox, AutoReplySetting setting, CancellationToken cancellationToken)
+    public async Task<Result<AutoReplySetting>> SetAsync(MailboxRef mailbox, AutoReplySetting setting, IReadOnlyList<string> internalDomains, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(setting);
+        ArgumentNullException.ThrowIfNull(internalDomains);
         var account = await jmap.ResolveAccountAsync(mailbox, cancellationToken, JmapCapabilities.VacationResponse).ConfigureAwait(false);
         if (!account.IsSuccess)
         {
@@ -80,12 +80,15 @@ internal sealed class JmapAutoReplyStore(IJmapClient jmap, NightwareSieve sieve)
             return filter.Error;
         }
 
-        if (filter.Value is { Exists: true } ours)
+        // Our script holds the reply once it exists, and is created for one VacationResponse can't express
+        // (separate internal and external messages, or not everyone outside) unless the user's own filter is active.
+        var kept = Normalise(setting);
+        if (filter.Value is { } script && (script.Exists || (SieveScriptWriter.Splits(kept) && script.ForeignActiveScript is null)))
         {
             // Writing here also makes the script active again if vacation was switched on elsewhere.
-            var normalised = Normalise(setting);
-            var saved = await sieve.SaveAsync(account.Value, ours, ours.State with { AutoReply = normalised }, cancellationToken).ConfigureAwait(false);
-            return saved.IsSuccess ? normalised : saved.Error;
+            var state = script.State with { AutoReply = kept, InternalDomains = internalDomains };
+            var saved = await sieve.SaveAsync(account.Value, script, state, cancellationToken).ConfigureAwait(false);
+            return saved.IsSuccess ? kept : saved.Error;
         }
 
         var request = new JmapRequestBuilder();
@@ -117,7 +120,10 @@ internal sealed class JmapAutoReplyStore(IJmapClient jmap, NightwareSieve sieve)
         return loaded.IsSuccess ? Result<LoadedFilter?>.Success(loaded.Value) : loaded.Error;
     }
 
-    /// <summary>What a setting reads back as once stored: the same mapping as <see cref="ToPatch"/> then <see cref="ToDomain"/>.</summary>
+    /// <summary>
+    /// What a setting reads back as from Nightware's script: both messages (a blank one takes the other's text) and
+    /// the audience, with the schedule in UTC. <c>scheduled</c> without dates is <c>alwaysEnabled</c>.
+    /// </summary>
     internal static AutoReplySetting Normalise(AutoReplySetting setting)
     {
         ArgumentNullException.ThrowIfNull(setting);
@@ -127,12 +133,11 @@ internal sealed class JmapAutoReplyStore(IJmapClient jmap, NightwareSieve sieve)
         }
 
         var dated = setting.Status != AutoReplyStatus.AlwaysEnabled && (setting.ScheduledStartDateTime is not null || setting.ScheduledEndDateTime is not null);
-        var message = !string.IsNullOrEmpty(setting.ExternalReplyMessage) ? setting.ExternalReplyMessage : setting.InternalReplyMessage ?? string.Empty;
         return new AutoReplySetting(dated ? AutoReplyStatus.Scheduled : AutoReplyStatus.AlwaysEnabled)
         {
-            ExternalAudience = ExternalAudience.All,
-            InternalReplyMessage = message,
-            ExternalReplyMessage = message,
+            ExternalAudience = setting.ExternalAudience,
+            InternalReplyMessage = SieveScriptWriter.InternalMessage(setting),
+            ExternalReplyMessage = SieveScriptWriter.ExternalMessage(setting),
             ScheduledStartDateTime = dated ? Utc(setting.ScheduledStartDateTime) : null,
             ScheduledEndDateTime = dated ? Utc(setting.ScheduledEndDateTime) : null,
         };

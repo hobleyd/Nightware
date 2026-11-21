@@ -36,9 +36,11 @@ what a fix needs. Ordered by impact within each section.
 - Online-meeting fields are accepted and ignored.
 
 ### Tasks and settings
-- **Automatic replies are lossy.** `VacationResponse` has one message and
-  replies to everyone: the external message is stored, the audience reads back
-  as `all`, and `scheduled` without dates reads back as `alwaysEnabled`.
+- **Automatic replies: `contactsOnly` means internal senders only.** Contacts
+  live in Nextcloud, out of the mail filter's reach, so nobody outside the
+  entity's domains is answered. It reads back as `contactsOnly`. "Internal"
+  means a sender from one of the domains of the entity that owns the mailbox's
+  domain, looked up when the reply is saved.
 - **Upload URLs can be replayed until they expire** (≤ 15 min); each replay adds
   another attachment of exactly the declared size to the same task.
 - `ATTACH` values carry the configured `Dav:BaseUrl` host (`http://nextcloud/`

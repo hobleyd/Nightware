@@ -57,7 +57,8 @@ internal sealed class JmapMessageRuleStore(IJmapClient jmap, NightwareSieve siev
             autoReply = vacation.Value;
         }
 
-        return await sieve.SaveAsync(account.Value, loaded.Value, new FilterState(rules, autoReply), cancellationToken).ConfigureAwait(false);
+        var state = loaded.Value.State with { Rules = rules, AutoReply = autoReply };
+        return await sieve.SaveAsync(account.Value, loaded.Value, state, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<Result<AutoReplySetting>> VacationAsync(JmapAccount account, CancellationToken cancellationToken)

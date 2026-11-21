@@ -15,6 +15,7 @@ public sealed class MailboxSettingsUseCaseTests
 
     private readonly IMailboxSettingsAccess _access = Substitute.For<IMailboxSettingsAccess>();
     private readonly IAutoReplyStore _replies = Substitute.For<IAutoReplyStore>();
+    private readonly IInternalDomains _domains = Substitute.For<IInternalDomains>();
     private readonly IUserPreferencesStore _preferences = Substitute.For<IUserPreferencesStore>();
     private readonly IUserContext _caller = Substitute.For<IUserContext>();
 
@@ -115,7 +116,7 @@ public sealed class MailboxSettingsUseCaseTests
             ScheduledStartDateTime = new DateTimeTimeZone(new DateTime(2026, 9, 20), "AUS Eastern Standard Time"),
             ScheduledEndDateTime = new DateTimeTimeZone(new DateTime(2026, 9, 27, 23, 59, 59), "AUS Eastern Standard Time"),
         };
-        _replies.SetAsync(Alice, requested, Ct).Returns(StoredSchedule);
+        _replies.SetAsync(Alice, requested, Arg.Is<IReadOnlyList<string>>(d => d.SequenceEqual(new[] { "example.com" })), Ct).Returns(StoredSchedule);
         _preferences.GetAsync(Alice, Ct).Returns(new UserPreferences("Australia/Sydney", null));
 
         var result = await Update().ExecuteAsync(Alice, new MailboxSettingsPatch { AutomaticReplies = requested }, Ct);
@@ -152,14 +153,14 @@ public sealed class MailboxSettingsUseCaseTests
         var result = await Update().ExecuteAsync(Shared, new MailboxSettingsPatch { TimeZone = "Europe/London", AutomaticReplies = StoredSchedule }, Ct);
 
         result.Error!.Kind.ShouldBe(ErrorKind.Forbidden);
-        await _replies.DidNotReceiveWithAnyArgs().SetAsync(default, null!, Ct);
+        await _replies.DidNotReceiveWithAnyArgs().SetAsync(default, null!, null!, Ct);
         await _preferences.DidNotReceiveWithAnyArgs().SetAsync(default, null!, Ct);
     }
 
     [Fact]
     public async Task Update_of_another_mailbox_reads_the_directory_only_after_the_mail_store_accepted_the_write()
     {
-        _replies.SetAsync(Shared, Arg.Any<AutoReplySetting>(), Ct).Returns(Error.Forbidden("read only"));
+        _replies.SetAsync(Shared, Arg.Any<AutoReplySetting>(), Arg.Any<IReadOnlyList<string>>(), Ct).Returns(Error.Forbidden("read only"));
 
         var result = await Update().ExecuteAsync(Shared, new MailboxSettingsPatch { AutomaticReplies = new AutoReplySetting(AutoReplyStatus.Disabled) }, Ct);
 
@@ -170,7 +171,7 @@ public sealed class MailboxSettingsUseCaseTests
     [Fact]
     public async Task Update_of_another_mailboxs_automatic_replies_is_up_to_the_mail_store()
     {
-        _replies.SetAsync(Shared, Arg.Any<AutoReplySetting>(), Ct).Returns(new AutoReplySetting(AutoReplyStatus.AlwaysEnabled));
+        _replies.SetAsync(Shared, Arg.Any<AutoReplySetting>(), Arg.Any<IReadOnlyList<string>>(), Ct).Returns(new AutoReplySetting(AutoReplyStatus.AlwaysEnabled));
         _preferences.GetAsync(Shared, Ct).Returns(Error.NotFound("no such user"));
 
         var result = await Update().ExecuteAsync(Shared, new MailboxSettingsPatch { AutomaticReplies = new AutoReplySetting(AutoReplyStatus.AlwaysEnabled) }, Ct);
@@ -221,7 +222,7 @@ public sealed class MailboxSettingsUseCaseTests
     [Fact]
     public async Task Update_passes_mail_store_failures_through()
     {
-        _replies.SetAsync(Alice, Arg.Any<AutoReplySetting>(), Ct).Returns(Error.BackendUnavailable("stalwart down"));
+        _replies.SetAsync(Alice, Arg.Any<AutoReplySetting>(), Arg.Any<IReadOnlyList<string>>(), Ct).Returns(Error.BackendUnavailable("stalwart down"));
 
         var result = await Update().ExecuteAsync(Alice, new MailboxSettingsPatch { AutomaticReplies = new AutoReplySetting(AutoReplyStatus.Disabled) }, Ct);
 
@@ -276,13 +277,13 @@ public sealed class MailboxSettingsUseCaseTests
     public async Task Update_touches_no_store_when_access_is_refused()
     {
         _access.CheckAsync(Shared, Ct).Returns(Error.Forbidden("not yours"));
-        _replies.SetAsync(Shared, Arg.Any<AutoReplySetting>(), Ct).Returns(StoredSchedule);
+        _replies.SetAsync(Shared, Arg.Any<AutoReplySetting>(), Arg.Any<IReadOnlyList<string>>(), Ct).Returns(StoredSchedule);
         _preferences.GetAsync(Shared, Ct).Returns(new UserPreferences("UTC", null));
 
         var result = await Update().ExecuteAsync(Shared, new MailboxSettingsPatch { AutomaticReplies = StoredSchedule }, Ct);
 
         result.Error!.Kind.ShouldBe(ErrorKind.Forbidden);
-        await _replies.DidNotReceiveWithAnyArgs().SetAsync(default, null!, Ct);
+        await _replies.DidNotReceiveWithAnyArgs().SetAsync(default, null!, null!, Ct);
         await _replies.DidNotReceiveWithAnyArgs().GetAsync(default, Ct);
         await _preferences.DidNotReceiveWithAnyArgs().GetAsync(default, Ct);
         await _preferences.DidNotReceiveWithAnyArgs().SetAsync(default, null!, Ct);
@@ -306,5 +307,9 @@ public sealed class MailboxSettingsUseCaseTests
 
     private GetMailboxSettings Get() => new(_access, _replies, _preferences);
 
-    private UpdateMailboxSettings Update() => new(_access, _replies, _preferences, _caller);
+    private UpdateMailboxSettings Update()
+    {
+        _domains.ForAsync(Arg.Any<MailboxRef>(), Arg.Any<CancellationToken>()).Returns(["example.com"]);
+        return new(_access, _replies, _preferences, _caller, _domains);
+    }
 }

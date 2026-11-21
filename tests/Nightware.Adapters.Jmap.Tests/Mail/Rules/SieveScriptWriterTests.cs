@@ -117,4 +117,24 @@ public sealed class SieveScriptWriterTests
         FilterState.FromScript("# nightware-state: !!!not-base64\n").ShouldBeNull();
         FilterState.FromScript("# nightware-state: " + Convert.ToBase64String("{\"v\":2}"u8.ToArray()) + "\n").ShouldBeNull();
     }
+
+    [Theory]
+    [InlineData(ExternalAudience.All, "<p>a</p>", "<p>a</p>", false)]
+    [InlineData(ExternalAudience.All, "", "<p>a</p>", false)]
+    [InlineData(ExternalAudience.All, "<p>in</p>", "<p>out</p>", true)]
+    [InlineData(ExternalAudience.None, "<p>a</p>", "<p>a</p>", true)]
+    [InlineData(ExternalAudience.ContactsOnly, "<p>a</p>", "<p>a</p>", true)]
+    public void A_reply_splits_when_one_message_to_everyone_cannot_say_it(ExternalAudience audience, string inside, string outside, bool splits) =>
+        SieveScriptWriter.Splits(new AutoReplySetting(AutoReplyStatus.AlwaysEnabled) { ExternalAudience = audience, InternalReplyMessage = inside, ExternalReplyMessage = outside }).ShouldBe(splits);
+
+    [Fact]
+    public void Contacts_only_answers_internal_senders_alone()
+    {
+        var reply = new AutoReplySetting(AutoReplyStatus.AlwaysEnabled) { ExternalAudience = ExternalAudience.ContactsOnly, InternalReplyMessage = "<p>in</p>", ExternalReplyMessage = "<p>out</p>" };
+
+        var script = SieveScriptWriter.Write(new FilterState([], reply) { InternalDomains = ["acme.example"] }, null);
+
+        script.ShouldContain("if address :domain :is \"from\" [\"acme.example\"] {");
+        script.ShouldNotContain("<p>out</p>");
+    }
 }

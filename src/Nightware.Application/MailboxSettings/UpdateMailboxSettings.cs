@@ -16,7 +16,7 @@ namespace Nightware.Application.MailboxSettings;
 /// façade's service account, so it may only be changed for the caller's own mailbox — otherwise
 /// any user could rewrite anyone's zone.
 /// </remarks>
-public sealed class UpdateMailboxSettings(IMailboxSettingsAccess access, IAutoReplyStore replies, IUserPreferencesStore preferences, IUserContext caller)
+public sealed class UpdateMailboxSettings(IMailboxSettingsAccess access, IAutoReplyStore replies, IUserPreferencesStore preferences, IUserContext caller, IInternalDomains domains)
 {
     public async Task<Result<MailboxSettingsSnapshot>> ExecuteAsync(MailboxRef mailbox, MailboxSettingsPatch patch, CancellationToken cancellationToken)
     {
@@ -33,7 +33,7 @@ public sealed class UpdateMailboxSettings(IMailboxSettingsAccess access, IAutoRe
         }
 
         var written = patch.AutomaticReplies is { } setting
-            ? await replies.SetAsync(mailbox, setting, cancellationToken).ConfigureAwait(false)
+            ? await replies.SetAsync(mailbox, setting, await domains.ForAsync(mailbox, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)
             : await replies.GetAsync(mailbox, cancellationToken).ConfigureAwait(false);
         if (!written.IsSuccess)
         {
