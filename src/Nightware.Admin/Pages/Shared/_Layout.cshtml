@@ -139,6 +139,7 @@
                     Chain(0);
                 }
             </li>
+            <li><a asp-page="/Api/Index" aria-current="@(page == "/Api/Index" ? "page" : null)">API reference</a></li>
             @if (actor!.IsGlobal)
             {
                 <li><a asp-page="/Admins/Index" aria-current="@(page == "/Admins/Index" ? "page" : null)" class="@(under == adminsHref ? "trail" : null)">Global admins</a>@if (under == adminsHref) { Chain(0); }</li>

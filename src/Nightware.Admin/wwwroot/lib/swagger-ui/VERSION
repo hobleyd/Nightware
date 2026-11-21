@@ -1,0 +1,2 @@
+swagger-ui-dist 5.17.14 (npm), sha1 e2c222e5bf9e15ccf80ec4bc08b4aaac09792fd6.
+Only swagger-ui-bundle.js, swagger-ui.css and the licence are kept. Replace them together, from the same release.

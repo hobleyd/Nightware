@@ -1,0 +1,17 @@
+@page "/api"
+@model Nightware.Admin.Pages.Api.IndexModel
+@{ ViewData["Title"] = "API reference"; }
+<link rel="stylesheet" href="~/lib/swagger-ui/swagger-ui.css" asp-append-version="true">
+<section class="panel">
+    <h1>API reference</h1>
+    <p>Nightware answers the Microsoft Graph API, so apps written for Graph work by changing their base URL and sign-in authority. This is every operation it implements; anything else answers 501.</p>
+    <ul class="plain">
+        <li><strong>Base URL</strong> <code>@($"{Request.Scheme}://{Request.Host}/graph/v1.0")</code> (and <code>/graph/beta</code>)</li>
+        <li><strong>Sign-in</strong> OAuth 2.0 authorization code with PKCE against this server's Keycloak realm; apps discover it at <code>/.well-known/nightware</code>. Tokens are for audience <code>nightware-api</code>.</li>
+        <li><strong>Machine-readable</strong> <a asp-page="/Api/OpenApi">openapi.json</a> (OpenAPI 3.1), for code generators and API tools.</li>
+    </ul>
+    <p class="hint">To try a call here, choose Authorize and paste an access token. Calls run against this server with that person's data.</p>
+</section>
+<div id="swagger-ui" class="panel" data-url="@Url.Page("/Api/OpenApi")"></div>
+<script src="~/lib/swagger-ui/swagger-ui-bundle.js" asp-append-version="true"></script>
+<script src="~/js/api-reference.js" asp-append-version="true"></script>

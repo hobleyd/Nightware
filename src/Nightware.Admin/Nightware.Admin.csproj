@@ -12,6 +12,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The API reference, rendered from docs/contract/endpoints.json by tools/contract/render_openapi.py. -->
+    <EmbeddedResource Include="Api/openapi.json" LogicalName="Nightware.Admin.Api.openapi.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
   </ItemGroup>
 </Project>

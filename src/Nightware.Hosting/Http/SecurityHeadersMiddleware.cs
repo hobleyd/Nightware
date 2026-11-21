@@ -50,6 +50,12 @@ internal sealed class SecurityHeadersOptionsValidator : IValidateOptions<Securit
 /// </summary>
 public sealed class SecurityHeadersMiddleware(RequestDelegate next, IOptions<SecurityHeadersOptions> options)
 {
+    /// <summary>
+    /// <see cref="HttpContext.Items"/> key for one response's own Content-Security-Policy, set by a page that needs more
+    /// than the host's (the console's API reference runs Swagger UI's script). Everything else keeps the host's.
+    /// </summary>
+    public const string ContentSecurityPolicyItem = "Nightware.ContentSecurityPolicy";
+
     private readonly string _contentSecurityPolicy = options.Value.ContentSecurityPolicy;
 
     private readonly string? _hsts = options.Value.HstsMaxAge > TimeSpan.Zero
@@ -65,7 +71,7 @@ public sealed class SecurityHeadersMiddleware(RequestDelegate next, IOptions<Sec
             var headers = ctx.Response.Headers;
             headers.XContentTypeOptions = "nosniff";
             headers.XFrameOptions = "DENY";
-            headers[HeaderNames.ContentSecurityPolicy] = csp;
+            headers[HeaderNames.ContentSecurityPolicy] = ctx.Items.TryGetValue(ContentSecurityPolicyItem, out var own) && own is string page ? page : csp;
             headers["Referrer-Policy"] = "no-referrer";
             if (string.IsNullOrEmpty(headers.CacheControl))
             {

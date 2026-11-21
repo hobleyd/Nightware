@@ -33,6 +33,11 @@ public sealed class SecurityHeadersMiddlewareTests
         var app = builder.Build();
         app.UseMiddleware<SecurityHeadersMiddleware>();
         app.MapGet("/probe", static () => "ok");
+        app.MapGet("/own", static (HttpContext http) =>
+        {
+            http.Items[SecurityHeadersMiddleware.ContentSecurityPolicyItem] = PagePolicy;
+            return "ok";
+        });
         app.MapGet("/cached", static (HttpContext http) =>
         {
             http.Response.Headers.CacheControl = "private, max-age=60";
@@ -133,5 +138,15 @@ public sealed class SecurityHeadersMiddlewareTests
         using var provider = new ServiceCollection().AddOptions().BuildServiceProvider();
 
         provider.GetRequiredService<IOptions<SecurityHeadersOptions>>().Value.ContentSecurityPolicy.ShouldBe(GraphPolicy);
+    }
+
+    [Fact]
+    public async Task A_response_may_carry_its_own_policy_and_only_that_response()
+    {
+        await using var app = await StartAsync();
+        var client = app.GetTestClient();
+
+        (await client.GetAsync("/own", Ct)).Headers.GetValues("Content-Security-Policy").Single().ShouldBe(PagePolicy);
+        (await client.GetAsync("/probe", Ct)).Headers.GetValues("Content-Security-Policy").Single().ShouldBe(GraphPolicy);
     }
 }
