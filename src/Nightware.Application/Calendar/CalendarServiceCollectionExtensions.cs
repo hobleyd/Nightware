@@ -24,6 +24,8 @@ public static class CalendarServiceCollectionExtensions
         services.TryAddScoped<GetMessageEvent>();
         services.TryAddScoped<RespondToMessage>();
         services.TryAddScoped<GetSchedule>();
+        services.TryAddScoped<FindMeetingTimes>();
+        services.TryAddSingleton(TimeProvider.System);
         services.TryAddScoped<Calendars.ListCalendars>();
         services.TryAddScoped<Calendars.GetCalendar>();
         services.TryAddScoped<Calendars.CreateCalendar>();

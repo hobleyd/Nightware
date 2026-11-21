@@ -1,0 +1,95 @@
+{
+  "operationId": "calendar.find-meeting-times",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed; the response's Location header (the bare service root, which names no resource) removed",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/findMeetingTimes",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Prefer": "outlook.timezone=\"UTC\"",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "meetingDuration": "PT30M",
+      "maxCandidates": 3,
+      "isOrganizerOptional": false,
+      "timeConstraint": {
+        "activityDomain": "work",
+        "timeSlots": [
+          {
+            "start": {
+              "dateTime": "2026-11-21T10:00:00",
+              "timeZone": "UTC"
+            },
+            "end": {
+              "dateTime": "2026-11-24T10:00:00",
+              "timeZone": "UTC"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#microsoft.graph.meetingTimeSuggestionsResult",
+      "emptySuggestionsReason": "",
+      "meetingTimeSuggestions": [
+        {
+          "confidence": 100.0,
+          "organizerAvailability": "free",
+          "attendeeAvailability": [],
+          "locations": [],
+          "meetingTimeSlot": {
+            "start": {
+              "dateTime": "2026-11-22T22:00:00.0000000",
+              "timeZone": "UTC"
+            },
+            "end": {
+              "dateTime": "2026-11-22T22:30:00.0000000",
+              "timeZone": "UTC"
+            }
+          }
+        },
+        {
+          "confidence": 100.0,
+          "organizerAvailability": "free",
+          "attendeeAvailability": [],
+          "locations": [],
+          "meetingTimeSlot": {
+            "start": {
+              "dateTime": "2026-11-22T22:30:00.0000000",
+              "timeZone": "UTC"
+            },
+            "end": {
+              "dateTime": "2026-11-22T23:00:00.0000000",
+              "timeZone": "UTC"
+            }
+          }
+        },
+        {
+          "confidence": 100.0,
+          "organizerAvailability": "free",
+          "attendeeAvailability": [],
+          "locations": [],
+          "meetingTimeSlot": {
+            "start": {
+              "dateTime": "2026-11-22T23:00:00.0000000",
+              "timeZone": "UTC"
+            },
+            "end": {
+              "dateTime": "2026-11-22T23:30:00.0000000",
+              "timeZone": "UTC"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

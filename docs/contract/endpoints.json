@@ -5209,5 +5209,51 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/resources/calendarpermission",
     "notes": "Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares. "
+  },
+  {
+    "id": "calendar.find-meeting-times",
+    "phase": 13,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/findMeetingTimes",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "attendees",
+        "timeConstraint",
+        "meetingDuration",
+        "maxCandidates",
+        "isOrganizerOptional",
+        "minimumAttendeePercentage"
+      ]
+    },
+    "responseFields": [
+      "emptySuggestionsReason",
+      "meetingTimeSuggestions[].confidence",
+      "meetingTimeSuggestions[].organizerAvailability",
+      "meetingTimeSuggestions[].attendeeAvailability",
+      "meetingTimeSuggestions[].locations",
+      "meetingTimeSuggestions[].meetingTimeSlot"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-findmeetingtimes",
+    "notes": "Computed over CalDAV free/busy and the organizer's working hours (ADR 0006 D6): half-hour starts, confidence is the share of attendees free (tentative/unknown half, optional attendees half weight). locationConstraint is ignored; no locations are suggested."
   }
 ]

@@ -11,7 +11,7 @@ using Nightware.Domain.Kernel;
 
 namespace Nightware.Api.Features.Calendar;
 
-/// <summary><c>POST calendar/getSchedule</c>: free/busy for people and rooms.</summary>
+/// <summary><c>POST calendar/getSchedule</c>: free/busy for people and rooms; <c>POST findMeetingTimes</c> over it.</summary>
 internal static class ScheduleEndpoints
 {
     public const string ContextFragment = "Collection(microsoft.graph.scheduleInformation)";
@@ -21,6 +21,7 @@ internal static class ScheduleEndpoints
         foreach (var scope in graph.MapMailboxGroups())
         {
             scope.MapPost("/calendar/getSchedule", GetScheduleAsync);
+            scope.MapPost("/findMeetingTimes", FindMeetingTimesAsync);
         }
     }
 
@@ -45,6 +46,88 @@ internal static class ScheduleEndpoints
             prefer.MarkTimeZoneApplied(http.Response);
             return GraphResults.Collection(schedules.Select(s => ToDto(s, zone, label)), ContextFragment, ItemQuery.Default);
         });
+    }
+
+    private static async Task<IResult> FindMeetingTimesAsync(
+        Mailbox mailbox, MeetingTimeRequestDto? body, PreferHeader prefer, HttpContext http, FindMeetingTimes find, CancellationToken cancellationToken)
+    {
+        var request = ToRequest(body ?? new MeetingTimeRequestDto());
+        if (!request.IsSuccess)
+        {
+            return GraphResults.Error(request.Error);
+        }
+
+        var result = await find.ExecuteAsync(mailbox.Ref, request.Value, cancellationToken).ConfigureAwait(false);
+        return GraphResults.Match(result, found =>
+        {
+            var (zone, label) = OutputZone(prefer, request.Value.TimeSlots is [var first, ..] ? first.Start.TimeZone : GraphTimeZone.Utc);
+            prefer.MarkTimeZoneApplied(http.Response);
+            var dto = new MeetingTimeSuggestionsResultDto
+            {
+                EmptySuggestionsReason = found.EmptySuggestionsReason,
+                MeetingTimeSuggestions = found.Suggestions.Select(s => new MeetingTimeSuggestionDto
+                {
+                    Confidence = s.Confidence,
+                    OrganizerAvailability = s.OrganizerAvailability,
+                    AttendeeAvailability = s.Attendees.Select(a => new AttendeeAvailabilityDto
+                    {
+                        Attendee = new AttendeeBaseDto { Type = a.Attendee.Type, EmailAddress = new EmailAddressDto { Address = a.Attendee.Address } },
+                        Availability = a.Availability,
+                    }).ToList(),
+                    Locations = [],
+                    MeetingTimeSlot = new TimeSlotDto { Start = EventDtoMapper.ToDto(s.Start, zone, label), End = EventDtoMapper.ToDto(s.End, zone, label) },
+                }).ToList(),
+            };
+            return GraphResults.Entity(dto, "microsoft.graph.meetingTimeSuggestionsResult");
+        });
+    }
+
+    private static Result<MeetingTimeRequest> ToRequest(MeetingTimeRequestDto body)
+    {
+        var duration = TimeSpan.FromMinutes(30);
+        if (!string.IsNullOrWhiteSpace(body.MeetingDuration))
+        {
+            try
+            {
+                duration = System.Xml.XmlConvert.ToTimeSpan(body.MeetingDuration);
+            }
+            catch (FormatException)
+            {
+                return Error.Validation($"'{body.MeetingDuration}' is not an ISO 8601 duration.", "meetingDuration");
+            }
+        }
+
+        var domain = body.TimeConstraint?.ActivityDomain switch
+        {
+            null or "" => MeetingActivityDomain.Work,
+            var d when Enum.TryParse<MeetingActivityDomain>(d, ignoreCase: true, out var parsed) => parsed,
+            _ => (MeetingActivityDomain?)null,
+        };
+        if (domain is null)
+        {
+            return Error.Validation("activityDomain must be work, personal or unrestricted.", "activityDomain");
+        }
+
+        var slots = new List<MeetingTimeSlot>();
+        foreach (var slot in body.TimeConstraint?.TimeSlots ?? [])
+        {
+            if (slot.Start is null || slot.End is null)
+            {
+                return Error.Validation("Every time slot needs a start and an end.", "timeSlots");
+            }
+
+            slots.Add(new MeetingTimeSlot(EventRequestMapper.ToDomain(slot.Start), EventRequestMapper.ToDomain(slot.End)));
+        }
+
+        var attendees = (body.Attendees ?? []).Select(a => new MeetingAttendee(a.EmailAddress?.Address ?? string.Empty, a.Type)).ToList();
+        return new MeetingTimeRequest(attendees, duration)
+        {
+            TimeSlots = slots,
+            ActivityDomain = domain.Value,
+            MaxCandidates = body.MaxCandidates,
+            IsOrganizerOptional = body.IsOrganizerOptional ?? false,
+            MinimumAttendeePercentage = body.MinimumAttendeePercentage,
+        };
     }
 
     private static (TimeZoneInfo Zone, string Label) OutputZone(PreferHeader prefer, string requestZone)

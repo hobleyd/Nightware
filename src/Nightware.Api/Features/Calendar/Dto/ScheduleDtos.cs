@@ -53,3 +53,66 @@ public sealed record ScheduleInformationDto
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public FreeBusyErrorDto? Error { get; init; }
 }
+
+/// <summary>The body of <c>POST findMeetingTimes</c>. <c>locationConstraint</c> is accepted and ignored: no rooms are suggested.</summary>
+public sealed record MeetingTimeRequestDto
+{
+    public IReadOnlyList<AttendeeDto>? Attendees { get; init; }
+
+    public TimeConstraintDto? TimeConstraint { get; init; }
+
+    /// <summary>ISO 8601 duration, e.g. <c>PT1H</c>.</summary>
+    public string? MeetingDuration { get; init; }
+
+    public int? MaxCandidates { get; init; }
+
+    public bool? IsOrganizerOptional { get; init; }
+
+    public double? MinimumAttendeePercentage { get; init; }
+}
+
+/// <summary>Graph <c>timeConstraint</c>.</summary>
+public sealed record TimeConstraintDto
+{
+    public string? ActivityDomain { get; init; }
+
+    public IReadOnlyList<TimeSlotDto>? TimeSlots { get; init; }
+}
+
+/// <summary>Graph <c>attendeeAvailability</c>.</summary>
+public sealed record AttendeeAvailabilityDto
+{
+    public AttendeeBaseDto? Attendee { get; init; }
+
+    public FreeBusyStatus Availability { get; init; }
+}
+
+/// <summary>Graph <c>attendeeBase</c>.</summary>
+public sealed record AttendeeBaseDto
+{
+    public AttendeeType Type { get; init; }
+
+    public EmailAddressDto? EmailAddress { get; init; }
+}
+
+/// <summary>Graph <c>meetingTimeSuggestion</c>.</summary>
+public sealed record MeetingTimeSuggestionDto
+{
+    public double Confidence { get; init; }
+
+    public FreeBusyStatus OrganizerAvailability { get; init; }
+
+    public IReadOnlyList<AttendeeAvailabilityDto>? AttendeeAvailability { get; init; }
+
+    public IReadOnlyList<LocationDto>? Locations { get; init; }
+
+    public TimeSlotDto? MeetingTimeSlot { get; init; }
+}
+
+/// <summary>Graph <c>meetingTimeSuggestionsResult</c>.</summary>
+public sealed record MeetingTimeSuggestionsResultDto
+{
+    public string? EmptySuggestionsReason { get; init; }
+
+    public IReadOnlyList<MeetingTimeSuggestionDto>? MeetingTimeSuggestions { get; init; }
+}

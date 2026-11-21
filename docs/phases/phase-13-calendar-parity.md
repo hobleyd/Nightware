@@ -1,6 +1,6 @@
 # Phase 13 — Calendar parity
 
-> **Status (2026-11-20): planned.** Decisions: [ADR 0006](../adr/0006-graph-parity.md) D6.
+> **Status (2026-11-21): done** (v1.16.0–v1.22.0). Decisions: [ADR 0006](../adr/0006-graph-parity.md) D6.
 
 **Goal:** multiple calendars, event listing, recurrence instances, delta,
 reminders, attachments, sharing and meeting-time suggestions.
@@ -45,3 +45,10 @@ reminders, attachments, sharing and meeting-time suggestions.
   calendar collection; sharees are read back from PROPFIND `oc:invite`. Only the
   owner may share, and only with a principal of this server (400 otherwise).
   Graph roles other than read/write answer 501.
+- `findMeetingTimes` is computed here: half-hour starts inside the time slots and
+  the organizer's working hours (`personal` adds the weekend, `unrestricted` drops
+  them; Exchange's 08:00–17:00 weekday default when none are set). Confidence is
+  the share of attendees free (tentative or unknown count half, optional attendees
+  weigh half); the organizer must be free unless `isOrganizerOptional`. No
+  locations are suggested. Graph's response carries a `Location` header naming
+  only the service root; the fixture drops it.

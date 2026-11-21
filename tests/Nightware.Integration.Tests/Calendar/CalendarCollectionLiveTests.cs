@@ -206,4 +206,34 @@ public sealed class CalendarCollectionLiveTests : IAsyncLifetime
             }
         }
     }
+
+    [Fact]
+    public async Task Meeting_times_avoid_an_attendees_busy_hour()
+    {
+        var alice = await _stack.GraphClientAsync(Alice, Ct);
+        var bob = await _stack.GraphClientAsync("bob", Ct);
+        var day = DateTime.UtcNow.Date.AddDays(5);
+        var busy = await SendAsync(bob, HttpMethod.Post, "/v1.0/me/events", $$$"""
+            {"subject":"Busy {{{_run}}}","start":{"dateTime":"{{{day.AddHours(10):yyyy-MM-ddTHH:mm:ss}}}","timeZone":"UTC"},
+             "end":{"dateTime":"{{{day.AddHours(11):yyyy-MM-ddTHH:mm:ss}}}","timeZone":"UTC"}}
+            """, HttpStatusCode.Created);
+        try
+        {
+            var found = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/findMeetingTimes", $$$"""
+                {"attendees":[{"type":"required","emailAddress":{"address":"{{{DevStack.Address("bob")}}}"}}],
+                 "timeConstraint":{"activityDomain":"unrestricted","timeSlots":[{"start":{"dateTime":"{{{day.AddHours(9):yyyy-MM-ddTHH:mm:ss}}}","timeZone":"UTC"},
+                   "end":{"dateTime":"{{{day.AddHours(12):yyyy-MM-ddTHH:mm:ss}}}","timeZone":"UTC"}}]},
+                 "meetingDuration":"PT1H","minimumAttendeePercentage":100,"maxCandidates":10}
+                """);
+
+            found["emptySuggestionsReason"]!.GetValue<string>().ShouldBeEmpty();
+            var starts = found["meetingTimeSuggestions"]!.AsArray().Select(s => s!["meetingTimeSlot"]!["start"]!["dateTime"]!.GetValue<DateTime>().TimeOfDay.TotalHours).ToList();
+            starts.ShouldBe([9, 11]);
+            found["meetingTimeSuggestions"]![0]!["attendeeAvailability"]![0]!["availability"]!.GetValue<string>().ShouldBe("free");
+        }
+        finally
+        {
+            await SendAsync(bob, HttpMethod.Delete, $"/v1.0/me/events/{busy["id"]!.GetValue<string>()}", expected: HttpStatusCode.NoContent);
+        }
+    }
 }

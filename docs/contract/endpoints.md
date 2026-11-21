@@ -324,8 +324,8 @@ operation:
 | Phase 5B — Tasks, mailbox settings, files, threat submission | 14 |
 | Phase 11 — JSON batching (Graph parity) | 2 |
 | Phase 12 — Mail (Graph parity) | 19 |
-| Phase 13 — Calendar (Graph parity) | 26 |
-| **Total** | **123** |
+| Phase 13 — Calendar (Graph parity) | 27 |
+| **Total** | **124** |
 
 ### Phase 2 — Mail, read side
 
@@ -1495,6 +1495,7 @@ operation:
 | [`calendar.permissions.create`](#calendarpermissionscreate) | POST | v1.0 | `{mailbox}/calendars/{calendarId}/calendarPermissions` | none |
 | [`calendar.permissions.update`](#calendarpermissionsupdate) | PATCH | v1.0 | `{mailbox}/calendars/{calendarId}/calendarPermissions/{permissionId}` | none |
 | [`calendar.permissions.delete`](#calendarpermissionsdelete) | DELETE | v1.0 | `{mailbox}/calendars/{calendarId}/calendarPermissions/{permissionId}` | none |
+| [`calendar.find-meeting-times`](#calendarfind-meeting-times) | POST | v1.0 | `{mailbox}/findMeetingTimes` | none |
 
 #### `calendar.calendars.list`
 
@@ -1731,5 +1732,15 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendarpermission
 - Notes: Nextcloud CalDAV sharing (oc:invite / oc:share; ADR 0006 D6); only the owner shares. 
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.permissions.delete.json`
+
+#### `calendar.find-meeting-times`
+
+**POST v1.0 `{mailbox}/findMeetingTimes`** — forms: me, users; success: 200; paging: none
+
+- Request body: `attendees`; `timeConstraint`; `meetingDuration`; `maxCandidates`; `isOrganizerOptional`; `minimumAttendeePercentage`
+- Client reads: `emptySuggestionsReason`, `meetingTimeSuggestions[].confidence`, `meetingTimeSuggestions[].organizerAvailability`, `meetingTimeSuggestions[].attendeeAvailability`, `meetingTimeSuggestions[].locations`, `meetingTimeSuggestions[].meetingTimeSlot`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-findmeetingtimes
+- Notes: Computed over CalDAV free/busy and the organizer's working hours (ADR 0006 D6): half-hour starts, confidence is the share of attendees free (tentative/unknown half, optional attendees half weight). locationConstraint is ignored; no locations are suggested.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.find-meeting-times.json`
 
 <!-- END GENERATED -->
