@@ -324,8 +324,8 @@ operation:
 | Phase 5B — Tasks, mailbox settings, files, threat submission | 14 |
 | Phase 11 — JSON batching (Graph parity) | 2 |
 | Phase 12 — Mail (Graph parity) | 19 |
-| Phase 13 — Calendar (Graph parity) | 11 |
-| **Total** | **108** |
+| Phase 13 — Calendar (Graph parity) | 13 |
+| **Total** | **110** |
 
 ### Phase 2 — Mail, read side
 
@@ -1480,6 +1480,8 @@ operation:
 | [`calendar.calendars.calendar-view`](#calendarcalendarscalendar-view) | GET | v1.0 | `{mailbox}/calendars/{calendarId}/calendarView` | none |
 | [`calendar.calendar-groups.list`](#calendarcalendar-groupslist) | GET | v1.0 | `{mailbox}/calendarGroups` | none |
 | [`calendar.calendar-groups.calendars`](#calendarcalendar-groupscalendars) | GET | v1.0 | `{mailbox}/calendarGroups/{groupId}/calendars` | none |
+| [`calendar.events.list`](#calendareventslist) | GET | v1.0 | `{mailbox}/events` | none |
+| [`calendar.events.instances`](#calendareventsinstances) | GET | v1.0 | `{mailbox}/events/{eventId}/instances` | none |
 
 #### `calendar.calendars.list`
 
@@ -1581,5 +1583,23 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/calendargroup
 - Notes: Every calendar; any other group id is 404.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendar-groups.calendars.json`
+
+#### `calendar.events.list`
+
+**GET v1.0 `{mailbox}/events`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].subject`, `value[].start`, `value[].end`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-list-events
+- Notes: The default calendar's events, unexpanded; $orderby start/dateTime asc|desc, $select, $top, $skip. Shares its route with calendar.events.list-by-ical-uid.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.list.json`
+
+#### `calendar.events.instances`
+
+**GET v1.0 `{mailbox}/events/{eventId}/instances`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].subject`, `value[].start`, `value[].end`, `value[].seriesMasterId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-list-instances
+- Notes: The series' occurrences and exceptions in the window, from Sabre's expansion of its calendar.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.instances.json`
 
 <!-- END GENERATED -->

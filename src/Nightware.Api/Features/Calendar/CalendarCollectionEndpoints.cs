@@ -111,6 +111,7 @@ internal static class CalendarCollectionEndpoints
             scope.MapGet("/calendars/{calendarId}/events", ListEventsAsync);
             scope.MapPost("/calendars/{calendarId}/events", CreateEventAsync);
             scope.MapGet("/calendars/{calendarId}/calendarView", CalendarViewAsync);
+            scope.MapGet("/events/{eventId}/instances", InstancesAsync);
             scope.MapGet("/calendarGroups", ListGroupsAsync);
             scope.MapGet("/calendarGroups/{groupId}/calendars", ListGroupCalendarsAsync);
         }
@@ -168,6 +169,24 @@ internal static class CalendarCollectionEndpoints
         {
             prefer.MarkTimeZoneApplied(http.Response);
             return GraphResults.Page(p, e => EventDtoMapper.ToDto(e, prefer), $"{Calendars(mailbox)}('{calendarId}')/calendarView", odata.Query);
+        });
+    }
+
+    private static async Task<IResult> InstancesAsync(
+        Mailbox mailbox, string eventId, ODataQuery odata, PreferHeader prefer, HttpContext http, CalendarEventsIn useCase, CancellationToken cancellationToken)
+    {
+        var start = EventEndpoints.ParseBound(http.Request.Query, EventEndpoints.StartDateTime);
+        var end = EventEndpoints.ParseBound(http.Request.Query, EventEndpoints.EndDateTime);
+        if (!start.IsSuccess || !end.IsSuccess)
+        {
+            return GraphResults.Error(start.Error ?? end.Error!);
+        }
+
+        var page = await useCase.InstancesAsync(mailbox.Ref, new Nightware.Domain.Kernel.EventId(eventId), start.Value, end.Value, odata.Query, cancellationToken).ConfigureAwait(false);
+        return GraphResults.Match(page, p =>
+        {
+            prefer.MarkTimeZoneApplied(http.Response);
+            return GraphResults.Page(p, e => EventDtoMapper.ToDto(e, prefer), $"{mailbox.ContextSegment}/events('{eventId}')/instances", odata.Query);
         });
     }
 

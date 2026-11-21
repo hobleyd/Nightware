@@ -31,6 +31,11 @@ public sealed class CalendarCollectionArrangements : IConformanceArrangements
 
     public IEnumerable<ConformanceArrangement> Arrangements()
     {
+        foreach (var listing in EventListings())
+        {
+            yield return listing;
+        }
+
         yield return Stored("calendar.calendars.list", [.. Tenant]);
         yield return Stored("calendar.calendar.get", [.. Tenant]);
         yield return Stored("calendar.calendars.get", [.. Tenant, Nightware]);
@@ -81,6 +86,26 @@ public sealed class CalendarCollectionArrangements : IConformanceArrangements
 
         yield return new ConformanceArrangement("calendar.calendars.calendar-view", static fakes =>
             fakes.For<ICalendarEventsIn>().CalendarViewAsync(Me, Created, Arg.Any<DateTimeOffset>(), Arg.Any<DateTimeOffset>(), Arg.Any<ItemQuery>(), Arg.Any<CancellationToken>())
+                .Returns(new Page<CalendarEvent>(
+                [
+                    Series("AAMk-id-0006=", 2026, 11, 21), Series("AAMk-id-0007=", 2026, 11, 28),
+                    Series("AAMk-id-0008=", 2026, 12, 5), Series("AAMk-id-0009=", 2026, 12, 12),
+                ])))
+        {
+            Normalise = ParityNormalisers.Only("id", "subject", "start", "end"),
+        };
+    }
+
+    /// <summary>The default calendar's own listing, ordered by start (it was empty in the capture).</summary>
+    internal static IEnumerable<ConformanceArrangement> EventListings()
+    {
+        yield return new ConformanceArrangement("calendar.events.list", static fakes =>
+            fakes.For<Nightware.Application.Calendar.ICalendarReader>()
+                .ListAsync(Me, Arg.Is<ItemQuery>(q => q.Top == 5 && q.OrderBy.Count == 1), Arg.Any<CancellationToken>())
+                .Returns(new Page<CalendarEvent>([])));
+
+        yield return new ConformanceArrangement("calendar.events.instances", static fakes =>
+            fakes.For<ICalendarEventsIn>().InstancesAsync(Me, new EventId("AAMk-id-0005="), Arg.Any<DateTimeOffset>(), Arg.Any<DateTimeOffset>(), Arg.Any<ItemQuery>(), Arg.Any<CancellationToken>())
                 .Returns(new Page<CalendarEvent>(
                 [
                     Series("AAMk-id-0006=", 2026, 11, 21), Series("AAMk-id-0007=", 2026, 11, 28),

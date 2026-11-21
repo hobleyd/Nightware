@@ -16,7 +16,7 @@ namespace Nightware.Adapters.Dav.Calendar;
 /// default calendar's.
 /// </summary>
 internal sealed class DavCalendarStore(
-    DavCalendarScopes scopes, DavCalendarReader reader, DavCalendarWriter writer, IDavClient dav, DavPaths paths) : ICalendarStore, ICalendarEventsIn
+    DavCalendarScopes scopes, DavCalendarReader reader, DavCalendarWriter writer, DavEventResources resources, IDavClient dav, DavPaths paths) : ICalendarStore, ICalendarEventsIn
 {
     public async Task<Result<IReadOnlyList<EventCalendar>>> ListAsync(MailboxRef mailbox, CancellationToken cancellationToken)
     {
@@ -128,6 +128,28 @@ internal sealed class DavCalendarStore(
         return resolved.Value.Calendar.IsReadOnly
             ? Error.Forbidden("The calendar is read-only.")
             : await writer.CreateInAsync(resolved.Value.Calendar.Href, resolved.Value.Scope.Owner.DisplayName, mailbox, newEvent, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<Result<Page<CalendarEvent>>> InstancesAsync(
+        MailboxRef mailbox, EventId series, DateTimeOffset start, DateTimeOffset end, ItemQuery query, CancellationToken cancellationToken)
+    {
+        // The series' resource names its calendar; its expansion there, kept to this series, is the answer.
+        var stored = await resources.LoadAsync(mailbox, series, cancellationToken).ConfigureAwait(false);
+        if (!stored.IsSuccess)
+        {
+            return stored.Error;
+        }
+
+        var calendarHref = paths.ToAbsolutePath(stored.Value.Id.Href[..(stored.Value.Id.Href.LastIndexOf('/') + 1)])!;
+        var view = await reader.ViewAsync(calendarHref, mailbox, start, end, ItemQuery.Default with { Top = int.MaxValue }, cancellationToken).ConfigureAwait(false);
+        if (!view.IsSuccess)
+        {
+            return view.Error;
+        }
+
+        var master = stored.Value.Id.Master.ToEventId();
+        var instances = view.Value.Items.Where(e => e.SeriesMasterId == master).ToList();
+        return OffsetPaging.Slice(instances, query, DavCalendarReader.DefaultPageSize);
     }
 
     private async Task<Result<EventCalendar>> FindAsync(MailboxRef mailbox, DavItemId id, CancellationToken cancellationToken)

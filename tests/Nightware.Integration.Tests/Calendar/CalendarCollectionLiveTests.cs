@@ -71,6 +71,10 @@ public sealed class CalendarCollectionLiveTests : IAsyncLifetime
             var view = await SendAsync(alice, HttpMethod.Get,
                 $"/v1.0/me/calendars/{id}/calendarView?startDateTime={start.AddHours(-1):yyyy-MM-ddTHH:mm:ssZ}&endDateTime={start.AddDays(5):yyyy-MM-ddTHH:mm:ssZ}");
             view["value"]!.AsArray().Count.ShouldBe(3);
+            var instances = await SendAsync(alice, HttpMethod.Get,
+                $"/v1.0/me/events/{series["id"]!.GetValue<string>()}/instances?startDateTime={start.AddDays(1).AddHours(-1):yyyy-MM-ddTHH:mm:ssZ}&endDateTime={start.AddDays(5):yyyy-MM-ddTHH:mm:ssZ}");
+            instances["value"]!.AsArray().Count.ShouldBe(2);
+            instances["value"]!.AsArray().ShouldAllBe(i => i!["seriesMasterId"]!.GetValue<string>() == series["id"]!.GetValue<string>());
 
             (await SendAsync(alice, HttpMethod.Get, "/v1.0/me/calendars"))["value"]!.AsArray().ShouldContain(c => c!["id"]!.GetValue<string>() == id);
             var groups = await SendAsync(alice, HttpMethod.Get, "/v1.0/me/calendarGroups");

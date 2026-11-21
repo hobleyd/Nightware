@@ -4669,5 +4669,76 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/resources/calendargroup",
     "notes": "Every calendar; any other group id is 404."
+  },
+  {
+    "id": "calendar.events.list",
+    "phase": 13,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/events",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].subject",
+      "value[].start",
+      "value[].end"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-list-events",
+    "notes": "The default calendar's events, unexpanded; $orderby start/dateTime asc|desc, $select, $top, $skip. Shares its route with calendar.events.list-by-ical-uid."
+  },
+  {
+    "id": "calendar.events.instances",
+    "phase": 13,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}/instances",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].subject",
+      "value[].start",
+      "value[].end",
+      "value[].seriesMasterId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-list-instances",
+    "notes": "The series' occurrences and exceptions in the window, from Sabre's expansion of its calendar."
   }
 ]

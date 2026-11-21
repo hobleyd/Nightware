@@ -21,7 +21,7 @@ public sealed class DavCalendarStoreTests : IDisposable
 
     public void Dispose() => _h.Dispose();
 
-    private DavCalendarStore Store() => new(_h.Scopes, _h.Reader, _h.Writer, _h.Dav.Client, _h.Dav.Paths);
+    private DavCalendarStore Store() => new(_h.Scopes, _h.Reader, _h.Writer, _h.Resources, _h.Dav.Client, _h.Dav.Paths);
 
     private CalendarId IdOf(string href) => new(DavItemId.Resource(_h.Dav.Paths.ToRelative(href)!).ToString());
 
@@ -98,6 +98,25 @@ public sealed class DavCalendarStoreTests : IDisposable
         _h.Requests("REPORT").ShouldHaveSingleItem().RequestMessage!.Path.ShouldBe(Work);
         var birthdays = IdOf(AliceHome + "contact_birthdays/");
         (await Store().CreateAsync(AliceMailbox, birthdays, new NewEvent("x", Utc(1), Utc(2)), Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+    }
+
+    [Fact]
+    public async Task Instances_are_the_series_occurrences_from_its_calendars_expansion()
+    {
+        _h.Dav.Server.Given(WireMock.RequestBuilders.Request.Create().WithPath(AlicePersonal).UsingMethod("REPORT")
+                .WithBody(new WireMock.Matchers.WildcardMatcher("*calendar-query*")))
+            .RespondWith(WireMock.ResponseBuilders.Response.Create().WithStatusCode(207).WithBody(Read("series-expanded.xml")));
+        _h.Dav.Server.Given(WireMock.RequestBuilders.Request.Create().WithPath(AlicePersonal).UsingMethod("REPORT")
+                .WithBody(new WireMock.Matchers.WildcardMatcher("*calendar-multiget*")))
+            .RespondWith(WireMock.ResponseBuilders.Response.Create().WithStatusCode(207).WithBody(Read("series-multiget.xml")));
+        _h.ServeIcs(SeriesHref, Read("series-alice.ics"));
+        var window = new DateTimeOffset(2027, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+        var page = (await Store().InstancesAsync(AliceMailbox, _h.IdOf(SeriesHref), window, window.AddMonths(1), new ItemQuery { Top = 2 }, Ct)).Value;
+
+        page.Items.Count.ShouldBe(2);
+        page.HasMore.ShouldBeTrue();
+        page.Items.ShouldAllBe(e => e.SeriesMasterId == _h.IdOf(SeriesHref));
     }
 
     private static DateTimeTimeZone Utc(int hour) => new(new DateTime(2026, 12, 1, hour, 0, 0), "UTC");

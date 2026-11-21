@@ -27,6 +27,9 @@ public interface ICalendarEventsIn
     Task<Result<Page<CalendarEvent>>> ListAsync(MailboxRef mailbox, CalendarId calendar, ItemQuery query, CancellationToken cancellationToken);
 
     Task<Result<CalendarEvent>> CreateAsync(MailboxRef mailbox, CalendarId calendar, NewEvent newEvent, CancellationToken cancellationToken);
+
+    /// <summary>A series' occurrences and exceptions overlapping [start, end) (Graph <c>events/{id}/instances</c>).</summary>
+    Task<Result<Page<CalendarEvent>>> InstancesAsync(MailboxRef mailbox, EventId series, DateTimeOffset start, DateTimeOffset end, ItemQuery query, CancellationToken cancellationToken);
 }
 
 /// <summary>Graph's <c>calendarColor</c> names, which Nextcloud keeps as hex.</summary>
@@ -170,4 +173,9 @@ public sealed class CalendarEventsIn(ICalendarEventsIn events)
 
     public Task<Result<CalendarEvent>> CreateAsync(MailboxRef mailbox, CalendarId calendar, NewEvent newEvent, CancellationToken cancellationToken) =>
         events.CreateAsync(mailbox, calendar, newEvent, cancellationToken);
+
+    public Task<Result<Page<CalendarEvent>>> InstancesAsync(MailboxRef mailbox, EventId series, DateTimeOffset start, DateTimeOffset end, ItemQuery query, CancellationToken cancellationToken) =>
+        CalendarViewLimits.Check(start, end) is { } tooLong
+            ? Task.FromResult<Result<Page<CalendarEvent>>>(tooLong)
+            : events.InstancesAsync(mailbox, series, start, end, query, cancellationToken);
 }

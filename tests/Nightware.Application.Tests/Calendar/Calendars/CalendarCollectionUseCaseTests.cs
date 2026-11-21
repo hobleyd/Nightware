@@ -72,6 +72,9 @@ public sealed class CalendarCollectionUseCaseTests
         var start = DateTimeOffset.UnixEpoch;
 
         (await new CalendarEventsIn(events).ViewAsync(Me, Work.Id, start, start.AddYears(11), ItemQuery.Default, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await new CalendarEventsIn(events).InstancesAsync(Me, new EventId("s"), start, start.AddYears(11), ItemQuery.Default, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        await new CalendarEventsIn(events).InstancesAsync(Me, new EventId("s"), start, start.AddDays(7), ItemQuery.Default, Ct);
+        await events.Received(1).InstancesAsync(Me, new EventId("s"), start, start.AddDays(7), ItemQuery.Default, Ct);
         await new CalendarEventsIn(events).ListAsync(Me, Work.Id, ItemQuery.Default, Ct);
         await events.Received(1).ListAsync(Me, Work.Id, ItemQuery.Default, Ct);
     }
