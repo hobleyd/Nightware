@@ -102,7 +102,7 @@ public sealed class MessageQueryTranslatorTests
 
         var plan = (MessageQueryPlan.Query)Plan(new ItemQuery { Search = search });
 
-        plan.Paged.ShouldBeFalse();
+        plan.Paged.ShouldBeTrue();
         plan.Filter.ShouldBe(EmailFilter.And(new EmailFilter { From = "alex@example.com" }, new EmailFilter { HasAttachment = true }, new EmailFilter { Text = "budget" }), new FilterComparer());
     }
 

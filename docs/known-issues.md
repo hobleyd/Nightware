@@ -23,8 +23,6 @@ what a fix needs. Ordered by impact within each section.
   answer. The client always sends the header.
 - Stalwart reports `hasAttachment: false` on some invitation mail that carries
   an `.ics` and an image.
-- **Mail search is one page.** `$search` returns at most `$top` results and
-  no nextLink (`docs/contract/odata-subset.md` §6). NightMail never pages it.
 
 ### Calendar
 - **External invitations Nextcloud never delivered to the calendar** resolve to

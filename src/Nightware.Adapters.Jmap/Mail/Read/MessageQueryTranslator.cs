@@ -73,7 +73,7 @@ internal static class MessageQueryTranslator
             return sort.Error;
         }
 
-        return new MessageQueryPlan.Query(Combine(conditions), sort.Value, Paged: query.Search is null);
+        return new MessageQueryPlan.Query(Combine(conditions), sort.Value, Paged: true);
     }
 
     /// <summary>KQL terms are AND-ed; each OR group becomes one JMAP OR; negation becomes NOT.</summary>

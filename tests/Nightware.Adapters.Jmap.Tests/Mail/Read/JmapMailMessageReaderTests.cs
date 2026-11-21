@@ -101,18 +101,18 @@ public sealed class JmapMailMessageReaderTests
     }
 
     [Fact]
-    public async Task Search_is_mailbox_wide_and_unpaged()
+    public async Task Search_is_mailbox_wide_and_pages_like_a_listing()
     {
         await using var host = Host();
-        StubQuery(host, "\"m1\"", null, MailReadStubs.Email("m1"));
+        StubQuery(host, "\"m1\"", 120, MailReadStubs.Email("m1"));
         var search = new SearchQuery([new SearchTerm(SearchField.From, SearchOp.Contains, "alex@example.com"), new SearchTerm(SearchField.HasAttachments, SearchOp.Equals, "true")]);
 
         var page = (await Reader(host).ListAsync(Alice, null, new ItemQuery { Top = 50, Search = search }, Ct)).Value;
 
         page.Items.Count.ShouldBe(1);
-        page.SkipToken.ShouldBeNull();
+        page.SkipToken.ShouldBe("1");
         host.Calls("Email/query")[0][0]![1]!.ToJsonString().ShouldBe(
-            """{"accountId":"c","filter":{"operator":"AND","conditions":[{"from":"alex@example.com"},{"hasAttachment":true}]},"sort":[{"property":"receivedAt","isAscending":false}],"position":0,"limit":50}""");
+            """{"accountId":"c","filter":{"operator":"AND","conditions":[{"from":"alex@example.com"},{"hasAttachment":true}]},"sort":[{"property":"receivedAt","isAscending":false}],"position":0,"limit":50,"calculateTotal":true}""");
     }
 
     [Fact]
