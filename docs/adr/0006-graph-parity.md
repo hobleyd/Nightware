@@ -136,7 +136,7 @@ into the phase doc before contracting operations (as phase 10 did).
 - **Event attachments** are stored in Nextcloud Files and referenced by
   `ATTACH` URL, as To Do attachments are.
 - **`calendarPermissions`** map to Nextcloud CalDAV sharing.
-  - Supported roles are `read` and `write`. Others are `400 notSupported`.
+  - Supported roles are `read` and `write`. Others are `501 notSupported`.
   - The share target must be a directory user.
 - **`findMeetingTimes`** is Application logic over the existing free/busy port
   and working hours (§29).

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Nightware.Application.Calendar;
 using Nightware.Application.Directory;
 using Nightware.Conformance.Tests.Harness;
@@ -15,6 +16,9 @@ public sealed class FindMeetingTimesArrangements : IConformanceArrangements
 {
     private static readonly MailboxRef Me = new("me@example.com");
 
+    /// <summary>When the capture was taken: slots already past are not suggested.</summary>
+    private static readonly DateTimeOffset Captured = new(2026, 11, 20, 22, 40, 0, TimeSpan.Zero);
+
     public IEnumerable<ConformanceArrangement> Arrangements()
     {
         yield return new ConformanceArrangement("calendar.find-meeting-times", static fakes =>
@@ -27,6 +31,14 @@ public sealed class FindMeetingTimesArrangements : IConformanceArrangements
             fakes.For<IFreeBusyReader>()
                 .GetAsync(Me, Arg.Any<IReadOnlyList<string>>(), Arg.Any<DateTimeOffset>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
                 .Returns(Result<IReadOnlyList<FreeBusySchedule>>.Success([new FreeBusySchedule(Me.Address, [])]));
-        });
+        })
+        {
+            Services = static services => services.AddSingleton<TimeProvider>(new FixedTime(Captured)),
+        };
+    }
+
+    private sealed class FixedTime(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
     }
 }

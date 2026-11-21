@@ -18,12 +18,14 @@ public sealed class FindMeetingTimesTests
 
     private readonly IFreeBusyReader _freeBusy = Substitute.For<IFreeBusyReader>();
     private readonly IUserPreferencesStore _preferences = Substitute.For<IUserPreferencesStore>();
+    private readonly TimeProvider _clock = Substitute.For<TimeProvider>();
     private readonly Dictionary<string, List<ScheduleItem>> _busy = new(StringComparer.OrdinalIgnoreCase);
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     public FindMeetingTimesTests()
     {
+        _clock.GetUtcNow().Returns(Monday.AddDays(-3));
         _preferences.GetAsync(Me, Arg.Any<CancellationToken>()).Returns(Error.NotFound("none"));
         _freeBusy.GetAsync(Me, Arg.Any<IReadOnlyList<string>>(), Arg.Any<DateTimeOffset>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
             .Returns(call => Result<IReadOnlyList<FreeBusySchedule>>.Success(call.Arg<IReadOnlyList<string>>()
@@ -47,7 +49,7 @@ public sealed class FindMeetingTimesTests
         new(attendees, TimeSpan.FromHours(1)) { TimeSlots = [new MeetingTimeSlot(DateTimeTimeZone.Utc(from), DateTimeTimeZone.Utc(to))], MaxCandidates = 20 };
 
     private Task<Result<MeetingTimeSuggestions>> Find(MeetingTimeRequest request) =>
-        new FindMeetingTimes(_freeBusy, _preferences, TimeProvider.System).ExecuteAsync(Me, request, Ct);
+        new FindMeetingTimes(_freeBusy, _preferences, _clock).ExecuteAsync(Me, request, Ct);
 
     [Fact]
     public async Task Suggestions_keep_to_working_hours_on_half_hour_boundaries()
@@ -119,13 +121,22 @@ public sealed class FindMeetingTimesTests
     [Fact]
     public async Task The_window_defaults_to_the_next_two_days()
     {
-        var clock = Substitute.For<TimeProvider>();
-        clock.GetUtcNow().Returns(Monday.AddHours(16));
+        _clock.GetUtcNow().Returns(Monday.AddHours(15).AddMinutes(50));
 
-        var found = await new FindMeetingTimes(_freeBusy, _preferences, clock).ExecuteAsync(Me, new MeetingTimeRequest([], TimeSpan.FromHours(1)), Ct);
+        var found = await Find(new MeetingTimeRequest([], TimeSpan.FromHours(1)));
 
         found.Value.Suggestions[0].Start.ShouldBe(Monday.AddHours(16));
         found.Value.Suggestions.Count.ShouldBe(FindMeetingTimes.DefaultMaxCandidates);
+    }
+
+    [Fact]
+    public async Task Slots_that_have_already_begun_are_not_suggested()
+    {
+        _clock.GetUtcNow().Returns(Monday.AddHours(9).AddMinutes(1));
+
+        var found = (await Find(Request(Monday.AddHours(8), Monday.AddHours(12)))).Value;
+
+        found.Suggestions.Select(s => s.Start).ShouldBe([Monday.AddHours(9.5), Monday.AddHours(10), Monday.AddHours(10.5), Monday.AddHours(11)]);
     }
 
     [Theory]

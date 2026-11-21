@@ -67,7 +67,9 @@ public sealed class FindMeetingTimes(IFreeBusyReader freeBusy, IUserPreferencesS
         var suggestions = new List<MeetingTimeSuggestion>();
         var organizerEverFree = false;
         var anyUnknown = false;
-        foreach (var (start, end) in Candidates(windows, request.Duration, request.ActivityDomain, hours.Value))
+        // A slot that has already begun cannot be suggested.
+        var now = time.GetUtcNow();
+        foreach (var (start, end) in Candidates(windows, request.Duration, request.ActivityDomain, hours.Value).Where(c => c.Start >= now))
         {
             var organizer = Availability(byAddress, mailbox.Address, start, end);
             var availability = attendees.Select(a => new AttendeeAvailability(a, Availability(byAddress, a.Address, start, end))).ToList();
