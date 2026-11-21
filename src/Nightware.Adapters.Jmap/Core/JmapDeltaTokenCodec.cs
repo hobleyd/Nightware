@@ -9,7 +9,10 @@ namespace Nightware.Adapters.Jmap.Core;
 /// <summary>Which half of the delta algorithm (ADR 0001 §6–7) a token continues.</summary>
 internal enum DeltaPhase
 {
-    /// <summary>Paging <c>Email/query inMailbox</c> by <see cref="JmapDeltaCursor.Position"/>.</summary>
+    /// <summary>
+    /// Paging <c>Email/query inMailbox</c> after <see cref="JmapDeltaCursor.Anchor"/> (or by
+    /// <see cref="JmapDeltaCursor.Position"/> in tokens that predate it).
+    /// </summary>
     Initial,
 
     /// <summary>Following <c>Email/changes</c> from <see cref="JmapDeltaCursor.State"/>.</summary>
@@ -32,12 +35,19 @@ internal sealed record JmapDeltaCursor(string MailboxId, DeltaPhase Phase, int? 
     /// </summary>
     public string? QueryState { get; init; }
 
+    /// <summary>
+    /// Initial phase: the last message of the previous page. The next page starts just after it, so a message
+    /// deleted above the cursor mid-sync can't push another past it unseen (as paging by position could).
+    /// Null on the first page and in tokens issued before it existed.
+    /// </summary>
+    public string? Anchor { get; init; }
+
     public IReadOnlyList<string>? Select { get; init; }
 
     public int? Top { get; init; }
 
-    public static JmapDeltaCursor Initial(string mailboxId, string? startState, int position = 0, string? queryState = null) =>
-        new(mailboxId, DeltaPhase.Initial, position, startState) { QueryState = queryState };
+    public static JmapDeltaCursor Initial(string mailboxId, string? startState, int position = 0, string? queryState = null, string? anchor = null) =>
+        new(mailboxId, DeltaPhase.Initial, position, startState) { QueryState = queryState, Anchor = anchor };
 
     public static JmapDeltaCursor Changes(string mailboxId, string sinceState, string? queryState = null) =>
         new(mailboxId, DeltaPhase.Changes, null, sinceState) { QueryState = queryState };
@@ -64,6 +74,9 @@ internal sealed record JmapDeltaCursorPayload
 
     [JsonPropertyName("q")]
     public string? QueryState { get; init; }
+
+    [JsonPropertyName("a")]
+    public string? Anchor { get; init; }
 
     [JsonPropertyName("sel")]
     public IReadOnlyList<string>? Select { get; init; }
@@ -104,6 +117,7 @@ internal static class JmapDeltaTokenCodec
             Position = cursor.Phase == DeltaPhase.Initial ? cursor.Position : null,
             State = cursor.State,
             QueryState = cursor.QueryState,
+            Anchor = cursor.Phase == DeltaPhase.Initial ? cursor.Anchor : null,
             Select = cursor.Select,
             Top = cursor.Top,
         };
@@ -140,7 +154,7 @@ internal static class JmapDeltaTokenCodec
         return payload.Phase switch
         {
             "i" when payload.Position is >= 0 =>
-                new JmapDeltaCursor(payload.MailboxId, DeltaPhase.Initial, payload.Position, payload.State) { QueryState = payload.QueryState, Select = payload.Select, Top = payload.Top },
+                new JmapDeltaCursor(payload.MailboxId, DeltaPhase.Initial, payload.Position, payload.State) { QueryState = payload.QueryState, Anchor = payload.Anchor, Select = payload.Select, Top = payload.Top },
             "c" when !string.IsNullOrEmpty(payload.State) =>
                 new JmapDeltaCursor(payload.MailboxId, DeltaPhase.Changes, null, payload.State) { QueryState = payload.QueryState, Select = payload.Select, Top = payload.Top },
             _ => Gone(),

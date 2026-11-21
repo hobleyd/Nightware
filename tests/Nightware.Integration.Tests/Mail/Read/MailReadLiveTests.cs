@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json.Nodes;
 using Nightware.Integration.Tests.Support;
@@ -44,6 +45,43 @@ public sealed class MailReadLiveTests
         }
 
         throw new ShouldAssertException("The delta walk never reached a deltaLink.");
+    }
+
+    [Fact]
+    public async Task A_message_deleted_above_the_cursor_mid_sync_does_not_push_another_past_it()
+    {
+        await using var host = MailLiveHost.Start();
+        using var graph = await host.GraphAsync(Ct);
+        var (account, _) = await host.MailboxesAsync(Ct);
+        var tag = TestMessages.Tag();
+        using var created = await graph.PostAsJsonAsync("/v1.0/me/mailFolders/inbox/childFolders", new { displayName = "nw-anchor-" + tag }, Ct);
+        created.EnsureSuccessStatusCode();
+        var folder = (await created.Content.ReadFromJsonAsync<JsonObject>(Ct))!["id"]!.GetValue<string>();
+        try
+        {
+            // Six messages a minute apart: newest first they are m6 … m1.
+            var start = DateTimeOffset.UtcNow.AddHours(-1);
+            var ids = new List<string>();
+            for (var n = 1; n <= 6; n++)
+            {
+                ids.Add(await host.ImportAsync(account, folder, TestMessages.Plain($"{tag}-m{n}"), Ct, start.AddMinutes(n)));
+            }
+
+            var first = await GetJsonAsync(graph, $"/v1.0/me/mailFolders/{folder}/messages/delta?$select=subject&$top=2");
+            var seen = first["value"]!.AsArray().Select(v => v!["subject"]!.GetValue<string>()).ToList();
+            seen.ShouldBe([$"{tag}-m6", $"{tag}-m5"]);
+
+            // Gone from above the cursor: by position, page two would start at m3 and m4 would never be sent.
+            await host.SetAsync(account, ids[5], null, Ct);
+            var (rest, _) = await WalkDeltaAsync(graph, MailLiveHost.Local(first["@odata.nextLink"]!.GetValue<string>()));
+            seen.AddRange(rest.Where(i => !i.ContainsKey("@removed")).Select(i => i["subject"]!.GetValue<string>()));
+
+            seen.ShouldBe([$"{tag}-m6", $"{tag}-m5", $"{tag}-m4", $"{tag}-m3", $"{tag}-m2", $"{tag}-m1"], ignoreOrder: true);
+        }
+        finally
+        {
+            using var _ = await graph.DeleteAsync($"/v1.0/me/mailFolders/{folder}", Ct);
+        }
     }
 
     [Fact]

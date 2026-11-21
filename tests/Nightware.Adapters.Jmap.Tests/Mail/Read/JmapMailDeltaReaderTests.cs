@@ -39,7 +39,7 @@ public sealed class JmapMailDeltaReaderTests
 
         page.Entries.Select(e => ((DeltaEntry<MailMessage>.Upsert)e).Item.Id.Value).ShouldBe(["e.m1", "e.m2"]);
         page.Final.ShouldBeNull();
-        Decode(page.NextPage).ShouldBe(JmapDeltaCursor.Initial("a", "s1", 2, "q"));
+        Decode(page.NextPage).ShouldBe(JmapDeltaCursor.Initial("a", "s1", 2, "q", anchor: "m2"));
         var calls = host.Calls("Email/get").ShouldHaveSingleItem();
         calls[0]!.ToJsonString().ShouldBe("""["Email/get",{"accountId":"c","ids":[],"properties":["id"]},"c0"]""");
         calls[1]!.ToJsonString().ShouldBe("""["Email/query",{"accountId":"c","filter":{"inMailbox":"a"},"sort":[{"property":"receivedAt","isAscending":false}],"position":0,"limit":2,"calculateTotal":true},"c1"]""");
@@ -229,5 +229,61 @@ public sealed class JmapMailDeltaReaderTests
         var token = JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Initial("a", "s1", 2));
 
         (await Reader(host).DeltaAsync(Alice, Inbox, token, new DeltaRequest(2), Ct)).Value.Entries.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task A_later_initial_page_starts_just_after_the_last_message_seen_not_at_a_position()
+    {
+        await using var host = Host();
+        host.On("Email/query", $$"""
+            [["Email/query",{"accountId":"c","queryState":"q","canCalculateChanges":true,"position":1,"ids":["m3","m4"],"total":4},"c0"],
+             ["Email/get",{{MailReadStubs.EmailGet(MailReadStubs.Email("m3"), MailReadStubs.Email("m4"))}},"c1"]]
+            """);
+        var token = JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Initial("a", "s1", 2, "q0", anchor: "m2"));
+
+        var page = (await Reader(host).DeltaAsync(Alice, Inbox, token, new DeltaRequest(2), Ct)).Value;
+
+        var query = host.Calls("Email/query").ShouldHaveSingleItem()[0]![1]!.AsObject();
+        (query["anchor"]!.GetValue<string>(), query["anchorOffset"]!.GetValue<int>()).ShouldBe(("m2", 1));
+        query.ContainsKey("position").ShouldBeFalse();
+        page.Final.ShouldBeNull("a message above the cursor was deleted: the server puts m3 at 1, and 1 + 2 < 4");
+        Decode(page.NextPage).ShouldBe(JmapDeltaCursor.Initial("a", "s1", 3, "q0", anchor: "m4"));
+    }
+
+    [Fact]
+    public async Task When_the_anchor_is_gone_the_page_is_read_by_position_from_a_page_earlier()
+    {
+        await using var host = Host();
+        host.Server.Given(WireMock.RequestBuilders.Request.Create().WithPath("/jmap/").UsingPost().WithBody(new WireMock.Matchers.WildcardMatcher("*\"anchor\":\"m4\"*")))
+            .RespondWith(JmapTestHost.ApiResponse("""
+                [["error",{"type":"anchorNotFound"},"c0"],["error",{"type":"invalidResultReference"},"c1"]]
+                """));
+        host.Server.Given(WireMock.RequestBuilders.Request.Create().WithPath("/jmap/").UsingPost().WithBody(new WireMock.Matchers.WildcardMatcher("*\"position\":2,*")))
+            .RespondWith(JmapTestHost.ApiResponse($$"""
+                [["Email/query",{"accountId":"c","queryState":"q","canCalculateChanges":true,"position":2,"ids":["m3","m5"],"total":5},"c0"],
+                 ["Email/get",{{MailReadStubs.EmailGet(MailReadStubs.Email("m3"), MailReadStubs.Email("m5"))}},"c1"]]
+                """));
+        var token = JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Initial("a", "s1", 4, "q0", anchor: "m4"));
+
+        var page = (await Reader(host).DeltaAsync(Alice, Inbox, token, new DeltaRequest(2), Ct)).Value;
+
+        page.Entries.Count.ShouldBe(2, "the overlap with the last page is harmless: upserts");
+        Decode(page.NextPage).ShouldBe(JmapDeltaCursor.Initial("a", "s1", 4, "q0", anchor: "m5"));
+    }
+
+    [Fact]
+    public async Task A_token_from_before_anchors_still_pages_by_position_and_the_next_one_has_an_anchor()
+    {
+        await using var host = Host();
+        host.On("Email/query", $$"""
+            [["Email/query",{"accountId":"c","queryState":"q","canCalculateChanges":true,"position":2,"ids":["m3"],"total":4},"c0"],
+             ["Email/get",{{MailReadStubs.EmailGet(MailReadStubs.Email("m3"))}},"c1"]]
+            """);
+        var token = JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Initial("a", "s1", 2, "q0"));
+
+        var page = (await Reader(host).DeltaAsync(Alice, Inbox, token, new DeltaRequest(1), Ct)).Value;
+
+        host.Calls("Email/query")[0][0]![1]!["position"]!.GetValue<int>().ShouldBe(2);
+        Decode(page.NextPage).Anchor.ShouldBe("m3");
     }
 }

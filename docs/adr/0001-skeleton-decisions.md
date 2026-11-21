@@ -50,6 +50,12 @@ anything contradictory in `architecture.md` or the phase docs.
 7. Initial sync = `Email/query inMailbox`, sorted `receivedAt desc`, `position`
    paging. Token payload `{v, mailboxId, phase: initial|changes, position|state,
    select, top}` — `$select`/`$top` are frozen into the token as Graph does.
+   *Amended 2026-11-22:* each later page is anchored just after the previous
+   page's last message (`anchor`, `anchorOffset: 1`; the token adds `a`), so a
+   deletion above the cursor can't push a message past it unseen. When the
+   anchor itself is gone (`anchorNotFound`) the page is read by position from
+   one page earlier; the overlap is repeated upserts. Older tokens still page
+   by position.
    `nextLink` and `deltaLink` are interchangeable inputs (the client stores a
    nextLink as its token when it caps paging).
 8. `cannotCalculateChanges` → `ErrorKind.SyncStateGone` → HTTP 410

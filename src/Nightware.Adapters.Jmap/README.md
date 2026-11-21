@@ -197,7 +197,8 @@ shared `IJmapMessageLocator` are registered by `AddJmapMailRead`.
   `message/rfc822` part is an item attachment with no `contentBytes`; its `$value` is the part blob.
   Inline means "has a Content-ID".
 - **Delta.** The initial sync captures the Email state first (`Email/get ids:[]`), then pages
-  `Email/query inMailbox` newest first by position. The last page hands over to `Email/changes`
+  `Email/query inMailbox` newest first, each page anchored after the last message of the one before
+  (by position from a page earlier if that message is gone). The last page hands over to `Email/changes`
   from that state. Upserts are whole messages (JMAP does not say which properties changed).
   Known limits:
   - `Email/changes` does not say where an updated Email was before, so departures come from

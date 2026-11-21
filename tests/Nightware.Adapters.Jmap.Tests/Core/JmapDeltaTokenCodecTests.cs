@@ -97,4 +97,12 @@ public sealed class JmapDeltaTokenCodecTests
         Should.Throw<ArgumentException>(() => JmapDeltaTokenCodec.Encode(new JmapDeltaCursor("m", DeltaPhase.Changes, null, "")));
         Should.Throw<ArgumentException>(() => JmapDeltaTokenCodec.Encode(new JmapDeltaCursor("", DeltaPhase.Changes, null, "s")));
     }
+
+    [Fact]
+    public void The_anchor_round_trips_in_the_initial_phase_only()
+    {
+        JmapDeltaTokenCodec.Decode(JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Initial("m", "s", 5, "q", "e9"))).Value.Anchor.ShouldBe("e9");
+        JmapDeltaTokenCodec.Decode(JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Changes("m", "s") with { Anchor = "e9" })).Value.Anchor.ShouldBeNull();
+        JmapDeltaTokenCodec.Decode(JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Initial("m", "s", 5))).Value.Anchor.ShouldBeNull("tokens without one still decode");
+    }
 }

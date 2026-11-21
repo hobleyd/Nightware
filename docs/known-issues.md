@@ -6,9 +6,6 @@ what a fix needs. Ordered by impact within each section.
 ## Behaviour gaps the client can notice
 
 ### Mail
-- **Initial delta can miss a message.** The initial sync pages by position
-  (ADR §7), so a message deleted above the cursor mid-sync can push another
-  past it unseen until it changes again. Fix: anchor-based paging.
 - **A `d.` draft moved out of Drafts can't be resolved.** The locator only lists
   Drafts. The client never moves drafts.
 - **A POST with no `Content-Type`** to a JSON route gets the 400 unknown-route

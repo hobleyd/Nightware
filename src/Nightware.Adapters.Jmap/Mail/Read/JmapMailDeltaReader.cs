@@ -12,7 +12,10 @@ namespace Nightware.Adapters.Jmap.Mail.Read;
 
 /// <summary>
 /// The folder delta feed (ADR 0001 §6–8). The initial sync pages <c>Email/query inMailbox</c>
-/// newest first by position, having first captured the account's Email state; once it is through,
+/// newest first, each page anchored just after the last message of the one before (so a deletion
+/// above the cursor can't shift a message past it unseen), having first captured the account's
+/// Email state. If that message is gone (<c>anchorNotFound</c>) the page is read by position from a
+/// page earlier instead: the overlap is repeated upserts, which the client merges. Once it is through,
 /// the feed follows <c>Email/changes</c> from that state, so nothing that changed while the client
 /// was paging is missed. A change is an upsert while the message is in the folder and
 /// <c>@removed: deleted</c> when it is gone. <c>@removed: changed</c> (it left the folder) comes from
@@ -57,7 +60,18 @@ internal sealed class JmapMailDeltaReader(IJmapClient jmap) : IMailDeltaReader
 
     private async Task<Result<DeltaPage<MailMessage>>> InitialAsync(JmapAccount account, JmapDeltaCursor cursor, int pageSize, CancellationToken cancellationToken)
     {
-        var position = cursor.Position ?? 0;
+        var page = await InitialPageAsync(account, cursor, cursor.Anchor, cursor.Position ?? 0, pageSize, cancellationToken).ConfigureAwait(false);
+        if (page.AnchorGone)
+        {
+            page = await InitialPageAsync(account, cursor, null, Math.Max(0, (cursor.Position ?? 0) - pageSize), pageSize, cancellationToken).ConfigureAwait(false);
+        }
+
+        return page.Result;
+    }
+
+    private async Task<(Result<DeltaPage<MailMessage>> Result, bool AnchorGone)> InitialPageAsync(
+        JmapAccount account, JmapDeltaCursor cursor, string? anchor, int position, int pageSize, CancellationToken cancellationToken)
+    {
         var request = new JmapRequestBuilder();
 
         // The state is read before the query, in the same request: anything that changes after it
@@ -70,7 +84,9 @@ internal sealed class JmapMailDeltaReader(IJmapClient jmap) : IMailDeltaReader
         {
             Filter = FolderFilter(cursor.MailboxId),
             Sort = FolderSort,
-            Position = position,
+            Position = anchor is null ? position : null,
+            Anchor = anchor,
+            AnchorOffset = anchor is null ? null : 1,
             Limit = pageSize,
             CalculateTotal = true,
         });
@@ -78,7 +94,12 @@ internal sealed class JmapMailDeltaReader(IJmapClient jmap) : IMailDeltaReader
         var response = await jmap.SendAsync(request, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccess)
         {
-            return response.Error;
+            return (response.Error, false);
+        }
+
+        if (anchor is not null && response.Value.MethodErrorType(query) == "anchorNotFound")
+        {
+            return (default!, true);
         }
 
         var startState = cursor.State;
@@ -89,7 +110,7 @@ internal sealed class JmapMailDeltaReader(IJmapClient jmap) : IMailDeltaReader
             var captured = response.Value.Get(state);
             if (!captured.IsSuccess)
             {
-                return captured.Error;
+                return (captured.Error, false);
             }
 
             startState = captured.Value.State;
@@ -99,28 +120,30 @@ internal sealed class JmapMailDeltaReader(IJmapClient jmap) : IMailDeltaReader
         var emails = response.Value.Get(get);
         if (!ids.IsSuccess)
         {
-            return ids.Error;
+            return (ids.Error, false);
         }
 
         if (!emails.IsSuccess)
         {
-            return emails.Error;
+            return (emails.Error, false);
         }
 
         var entries = emails.Value.List
             .Where(e => e.Id is not null)
             .Select(e => (DeltaEntry<MailMessage>)new DeltaEntry<MailMessage>.Upsert(EmailMapper.ToMessage(e, cursor.MailboxId)))
             .ToList();
+        // Where this page really started (the server resolves an anchor to a position), not where the cursor thought.
         var fetched = ids.Value.Ids.Count;
-        var more = fetched > 0 && position + fetched < (ids.Value.Total ?? 0);
+        var next = ids.Value.Position + fetched;
+        var more = fetched > 0 && next < (ids.Value.Total ?? 0);
         if (string.IsNullOrEmpty(startState))
         {
-            return JmapErrors.Unexpected("Email/get returned no state.");
+            return (JmapErrors.Unexpected("Email/get returned no state."), false);
         }
 
-        return more
-            ? DeltaPage<MailMessage>.More(entries, JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Initial(cursor.MailboxId, startState, position + fetched, queryState)))
-            : DeltaPage<MailMessage>.Done(entries, JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Changes(cursor.MailboxId, startState, queryState)));
+        return (more
+            ? DeltaPage<MailMessage>.More(entries, JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Initial(cursor.MailboxId, startState, next, queryState, ids.Value.Ids[^1])))
+            : DeltaPage<MailMessage>.Done(entries, JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Changes(cursor.MailboxId, startState, queryState))), false);
     }
 
     private async Task<Result<DeltaPage<MailMessage>>> ChangesAsync(JmapAccount account, JmapDeltaCursor cursor, int pageSize, CancellationToken cancellationToken)

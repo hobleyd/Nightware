@@ -82,7 +82,7 @@ internal sealed class MailLiveHost : IAsyncDisposable
     }
 
     /// <summary>Imports raw MIME into a mailbox (as delivery would) and returns the JMAP email id.</summary>
-    public async Task<string> ImportAsync(string account, string mailboxId, string mime, CancellationToken cancellationToken)
+    public async Task<string> ImportAsync(string account, string mailboxId, string mime, CancellationToken cancellationToken, DateTimeOffset? receivedAt = null)
     {
         using var upload = new HttpRequestMessage(HttpMethod.Post, $"{MailBase}/jmap/upload/{account}/") { Content = new StringContent(mime, Encoding.UTF8) };
         upload.Content.Headers.ContentType = new MediaTypeHeaderValue("message/rfc822");
@@ -99,6 +99,11 @@ internal sealed class MailLiveHost : IAsyncDisposable
                 ["i"] = new JsonObject { ["blobId"] = blobId, ["mailboxIds"] = new JsonObject { [mailboxId] = true }, ["keywords"] = new JsonObject() },
             },
         };
+        if (receivedAt is { } received)
+        {
+            import["emails"]!["i"]!["receivedAt"] = received.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
         var response = await JmapAsync([new JsonArray("Email/import", import, "i")], cancellationToken);
         return response[0]![1]!["created"]!["i"]!["id"]!.GetValue<string>();
     }

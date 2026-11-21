@@ -87,6 +87,16 @@ internal sealed class JmapResponse
         return Deserialize(response.Arguments, method.ResponseType, method.Name);
     }
 
+    /// <summary>The method-level error type (<c>anchorNotFound</c>, …) <paramref name="call"/> was answered with, or null.</summary>
+    public string? MethodErrorType(JmapCall call)
+    {
+        ArgumentNullException.ThrowIfNull(call);
+        var response = _responses.FirstOrDefault(r => r.CallId == call.CallId && r.Name == "error");
+        return response is { Arguments.ValueKind: JsonValueKind.Object } && response.Arguments.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String
+            ? type.GetString()
+            : null;
+    }
+
     private static Error MethodError(MethodResponse response, string method)
     {
         var error = response.Arguments.ValueKind == JsonValueKind.Object
