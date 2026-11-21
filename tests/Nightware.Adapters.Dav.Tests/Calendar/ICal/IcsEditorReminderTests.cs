@@ -66,3 +66,23 @@ public sealed class IcsEditorReminderTests : IDisposable
         _h.Editor.SnoozeReminder(bare, DateTimeOffset.UtcNow).Error!.Kind.ShouldBe(ErrorKind.Validation);
     }
 }
+
+public sealed class IcsEditorAttachmentTests : IDisposable
+{
+    private const string Ics = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//t//EN\nBEGIN:VEVENT\nUID:a1\nDTSTAMP:20261120T000000Z\nDTSTART:20261201T100000Z\nDTEND:20261201T103000Z\nSUMMARY:With file\nEND:VEVENT\nEND:VCALENDAR\n";
+    private static readonly Uri File = new("https://cloud.example/remote.php/dav/files/alice/Nightware/Event%20attachments/1/agenda.txt");
+    private readonly CalendarAdapterHarness _h = new();
+
+    public void Dispose() => _h.Dispose();
+
+    [Fact]
+    public void An_attachment_is_added_with_its_name_type_and_size_then_removed()
+    {
+        var added = _h.Editor.AddAttachment(Ics, new EventAttachmentLink(File, "agenda.txt", "text/plain", 12)).Value;
+
+        IcsEditor.ReadAttachments(added).Value.ShouldBe([new EventAttachmentLink(File, "agenda.txt", "text/plain", 12)]);
+        var removed = _h.Editor.RemoveAttachment(added, File).Value;
+        IcsEditor.ReadAttachments(removed).Value.ShouldBeEmpty();
+        _h.Editor.RemoveAttachment(removed, File).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+}

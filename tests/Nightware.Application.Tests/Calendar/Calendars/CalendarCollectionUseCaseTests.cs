@@ -142,3 +142,37 @@ public sealed class ReminderUseCaseTests
         await reminders.Received(1).DismissAsync(Me, new EventId("e"), Ct);
     }
 }
+
+public sealed class EventAttachmentUseCaseTests
+{
+    private static readonly MailboxRef Me = new("me@example.com");
+    private static readonly EventId Event = new("e");
+    private readonly IEventAttachmentStore _store = Substitute.For<IEventAttachmentStore>();
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task Add_needs_a_name_defaults_the_type_and_caps_the_size()
+    {
+        var attachment = new EventAttachment(new AttachmentId("a"), "x.bin", "application/octet-stream", 1);
+        _store.AddAsync(Me, Event, "x.bin", "application/octet-stream", Arg.Any<ReadOnlyMemory<byte>>(), Ct).Returns(attachment);
+
+        (await new EventAttachmentsUseCase(_store).AddAsync(Me, Event, " x.bin ", null, new byte[1], Ct)).Value.ShouldBe(attachment);
+        (await new EventAttachmentsUseCase(_store).AddAsync(Me, Event, " ", null, new byte[1], Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await new EventAttachmentsUseCase(_store).AddAsync(Me, Event, "big", null, new byte[EventAttachmentsUseCase.MaxBytes + 1], Ct)).Error!.Kind.ShouldBe(ErrorKind.PayloadTooLarge);
+    }
+
+    [Fact]
+    public async Task List_get_and_delete_pass_through()
+    {
+        var useCase = new EventAttachmentsUseCase(_store);
+
+        await useCase.ListAsync(Me, Event, Ct);
+        await useCase.GetAsync(Me, Event, new AttachmentId("a"), Ct);
+        await useCase.DeleteAsync(Me, Event, new AttachmentId("a"), Ct);
+
+        await _store.Received(1).ListAsync(Me, Event, Ct);
+        await _store.Received(1).GetAsync(Me, Event, new AttachmentId("a"), Ct);
+        await _store.Received(1).DeleteAsync(Me, Event, new AttachmentId("a"), Ct);
+    }
+}

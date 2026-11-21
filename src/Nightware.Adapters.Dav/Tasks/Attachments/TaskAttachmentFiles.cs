@@ -32,11 +32,17 @@ internal sealed class TaskAttachmentFiles(IDavClient dav, DavPaths paths)
     /// of any other length is refused and nothing is kept.
     /// </summary>
     /// <returns>The file's href (relative to the DAV root) and its length.</returns>
+    public Task<Result<(string Href, long Size)>> StoreAsync(
+        string home, string name, string contentType, Stream content, long? expectedSize, CancellationToken cancellationToken) =>
+        StoreAsync(home, Folder, name, contentType, content, expectedSize, cancellationToken);
+
+    /// <summary>As above, under <paramref name="folderPath"/> (e.g. event attachments' own folder).</summary>
     public async Task<Result<(string Href, long Size)>> StoreAsync(
-        string home, string name, string contentType, Stream content, long? expectedSize, CancellationToken cancellationToken)
+        string home, IReadOnlyList<string> folderPath, string name, string contentType, Stream content, long? expectedSize, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(folderPath);
         var folder = home;
-        foreach (var segment in Folder)
+        foreach (var segment in folderPath)
         {
             folder += Uri.EscapeDataString(segment) + "/";
             var created = await dav.MkColAsync(folder, null, cancellationToken).ConfigureAwait(false);

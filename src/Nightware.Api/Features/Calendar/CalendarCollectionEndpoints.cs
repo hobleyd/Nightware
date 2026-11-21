@@ -107,6 +107,44 @@ public sealed record ReminderDto
     }
 }
 
+/// <summary>Graph <c>fileAttachment</c> on an event (request and response).</summary>
+public sealed record EventAttachmentDto
+{
+    public const string FileAttachmentType = "#microsoft.graph.fileAttachment";
+
+    [JsonPropertyName("@odata.type")]
+    public string? ODataType { get; init; } = FileAttachmentType;
+
+    public string? Id { get; init; }
+
+    public DateTimeOffset? LastModifiedDateTime { get; init; }
+
+    public string? Name { get; init; }
+
+    public string? ContentType { get; init; }
+
+    public long Size { get; init; }
+
+    public bool IsInline { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ContentBytes { get; init; }
+
+    public static EventAttachmentDto From(EventAttachment attachment)
+    {
+        ArgumentNullException.ThrowIfNull(attachment);
+        return new EventAttachmentDto
+        {
+            Id = attachment.Id.Value,
+            LastModifiedDateTime = attachment.LastModifiedDateTime,
+            Name = attachment.Name,
+            ContentType = attachment.ContentType,
+            Size = attachment.Size,
+            ContentBytes = attachment.Content is { } content ? Convert.ToBase64String(content.Span) : null,
+        };
+    }
+}
+
 /// <summary>Request body of <c>snoozeReminder</c>.</summary>
 public sealed record SnoozeRequestDto
 {
@@ -152,6 +190,10 @@ internal static class CalendarCollectionEndpoints
             scope.MapGet("/reminderView(startDateTime={start},endDateTime={end})", ReminderViewAsync);
             scope.MapPost("/events/{eventId}/snoozeReminder", SnoozeAsync);
             scope.MapPost("/events/{eventId}/dismissReminder", DismissAsync);
+            scope.MapGet("/events/{eventId}/attachments", ListAttachmentsAsync);
+            scope.MapPost("/events/{eventId}/attachments", AddAttachmentAsync);
+            scope.MapGet("/events/{eventId}/attachments/{attachmentId}", GetAttachmentAsync);
+            scope.MapDelete("/events/{eventId}/attachments/{attachmentId}", DeleteAttachmentAsync);
             scope.MapGet("/calendarGroups", ListGroupsAsync);
             scope.MapGet("/calendarGroups/{groupId}/calendars", ListGroupCalendarsAsync);
         }
@@ -300,6 +342,45 @@ internal static class CalendarCollectionEndpoints
         var result = await useCase.ExecuteAsync(mailbox.Ref, new Nightware.Domain.Kernel.EventId(eventId), cancellationToken).ConfigureAwait(false);
         return result.IsSuccess ? Results.Ok() : GraphResults.Error(result.Error);
     }
+
+    private static string Attachments(Mailbox mailbox, string eventId) => $"{mailbox.ContextSegment}/events('{eventId}')/attachments";
+
+    private static async Task<IResult> ListAttachmentsAsync(
+        Mailbox mailbox, string eventId, ODataQuery odata, EventAttachmentsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(await useCase.ListAsync(mailbox.Ref, new Nightware.Domain.Kernel.EventId(eventId), cancellationToken).ConfigureAwait(false),
+            list => GraphResults.Collection(list.Select(EventAttachmentDto.From), Attachments(mailbox, eventId), odata.Query));
+
+    private static async Task<IResult> GetAttachmentAsync(
+        Mailbox mailbox, string eventId, string attachmentId, ODataQuery odata, EventAttachmentsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(await useCase.GetAsync(mailbox.Ref, new Nightware.Domain.Kernel.EventId(eventId), new AttachmentId(attachmentId), cancellationToken).ConfigureAwait(false),
+            a => GraphResults.Entity(EventAttachmentDto.From(a), Attachments(mailbox, eventId), odata.Query.Select));
+
+    private static async Task<IResult> AddAttachmentAsync(
+        Mailbox mailbox, string eventId, [FromBody] EventAttachmentDto? body, EventAttachmentsUseCase useCase, CancellationToken cancellationToken)
+    {
+        if (body?.ODataType is { } type && !string.Equals(type, EventAttachmentDto.FileAttachmentType, StringComparison.OrdinalIgnoreCase))
+        {
+            return GraphResults.Error(Error.Unsupported($"Only file attachments can be added to an event ('{type}').", "@odata.type"));
+        }
+
+        byte[] content;
+        try
+        {
+            content = Convert.FromBase64String(body?.ContentBytes ?? string.Empty);
+        }
+        catch (FormatException)
+        {
+            return GraphResults.Error(Error.Validation("contentBytes is not base64.", "contentBytes"));
+        }
+
+        var added = await useCase.AddAsync(mailbox.Ref, new Nightware.Domain.Kernel.EventId(eventId), body?.Name, body?.ContentType, content, cancellationToken).ConfigureAwait(false);
+        return GraphResults.Match(added, a => GraphResults.CreatedAt(EventAttachmentDto.From(a), Attachments(mailbox, eventId),
+            $"{mailbox.ContextSegment}/events('{Uri.EscapeDataString(eventId)}')/Attachments('{Uri.EscapeDataString(a.Id.Value)}')"));
+    }
+
+    private static async Task<IResult> DeleteAttachmentAsync(
+        Mailbox mailbox, string eventId, string attachmentId, EventAttachmentsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(await useCase.DeleteAsync(mailbox.Ref, new Nightware.Domain.Kernel.EventId(eventId), new AttachmentId(attachmentId), cancellationToken).ConfigureAwait(false));
 
     private static async Task<IResult> CreateEventAsync(
         Mailbox mailbox, string calendarId, EventWriteDto? body, ODataQuery odata, PreferHeader prefer, HttpContext http, CalendarEventsIn useCase, CancellationToken cancellationToken)

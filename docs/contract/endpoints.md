@@ -324,8 +324,8 @@ operation:
 | Phase 5B — Tasks, mailbox settings, files, threat submission | 14 |
 | Phase 11 — JSON batching (Graph parity) | 2 |
 | Phase 12 — Mail (Graph parity) | 19 |
-| Phase 13 — Calendar (Graph parity) | 18 |
-| **Total** | **115** |
+| Phase 13 — Calendar (Graph parity) | 22 |
+| **Total** | **119** |
 
 ### Phase 2 — Mail, read side
 
@@ -1487,6 +1487,10 @@ operation:
 | [`calendar.reminder-view`](#calendarreminder-view) | GET | v1.0 | `{mailbox}/reminderView(startDateTime='{start}',endDateTime='{end}')` | none |
 | [`calendar.events.snooze-reminder`](#calendareventssnooze-reminder) | POST | v1.0 | `{mailbox}/events/{eventId}/snoozeReminder` | none |
 | [`calendar.events.dismiss-reminder`](#calendareventsdismiss-reminder) | POST | v1.0 | `{mailbox}/events/{eventId}/dismissReminder` | none |
+| [`calendar.events.attachments.list`](#calendareventsattachmentslist) | GET | v1.0 | `{mailbox}/events/{eventId}/attachments` | none |
+| [`calendar.events.attachments.get`](#calendareventsattachmentsget) | GET | v1.0 | `{mailbox}/events/{eventId}/attachments/{attachmentId}` | none |
+| [`calendar.events.attachments.create`](#calendareventsattachmentscreate) | POST | v1.0 | `{mailbox}/events/{eventId}/attachments` | none |
+| [`calendar.events.attachments.delete`](#calendareventsattachmentsdelete) | DELETE | v1.0 | `{mailbox}/events/{eventId}/attachments/{attachmentId}` | none |
 
 #### `calendar.calendars.list`
 
@@ -1650,5 +1654,41 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-dismissreminder
 - Notes: ACKNOWLEDGED up to now, or the occurrence's fire time when later, on every alarm.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.dismiss-reminder.json`
+
+#### `calendar.events.attachments.list`
+
+**GET v1.0 `{mailbox}/events/{eventId}/attachments`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].name`, `value[].contentType`, `value[].size`, `value[].isInline`, `value[].lastModifiedDateTime`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/fileattachment
+- Notes: Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). No content in the listing.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.attachments.list.json`
+
+#### `calendar.events.attachments.get`
+
+**GET v1.0 `{mailbox}/events/{eventId}/attachments/{attachmentId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `name`, `contentType`, `size`, `isInline`, `lastModifiedDateTime`, `contentBytes`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/fileattachment
+- Notes: Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.attachments.get.json`
+
+#### `calendar.events.attachments.create`
+
+**POST v1.0 `{mailbox}/events/{eventId}/attachments`** — forms: me, users; success: 201; paging: none
+
+- Request body: `@odata.type`; `name`; `contentType?`; `contentBytes`
+- Client reads: `id`, `name`, `contentType`, `size`, `isInline`, `lastModifiedDateTime`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/fileattachment
+- Notes: Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). fileAttachment only, up to 3 MB; Location as Graph.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.attachments.create.json`
+
+#### `calendar.events.attachments.delete`
+
+**DELETE v1.0 `{mailbox}/events/{eventId}/attachments/{attachmentId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/fileattachment
+- Notes: Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). The file goes too.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.attachments.delete.json`
 
 <!-- END GENERATED -->

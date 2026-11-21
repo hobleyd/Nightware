@@ -142,4 +142,30 @@ public sealed class CalendarCollectionLiveTests : IAsyncLifetime
             await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/events/{id}", expected: HttpStatusCode.NoContent);
         }
     }
+
+    [Fact]
+    public async Task A_file_is_attached_to_an_event_read_back_and_removed()
+    {
+        var alice = await _stack.GraphClientAsync(Alice, Ct);
+        var start = DateTime.UtcNow.Date.AddDays(3).AddHours(9);
+        var created = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/events", $$$"""
+            {"subject":"Attach {{{_run}}}","start":{"dateTime":"{{{start:yyyy-MM-ddTHH:mm:ss}}}","timeZone":"UTC"},"end":{"dateTime":"{{{start.AddHours(1):yyyy-MM-ddTHH:mm:ss}}}","timeZone":"UTC"}}
+            """, HttpStatusCode.Created);
+        var id = created["id"]!.GetValue<string>();
+        try
+        {
+            var added = await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/events/{id}/attachments",
+                """{"@odata.type":"#microsoft.graph.fileAttachment","name":"agenda.txt","contentType":"text/plain","contentBytes":"QWdlbmRhIOKAkyBpdGVtIDE="}""", HttpStatusCode.Created);
+            var attachmentId = added["id"]!.GetValue<string>();
+            (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/events/{id}/attachments"))["value"]!.AsArray().Single()!["name"]!.GetValue<string>().ShouldBe("agenda.txt");
+            var read = await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/events/{id}/attachments/{attachmentId}");
+            read["contentBytes"]!.GetValue<string>().ShouldBe("QWdlbmRhIOKAkyBpdGVtIDE=");
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/events/{id}/attachments/{attachmentId}", expected: HttpStatusCode.NoContent);
+            (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/events/{id}/attachments"))["value"]!.AsArray().ShouldBeEmpty();
+        }
+        finally
+        {
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/events/{id}", expected: HttpStatusCode.NoContent);
+        }
+    }
 }

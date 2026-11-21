@@ -4910,5 +4910,154 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/event-dismissreminder",
     "notes": "ACKNOWLEDGED up to now, or the occurrence's fire time when later, on every alarm."
+  },
+  {
+    "id": "calendar.events.attachments.list",
+    "phase": 13,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}/attachments",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].name",
+      "value[].contentType",
+      "value[].size",
+      "value[].isInline",
+      "value[].lastModifiedDateTime"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/fileattachment",
+    "notes": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). No content in the listing."
+  },
+  {
+    "id": "calendar.events.attachments.get",
+    "phase": 13,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}/attachments/{attachmentId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "name",
+      "contentType",
+      "size",
+      "isInline",
+      "lastModifiedDateTime",
+      "contentBytes"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/fileattachment",
+    "notes": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). "
+  },
+  {
+    "id": "calendar.events.attachments.create",
+    "phase": 13,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}/attachments",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "@odata.type",
+        "name",
+        "contentType?",
+        "contentBytes"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "name",
+      "contentType",
+      "size",
+      "isInline",
+      "lastModifiedDateTime"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/fileattachment",
+    "notes": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). fileAttachment only, up to 3 MB; Location as Graph."
+  },
+  {
+    "id": "calendar.events.attachments.delete",
+    "phase": 13,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}/attachments/{attachmentId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/fileattachment",
+    "notes": "Stored in the owner's Nextcloud Files (Nightware/Event attachments) and referenced by ATTACH, as To Do attachments are (ADR 0006 D6). The file goes too."
   }
 ]
