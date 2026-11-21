@@ -43,7 +43,6 @@ what a fix needs. Ordered by impact within each section.
   pages this route (one request, `$top` 100), so only another client walking
   many pages pays it repeatedly. Fix if one does: cache the sorted expansion
   per credential + calendar + window (+ the calendar's CTag) for a minute.
-- Clearing a recurrence via PATCH isn't expressible through `EventPatch`.
 - Online-meeting fields are accepted and ignored.
 
 ### Tasks and settings

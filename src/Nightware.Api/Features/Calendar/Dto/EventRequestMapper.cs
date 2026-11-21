@@ -83,6 +83,7 @@ public static class EventRequestMapper
             Attendees = attendees.Value,
             ShowAs = body.ShowAs,
             Recurrence = recurrence.Value,
+            ClearRecurrence = body.RecurrenceSent && body.Recurrence is null,
             IsReminderOn = body.IsReminderOn,
             ReminderMinutesBeforeStart = body.ReminderMinutesBeforeStart,
             Categories = body.Categories,

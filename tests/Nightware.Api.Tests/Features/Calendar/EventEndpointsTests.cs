@@ -237,6 +237,19 @@ public sealed class EventEndpointsTests : IAsyncLifetime
         sent.Location!.DisplayName.ShouldBeEmpty();
         sent.Attendees.ShouldBeEmpty();
         sent.Recurrence.ShouldBeNull();
+        sent.ClearRecurrence.ShouldBeFalse("an absent recurrence is left alone");
+    }
+
+    [Fact]
+    public async Task Patch_with_a_null_recurrence_clears_it()
+    {
+        EventPatch? sent = null;
+        _writer.UpdateAsync(new MailboxRef("me@example.com"), Id, Arg.Do<EventPatch>(p => sent = p), Arg.Any<CancellationToken>()).Returns(Review());
+
+        var response = await _host.AuthorizedClient().PatchAsync("/v1.0/me/events/ev-1", new StringContent("""{"recurrence":null}""", Encoding.UTF8, "application/json"), Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (sent!.ClearRecurrence, sent.Recurrence, sent.ChangesSchedule).ShouldBe((true, null, true));
     }
 
     [Theory]

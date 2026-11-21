@@ -238,4 +238,32 @@ public sealed class IcsEditorPatchTests
         events.Single(e => e.OriginalStart == UnmodifiedMonday.ToUtc() && !e.IsCancelled).Attendees.ShouldContain(a => a.EmailAddress.Address == "pat@example.com");
         events.Single(e => e.Type == EventType.SeriesMaster).Attendees.ShouldNotContain(a => a.EmailAddress.Address == "pat@example.com");
     }
+
+    [Fact]
+    public void Clearing_the_recurrence_leaves_one_event_at_the_first_occurrence()
+    {
+        var edited = Unfolded(_editor.ApplyPatch(Weekly, new EventPatch { ClearRecurrence = true }, null, Alice).Value);
+
+        var only = Parse(edited).ShouldHaveSingleItem();
+        only.Type.ShouldBe(EventType.SingleInstance);
+        only.Recurrence.ShouldBeNull();
+        only.Start.ShouldBe(Master(Weekly).Start);
+        only.Sequence.ShouldBe(3, "attendees are told: the series is gone");
+        var vevent = edited[edited.IndexOf("BEGIN:VEVENT", StringComparison.Ordinal)..];
+        vevent.ShouldNotContain("RRULE");
+        vevent.ShouldNotContain("EXDATE");
+        vevent.ShouldNotContain("RECURRENCE-ID");
+    }
+
+    [Fact]
+    public void Clearing_the_recurrence_of_a_single_event_changes_no_sequence()
+    {
+        var single = _editor.ApplyPatch(Weekly, new EventPatch { ClearRecurrence = true }, null, Alice).Value;
+
+        Parse(_editor.ApplyPatch(single, new EventPatch { ClearRecurrence = true }, null, Alice).Value).Single().Sequence.ShouldBe(3);
+    }
+
+    [Fact]
+    public void An_occurrence_cannot_clear_a_recurrence() =>
+        _editor.ApplyPatch(Weekly, new EventPatch { ClearRecurrence = true }, UnmodifiedMonday, Alice).Error!.Kind.ShouldBe(ErrorKind.Validation);
 }

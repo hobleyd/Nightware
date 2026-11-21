@@ -169,6 +169,14 @@ public sealed class CalendarLiveTests
             // Deleting one occurrence leaves the other two.
             await SendJsonAsync(alice, HttpMethod.Delete, $"/v1.0/me/events/{occurrences[2]["id"]!.GetValue<string>()}", expected: HttpStatusCode.NoContent);
             (await ViewAsync()).Count.ShouldBe(2);
+
+            // A null recurrence makes the series one event at its first occurrence; the moved one goes too.
+            await SendJsonAsync(alice, HttpMethod.Patch, $"/v1.0/me/events/{masterId}", """{"recurrence":null}""");
+            var single = (await ViewAsync()).ShouldHaveSingleItem();
+            single["id"]!.GetValue<string>().ShouldBe(masterId);
+            single["seriesMasterId"].ShouldBeNull();
+            var cleared = await SendJsonAsync(alice, HttpMethod.Get, $"/v1.0/me/events/{masterId}");
+            (cleared["recurrence"], cleared["seriesMasterId"]).ShouldBe((null, null), cleared.ToJsonString());
         }
         finally
         {

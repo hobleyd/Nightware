@@ -36,7 +36,7 @@ public sealed partial class IcsEditor
     {
         ArgumentNullException.ThrowIfNull(patch);
         ArgumentException.ThrowIfNullOrWhiteSpace(organizerAddress);
-        if (occurrence is not null && patch.Recurrence is not null)
+        if (occurrence is not null && (patch.Recurrence is not null || patch.ClearRecurrence))
         {
             return Error.Validation("An occurrence cannot have a recurrence of its own.", "recurrence");
         }
@@ -55,6 +55,10 @@ public sealed partial class IcsEditor
             if (patch.Recurrence is { } recurrence)
             {
                 rescheduled |= ApplyRecurrence(vevent, recurrence);
+            }
+            else if (patch.ClearRecurrence)
+            {
+                rescheduled |= ClearRecurrence(calendar, vevent);
             }
 
             ApplyDetails(vevent, patch);
@@ -191,6 +195,25 @@ public sealed partial class IcsEditor
 
         vevent.RecurrenceRule = rule;
         return true;
+    }
+
+    /// <summary>
+    /// Makes the series a single event: the master keeps its DTSTART (the first occurrence) and loses RRULE, RDATE
+    /// and EXDATE, and every exception component goes. False when it was not recurring.
+    /// </summary>
+    private static bool ClearRecurrence(IcalCalendar calendar, IcalEvent master)
+    {
+        var exceptions = calendar.Events.Where(e => !ReferenceEquals(e, master) && e.RecurrenceIdentifier?.StartTime is not null).ToList();
+        var recurring = master.RecurrenceRule is not null || master.RecurrenceDates.GetAllDates().Any() || master.ExceptionDates.GetAllDates().Any() || exceptions.Count > 0;
+        master.RecurrenceRule = null;
+        master.Properties.Remove("RDATE");
+        master.Properties.Remove("EXDATE");
+        foreach (var exception in exceptions)
+        {
+            RemoveByReference(calendar, exception);
+        }
+
+        return recurring;
     }
 
     private static void ApplyDetails(IcalEvent vevent, EventPatch patch)

@@ -88,7 +88,23 @@ public sealed record EventWriteDto
 
     public IReadOnlyList<AttendeeInputDto>? Attendees { get; init; }
 
-    public PatternedRecurrenceInputDto? Recurrence { get; init; }
+    private readonly PatternedRecurrenceInputDto? _recurrence;
+    private readonly bool _recurrenceSent;
+
+    /// <summary>On a PATCH, an explicit <c>null</c> clears the recurrence (<see cref="RecurrenceSent"/>); absent leaves it.</summary>
+    public PatternedRecurrenceInputDto? Recurrence
+    {
+        get => _recurrence;
+        init
+        {
+            _recurrence = value;
+            _recurrenceSent = true;
+        }
+    }
+
+    /// <summary>True when the body named <c>recurrence</c> at all, null included.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool RecurrenceSent => _recurrenceSent;
 
     public ShowAs? ShowAs { get; init; }
 

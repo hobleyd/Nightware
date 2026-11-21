@@ -53,6 +53,12 @@ public sealed record EventPatch
 
     public PatternedRecurrence? Recurrence { get; init; }
 
+    /// <summary>
+    /// <c>"recurrence": null</c>: the series becomes a single event at its first occurrence's time, and its
+    /// modified and cancelled occurrences go, as Graph does.
+    /// </summary>
+    public bool ClearRecurrence { get; init; }
+
     public bool? IsReminderOn { get; init; }
 
     public int? ReminderMinutesBeforeStart { get; init; }
@@ -60,7 +66,7 @@ public sealed record EventPatch
     public IReadOnlyList<string>? Categories { get; init; }
 
     /// <summary>True when the change alters timing, so attendees must be re-invited (SEQUENCE bump).</summary>
-    public bool ChangesSchedule => Start is not null || End is not null || IsAllDay is not null || Recurrence is not null;
+    public bool ChangesSchedule => Start is not null || End is not null || IsAllDay is not null || Recurrence is not null || ClearRecurrence;
 }
 
 public enum RsvpResponse
