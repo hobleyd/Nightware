@@ -13,7 +13,8 @@ namespace Nightware.Adapters.Dav.Calendar;
 /// or occurrence is cancelled (organizer) or declined (attendee).
 /// </summary>
 internal sealed class DavCalendarWriter(
-    DavCalendarScopes scopes, DavEventResources resources, DavCalendarReader reader, IDavClient dav, DavPaths paths, IcalNetCalendarCodec codec, IcsEditor editor)
+    DavCalendarScopes scopes, DavEventResources resources, DavCalendarReader reader, IDavClient dav, DavPaths paths, IcalNetCalendarCodec codec, IcsEditor editor,
+    TimeProvider time)
     : ICalendarWriter
 {
     /// <summary>
@@ -41,7 +42,8 @@ internal sealed class DavCalendarWriter(
     internal async Task<Result<CalendarEvent>> CreateInAsync(string calendarHref, string? ownerName, MailboxRef mailbox, NewEvent newEvent, CancellationToken cancellationToken)
     {
         var href = calendarHref + Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture) + ".ics";
-        var ics = codec.Serialize(new CalendarDocument(null, [ToEvent(newEvent, mailbox, ownerName)]));
+        var now = time.GetUtcNow();
+        var ics = codec.Serialize(new CalendarDocument(null, [ToEvent(newEvent, mailbox, ownerName) with { CreatedDateTime = now, LastModifiedDateTime = now }]));
         var put = await dav.PutAsync(href, ics, DavEventResources.ContentType, DavPrecondition.CreateOnly, cancellationToken).ConfigureAwait(false);
         if (!put.IsSuccess)
         {

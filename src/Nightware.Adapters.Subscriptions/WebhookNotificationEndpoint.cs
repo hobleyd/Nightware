@@ -18,6 +18,9 @@ internal sealed partial class WebhookNotificationEndpoint(IHttpClientFactory cli
 {
     public const string ClientName = "Nightware.Subscriptions.Webhook";
 
+    /// <summary>As Graph writes notifications: <c>+00:00</c>, not <c>\u002B00:00</c>. The body is JSON, never HTML.</summary>
+    private static readonly System.Text.Json.JsonSerializerOptions Json = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
     public const string ValidationFailed = "Subscription validation request failed. Notification endpoint must respond with 200 OK to validation request.";
 
     public async Task<Result> ValidateAsync(Uri notificationUrl, CancellationToken cancellationToken)
@@ -63,10 +66,33 @@ internal sealed partial class WebhookNotificationEndpoint(IHttpClientFactory cli
     /// A <c>changeNotificationCollection</c> as Graph writes one (capture <c>subscriptions.notification</c>), without
     /// <c>tenantId</c> (Nightware has no tenants) or an etag in <c>resourceData</c>.
     /// </summary>
-    public async Task<Result> DeliverAsync(Uri notificationUrl, IReadOnlyList<ChangeNotification> notifications, CancellationToken cancellationToken)
+    public Task<Result> DeliverAsync(Uri notificationUrl, IReadOnlyList<ChangeNotification> notifications, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(notifications);
+        return PostAsync(notificationUrl, Serialize(notifications), cancellationToken);
+    }
+
+    /// <summary>A lifecycle notification as Graph writes one: <c>{"value":[{subscriptionId, …, lifecycleEvent}]}</c>.</summary>
+    public Task<Result> DeliverLifecycleAsync(Uri lifecycleNotificationUrl, LifecycleNotification notification, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(notification);
+        var item = new System.Text.Json.Nodes.JsonObject
+        {
+            ["subscriptionId"] = notification.SubscriptionId,
+            ["subscriptionExpirationDateTime"] = notification.SubscriptionExpirationDateTime.ToString("yyyy-MM-dd'T'HH:mm:sszzz", System.Globalization.CultureInfo.InvariantCulture),
+            ["lifecycleEvent"] = notification.LifecycleEvent,
+        };
+        if (notification.ClientState is not null)
+        {
+            item["clientState"] = notification.ClientState;
+        }
+
+        return PostAsync(lifecycleNotificationUrl, new System.Text.Json.Nodes.JsonObject { ["value"] = new System.Text.Json.Nodes.JsonArray(item) }.ToJsonString(Json), cancellationToken);
+    }
+
+    private async Task<Result> PostAsync(Uri notificationUrl, string json, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(notificationUrl);
-        ArgumentNullException.ThrowIfNull(notifications);
         if (Refused(notificationUrl) is { } refused)
         {
             return refused;
@@ -74,7 +100,7 @@ internal sealed partial class WebhookNotificationEndpoint(IHttpClientFactory cli
 
         using var request = new HttpRequestMessage(HttpMethod.Post, notificationUrl)
         {
-            Content = new StringContent(Serialize(notifications), Encoding.UTF8, "application/json"),
+            Content = new StringContent(json, Encoding.UTF8, "application/json"),
         };
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(options.Value.EndpointTimeout);
@@ -122,7 +148,7 @@ internal sealed partial class WebhookNotificationEndpoint(IHttpClientFactory cli
             value.Add(item);
         }
 
-        return new System.Text.Json.Nodes.JsonObject { ["value"] = value }.ToJsonString();
+        return new System.Text.Json.Nodes.JsonObject { ["value"] = value }.ToJsonString(Json);
     }
 
     private Error? Refused(Uri url)

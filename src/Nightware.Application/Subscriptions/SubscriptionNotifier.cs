@@ -59,6 +59,22 @@ public sealed class SubscriptionNotifier(ChangeFeed feed, INotificationEndpoint 
         return new PollOutcome(batch.Value.State, notifications.Count);
     }
 
+    /// <summary>
+    /// After its state expired: tells the subscriber (<c>missed</c>, on its lifecycle URL) and starts again from now.
+    /// Changes in the gap are not replayed; the client resynchronises, as Graph asks it to.
+    /// </summary>
+    public async Task<Result<PollOutcome>> RecoverAsync(Subscription subscription, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+        if (subscription.LifecycleNotificationUrl is { } lifecycle)
+        {
+            await endpoint.DeliverLifecycleAsync(lifecycle, LifecycleNotification.For(subscription, LifecycleNotification.Missed), cancellationToken).ConfigureAwait(false);
+        }
+
+        var baseline = await feed.BaselineAsync(subscription.Target, cancellationToken).ConfigureAwait(false);
+        return baseline.IsSuccess ? new PollOutcome(baseline.Value, 0) : baseline.Error;
+    }
+
     internal static ChangeNotification ToNotification(Subscription subscription, ResourceChange change)
     {
         var user = $"Users/{subscription.Target.Mailbox.Address}";

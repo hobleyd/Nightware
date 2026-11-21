@@ -1,6 +1,6 @@
 # Phase 16 — Change notifications
 
-> **Status (2026-11-21): in progress; option A (façade subscription store)** — 16a (store, CRUD, handshake, SSRF guard) and 16b (the notifier, mail) done. Decisions: [ADR 0006](../adr/0006-graph-parity.md) D10.
+> **Status (2026-11-21): done on the local stack; option A (façade subscription store)** (v1.29.0–v1.31.0). Live needs the deployment steps below. Decisions: [ADR 0006](../adr/0006-graph-parity.md) D10.
 
 **Goal:** a client subscribes to messages, events, contacts or To Do tasks and
 receives Graph notifications at its own HTTPS endpoint.
@@ -72,6 +72,18 @@ receives Graph notifications at its own HTTPS endpoint.
   no `tenantId` and no etag in `resourceData`.
 - `{mailbox}/messages` (every folder) is 501: mail delta is per folder, so a
   subscription names one with `mailFolders('{id}')/messages`.
+
+- **Events** follow `sync-collection` on the default calendar (no window, no
+  expansion): one change per resource under its series id, created when its
+  `CREATED` is after the previous poll. New events written by the façade now carry
+  `CREATED` and `LAST-MODIFIED` (Nextcloud adds neither); an event another client
+  wrote without `CREATED` is reported as updated.
+- **Lifecycle** notifications go only to a `lifecycleNotificationUrl`, as Graph's:
+  `reauthorizationRequired` once when the subscriber's session has ended (or the
+  sealing key changed), after which a PATCH with a fresh token reauthorizes;
+  `missed` when a delta state has expired, after which the subscription starts again
+  from now (the gap is not replayed). Expired subscriptions are removed with their
+  credentials each round, without a notification (Graph sends none on expiry).
 
 ## Deployment (not done: the live stack is ansible's)
 This repo's `deploy/docker-compose.yml` gains `subscriptions-db` (Postgres 17) and

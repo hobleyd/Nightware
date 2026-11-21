@@ -154,4 +154,16 @@ public sealed class WebhookNotificationEndpointTests : IDisposable
         (await Endpoint().DeliverAsync(new Uri("https://10.0.0.1/n"), [Created("a")], Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
         (await Endpoint(allowLoopback: false).DeliverAsync(Notify, [Created("a")], Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
     }
+
+    [Fact]
+    public async Task A_lifecycle_notification_is_one_item_naming_its_event()
+    {
+        _receiver.Given(Request.Create().WithPath("/notify").UsingPost()).RespondWith(Response.Create().WithStatusCode(202));
+        var notification = new LifecycleNotification("s1", new DateTimeOffset(2026, 11, 22, 0, 0, 0, TimeSpan.Zero), LifecycleNotification.ReauthorizationRequired) { ClientState = "c" };
+
+        (await Endpoint().DeliverLifecycleAsync(Notify, notification, Ct)).IsSuccess.ShouldBeTrue();
+
+        _receiver.LogEntries.Single().RequestMessage!.Body.ShouldBe(
+            """{"value":[{"subscriptionId":"s1","subscriptionExpirationDateTime":"2026-11-22T00:00:00+00:00","lifecycleEvent":"reauthorizationRequired","clientState":"c"}]}""");
+    }
 }

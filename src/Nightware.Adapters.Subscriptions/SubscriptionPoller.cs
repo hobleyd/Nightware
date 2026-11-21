@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 
 using Nightware.Application.Subscriptions;
 using Nightware.Domain.Kernel;
+using Nightware.Domain.Subscriptions;
 
 namespace Nightware.Adapters.Subscriptions;
 
@@ -47,6 +48,14 @@ internal sealed partial class SubscriptionPoller(IServiceScopeFactory scopes, IO
     {
         using var scope = scopes.CreateScope();
         var store = scope.ServiceProvider.GetRequiredService<ISubscriptionStore>();
+
+        // Expired subscriptions go, with their sealed credentials (Graph sends nothing when one simply expires).
+        var expired = await store.RemoveExpiredAsync(time.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+        if (expired is { IsSuccess: true, Value.Count: > 0 })
+        {
+            LogExpired(logger, expired.Value.Count);
+        }
+
         var due = await store.LeaseDueAsync(time.GetUtcNow(), Lease, BatchSize, cancellationToken).ConfigureAwait(false);
         if (!due.IsSuccess)
         {
@@ -64,24 +73,33 @@ internal sealed partial class SubscriptionPoller(IServiceScopeFactory scopes, IO
     {
         var subscription = leased.Subscription;
         var polledAt = time.GetUtcNow();
-        if (leased.RefreshToken is not { } refresh)
-        {
-            await BackOffAsync(store, leased, null, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
         using var scope = scopes.CreateScope();
-        var session = await scope.ServiceProvider.GetRequiredService<ISubscriberSessions>().RenewAsync(refresh, cancellationToken).ConfigureAwait(false);
+        var session = leased.RefreshToken is { } refresh
+            ? await scope.ServiceProvider.GetRequiredService<ISubscriberSessions>().RenewAsync(refresh, cancellationToken).ConfigureAwait(false)
+            : Result<SubscriberSession>.Failure(Error.BackendAuthFailed("The subscription's credential no longer opens."));
         if (!session.IsSuccess)
         {
             LogSessionFailed(logger, subscription.Id, session.Error.Kind);
+            if (session.Error.Kind is ErrorKind.BackendAuthFailed or ErrorKind.Unauthorized && leased.Failures == 0)
+            {
+                // Once, on the first failure: the client renews (PATCH) with a fresh token to reauthorize.
+                await LifecycleAsync(scope, subscription, LifecycleNotification.ReauthorizationRequired, cancellationToken).ConfigureAwait(false);
+            }
+
             await BackOffAsync(store, leased, null, cancellationToken).ConfigureAwait(false);
             return;
         }
 
         var mailbox = subscription.Target.Mailbox.Address;
         scope.ServiceProvider.GetRequiredService<SubscriberContext>().ActAs(new Principal(subscription.CreatorId, mailbox, mailbox, mailbox), session.Value.AccessToken);
-        var outcome = await scope.ServiceProvider.GetRequiredService<SubscriptionNotifier>().PollAsync(subscription, leased.LastPoll, cancellationToken).ConfigureAwait(false);
+        var notifier = scope.ServiceProvider.GetRequiredService<SubscriptionNotifier>();
+        var outcome = await notifier.PollAsync(subscription, leased.LastPoll, cancellationToken).ConfigureAwait(false);
+        if (outcome is { IsSuccess: false, Error.Kind: ErrorKind.SyncStateGone })
+        {
+            LogMissed(logger, subscription.Id);
+            outcome = await notifier.RecoverAsync(subscription, cancellationToken).ConfigureAwait(false);
+        }
+
         if (!outcome.IsSuccess)
         {
             LogNotifyFailed(logger, subscription.Id, outcome.Error.Kind);
@@ -96,6 +114,15 @@ internal sealed partial class SubscriptionPoller(IServiceScopeFactory scopes, IO
 
         await store.CompletePollAsync(subscription.Id, outcome.Value.State, session.Value.RefreshToken, polledAt, time.GetUtcNow() + options.Value.PollInterval, 0, cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    private static async Task LifecycleAsync(IServiceScope scope, Subscription subscription, string lifecycleEvent, CancellationToken cancellationToken)
+    {
+        if (subscription.LifecycleNotificationUrl is { } url)
+        {
+            await scope.ServiceProvider.GetRequiredService<INotificationEndpoint>()
+                .DeliverLifecycleAsync(url, LifecycleNotification.For(subscription, lifecycleEvent), cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>Keeps the state (so nothing is skipped), keeps the newest credential, and waits longer each time.</summary>
@@ -117,6 +144,12 @@ internal sealed partial class SubscriptionPoller(IServiceScopeFactory scopes, IO
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Subscription {SubscriptionId}: poll or delivery failed ({Kind})")]
     private static partial void LogNotifyFailed(ILogger logger, string subscriptionId, ErrorKind kind);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Removed {Count} expired subscription(s)")]
+    private static partial void LogExpired(ILogger logger, int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Subscription {SubscriptionId}: its state expired; starting again from now")]
+    private static partial void LogMissed(ILogger logger, string subscriptionId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Delivered {Count} change notification(s) for subscription {SubscriptionId}")]
     private static partial void LogDelivered(ILogger logger, int count, string subscriptionId);

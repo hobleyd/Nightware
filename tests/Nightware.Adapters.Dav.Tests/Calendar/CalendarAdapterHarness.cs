@@ -44,7 +44,7 @@ internal sealed class CalendarAdapterHarness : IDisposable
         Scopes = new DavCalendarScopes(Discovery, Catalog, Dav.Paths);
         Resources = new DavEventResources(Dav.Client, Scopes);
         Reader = new DavCalendarReader(Scopes, Resources, Dav.Client, Dav.Paths, Codec, Editor);
-        Writer = new DavCalendarWriter(Scopes, Resources, Reader, Dav.Client, Dav.Paths, Codec, Editor);
+        Writer = new DavCalendarWriter(Scopes, Resources, Reader, Dav.Client, Dav.Paths, Codec, Editor, Dav.Time);
         Scheduling = new DavSchedulingActions(Resources, Reader, Editor);
         FreeBusy = new DavFreeBusyReader(Discovery, Dav.Client, new FreeBusyCodec(Dav.Time));
     }

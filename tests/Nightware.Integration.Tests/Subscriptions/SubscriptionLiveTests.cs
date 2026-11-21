@@ -153,4 +153,80 @@ public sealed class SubscriptionLiveTests : IAsyncLifetime
             await SendAsync(alice, HttpMethod.Delete, $"/v1.0/subscriptions/{id}", expected: HttpStatusCode.NoContent);
         }
     }
+
+    private async Task<JsonObject?> WaitForAsync(string subscriptionId, string id)
+    {
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            var found = _receiver!.Notifications.Select(n => JsonNode.Parse(n)!["value"]!.AsArray()).SelectMany(v => v).OfType<JsonObject>()
+                .FirstOrDefault(n => n["subscriptionId"]!.GetValue<string>() == subscriptionId && n["resourceData"]!["id"]!.GetValue<string>() == id);
+            if (found is not null)
+            {
+                return found;
+            }
+
+            await Task.Delay(500, Ct);
+        }
+
+        return null;
+    }
+
+    [Fact]
+    public async Task New_events_contacts_and_tasks_are_notified_as_created()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Live integration tests run only with NIGHTWARE_INTEGRATION=1.");
+        var alice = await _stack!.GraphClientAsync("alice", Ct);
+        var run = Guid.NewGuid().ToString("N")[..8];
+        var lists = await SendAsync(alice, HttpMethod.Get, "/v1.0/me/todo/lists");
+        var listId = lists["value"]!.AsArray().Single(l => l!["wellknownListName"]!.GetValue<string>() == "defaultList")!["id"]!.GetValue<string>();
+        var expiry = DateTimeOffset.UtcNow.AddHours(1);
+        var subscriptions = new Dictionary<string, string>();
+        foreach (var resource in new[] { "me/events", "me/contacts", $"me/todo/lists/{listId}/tasks" })
+        {
+            var created = await SendAsync(alice, HttpMethod.Post, "/v1.0/subscriptions", $$"""
+                {"changeType":"created,updated,deleted","notificationUrl":"{{_receiver!.NotifyUrl}}","resource":"{{resource}}","expirationDateTime":"{{expiry:O}}"}
+                """, HttpStatusCode.Created);
+            subscriptions[resource] = created["id"]!.GetValue<string>();
+        }
+
+        string? eventId = null, contactId = null, taskId = null;
+        try
+        {
+            var day = DateTime.UtcNow.Date.AddDays(3);
+            eventId = (await SendAsync(alice, HttpMethod.Post, "/v1.0/me/events", $$$"""
+                {"subject":"Notify {{{run}}}","start":{"dateTime":"{{{day.AddHours(9):yyyy-MM-ddTHH:mm:ss}}}","timeZone":"UTC"},"end":{"dateTime":"{{{day.AddHours(10):yyyy-MM-ddTHH:mm:ss}}}","timeZone":"UTC"}}
+                """, HttpStatusCode.Created))["id"]!.GetValue<string>();
+            contactId = (await SendAsync(alice, HttpMethod.Post, "/v1.0/me/contacts", $$"""{"givenName":"Notify","surname":"{{run}}"}""", HttpStatusCode.Created))["id"]!.GetValue<string>();
+            taskId = (await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/todo/lists/{listId}/tasks", $$"""{"title":"Notify {{run}}"}""", HttpStatusCode.Created))["id"]!.GetValue<string>();
+
+            (await WaitForAsync(subscriptions["me/events"], eventId)).ShouldNotBeNull("an event notification")["changeType"]!.GetValue<string>().ShouldBe("created");
+            (await WaitForAsync(subscriptions["me/contacts"], contactId)).ShouldNotBeNull("a contact notification")["changeType"]!.GetValue<string>().ShouldBe("created");
+            var task = (await WaitForAsync(subscriptions[$"me/todo/lists/{listId}/tasks"], taskId)).ShouldNotBeNull("a task notification");
+            task["changeType"]!.GetValue<string>().ShouldBe("created");
+            (await SendAsync(alice, HttpMethod.Get, $"/v1.0/{task["resource"]!.GetValue<string>()}"))["title"]!.GetValue<string>().ShouldBe($"Notify {run}");
+        }
+        finally
+        {
+            if (eventId is not null)
+            {
+                await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/events/{eventId}", expected: HttpStatusCode.NoContent);
+            }
+
+            if (contactId is not null)
+            {
+                await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/contacts/{contactId}", expected: HttpStatusCode.NoContent);
+            }
+
+            if (taskId is not null)
+            {
+                await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/todo/lists/{listId}/tasks/{taskId}", expected: HttpStatusCode.NoContent);
+            }
+
+            foreach (var id in subscriptions.Values)
+            {
+                await SendAsync(alice, HttpMethod.Delete, $"/v1.0/subscriptions/{id}", expected: HttpStatusCode.NoContent);
+            }
+        }
+    }
 }

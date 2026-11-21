@@ -84,4 +84,23 @@ public interface INotificationEndpoint
 
     /// <summary>POSTs a <c>changeNotificationCollection</c>; success only when the endpoint answers 2xx.</summary>
     Task<Result> DeliverAsync(Uri notificationUrl, IReadOnlyList<ChangeNotification> notifications, CancellationToken cancellationToken);
+
+    /// <summary>POSTs one lifecycle notification (<c>reauthorizationRequired</c>, <c>missed</c>, <c>subscriptionRemoved</c>).</summary>
+    Task<Result> DeliverLifecycleAsync(Uri lifecycleNotificationUrl, LifecycleNotification notification, CancellationToken cancellationToken);
+}
+
+/// <summary>A Graph lifecycle notification.</summary>
+/// <param name="LifecycleEvent"><c>reauthorizationRequired</c>, <c>missed</c> or <c>subscriptionRemoved</c>.</param>
+public sealed record LifecycleNotification(string SubscriptionId, DateTimeOffset SubscriptionExpirationDateTime, string LifecycleEvent)
+{
+    public const string ReauthorizationRequired = "reauthorizationRequired";
+    public const string Missed = "missed";
+
+    public string? ClientState { get; init; }
+
+    public static LifecycleNotification For(Subscription subscription, string lifecycleEvent)
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+        return new LifecycleNotification(subscription.Id, subscription.ExpirationDateTime, lifecycleEvent) { ClientState = subscription.ClientState };
+    }
 }

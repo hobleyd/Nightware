@@ -41,4 +41,7 @@ internal sealed class UnconfiguredSubscriptions : ISubscriptionStore, INotificat
 
     public Task<Result> DeliverAsync(Uri notificationUrl, IReadOnlyList<ChangeNotification> notifications, CancellationToken cancellationToken) =>
         Task.FromResult(Result.Failure(NotConfigured));
+
+    public Task<Result> DeliverLifecycleAsync(Uri lifecycleNotificationUrl, LifecycleNotification notification, CancellationToken cancellationToken) =>
+        Task.FromResult(Result.Failure(NotConfigured));
 }

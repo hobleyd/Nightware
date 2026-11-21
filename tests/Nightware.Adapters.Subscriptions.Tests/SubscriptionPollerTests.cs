@@ -35,7 +35,11 @@ public sealed class SubscriptionPollerTests
         _time.GetUtcNow().Returns(Now);
         _store.CompletePollAsync(default!, default, default, default, default, default, default).ReturnsForAnyArgs(Result.Success());
         _endpoint.DeliverAsync(Arg.Any<Uri>(), Arg.Any<IReadOnlyList<ChangeNotification>>(), Arg.Any<CancellationToken>()).Returns(Result.Success());
+        _endpoint.DeliverLifecycleAsync(Arg.Any<Uri>(), Arg.Any<LifecycleNotification>(), Arg.Any<CancellationToken>()).Returns(Result.Success());
+        _store.RemoveExpiredAsync(Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<Subscription>>.Success([]));
     }
+
+    private static readonly Uri Lifecycle = new("https://hooks.example.com/lifecycle");
 
     private SubscriptionPoller Poller()
     {
@@ -120,5 +124,47 @@ public sealed class SubscriptionPollerTests
         await poller.StopAsync(Ct);
 
         _store.ReceivedCalls().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task An_ended_session_asks_for_reauthorization_once_on_the_lifecycle_url()
+    {
+        var subscription = Inbox with { LifecycleNotificationUrl = Lifecycle, ClientState = "c" };
+        _sessions.RenewAsync("refresh-1", Arg.Any<CancellationToken>()).Returns(Error.BackendAuthFailed("session ended"));
+
+        Due(new LeasedSubscription(subscription, "refresh-1", Now, 0));
+        await Poller().PollDueAsync(Ct);
+        Due(new LeasedSubscription(subscription, "refresh-1", Now, 1));
+        await Poller().PollDueAsync(Ct);
+
+        await _endpoint.Received(1).DeliverLifecycleAsync(Lifecycle, Arg.Is<LifecycleNotification>(n => n.LifecycleEvent == "reauthorizationRequired" && n.ClientState == "c" && n.SubscriptionId == "s1"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task An_expired_state_is_reported_missed_and_the_subscription_starts_again_from_now()
+    {
+        Due(new LeasedSubscription(Inbox with { LifecycleNotificationUrl = Lifecycle }, "refresh-1", Now, 0));
+        _sessions.RenewAsync("refresh-1", Arg.Any<CancellationToken>()).Returns(new SubscriberSession("access-1", "refresh-2"));
+        _mail.DeltaAsync(Arg.Any<MailboxRef>(), Arg.Any<FolderRef>(), new DeltaToken("t0"), Arg.Any<DeltaRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Error.SyncStateGone("expired"));
+        _mail.DeltaAsync(Arg.Any<MailboxRef>(), Arg.Any<FolderRef>(), null, Arg.Any<DeltaRequest>(), Arg.Any<CancellationToken>())
+            .Returns(DeltaPage<MailMessage>.Done([new DeltaEntry<MailMessage>.Upsert(new MailMessage(new MessageId("m1")))], new DeltaToken("fresh")));
+
+        await Poller().PollDueAsync(Ct);
+
+        await _endpoint.Received(1).DeliverLifecycleAsync(Lifecycle, Arg.Is<LifecycleNotification>(n => n.LifecycleEvent == "missed"), Arg.Any<CancellationToken>());
+        await _endpoint.DidNotReceiveWithAnyArgs().DeliverAsync(default!, default!, Ct);
+        await _store.Received().CompletePollAsync("s1", "fresh", "refresh-2", Now, Now.AddSeconds(10), 0, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Expired_subscriptions_are_swept_each_round()
+    {
+        Due();
+
+        await Poller().PollDueAsync(Ct);
+
+        await _store.Received().RemoveExpiredAsync(Now, Arg.Any<CancellationToken>());
     }
 }
