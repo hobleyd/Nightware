@@ -26,15 +26,21 @@ internal enum DeltaPhase
 /// </summary>
 internal sealed record JmapDeltaCursor(string MailboxId, DeltaPhase Phase, int? Position, string? State)
 {
+    /// <summary>
+    /// The folder query's state (<c>Email/query inMailbox</c>, newest first) at <see cref="State"/>, for
+    /// <c>Email/queryChanges</c>: which messages left the folder. Null in tokens issued before it existed.
+    /// </summary>
+    public string? QueryState { get; init; }
+
     public IReadOnlyList<string>? Select { get; init; }
 
     public int? Top { get; init; }
 
-    public static JmapDeltaCursor Initial(string mailboxId, string? startState, int position = 0) =>
-        new(mailboxId, DeltaPhase.Initial, position, startState);
+    public static JmapDeltaCursor Initial(string mailboxId, string? startState, int position = 0, string? queryState = null) =>
+        new(mailboxId, DeltaPhase.Initial, position, startState) { QueryState = queryState };
 
-    public static JmapDeltaCursor Changes(string mailboxId, string sinceState) =>
-        new(mailboxId, DeltaPhase.Changes, null, sinceState);
+    public static JmapDeltaCursor Changes(string mailboxId, string sinceState, string? queryState = null) =>
+        new(mailboxId, DeltaPhase.Changes, null, sinceState) { QueryState = queryState };
 }
 
 /// <summary>Wire form of <see cref="JmapDeltaCursor"/>: short keys keep the token small.</summary>
@@ -55,6 +61,9 @@ internal sealed record JmapDeltaCursorPayload
 
     [JsonPropertyName("s")]
     public string? State { get; init; }
+
+    [JsonPropertyName("q")]
+    public string? QueryState { get; init; }
 
     [JsonPropertyName("sel")]
     public IReadOnlyList<string>? Select { get; init; }
@@ -94,6 +103,7 @@ internal static class JmapDeltaTokenCodec
             Phase = cursor.Phase == DeltaPhase.Initial ? "i" : "c",
             Position = cursor.Phase == DeltaPhase.Initial ? cursor.Position : null,
             State = cursor.State,
+            QueryState = cursor.QueryState,
             Select = cursor.Select,
             Top = cursor.Top,
         };
@@ -130,9 +140,9 @@ internal static class JmapDeltaTokenCodec
         return payload.Phase switch
         {
             "i" when payload.Position is >= 0 =>
-                new JmapDeltaCursor(payload.MailboxId, DeltaPhase.Initial, payload.Position, payload.State) { Select = payload.Select, Top = payload.Top },
+                new JmapDeltaCursor(payload.MailboxId, DeltaPhase.Initial, payload.Position, payload.State) { QueryState = payload.QueryState, Select = payload.Select, Top = payload.Top },
             "c" when !string.IsNullOrEmpty(payload.State) =>
-                new JmapDeltaCursor(payload.MailboxId, DeltaPhase.Changes, null, payload.State) { Select = payload.Select, Top = payload.Top },
+                new JmapDeltaCursor(payload.MailboxId, DeltaPhase.Changes, null, payload.State) { QueryState = payload.QueryState, Select = payload.Select, Top = payload.Top },
             _ => Gone(),
         };
     }

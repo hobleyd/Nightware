@@ -200,9 +200,10 @@ shared `IJmapMessageLocator` are registered by `AddJmapMailRead`.
   `Email/query inMailbox` newest first by position. The last page hands over to `Email/changes`
   from that state. Upserts are whole messages (JMAP does not say which properties changed).
   Known limits:
-  - `Email/changes` does not say where an updated Email was before. An update to a message
-    outside the folder is therefore reported as `@removed: changed`; the client drops that id from
-    its cache and re-lists the other folder when it is shown.
+  - `Email/changes` does not say where an updated Email was before, so departures come from
+    `Email/queryChanges` on the folder's query (asked first in the same request; its state is in
+    the token). Without a query state (older tokens) or when Stalwart can't calculate it, a page
+    reports every update outside the folder as `@removed: changed`, as before.
   - Position paging can skip a message that is deleted above the cursor while the initial sync is
     still paging.
 - **Recent correspondents.** Recipients of the newest 200 Sent Items and senders of the newest 200

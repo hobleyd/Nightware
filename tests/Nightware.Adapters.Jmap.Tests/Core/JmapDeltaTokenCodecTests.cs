@@ -39,6 +39,14 @@ public sealed class JmapDeltaTokenCodecTests
     }
 
     [Fact]
+    public void The_query_state_round_trips_and_is_optional()
+    {
+        JmapDeltaTokenCodec.Decode(JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Changes("m", "s", "q7"))).Value.QueryState.ShouldBe("q7");
+        JmapDeltaTokenCodec.Decode(JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Initial("m", "s", 5, "q8"))).Value.QueryState.ShouldBe("q8");
+        JmapDeltaTokenCodec.Decode(new DeltaToken("eyJ2IjoxLCJtIjoiYTEiLCJwIjoiYyIsInMiOiJzNDIifQ")).Value.QueryState.ShouldBeNull("tokens issued before it still decode");
+    }
+
+    [Fact]
     public void Tokens_are_url_safe()
     {
         var token = JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Changes("m?>>", "s~~~???")).Value;

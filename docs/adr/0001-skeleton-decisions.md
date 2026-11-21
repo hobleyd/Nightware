@@ -39,10 +39,14 @@ anything contradictory in `architecture.md` or the phase docs.
 
 ## Delta
 
-6. Built on `Email/changes` + `Email/get(mailboxIds,…)`, **not** `Email/queryChanges`.
-   Created/updated in the folder → upsert; updated and no longer in the folder →
-   `@removed {reason: "changed"}`; destroyed → `@removed {reason: "deleted"}`.
-   The client distinguishes the two reasons.
+6. Built on `Email/changes` + `Email/get(mailboxIds,…)`. Created/updated in the
+   folder → upsert; destroyed → `@removed {reason: "deleted"}`. The client
+   distinguishes the two reasons. *Amended 2026-11-21:* `@removed {reason:
+   "changed"}` comes from `Email/queryChanges` on the folder's query (its query
+   state is in the token), so only messages that left the folder are reported,
+   not every change outside it. A token without a query state, or a page where
+   the server can't calculate the query's changes, falls back to the original
+   rule (updated and not in the folder → removed) and captures a state.
 7. Initial sync = `Email/query inMailbox`, sorted `receivedAt desc`, `position`
    paging. Token payload `{v, mailboxId, phase: initial|changes, position|state,
    select, top}` — `$select`/`$top` are frozen into the token as Graph does.

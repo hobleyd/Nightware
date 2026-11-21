@@ -87,11 +87,16 @@ public sealed class MailReadLiveTests
         item["isRead"]!.GetValue<bool>().ShouldBeFalse();
         item.Select(p => p.Key).ShouldBe(ListSelect.Split(','), ignoreOrder: true, "the frozen $select still applies when following the link");
 
+        var elsewhere = await host.ImportAsync(account, roles["trash"], TestMessages.Plain(tag + "-elsewhere"), Ct);
+        (await WalkDeltaAsync(graph, afterArrival)).Items.ShouldNotContain(i => i["id"]!.GetValue<string>() == "e." + elsewhere);
         await host.SetAsync(account, read, new JsonObject { ["keywords/$seen"] = true }, Ct);
         await host.SetAsync(account, arrived, new JsonObject { [$"mailboxIds/{roles["inbox"]}"] = null, [$"mailboxIds/{roles["trash"]}"] = true }, Ct);
+        await host.SetAsync(account, elsewhere, new JsonObject { ["keywords/$seen"] = true }, Ct);
         var (changes, afterMove) = await WalkDeltaAsync(graph, afterArrival);
         changes.Single(i => i["id"]!.GetValue<string>() == "e." + read)["isRead"]!.GetValue<bool>().ShouldBeTrue();
         changes.Single(i => i["id"]!.GetValue<string>() == "e." + arrived)["@removed"]!["reason"]!.GetValue<string>().ShouldBe("changed");
+        changes.ShouldNotContain(i => i["id"]!.GetValue<string>() == "e." + elsewhere, "a change to a message filed elsewhere is not this folder's");
+        await host.SetAsync(account, elsewhere, null, Ct);
 
         await host.SetAsync(account, read, null, Ct);
         await host.SetAsync(account, arrived, null, Ct);
@@ -126,6 +131,7 @@ public sealed class MailReadLiveTests
         var pdf = attachments.Single(a => a["name"]!.GetValue<string>() == "q2.pdf");
         pdf["@odata.type"]!.GetValue<string>().ShouldBe("#microsoft.graph.fileAttachment");
         var item = attachments.Single(a => a["@odata.type"]!.GetValue<string>() == "#microsoft.graph.itemAttachment");
+        item["name"]!.GetValue<string>().ShouldBe("Inner note", "named after the attached message's subject, as Graph does");
 
         var inline = await GetJsonAsync(graph, $"/v1.0/me/messages/{id}/attachments/{logo["id"]}");
         inline["contentId"]!.GetValue<string>().ShouldBe("logo@nw");
@@ -136,6 +142,7 @@ public sealed class MailReadLiveTests
 
         var listed = (await GetJsonAsync(graph, $"/v1.0/me/messages/{id}/attachments?$select=id,name,contentType"))["value"]!.AsArray();
         listed.Count.ShouldBe(3);
+        listed.Select(a => a!["name"]!.GetValue<string>()).ShouldContain("Inner note");
 
         var mime = await graph.GetStringAsync($"/v1.0/me/messages/{id}/$value", Ct);
         mime.ShouldContain($"Subject: {tag}");

@@ -14,8 +14,12 @@ namespace Nightware.Adapters.Jmap.Mail.Read;
 /// The folder delta feed (ADR 0001 §6–8). The initial sync pages <c>Email/query inMailbox</c>
 /// newest first by position, having first captured the account's Email state; once it is through,
 /// the feed follows <c>Email/changes</c> from that state, so nothing that changed while the client
-/// was paging is missed. A change is an upsert while the message is in the folder,
-/// <c>@removed: changed</c> once it is not, and <c>@removed: deleted</c> when it is gone.
+/// was paging is missed. A change is an upsert while the message is in the folder and
+/// <c>@removed: deleted</c> when it is gone. <c>@removed: changed</c> (it left the folder) comes from
+/// <c>Email/queryChanges</c> on the folder's query, so a change to a message filed elsewhere is not
+/// reported at all. Without a query state (an older token, or the server could not calculate the
+/// query's changes) a page falls back to reporting every changed message outside the folder as
+/// having left it, and captures a query state for the next.
 /// <c>cannotCalculateChanges</c> surfaces as <see cref="ErrorKind.SyncStateGone"/> (410).
 /// </summary>
 internal sealed class JmapMailDeltaReader(IJmapClient jmap) : IMailDeltaReader
@@ -64,8 +68,8 @@ internal sealed class JmapMailDeltaReader(IJmapClient jmap) : IMailDeltaReader
             : null;
         var query = request.Add(JmapMethods.EmailQuery, new EmailQueryRequest(account.AccountId)
         {
-            Filter = new EmailFilter { InMailbox = cursor.MailboxId },
-            Sort = [new Comparator("receivedAt", IsAscending: false)],
+            Filter = FolderFilter(cursor.MailboxId),
+            Sort = FolderSort,
             Position = position,
             Limit = pageSize,
             CalculateTotal = true,
@@ -78,6 +82,8 @@ internal sealed class JmapMailDeltaReader(IJmapClient jmap) : IMailDeltaReader
         }
 
         var startState = cursor.State;
+        var ids = response.Value.Get(query);
+        var queryState = cursor.QueryState;
         if (state is not null)
         {
             var captured = response.Value.Get(state);
@@ -87,9 +93,9 @@ internal sealed class JmapMailDeltaReader(IJmapClient jmap) : IMailDeltaReader
             }
 
             startState = captured.Value.State;
+            queryState = ids.IsSuccess && ids.Value.CanCalculateChanges ? ids.Value.QueryState : null;
         }
 
-        var ids = response.Value.Get(query);
         var emails = response.Value.Get(get);
         if (!ids.IsSuccess)
         {
@@ -113,13 +119,23 @@ internal sealed class JmapMailDeltaReader(IJmapClient jmap) : IMailDeltaReader
         }
 
         return more
-            ? DeltaPage<MailMessage>.More(entries, JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Initial(cursor.MailboxId, startState, position + fetched)))
-            : DeltaPage<MailMessage>.Done(entries, JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Changes(cursor.MailboxId, startState)));
+            ? DeltaPage<MailMessage>.More(entries, JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Initial(cursor.MailboxId, startState, position + fetched, queryState)))
+            : DeltaPage<MailMessage>.Done(entries, JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Changes(cursor.MailboxId, startState, queryState)));
     }
 
     private async Task<Result<DeltaPage<MailMessage>>> ChangesAsync(JmapAccount account, JmapDeltaCursor cursor, int pageSize, CancellationToken cancellationToken)
     {
         var request = new JmapRequestBuilder();
+
+        // Who left the folder since the query state. Asked before Email/changes in the same request: a move
+        // between the two is then in this page's Email/changes and in the next page's queryChanges, never in
+        // neither. Without a state, capture one (an empty query) for the next page.
+        var left = cursor.QueryState is { } since
+            ? request.Add(JmapMethods.EmailQueryChanges, new QueryChangesRequest<EmailFilter>(account.AccountId, since) { Filter = FolderFilter(cursor.MailboxId), Sort = FolderSort })
+            : null;
+        var baseline = cursor.QueryState is null
+            ? request.Add(JmapMethods.EmailQuery, new EmailQueryRequest(account.AccountId) { Filter = FolderFilter(cursor.MailboxId), Sort = FolderSort, Limit = 0 })
+            : null;
         var changes = request.Add(JmapMethods.EmailChanges, new ChangesRequest(account.AccountId, cursor.State!) { MaxChanges = pageSize });
         var created = request.Add(EmailProperties.Get(account), EmailProperties.ListRequest(account), changes.Ref("ids", JmapPaths.Created));
         var updated = request.Add(EmailProperties.Get(account), EmailProperties.ListRequest(account), changes.Ref("ids", JmapPaths.Updated));
@@ -147,6 +163,11 @@ internal sealed class JmapMailDeltaReader(IJmapClient jmap) : IMailDeltaReader
             return updatedEmails.Error;
         }
 
+        // Null when the folder's departures are unknown this page (no state, or the server could not tell).
+        var queryChanges = left is null ? null : response.Value.Get(left) is { IsSuccess: true } got ? got.Value : null;
+        var nextQueryState = queryChanges?.NewQueryState
+            ?? (baseline is not null && response.Value.Get(baseline) is { IsSuccess: true, Value.CanCalculateChanges: true } fresh ? fresh.Value.QueryState : null);
+
         var entries = new List<DeltaEntry<MailMessage>>();
 
         // A message created elsewhere was never in this folder: nothing to report.
@@ -154,20 +175,46 @@ internal sealed class JmapMailDeltaReader(IJmapClient jmap) : IMailDeltaReader
             .Where(e => e.Id is not null && EmailMapper.IsIn(e, cursor.MailboxId))
             .Select(e => new DeltaEntry<MailMessage>.Upsert(EmailMapper.ToMessage(e, cursor.MailboxId))));
 
-        // Email/changes does not say where an updated message was before, so one that is not in
-        // the folder now is reported as having left it (the client ignores ids it does not hold).
         foreach (var email in updatedEmails.Value.List.Where(static e => e.Id is not null))
         {
-            entries.Add(EmailMapper.IsIn(email, cursor.MailboxId)
-                ? new DeltaEntry<MailMessage>.Upsert(EmailMapper.ToMessage(email, cursor.MailboxId))
-                : new DeltaEntry<MailMessage>.Removed(MailItemId.For(email).ToString(), RemovedReason.Changed));
+            if (EmailMapper.IsIn(email, cursor.MailboxId))
+            {
+                entries.Add(new DeltaEntry<MailMessage>.Upsert(EmailMapper.ToMessage(email, cursor.MailboxId)));
+            }
+            else if (queryChanges is null)
+            {
+                // Email/changes does not say where a message was before: without the query's changes, one
+                // outside the folder now may have left it (the client ignores ids it does not hold).
+                entries.Add(new DeltaEntry<MailMessage>.Removed(MailItemId.For(email).ToString(), RemovedReason.Changed));
+            }
         }
 
-        entries.AddRange(delta.Value.Destroyed
-            .Where(MailItemId.IsValidJmapId)
-            .Select(static id => new DeltaEntry<MailMessage>.Removed(MailItemId.ForEmail(id).ToString(), RemovedReason.Deleted)));
+        var destroyed = delta.Value.Destroyed.Where(MailItemId.IsValidJmapId).ToHashSet(StringComparer.Ordinal);
+        if (queryChanges is not null)
+        {
+            // Out of the folder's query and not back in it, and not destroyed: it left the folder.
+            var readded = queryChanges.Added.Select(static a => a.Id).ToHashSet(StringComparer.Ordinal);
+            var reported = entries.OfType<DeltaEntry<MailMessage>.Upsert>().Select(static u => u.Item.Id.Value).ToHashSet(StringComparer.Ordinal);
+            foreach (var id in queryChanges.Removed.Where(MailItemId.IsValidJmapId).Where(id => !readded.Contains(id) && !destroyed.Contains(id)))
+            {
+                var removedId = MailItemId.ForEmail(id).ToString();
+                if (!reported.Contains(removedId))
+                {
+                    entries.Add(new DeltaEntry<MailMessage>.Removed(removedId, RemovedReason.Changed));
+                }
+            }
+        }
 
-        var next = JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Changes(cursor.MailboxId, delta.Value.NewState));
+        entries.AddRange(destroyed.Select(static id => new DeltaEntry<MailMessage>.Removed(MailItemId.ForEmail(id).ToString(), RemovedReason.Deleted)));
+
+        // While Email/changes has more, keep the old query state (or none): its changes are then a superset of
+        // every later page's. A state captured mid-way would miss a departure an unread page still holds.
+        var queryState = delta.Value.HasMoreChanges ? cursor.QueryState : nextQueryState;
+        var next = JmapDeltaTokenCodec.Encode(JmapDeltaCursor.Changes(cursor.MailboxId, delta.Value.NewState, queryState));
         return delta.Value.HasMoreChanges ? DeltaPage<MailMessage>.More(entries, next) : DeltaPage<MailMessage>.Done(entries, next);
     }
+
+    private static EmailFilter FolderFilter(string mailboxId) => new() { InMailbox = mailboxId };
+
+    private static readonly IReadOnlyList<Comparator> FolderSort = [new Comparator("receivedAt", IsAscending: false)];
 }

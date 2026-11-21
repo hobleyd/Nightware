@@ -6,12 +6,6 @@ what a fix needs. Ordered by impact within each section.
 ## Behaviour gaps the client can notice
 
 ### Mail
-- **Delta reports moves too broadly.** JMAP `Email/changes` doesn't say where an
-  updated message used to be, so any update to a message outside the delta
-  folder is sent as `@removed: changed`. The client drops that row from its
-  cache wherever it is filed; it reappears on that folder's next listing.
-  Fix: a per-folder `Email/queryChanges` where Stalwart supports it, falling
-  back to today's behaviour.
 - **Initial delta can miss a message.** The initial sync pages by position
   (ADR §7), so a message deleted above the cursor mid-sync can push another
   past it unseen until it changes again. Fix: anchor-based paging.
