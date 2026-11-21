@@ -41,6 +41,10 @@ public sealed record TodoTaskDto
 
     public bool HasAttachments { get; init; }
 
+    /// <summary>Omitted when empty: NightMail's task fixtures carry none.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<string>? Categories { get; init; }
+
     [JsonConverter(typeof(PreciseInstantConverter))]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DateTimeOffset? CreatedDateTime { get; init; }
@@ -64,13 +68,22 @@ public sealed record TodoTaskDto
     public DateTimeTimeZoneDto? ReminderDateTime { get; init; }
 }
 
-/// <summary>Graph <c>taskFileAttachment</c> (metadata only; bytes come from <c>$value</c>).</summary>
+/// <summary>The body of a list create or rename.</summary>
+public sealed record TodoTaskListWriteDto
+{
+    public string? DisplayName { get; init; }
+}
+
+/// <summary>Graph <c>taskFileAttachment</c>: metadata, plus <c>contentBytes</c> when one attachment is read.</summary>
 public sealed record TaskFileAttachmentDto
 {
     public const string ODataTypeName = "#microsoft.graph.taskFileAttachment";
 
     [JsonPropertyName("@odata.type")]
     public string ODataType { get; init; } = ODataTypeName;
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ContentBytes { get; init; }
 
     public required string Id { get; init; }
 
@@ -89,7 +102,7 @@ public sealed record UploadSessionDto
 {
     public required string UploadUrl { get; init; }
 
-    [JsonConverter(typeof(PreciseInstantConverter))]
+    [JsonConverter(typeof(PaddedInstantConverter))]
     public DateTimeOffset? ExpirationDateTime { get; init; }
 
     public IReadOnlyList<string> NextExpectedRanges { get; init; } = ["0-"];

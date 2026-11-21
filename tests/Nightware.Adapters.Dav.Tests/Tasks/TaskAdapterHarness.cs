@@ -40,7 +40,7 @@ internal sealed class TaskAdapterHarness : IDisposable
         Codec = new VTodoCodec(Dav.Time);
         Collections = new DavTaskCollections(Discovery, new DavCollectionCatalog(Dav.Client), Dav.Client, Dav.Paths);
         Store = new DavTaskStore(Collections, Dav.Client, Dav.Paths, Codec);
-        Lists = new DavTaskListReader(Collections);
+        Lists = new DavTaskListReader(Collections, Dav.Client, Dav.Paths);
         Files = new TaskAttachmentFiles(Dav.Client, Dav.Paths);
         Attachments = new DavTaskAttachmentStore(Collections, Store, Dav.Client, Codec, Files, Dav.Time);
     }

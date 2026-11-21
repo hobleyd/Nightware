@@ -1,0 +1,29 @@
+{
+  "operationId": "tasks.lists.get",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/todo/lists/AAMk-id-0004=",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/todo/lists/$entity",
+      "@odata.etag": "W/\"gR+qFbY4y0WBRu9ZrwPhGQAAQ7Ws+g==\"",
+      "displayName": "Nightware 12fa34",
+      "isOwner": true,
+      "isShared": false,
+      "wellknownListName": "none",
+      "id": "AAMk-id-0004="
+    }
+  }
+}

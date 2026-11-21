@@ -22,9 +22,9 @@ using Nightware.Domain.Tasks;
 namespace Nightware.Api.Features.Tasks;
 
 /// <summary>
-/// Microsoft To Do (<c>{mailbox}/todo/lists…</c>): lists, tasks (list, create, patch) and task
-/// attachments (list, inline create, upload session, <c>$value</c>). Per the contract there is no
-/// list create, no task <c>GET</c>/<c>DELETE</c>, and no attachment delete.
+/// Microsoft To Do (<c>{mailbox}/todo/lists…</c>): lists (list, get, create, rename, delete), tasks (list,
+/// get, create, patch, delete) and task attachments (list, get, inline create, upload session, <c>$value</c>,
+/// delete).
 /// </summary>
 public static partial class TasksEndpoints
 {
@@ -43,6 +43,14 @@ public static partial class TasksEndpoints
         foreach (var scope in graph.MapMailboxGroups())
         {
             scope.MapGet(Lists, ListListsAsync);
+            scope.MapPost(Lists, CreateListAsync);
+            scope.MapGet(Lists + "/{listId}", GetListAsync);
+            scope.MapPatch(Lists + "/{listId}", RenameListAsync);
+            scope.MapDelete(Lists + "/{listId}", DeleteListAsync);
+            scope.MapGet(Task, GetTaskAsync);
+            scope.MapDelete(Task, DeleteTaskAsync);
+            scope.MapGet(Attachments + "/{attachmentId}", GetAttachmentAsync);
+            scope.MapDelete(Attachments + "/{attachmentId}", DeleteAttachmentAsync);
             scope.MapGet(Tasks, ListTasksAsync);
             scope.MapPost(Tasks, CreateTaskAsync);
             scope.MapPatch(Task, UpdateTaskAsync);
@@ -70,6 +78,47 @@ public static partial class TasksEndpoints
         GraphResults.Match(
             await useCase.ExecuteAsync(mailbox.Ref, odata.Query, cancellationToken).ConfigureAwait(false),
             page => GraphResults.Page(page, TodoDtoMapper.ToDto, ListsContext(mailbox), odata.Query));
+
+    private static async Task<IResult> CreateListAsync(Mailbox mailbox, TodoTaskListWriteDto? body, TaskListsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.CreateAsync(mailbox.Ref, body?.DisplayName, cancellationToken).ConfigureAwait(false),
+            list => GraphResults.Created(TodoDtoMapper.ToDto(list), ListsContext(mailbox)));
+
+    private static async Task<IResult> GetListAsync(Mailbox mailbox, string listId, TaskListsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.GetAsync(mailbox.Ref, new TaskListId(listId), cancellationToken).ConfigureAwait(false),
+            list => GraphResults.Entity(TodoDtoMapper.ToDto(list), ListsContext(mailbox)));
+
+    private static async Task<IResult> RenameListAsync(Mailbox mailbox, string listId, TodoTaskListWriteDto? body, TaskListsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.RenameAsync(mailbox.Ref, new TaskListId(listId), body?.DisplayName, cancellationToken).ConfigureAwait(false),
+            list => GraphResults.Entity(TodoDtoMapper.ToDto(list), ListsContext(mailbox)));
+
+    private static async Task<IResult> DeleteListAsync(Mailbox mailbox, string listId, TaskListsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(await useCase.DeleteAsync(mailbox.Ref, new TaskListId(listId), cancellationToken).ConfigureAwait(false), GraphResults.NoContent);
+
+    private static async Task<IResult> GetTaskAsync(Mailbox mailbox, string listId, string taskId, ODataQuery odata, GetTask useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.ExecuteAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), cancellationToken).ConfigureAwait(false),
+            task => GraphResults.Entity(TodoDtoMapper.ToDto(task), TasksContext(mailbox, listId), odata.Query.Select));
+
+    private static async Task<IResult> DeleteTaskAsync(Mailbox mailbox, string listId, string taskId, DeleteTask useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.ExecuteAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), cancellationToken).ConfigureAwait(false),
+            GraphResults.NoContent);
+
+    private static async Task<IResult> GetAttachmentAsync(
+        Mailbox mailbox, string listId, string taskId, string attachmentId, GetTaskAttachment useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.ExecuteAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), new AttachmentId(attachmentId), cancellationToken).ConfigureAwait(false),
+            found => GraphResults.Entity(
+                TodoDtoMapper.ToDto(found.Attachment) with { ContentBytes = Convert.ToBase64String(found.Content) }, AttachmentsContext(mailbox, listId, taskId)));
+
+    private static async Task<IResult> DeleteAttachmentAsync(
+        Mailbox mailbox, string listId, string taskId, string attachmentId, DeleteTaskAttachment useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.ExecuteAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), new AttachmentId(attachmentId), cancellationToken).ConfigureAwait(false),
+            GraphResults.NoContent);
 
     private static async Task<IResult> ListTasksAsync(Mailbox mailbox, string listId, ODataQuery odata, ListTasks useCase, CancellationToken cancellationToken) =>
         GraphResults.Match(

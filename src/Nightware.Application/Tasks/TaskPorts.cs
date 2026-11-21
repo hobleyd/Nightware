@@ -10,6 +10,18 @@ public interface ITaskListReader
     Task<Result<Page<TaskList>>> ListAsync(MailboxRef mailbox, ItemQuery query, CancellationToken cancellationToken);
 }
 
+/// <summary>List management (<c>todo/lists/{id}</c>). The guards on the default list are the use case's.</summary>
+public interface ITaskListStore
+{
+    Task<Result<TaskList>> GetAsync(MailboxRef mailbox, TaskListId list, CancellationToken cancellationToken);
+
+    Task<Result<TaskList>> CreateAsync(MailboxRef mailbox, string displayName, CancellationToken cancellationToken);
+
+    Task<Result<TaskList>> RenameAsync(MailboxRef mailbox, TaskListId list, string displayName, CancellationToken cancellationToken);
+
+    Task<Result> DeleteAsync(MailboxRef mailbox, TaskListId list, CancellationToken cancellationToken);
+}
+
 public interface ITaskStore
 {
     Task<Result<Page<TodoTask>>> ListAsync(MailboxRef mailbox, TaskListId list, ItemQuery query, CancellationToken cancellationToken);

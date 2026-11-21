@@ -172,6 +172,23 @@ public sealed class VTodoCodec
         });
     }
 
+    /// <summary>Removes the URI attachment <paramref name="uri"/> from the first VTODO (and bumps LAST-MODIFIED).</summary>
+    public Result<string> RemoveAttachment(string existingIcs, Uri uri)
+    {
+        ArgumentNullException.ThrowIfNull(uri);
+        var now = IcalNetCalendarCodec.Utc(_timeProvider.GetUtcNow());
+        return Edit(existingIcs, todo =>
+        {
+            foreach (var attachment in todo.Attachments.Where(a => a.Uri == uri).ToList())
+            {
+                todo.Attachments.Remove(attachment);
+            }
+
+            todo.DtStamp = now;
+            todo.LastModified = now;
+        });
+    }
+
     private static string FileNameOf(Uri uri) =>
         Uri.UnescapeDataString(uri.AbsolutePath.TrimEnd('/').Split('/')[^1]) is { Length: > 0 } last ? last : "attachment";
 

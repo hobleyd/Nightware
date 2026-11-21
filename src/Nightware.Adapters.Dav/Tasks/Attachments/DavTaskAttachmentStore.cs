@@ -73,9 +73,33 @@ internal sealed class DavTaskAttachmentStore(
         return await AttachAsync(mailbox, href.Value, attachment.Name, attachment.ContentType, content, attachment.Content.Length, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>NightMail never removes a task attachment, so neither does the façade.</summary>
-    public Task<Result> DeleteAsync(MailboxRef mailbox, TaskListId list, TaskId task, AttachmentId attachment, CancellationToken cancellationToken) =>
-        Task.FromResult(Result.Failure(Error.Unsupported("Removing task attachments is not supported.")));
+    /// <summary>Unlinks the attachment from the task, then deletes its file (a file already gone is not an error).</summary>
+    public async Task<Result> DeleteAsync(MailboxRef mailbox, TaskListId list, TaskId task, AttachmentId attachment, CancellationToken cancellationToken)
+    {
+        var links = await LinksAsync(mailbox, list, task, cancellationToken).ConfigureAwait(false);
+        if (!links.IsSuccess)
+        {
+            return links.Error;
+        }
+
+        var match = links.Value.FirstOrDefault(l => string.Equals(l.Attachment.Id.Value, attachment.Value, StringComparison.Ordinal));
+        if (match is null)
+        {
+            return Error.NotFound("The specified object was not found in the store.", "id");
+        }
+
+        var taskHref = await tasks.ResolveAsync(mailbox, list, task, cancellationToken).ConfigureAwait(false);
+        var unlinked = taskHref.IsSuccess
+            ? await tasks.EditAsync(taskHref.Value, ics => codec.RemoveAttachment(ics, match.Uri), cancellationToken).ConfigureAwait(false)
+            : taskHref.Error;
+        if (!unlinked.IsSuccess)
+        {
+            return unlinked.Error;
+        }
+
+        var deleted = await dav.DeleteAsync(match.Href, DavPrecondition.None, cancellationToken).ConfigureAwait(false);
+        return deleted.IsSuccess || deleted.Error.Kind == ErrorKind.NotFound ? Result.Success() : deleted;
+    }
 
     public async Task<Result<UploadSession>> BeginUploadAsync(
         MailboxRef mailbox, TaskListId list, TaskId task, string name, string contentType, long size, CancellationToken cancellationToken)
@@ -185,12 +209,13 @@ internal sealed class DavTaskAttachmentStore(
             .Where(l => l.Href is not null)
             .Select(l => new StoredAttachment(
                 l.Href!,
+                l.Link.Uri,
                 new TaskAttachment(DavItemId.Resource(l.Href!).ToAttachmentId(), l.Link.FileName, l.Link.ContentType, l.Link.Size ?? 0)))
             .ToList();
         return Result<IReadOnlyList<StoredAttachment>>.Success(stored);
     }
 
-    private sealed record StoredAttachment(string Href, TaskAttachment Attachment);
+    private sealed record StoredAttachment(string Href, Uri Uri, TaskAttachment Attachment);
 }
 
 internal static class DavAttachmentIds

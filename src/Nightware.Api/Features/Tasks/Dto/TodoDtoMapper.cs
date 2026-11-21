@@ -37,6 +37,7 @@ public static class TodoDtoMapper
             Importance = task.Importance,
             IsReminderOn = task.IsReminderOn,
             HasAttachments = task.HasAttachments,
+            Categories = task.Categories.Count > 0 ? task.Categories : null,
             CreatedDateTime = task.CreatedDateTime,
             LastModifiedDateTime = task.LastModifiedDateTime,
             Body = new ItemBodyDto { Content = task.BodyText ?? string.Empty, ContentType = "text" },

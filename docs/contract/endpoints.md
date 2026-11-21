@@ -326,7 +326,8 @@ operation:
 | Phase 12 — Mail (Graph parity) | 19 |
 | Phase 13 — Calendar (Graph parity) | 27 |
 | Phase 14 — Contacts (Graph parity) | 18 |
-| **Total** | **142** |
+| Phase 15 — To Do (Graph parity) | 8 |
+| **Total** | **150** |
 
 ### Phase 2 — Mail, read side
 
@@ -1929,5 +1930,89 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/contactfolder-delta
 - Notes: An address-book home has no sync token: the token is a snapshot of folder ids and name hashes, so new, renamed and removed folders are reported.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.delta.json`
+
+### Phase 15 — To Do (Graph parity)
+
+| Id | Method | Ver | Path | Paging |
+|---|---|---|---|---|
+| [`tasks.lists.create`](#taskslistscreate) | POST | v1.0 | `{mailbox}/todo/lists` | none |
+| [`tasks.lists.get`](#taskslistsget) | GET | v1.0 | `{mailbox}/todo/lists/{listId}` | none |
+| [`tasks.lists.update`](#taskslistsupdate) | PATCH | v1.0 | `{mailbox}/todo/lists/{listId}` | none |
+| [`tasks.lists.delete`](#taskslistsdelete) | DELETE | v1.0 | `{mailbox}/todo/lists/{listId}` | none |
+| [`tasks.tasks.get`](#taskstasksget) | GET | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}` | none |
+| [`tasks.tasks.delete`](#taskstasksdelete) | DELETE | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}` | none |
+| [`tasks.attachments.get`](#tasksattachmentsget) | GET | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/attachments/{attachmentId}` | none |
+| [`tasks.attachments.delete`](#tasksattachmentsdelete) | DELETE | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/attachments/{attachmentId}` | none |
+
+#### `tasks.lists.create`
+
+**POST v1.0 `{mailbox}/todo/lists`** — forms: me, users; success: 201; paging: none
+
+- Request body: `displayName`
+- Client reads: `id`, `displayName`, `isOwner`, `isShared`, `wellknownListName`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/todotasklist
+- Notes: VTODO calendar collections (ADR 0006 D8). MKCALENDAR of a VTODO-only collection (Nextcloud limits calendar creation to about ten per hour).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.lists.create.json`
+
+#### `tasks.lists.get`
+
+**GET v1.0 `{mailbox}/todo/lists/{listId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `displayName`, `isOwner`, `isShared`, `wellknownListName`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/todotasklist
+- Notes: VTODO calendar collections (ADR 0006 D8). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.lists.get.json`
+
+#### `tasks.lists.update`
+
+**PATCH v1.0 `{mailbox}/todo/lists/{listId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `displayName`
+- Client reads: `id`, `displayName`, `isOwner`, `isShared`, `wellknownListName`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/todotasklist
+- Notes: VTODO calendar collections (ADR 0006 D8). PROPPATCH displayname; the default list and shared lists cannot be renamed (400/403).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.lists.update.json`
+
+#### `tasks.lists.delete`
+
+**DELETE v1.0 `{mailbox}/todo/lists/{listId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/todotasklist
+- Notes: VTODO calendar collections (ADR 0006 D8). The default list, shared lists and a collection that also holds events are not deleted (400/403/400).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.lists.delete.json`
+
+#### `tasks.tasks.get`
+
+**GET v1.0 `{mailbox}/todo/lists/{listId}/tasks/{taskId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `title`, `status`, `importance`, `body`, `dueDateTime`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/todotask
+- Notes: VTODO calendar collections (ADR 0006 D8). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.tasks.get.json`
+
+#### `tasks.tasks.delete`
+
+**DELETE v1.0 `{mailbox}/todo/lists/{listId}/tasks/{taskId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/todotask
+- Notes: VTODO calendar collections (ADR 0006 D8). Its checklist items (child VTODOs) go with it.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.tasks.delete.json`
+
+#### `tasks.attachments.get`
+
+**GET v1.0 `{mailbox}/todo/lists/{listId}/tasks/{taskId}/attachments/{attachmentId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `name`, `contentType`, `size`, `lastModifiedDateTime`, `contentBytes`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/taskfileattachment
+- Notes: Nextcloud Files, linked by ATTACH; contentBytes inline as To Do answers.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.attachments.get.json`
+
+#### `tasks.attachments.delete`
+
+**DELETE v1.0 `{mailbox}/todo/lists/{listId}/tasks/{taskId}/attachments/{attachmentId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/taskfileattachment
+- Notes: Unlinks the ATTACH, then deletes the file.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.attachments.delete.json`
 
 <!-- END GENERATED -->

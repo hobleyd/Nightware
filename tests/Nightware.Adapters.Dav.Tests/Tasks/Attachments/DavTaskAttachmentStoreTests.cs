@@ -352,11 +352,27 @@ public sealed class DavTaskAttachmentStoreTests : IDisposable
     private const long UploadTaskAttachmentContentToEnd = Application.Tasks.UploadTaskAttachmentContent.ToEnd;
 
     [Fact]
-    public async Task Deleting_attachments_is_not_supported()
+    public async Task Deleting_unlinks_the_attachment_then_removes_its_file()
     {
-        var result = await _h.Attachments.DeleteAsync(TaskAdapterHarness.Alice, TaskAdapterHarness.ListId(), TaskAdapterHarness.TaskIdOf(), IdOf(FileHref), Ct);
+        _h.ServeTask(TaskAdapterHarness.Ics(extra: AttachLine()));
+        _h.Respond("PUT", TaskAdapterHarness.OpenTask, 204);
+        _h.RespondUnderFiles("DELETE", 204);
 
-        result.Error!.Kind.ShouldBe(ErrorKind.Unsupported);
+        (await _h.Attachments.DeleteAsync(TaskAdapterHarness.Alice, TaskAdapterHarness.ListId(), TaskAdapterHarness.TaskIdOf(), IdOf(FileHref), Ct)).IsSuccess.ShouldBeTrue();
+
+        var put = _h.Requests("PUT").ShouldHaveSingleItem();
+        TaskAdapterHarness.BodyOf(put).ShouldNotContain("ATTACH");
+        TaskAdapterHarness.Header(put, "If-Match").ShouldBe("\"etag-1\"");
+        _h.Requests("DELETE").ShouldHaveSingleItem().RequestMessage!.Path.ShouldContain("Quarterly");
+    }
+
+    [Fact]
+    public async Task Deleting_an_unknown_attachment_is_not_found()
+    {
+        _h.ServeTask(TaskAdapterHarness.Ics());
+
+        (await _h.Attachments.DeleteAsync(TaskAdapterHarness.Alice, TaskAdapterHarness.ListId(), TaskAdapterHarness.TaskIdOf(), IdOf(FileHref), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        _h.Requests("PUT").ShouldBeEmpty();
     }
 
     private async Task<Domain.Tasks.UploadSession> OpenSessionAsync(long size)

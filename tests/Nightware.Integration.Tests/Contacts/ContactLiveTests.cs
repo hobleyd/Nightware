@@ -200,13 +200,13 @@ public sealed class ContactLiveTests : IAsyncLifetime
             }
 
             var changes = await SendAsync(alice, HttpMethod.Get, link);
-            changes["value"]!.AsArray().ShouldHaveSingleItem()!["displayName"]!.GetValue<string>().ShouldBe($"Delta {_run} edited");
+            // Other live tests share alice's default book, so other cards may appear too.
+            changes["value"]!.AsArray().Single(c => c!["id"]!.GetValue<string>() == id)!["displayName"]!.GetValue<string>().ShouldBe($"Delta {_run} edited");
 
             await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/contacts/{id}", expected: HttpStatusCode.NoContent);
             deleted = true;
             var removal = await SendAsync(alice, HttpMethod.Get, LiveStack.Local(changes["@odata.deltaLink"]!.GetValue<string>()));
-            var gone = removal["value"]!.AsArray().ShouldHaveSingleItem()!;
-            gone["id"]!.GetValue<string>().ShouldBe(id);
+            var gone = removal["value"]!.AsArray().Single(c => c!["id"]!.GetValue<string>() == id)!;
             gone["@removed"]!["reason"]!.GetValue<string>().ShouldBe("deleted");
         }
         finally
@@ -229,7 +229,7 @@ public sealed class ContactLiveTests : IAsyncLifetime
         try
         {
             added = await SendAsync(alice, HttpMethod.Get, LiveStack.Local(initial["@odata.deltaLink"]!.GetValue<string>()));
-            added["value"]!.AsArray().ShouldHaveSingleItem()!["id"]!.GetValue<string>().ShouldBe(folderId);
+            added["value"]!.AsArray().ShouldContain(f => f!["id"]!.GetValue<string>() == folderId);
         }
         finally
         {
@@ -237,6 +237,6 @@ public sealed class ContactLiveTests : IAsyncLifetime
         }
 
         var removed = await SendAsync(alice, HttpMethod.Get, LiveStack.Local(added["@odata.deltaLink"]!.GetValue<string>()));
-        removed["value"]!.AsArray().ShouldHaveSingleItem()!["@removed"].ShouldNotBeNull();
+        removed["value"]!.AsArray().Single(f => f!["id"]!.GetValue<string>() == folderId)!["@removed"].ShouldNotBeNull();
     }
 }

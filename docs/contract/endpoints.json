@@ -6077,5 +6077,285 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/contactfolder-delta",
     "notes": "An address-book home has no sync token: the token is a snapshot of folder ids and name hashes, so new, renamed and removed folders are reported."
+  },
+  {
+    "id": "tasks.lists.create",
+    "phase": 15,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "displayName"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "displayName",
+      "isOwner",
+      "isShared",
+      "wellknownListName"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/todotasklist",
+    "notes": "VTODO calendar collections (ADR 0006 D8). MKCALENDAR of a VTODO-only collection (Nextcloud limits calendar creation to about ten per hour)."
+  },
+  {
+    "id": "tasks.lists.get",
+    "phase": 15,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "displayName",
+      "isOwner",
+      "isShared",
+      "wellknownListName"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/todotasklist",
+    "notes": "VTODO calendar collections (ADR 0006 D8). "
+  },
+  {
+    "id": "tasks.lists.update",
+    "phase": 15,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "displayName"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "displayName",
+      "isOwner",
+      "isShared",
+      "wellknownListName"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/todotasklist",
+    "notes": "VTODO calendar collections (ADR 0006 D8). PROPPATCH displayname; the default list and shared lists cannot be renamed (400/403)."
+  },
+  {
+    "id": "tasks.lists.delete",
+    "phase": 15,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/todotasklist",
+    "notes": "VTODO calendar collections (ADR 0006 D8). The default list, shared lists and a collection that also holds events are not deleted (400/403/400)."
+  },
+  {
+    "id": "tasks.tasks.get",
+    "phase": 15,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "title",
+      "status",
+      "importance",
+      "body",
+      "dueDateTime"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/todotask",
+    "notes": "VTODO calendar collections (ADR 0006 D8). "
+  },
+  {
+    "id": "tasks.tasks.delete",
+    "phase": 15,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/todotask",
+    "notes": "VTODO calendar collections (ADR 0006 D8). Its checklist items (child VTODOs) go with it."
+  },
+  {
+    "id": "tasks.attachments.get",
+    "phase": 15,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/attachments/{attachmentId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "name",
+      "contentType",
+      "size",
+      "lastModifiedDateTime",
+      "contentBytes"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/taskfileattachment",
+    "notes": "Nextcloud Files, linked by ATTACH; contentBytes inline as To Do answers."
+  },
+  {
+    "id": "tasks.attachments.delete",
+    "phase": 15,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/attachments/{attachmentId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/taskfileattachment",
+    "notes": "Unlinks the ATTACH, then deletes the file."
   }
 ]

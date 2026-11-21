@@ -78,7 +78,7 @@ public sealed class TasksEndpointsTests : IAsyncLifetime
         var task = body["value"]![0]!.AsObject();
         JsonNode.DeepEquals(task, JsonNode.Parse("""
             {"id":"task-1","title":"Reply to Alex","status":"notStarted","importance":"normal","isReminderOn":false,"hasAttachments":false,
-             "createdDateTime":"2026-06-01T10:05:00.1234567Z","lastModifiedDateTime":"2026-06-01T10:05:00.0000000Z",
+             "createdDateTime":"2026-06-01T10:05:00.1234567Z","lastModifiedDateTime":"2026-06-01T10:05:00Z",
              "body":{"contentType":"text","content":"See the email."},
              "dueDateTime":{"dateTime":"2026-06-05T00:00:00.0000000","timeZone":"UTC"}}
             """)).ShouldBeTrue(task.ToJsonString());

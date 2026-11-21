@@ -1,0 +1,41 @@
+{
+  "operationId": "tasks.tasks.get",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/todo/lists/AAMk-id-0004=/tasks/AAMk-id-0006=",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/todo/lists('AAMk-id-0004%3D')/tasks/$entity",
+      "@odata.etag": "W/\"gR+qFbY4y0WBRu9ZrwPhGQAAQ7WtFA==\"",
+      "importance": "high",
+      "isReminderOn": false,
+      "status": "notStarted",
+      "title": "Nightware capture 12fa34",
+      "createdDateTime": "2026-11-20T22:39:06.1680991Z",
+      "lastModifiedDateTime": "2026-11-20T22:39:06.231183Z",
+      "hasAttachments": false,
+      "categories": [],
+      "id": "AAMk-id-0006=",
+      "body": {
+        "content": "",
+        "contentType": "text"
+      },
+      "dueDateTime": {
+        "dateTime": "2026-11-23T00:00:00.0000000",
+        "timeZone": "UTC"
+      }
+    }
+  }
+}

@@ -141,4 +141,53 @@ public sealed class DavTaskListReaderTests : IDisposable
     }
 
     public void Dispose() => _h.Dispose();
+
+    [Fact]
+    public async Task A_list_is_found_by_id()
+    {
+        _h.ServeHome();
+
+        (await _h.Lists.GetAsync(TaskAdapterHarness.Alice, TaskAdapterHarness.ListId(), Ct)).Value.WellKnownListName.ShouldBe("defaultList");
+        (await _h.Lists.GetAsync(TaskAdapterHarness.Alice, new TaskListId("nope"), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task Creating_makes_a_vtodo_only_calendar()
+    {
+        _h.ServeHome();
+        _h.Dav.Server.Given(Request.Create().UsingMethod("MKCALENDAR")).RespondWith(Response.Create().WithStatusCode(201));
+
+        var created = (await _h.Lists.CreateAsync(TaskAdapterHarness.Alice, "Groceries", Ct)).Value;
+
+        var mk = _h.Requests("MKCALENDAR").ShouldHaveSingleItem();
+        mk.RequestMessage!.Path.ShouldStartWith(TaskAdapterHarness.Home + "nightware-");
+        var body = TaskAdapterHarness.BodyOf(mk);
+        body.ShouldContain("VTODO");
+        body.ShouldNotContain("VEVENT");
+        body.ShouldContain("Groceries");
+        created.Id.ShouldBe(TaskAdapterHarness.ListId(mk.RequestMessage.Path));
+        created.WellKnownListName.ShouldBe("none");
+    }
+
+    [Fact]
+    public async Task Renaming_proppatches_and_a_refusal_is_forbidden()
+    {
+        _h.ServeHome();
+        _h.Respond("PROPPATCH", TaskAdapterHarness.TasksList, 207, """<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>/x</d:href><d:propstat><d:prop><d:displayname/></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>""");
+        _h.Respond("PROPPATCH", TaskAdapterHarness.SharedList, 207, """<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>/x</d:href><d:propstat><d:prop><d:displayname/></d:prop><d:status>HTTP/1.1 403 Forbidden</d:status></d:propstat></d:response></d:multistatus>""");
+
+        (await _h.Lists.RenameAsync(TaskAdapterHarness.Alice, TaskAdapterHarness.ListId(), "Chores", Ct)).Value.DisplayName.ShouldBe("Chores");
+        (await _h.Lists.RenameAsync(TaskAdapterHarness.Alice, TaskAdapterHarness.ListId(TaskAdapterHarness.SharedList), "x", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+    }
+
+    [Fact]
+    public async Task A_task_only_list_is_deleted_but_a_list_that_is_also_a_calendar_is_not()
+    {
+        _h.ServeHome();
+        _h.Respond("DELETE", TaskAdapterHarness.TasksList, 204);
+
+        (await _h.Lists.DeleteAsync(TaskAdapterHarness.Alice, TaskAdapterHarness.ListId(), Ct)).IsSuccess.ShouldBeTrue();
+        (await _h.Lists.DeleteAsync(TaskAdapterHarness.Alice, TaskAdapterHarness.ListId(TaskAdapterHarness.SharedList), Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        _h.Requests("DELETE").ShouldHaveSingleItem();
+    }
 }

@@ -17,6 +17,11 @@ public static class TasksServiceCollectionExtensions
         services.TryAddScoped<AddTaskAttachment>();
         services.TryAddScoped<BeginTaskAttachmentUpload>();
         services.TryAddScoped<UploadTaskAttachmentContent>();
+        services.TryAddScoped<TaskListsUseCase>();
+        services.TryAddScoped<GetTask>();
+        services.TryAddScoped<DeleteTask>();
+        services.TryAddScoped<GetTaskAttachment>();
+        services.TryAddScoped<DeleteTaskAttachment>();
         return services;
     }
 }

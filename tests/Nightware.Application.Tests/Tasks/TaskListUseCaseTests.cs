@@ -1,0 +1,88 @@
+using Nightware.Application.Tasks;
+using Nightware.Domain.Kernel;
+using Nightware.Domain.Tasks;
+
+namespace Nightware.Application.Tests.Tasks;
+
+public sealed class TaskListUseCaseTests
+{
+    private static readonly MailboxRef Me = new("me@example.com");
+    private static readonly TaskList Default = new(new TaskListId("d"), "Tasks") { WellKnownListName = "defaultList" };
+    private static readonly TaskList Mine = new(new TaskListId("m"), "Mine") { WellKnownListName = "none" };
+    private static readonly TaskList Shared = new(new TaskListId("s"), "Shared") { WellKnownListName = "none", IsOwner = false, IsShared = true };
+    private readonly ITaskListStore _lists = Substitute.For<ITaskListStore>();
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    private TaskListsUseCase UseCase => new(_lists);
+
+    public TaskListUseCaseTests()
+    {
+        foreach (var list in new[] { Default, Mine, Shared })
+        {
+            _lists.GetAsync(Me, list.Id, Arg.Any<CancellationToken>()).Returns(list);
+        }
+    }
+
+    [Fact]
+    public async Task A_list_needs_a_name()
+    {
+        _lists.CreateAsync(Me, "Groceries", Ct).Returns(Mine with { DisplayName = "Groceries" });
+
+        (await UseCase.CreateAsync(Me, " Groceries ", Ct)).Value.DisplayName.ShouldBe("Groceries");
+        (await UseCase.CreateAsync(Me, null, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await UseCase.RenameAsync(Me, Mine.Id, "", Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+    }
+
+    [Fact]
+    public async Task The_default_list_and_shared_lists_are_neither_renamed_nor_deleted()
+    {
+        (await UseCase.RenameAsync(Me, Default.Id, "x", Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await UseCase.DeleteAsync(Me, Default.Id, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await UseCase.RenameAsync(Me, Shared.Id, "x", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        (await UseCase.DeleteAsync(Me, Shared.Id, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        await _lists.DidNotReceiveWithAnyArgs().DeleteAsync(default, default, Ct);
+    }
+
+    [Fact]
+    public async Task Own_lists_are_renamed_and_deleted()
+    {
+        _lists.RenameAsync(Me, Mine.Id, "Chores", Ct).Returns(Mine with { DisplayName = "Chores" });
+        _lists.DeleteAsync(Me, Mine.Id, Ct).Returns(Result.Success());
+        _lists.GetAsync(Me, new TaskListId("nope"), Arg.Any<CancellationToken>()).Returns(Error.NotFound("no"));
+
+        (await UseCase.RenameAsync(Me, Mine.Id, "Chores", Ct)).Value.DisplayName.ShouldBe("Chores");
+        (await UseCase.DeleteAsync(Me, Mine.Id, Ct)).IsSuccess.ShouldBeTrue();
+        (await UseCase.DeleteAsync(Me, new TaskListId("nope"), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task Tasks_are_got_and_deleted_through_the_store()
+    {
+        var tasks = Substitute.For<ITaskStore>();
+        var task = new TodoTask(new TaskId("t"), "Do it");
+        tasks.GetAsync(Me, Mine.Id, task.Id, Ct).Returns(task);
+        tasks.DeleteAsync(Me, Mine.Id, task.Id, Ct).Returns(Result.Success());
+
+        (await new GetTask(tasks).ExecuteAsync(Me, Mine.Id, task.Id, Ct)).Value.ShouldBe(task);
+        (await new DeleteTask(tasks).ExecuteAsync(Me, Mine.Id, task.Id, Ct)).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task One_attachment_is_read_with_its_bytes()
+    {
+        var store = Substitute.For<ITaskAttachmentStore>();
+        var task = new TaskId("t");
+        var attachment = new TaskAttachment(new AttachmentId("a"), "note.txt", "text/plain", 3);
+        store.ListAsync(Me, Mine.Id, task, Ct).Returns(Result<IReadOnlyList<TaskAttachment>>.Success([attachment]));
+        store.GetContentAsync(Me, Mine.Id, task, attachment.Id, Ct)
+            .Returns(new BlobContent("text/plain", 3, _ => Task.FromResult<Stream>(new MemoryStream([1, 2, 3]))));
+        store.DeleteAsync(Me, Mine.Id, task, attachment.Id, Ct).Returns(Result.Success());
+
+        var found = (await new GetTaskAttachment(store).ExecuteAsync(Me, Mine.Id, task, attachment.Id, Ct)).Value;
+        found.Attachment.ShouldBe(attachment);
+        found.Content.ShouldBe(new byte[] { 1, 2, 3 });
+        (await new GetTaskAttachment(store).ExecuteAsync(Me, Mine.Id, task, new AttachmentId("nope"), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        (await new DeleteTaskAttachment(store).ExecuteAsync(Me, Mine.Id, task, attachment.Id, Ct)).IsSuccess.ShouldBeTrue();
+    }
+}
