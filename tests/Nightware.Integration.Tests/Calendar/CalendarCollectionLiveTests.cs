@@ -131,7 +131,7 @@ public sealed class CalendarCollectionLiveTests : IAsyncLifetime
             due["reminderFireTime"]!["dateTime"]!.GetValue<string>().ShouldStartWith($"{start.AddMinutes(-15):yyyy-MM-ddTHH:mm}");
 
             var snoozeTo = now.AddMinutes(30);
-            await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/events/{id}/snoozeReminder", $$$"""{"newReminderTime":{"dateTime":"{{{snoozeTo:yyyy-MM-ddTHH:mm:ss}}}","timeZone":"UTC"}}""");
+            await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/events/{id}/snoozeReminder", $$$"""{"newReminderTime":{"dateTime":"{{{snoozeTo:yyyy-MM-ddTHH:mm:ss}}}","timeZone":"UTC"}}""", HttpStatusCode.Accepted);
             var snoozed = (await SendAsync(alice, HttpMethod.Get, view))["value"]!.AsArray().Single(r => r!["eventId"]!.GetValue<string>() == id)!;
             snoozed["reminderFireTime"]!["dateTime"]!.GetValue<string>().ShouldStartWith($"{snoozeTo:yyyy-MM-ddTHH:mm}");
 

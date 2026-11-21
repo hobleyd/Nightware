@@ -1,6 +1,6 @@
 # Phase 15 — To Do parity
 
-> **Status (2026-11-21): in progress** — 15a (lists, task get/delete, attachment get/delete) and 15b (checklist items, linked resources) done. Decisions: [ADR 0006](../adr/0006-graph-parity.md) D8.
+> **Status (2026-11-21): done** (v1.26.0–v1.28.0). Decisions: [ADR 0006](../adr/0006-graph-parity.md) D8.
 
 **Goal:** list management, task delete, checklist items, linked resources and
 delta.
@@ -54,3 +54,11 @@ delta.
   base64url JSON, so no iCalendar quoting is involved.
 - The `checklistItems`, `linkedResources` and `todo/lists` create captures carry the
   same bare-service-root `Location` as `findMeetingTimes`; the fixtures drop it.
+- Tasks delta: an unlimited `sync-collection` (the initial sync, answered as a first
+  page as To Do does), then changed tasks; a changed checklist item stands for its
+  task. Graph embeds `checklistItems` in each delta task; the façade does not, so a
+  client reads them from `checklistItems`.
+- Lists delta: the calendar home has no sync token for its collections, so the token
+  is a snapshot (shared with the contact-folder delta in `SnapshotDelta`). The
+  snapshot token format changed with it, so a contact-folder token from v1.25 is
+  410 and the client resynchronises.

@@ -6657,5 +6657,105 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/resources/linkedresource",
     "notes": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8). "
+  },
+  {
+    "id": "tasks.lists.delta",
+    "phase": 15,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/delta",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[]",
+      "@odata.nextLink",
+      "@odata.deltaLink"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/todotasklist-delta",
+    "notes": "A calendar home has no sync token for its collections: the token is a snapshot of list ids and what a client shows of them. The initial sync answers with a next page first, as To Do does."
+  },
+  {
+    "id": "tasks.tasks.delta",
+    "phase": 15,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/delta",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[]",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/todotask-delta",
+    "notes": "CalDAV sync-collection on the list (ADR 0006 D8): the initial sync is every task, as a first page."
+  },
+  {
+    "id": "tasks.tasks.delta-changes",
+    "phase": 15,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/delta",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[]",
+      "@odata.deltaLink"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/todotask-delta",
+    "notes": "Changed tasks (a changed checklist item stands for its task) and @removed; the token names its list; an expired one is 410. checklistItems are not embedded: read them from checklistItems."
   }
 ]

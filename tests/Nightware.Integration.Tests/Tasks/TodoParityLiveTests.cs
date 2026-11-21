@@ -82,12 +82,27 @@ public sealed class TodoParityLiveTests : IAsyncLifetime
         try
         {
             list["wellknownListName"]!.GetValue<string>().ShouldBe("none");
+
+            // Both deltas start with a first page; following it settles on a deltaLink.
+            var listsInitial = await SendAsync(alice, HttpMethod.Get, "/v1.0/me/todo/lists/delta");
+            listsInitial["value"]!.AsArray().ShouldContain(l => l!["id"]!.GetValue<string>() == listId);
+            var listsSettled = await SendAsync(alice, HttpMethod.Get, LiveStack.Local(listsInitial["@odata.nextLink"]!.GetValue<string>()));
+            var listsLink = LiveStack.Local(listsSettled["@odata.deltaLink"]!.GetValue<string>());
+            var tasksInitial = await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/todo/lists/{listId}/tasks/delta");
+            tasksInitial["value"]!.AsArray().ShouldBeEmpty();
+            var tasksSettled = await SendAsync(alice, HttpMethod.Get, LiveStack.Local(tasksInitial["@odata.nextLink"]!.GetValue<string>()));
+            var tasksLink = LiveStack.Local(tasksSettled["@odata.deltaLink"]!.GetValue<string>());
             (await SendAsync(alice, HttpMethod.Patch, $"/v1.0/me/todo/lists/{listId}", $$"""{"displayName":"Live {{_run}} renamed"}"""))["displayName"]!.GetValue<string>()
                 .ShouldBe($"Live {_run} renamed");
             (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/todo/lists/{listId}"))["displayName"]!.GetValue<string>().ShouldBe($"Live {_run} renamed");
 
             var task = await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/todo/lists/{listId}/tasks", """{"title":"Live task","importance":"high"}""", HttpStatusCode.Created);
             var taskId = task["id"]!.GetValue<string>();
+            var listsChanged = await SendAsync(alice, HttpMethod.Get, listsLink);
+            listsChanged["value"]!.AsArray().Single(l => l!["id"]!.GetValue<string>() == listId)!["displayName"]!.GetValue<string>().ShouldBe($"Live {_run} renamed");
+            var tasksChanged = await SendAsync(alice, HttpMethod.Get, tasksLink);
+            tasksChanged["value"]!.AsArray().ShouldHaveSingleItem()!["id"]!.GetValue<string>().ShouldBe(taskId);
+            tasksLink = LiveStack.Local(tasksChanged["@odata.deltaLink"]!.GetValue<string>());
             (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/todo/lists/{listId}/tasks/{taskId}"))["importance"]!.GetValue<string>().ShouldBe("high");
 
             var bytes = Encoding.UTF8.GetBytes("Nightware live attachment");
@@ -134,6 +149,8 @@ public sealed class TodoParityLiveTests : IAsyncLifetime
             await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/todo/lists/{listId}/tasks/{taskId}", expected: HttpStatusCode.NotFound);
             (await RawAsync(HttpMethod.Get, oneUrl)).Status.ShouldBe(HttpStatusCode.NotFound);
             (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/todo/lists/{listId}/tasks"))["value"]!.AsArray().ShouldBeEmpty();
+            var tasksRemoved = await SendAsync(alice, HttpMethod.Get, tasksLink);
+            tasksRemoved["value"]!.AsArray().Single(t => t!["id"]!.GetValue<string>() == taskId)!["@removed"].ShouldNotBeNull();
         }
         finally
         {

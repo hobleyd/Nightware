@@ -326,8 +326,8 @@ operation:
 | Phase 12 — Mail (Graph parity) | 19 |
 | Phase 13 — Calendar (Graph parity) | 27 |
 | Phase 14 — Contacts (Graph parity) | 18 |
-| Phase 15 — To Do (Graph parity) | 16 |
-| **Total** | **158** |
+| Phase 15 — To Do (Graph parity) | 19 |
+| **Total** | **161** |
 
 ### Phase 2 — Mail, read side
 
@@ -1951,6 +1951,9 @@ operation:
 | [`tasks.linked-resources.create`](#taskslinked-resourcescreate) | POST | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources` | none |
 | [`tasks.linked-resources.update`](#taskslinked-resourcesupdate) | PATCH | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources/{resourceId}` | none |
 | [`tasks.linked-resources.delete`](#taskslinked-resourcesdelete) | DELETE | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources/{resourceId}` | none |
+| [`tasks.lists.delta`](#taskslistsdelta) | GET | v1.0 | `{mailbox}/todo/lists/delta` | none |
+| [`tasks.tasks.delta`](#taskstasksdelta) | GET | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/delta` | none |
+| [`tasks.tasks.delta-changes`](#taskstasksdelta-changes) | GET | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/delta` | none |
 
 #### `tasks.lists.create`
 
@@ -2096,5 +2099,32 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/linkedresource
 - Notes: X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8). 
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.linked-resources.delete.json`
+
+#### `tasks.lists.delta`
+
+**GET v1.0 `{mailbox}/todo/lists/delta`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[]`, `@odata.nextLink`, `@odata.deltaLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/todotasklist-delta
+- Notes: A calendar home has no sync token for its collections: the token is a snapshot of list ids and what a client shows of them. The initial sync answers with a next page first, as To Do does.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.lists.delta.json`
+
+#### `tasks.tasks.delta`
+
+**GET v1.0 `{mailbox}/todo/lists/{listId}/tasks/delta`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[]`, `@odata.nextLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/todotask-delta
+- Notes: CalDAV sync-collection on the list (ADR 0006 D8): the initial sync is every task, as a first page.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.tasks.delta.json`
+
+#### `tasks.tasks.delta-changes`
+
+**GET v1.0 `{mailbox}/todo/lists/{listId}/tasks/delta`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[]`, `@odata.deltaLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/todotask-delta
+- Notes: Changed tasks (a changed checklist item stands for its task) and @removed; the token names its list; an expired one is 410. checklistItems are not embedded: read them from checklistItems.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.tasks.delta-changes.json`
 
 <!-- END GENERATED -->

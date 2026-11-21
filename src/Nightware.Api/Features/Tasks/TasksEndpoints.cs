@@ -44,6 +44,8 @@ public static partial class TasksEndpoints
         ArgumentNullException.ThrowIfNull(graph);
         foreach (var scope in graph.MapMailboxGroups())
         {
+            scope.MapGet(Lists + "/delta", ListsDeltaAsync);
+            scope.MapGet(Tasks + "/delta", TasksDeltaAsync);
             scope.MapGet(Lists, ListListsAsync);
             scope.MapPost(Lists, CreateListAsync);
             scope.MapGet(Lists + "/{listId}", GetListAsync);
@@ -88,6 +90,32 @@ public static partial class TasksEndpoints
         GraphResults.Match(
             await useCase.ExecuteAsync(mailbox.Ref, odata.Query, cancellationToken).ConfigureAwait(false),
             page => GraphResults.Page(page, TodoDtoMapper.ToDto, ListsContext(mailbox), odata.Query));
+
+    private static async Task<IResult> ListsDeltaAsync(
+        Mailbox mailbox, ODataQuery odata, HttpContext http, DeltaLinkCodec links, SyncTaskLists useCase, CancellationToken cancellationToken)
+    {
+        var cursor = links.ReadCursor(http.Request.Query, odata.Query);
+        if (!cursor.IsSuccess)
+        {
+            return GraphResults.Error(cursor.Error);
+        }
+
+        var page = await useCase.ExecuteAsync(mailbox.Ref, cursor.Value.Token, cancellationToken).ConfigureAwait(false);
+        return GraphResults.Match(page, p => GraphResults.Delta(p, TodoDtoMapper.ToDto, cursor.Value, "microsoft.graph.todoTaskList", "#microsoft.graph.todoTaskList"));
+    }
+
+    private static async Task<IResult> TasksDeltaAsync(
+        Mailbox mailbox, string listId, ODataQuery odata, HttpContext http, DeltaLinkCodec links, SyncTasks useCase, CancellationToken cancellationToken)
+    {
+        var cursor = links.ReadCursor(http.Request.Query, odata.Query);
+        if (!cursor.IsSuccess)
+        {
+            return GraphResults.Error(cursor.Error);
+        }
+
+        var page = await useCase.ExecuteAsync(mailbox.Ref, new TaskListId(listId), cursor.Value.Token, cancellationToken).ConfigureAwait(false);
+        return GraphResults.Match(page, p => GraphResults.Delta(p, TodoDtoMapper.ToDto, cursor.Value, "microsoft.graph.todoTask", "#microsoft.graph.todoTask"));
+    }
 
     private static async Task<IResult> CreateListAsync(Mailbox mailbox, TodoTaskListWriteDto? body, TaskListsUseCase useCase, CancellationToken cancellationToken) =>
         GraphResults.Match(

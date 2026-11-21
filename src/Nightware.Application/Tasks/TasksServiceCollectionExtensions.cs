@@ -24,6 +24,8 @@ public static class TasksServiceCollectionExtensions
         services.TryAddScoped<DeleteTaskAttachment>();
         services.TryAddScoped<ChecklistItemsUseCase>();
         services.TryAddScoped<LinkedResourcesUseCase>();
+        services.TryAddScoped<SyncTasks>();
+        services.TryAddScoped<SyncTaskLists>();
         return services;
     }
 }

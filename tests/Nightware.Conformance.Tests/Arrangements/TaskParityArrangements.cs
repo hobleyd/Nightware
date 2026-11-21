@@ -3,6 +3,7 @@ using Nightware.Conformance.Tests.Harness;
 using Nightware.Domain.Calendar;
 using Nightware.Domain.Kernel;
 using Nightware.Domain.Tasks;
+using TaskStatus = Nightware.Domain.Tasks.TaskStatus;
 
 namespace Nightware.Conformance.Tests.Arrangements;
 
@@ -104,5 +105,35 @@ public sealed class TaskParityArrangements : IConformanceArrangements
 
         yield return new ConformanceArrangement("tasks.linked-resources.delete", fakes =>
             fakes.For<ILinkedResourceStore>().DeleteAsync(Me, ListId, TaskId, link.Id, Arg.Any<CancellationToken>()).Returns(Result.Success()));
+
+        // The initial lists delta: every list, then a next page (as To Do answers).
+        yield return new ConformanceArrangement("tasks.lists.delta", static fakes =>
+            fakes.For<ITaskListReader>().ListAsync(Me, Arg.Any<Application.Common.Query.ItemQuery>(), Arg.Any<CancellationToken>())
+                .Returns(new Page<TaskList>(
+                [
+                    new TaskList(new TaskListId("AAMk-id-0005="), "Tasks") { WellKnownListName = "defaultList" },
+                    List with { DisplayName = "Nightware 12fa34 renamed" },
+                ])));
+
+        yield return new ConformanceArrangement("tasks.tasks.delta", static fakes =>
+            fakes.For<ITaskDelta>().DeltaAsync(Me, ListId, null, Arg.Any<CancellationToken>())
+                .Returns(DeltaPage<TodoTask>.More([], new DeltaToken("initial"))));
+
+        // Graph embeds each task's checklistItems in its delta (the façade serves them from checklistItems) and
+        // writes an empty categories list (the façade omits it, as NightMail's task fixtures expect).
+        yield return new ConformanceArrangement("tasks.tasks.delta-changes", static fakes =>
+            fakes.For<ITaskDelta>().DeltaAsync(Me, ListId, new DeltaToken("initial"), Arg.Any<CancellationToken>())
+                .Returns(DeltaPage<TodoTask>.Done(
+                    [new DeltaEntry<TodoTask>.Upsert(Task with
+                    {
+                        Status = TaskStatus.Completed,
+                        LastModifiedDateTime = DateTimeOffset.Parse("2026-11-20T22:39:10.9293751Z", System.Globalization.CultureInfo.InvariantCulture),
+                        CompletedDateTime = new DateTimeTimeZone(new DateTime(2026, 11, 20), "UTC"),
+                    })],
+                    new DeltaToken("next"))))
+        {
+            RequestToken = new DeltaToken("initial"),
+            IgnorePaths = ["value/*/checklistItems", "value/*/categories"],
+        };
     }
 }

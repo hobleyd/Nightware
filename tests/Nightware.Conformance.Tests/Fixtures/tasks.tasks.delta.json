@@ -1,0 +1,25 @@
+{
+  "operationId": "tasks.tasks.delta",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/todo/lists/AAMk-id-0004=/tasks/delta",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(microsoft.graph.todoTask)",
+      "@odata.nextLink": "https://graph.microsoft.com/v1.0/me/todo/lists/AAMk-id-0004=/tasks/delta?$skiptoken={token}",
+      "value": []
+    }
+  }
+}

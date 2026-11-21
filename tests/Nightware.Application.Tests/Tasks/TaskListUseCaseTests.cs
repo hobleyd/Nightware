@@ -127,3 +127,43 @@ public sealed class TaskPartsUseCaseTests
         (await useCase.DeleteAsync(Me, List, Task, "r", Ct)).IsSuccess.ShouldBeTrue();
     }
 }
+
+public sealed class TaskDeltaUseCaseTests
+{
+    private static readonly MailboxRef Me = new("me@example.com");
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task The_lists_delta_pages_first_then_reports_renames_and_removals()
+    {
+        var reader = Substitute.For<ITaskListReader>();
+        var a = new TaskList(new TaskListId("a"), "A") { WellKnownListName = "defaultList" };
+        var b = new TaskList(new TaskListId("b"), "B") { WellKnownListName = "none" };
+        reader.ListAsync(Me, Arg.Any<Nightware.Application.Common.Query.ItemQuery>(), Arg.Any<CancellationToken>()).Returns(new Page<TaskList>([a, b]));
+        var sync = new SyncTaskLists(reader);
+
+        var initial = (await sync.ExecuteAsync(Me, null, Ct)).Value;
+        initial.Entries.Count.ShouldBe(2);
+        initial.NextPage.ShouldNotBeNull();
+        var settled = (await sync.ExecuteAsync(Me, initial.NextPage, Ct)).Value;
+        settled.Entries.ShouldBeEmpty();
+        settled.Final.ShouldNotBeNull();
+
+        reader.ListAsync(Me, Arg.Any<Nightware.Application.Common.Query.ItemQuery>(), Arg.Any<CancellationToken>()).Returns(new Page<TaskList>([a with { DisplayName = "A2" }]));
+        var changes = (await sync.ExecuteAsync(Me, settled.Final, Ct)).Value;
+        changes.Entries.OfType<DeltaEntry<TaskList>.Upsert>().ShouldHaveSingleItem().Item.DisplayName.ShouldBe("A2");
+        changes.Entries.OfType<DeltaEntry<TaskList>.Removed>().ShouldHaveSingleItem().Id.ShouldBe("b");
+        (await sync.ExecuteAsync(Me, new DeltaToken("!!"), Ct)).Error!.Kind.ShouldBe(ErrorKind.SyncStateGone);
+    }
+
+    [Fact]
+    public async Task The_tasks_delta_passes_to_the_port()
+    {
+        var delta = Substitute.For<ITaskDelta>();
+        var page = DeltaPage<TodoTask>.Done([], new DeltaToken("t"));
+        delta.DeltaAsync(Me, new TaskListId("l"), null, Ct).Returns(page);
+
+        (await new SyncTasks(delta).ExecuteAsync(Me, new TaskListId("l"), null, Ct)).Value.ShouldBe(page);
+    }
+}

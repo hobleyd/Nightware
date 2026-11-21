@@ -18,6 +18,7 @@ internal static class DavTasksServiceCollectionExtensions
         services.TryAddScoped<ITaskListStore>(static sp => sp.GetRequiredService<DavTaskListReader>());
         services.TryAddScoped<IChecklistStore, DavChecklistStore>();
         services.TryAddScoped<ILinkedResourceStore, DavLinkedResourceStore>();
+        services.TryAddScoped<ITaskDelta, DavTaskDelta>();
         services.TryAddScoped<ITaskStore>(sp => sp.GetRequiredService<DavTaskStore>());
         services.TryAddScoped<ITaskAttachmentStore, DavTaskAttachmentStore>();
         return services;
