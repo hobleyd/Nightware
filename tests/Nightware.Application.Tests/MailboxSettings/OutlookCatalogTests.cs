@@ -22,12 +22,12 @@ public sealed class OutlookCatalogTests
     {
         OutlookCatalog.TimeZones.Count.ShouldBeGreaterThan(100);
         OutlookCatalog.TimeZones.Select(static z => z.Alias).ShouldBeUnique();
-        foreach (var zone in OutlookCatalog.TimeZones)
-        {
-            GraphTimeZone.TryFind(zone.Alias, out _).ShouldBeTrue(zone.Alias);
-            GraphTimeZone.TryFind(zone.IanaId, out _).ShouldBeTrue(zone.IanaId);
-            GraphTimeZone.ToWindowsId(zone.Alias).ShouldBe(zone.Alias, "it reads back by the same name");
-        }
+        // Every failure at once: this runs on macOS and in the Linux image, whose ICU and tzdata differ.
+        var refused = OutlookCatalog.TimeZones
+            .Where(static z => !GraphTimeZone.TryFind(z.Alias, out _) || !GraphTimeZone.TryFind(z.IanaId, out _) || GraphTimeZone.ToWindowsId(z.Alias) != z.Alias)
+            .Select(static z => $"{z.Alias} ({z.IanaId})")
+            .ToList();
+        refused.ShouldBeEmpty();
     }
 
     [Fact]

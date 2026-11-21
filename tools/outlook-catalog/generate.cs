@@ -54,10 +54,15 @@ string[] locales =
     "pt-BR", "pt-PT", "ro-RO", "ru-RU", "sk-SK", "sl-SI", "sr-Latn-RS", "sv-SE", "th-TH", "tr-TR", "uk-UA", "vi-VN", "zh-CN", "zh-HK", "zh-TW",
 ];
 
+// Newer CLDR ids the Linux image's ICU does not know (checked in mcr.microsoft.com/dotnet/sdk:11.0): offering them
+// would let a client choose a zone PATCH timeZone refuses. Their zones stay offered under the older ids
+// (Pacific, Mountain and Central Standard Time). OutlookCatalogTests, run in that image, finds any new ones.
+string[] notInTheImage = ["British Columbia Standard Time", "Alberta Standard Time", "Manitoba Standard Time"];
+
 var windowsIds = new SortedSet<string>(StringComparer.Ordinal);
 foreach (var zone in TimeZoneInfo.GetSystemTimeZones())
 {
-    if (TimeZoneInfo.TryConvertIanaIdToWindowsId(zone.Id, out var windows))
+    if (TimeZoneInfo.TryConvertIanaIdToWindowsId(zone.Id, out var windows) && !notInTheImage.Contains(windows))
     {
         windowsIds.Add(windows);
     }

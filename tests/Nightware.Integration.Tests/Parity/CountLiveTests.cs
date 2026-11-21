@@ -48,6 +48,23 @@ public sealed class CountLiveTests
         await CountsEverything(alice, "/v1.0/me/contacts");
         await CountsEverything(alice, "/v1.0/me/events");
 
+        await CountsEverything(alice, "/v1.0/me/messages?$search=\"Nightware\"");
+
+        // Empty collections count 0: the root folder (no messages of its own) and a new To Do list.
+        (await GetAsync(alice, "/v1.0/me/mailFolders/msgfolderroot/messages?$count=true")).Body["@odata.count"]!.GetValue<int>().ShouldBe(0);
+        using var created = await alice.PostAsync("/v1.0/me/todo/lists", System.Net.Http.Json.JsonContent.Create(new { displayName = "nw-count-" + Guid.NewGuid().ToString("N")[..8] }), Ct);
+        var list = Uri.EscapeDataString(JsonNode.Parse(await created.Content.ReadAsStringAsync(Ct))!["id"]!.GetValue<string>());
+        try
+        {
+            (await GetAsync(alice, $"/v1.0/me/todo/lists/{list}/tasks?$count=true")).Body["@odata.count"]!.GetValue<int>().ShouldBe(0);
+            using var _ = await alice.PostAsync($"/v1.0/me/todo/lists/{list}/tasks", System.Net.Http.Json.JsonContent.Create(new { title = "one" }), Ct);
+            await CountsEverything(alice, $"/v1.0/me/todo/lists/{list}/tasks");
+        }
+        finally
+        {
+            using var _ = await alice.DeleteAsync($"/v1.0/me/todo/lists/{list}", Ct);
+        }
+
         (await GetAsync(alice, "/v1.0/me/mailFolders?$count=true")).Status.ShouldBe(HttpStatusCode.BadRequest);
         (await GetAsync(alice, "/v1.0/me/mailFolders/inbox/messages/delta?$count=true")).Status.ShouldBe(HttpStatusCode.BadRequest);
     }

@@ -13,9 +13,10 @@ public readonly record struct DeltaToken(string Value)
 /// <summary>One page of a collection. <paramref name="SkipToken"/> is an adapter-opaque continuation.</summary>
 public sealed record Page<T>(IReadOnlyList<T> Items, string? SkipToken = null)
 {
-    public static Page<T> Empty { get; } = new([]);
+    /// <summary>No items; it counts 0, should the query have asked for <see cref="Total"/>.</summary>
+    public static Page<T> Empty { get; } = new([]) { Total = 0 };
 
-    /// <summary>Every item the query matches, across all pages (Graph <c>@odata.count</c>); set when the query asked for it.</summary>
+    /// <summary>Every item the query matches, across all pages (Graph <c>@odata.count</c>); set when the query asked for it (and on <see cref="Empty"/>).</summary>
     public int? Total { get; init; }
 
     public bool HasMore => SkipToken is not null;

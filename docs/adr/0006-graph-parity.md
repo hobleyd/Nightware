@@ -135,6 +135,9 @@ into the phase doc before contracting operations (as phase 10 did).
 - **`calendarView/delta`** (and per-calendar `events/delta`) uses
   `sync-collection` (RFC 6578) per collection, filtered to the window. The
   token holds every collection's sync token.
+  *Amended 2026-11-22:* Graph v1.0 has no `events/delta` (per calendar or
+  top-level); it is beta-only, so it was not added. Event delta is
+  `calendarView/delta` (phase 18 doc).
 - **Reminders.**
   - `reminderView` is computed from VALARMs.
   - `dismissReminder` sets `ACKNOWLEDGED`.
