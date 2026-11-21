@@ -99,6 +99,10 @@ internal sealed class AdminTestBed
         GroupwareGroups.GrantFolderAsync(default, default!, default).ReturnsForAnyArgs(Result.Success());
         GroupwareGroups.DeleteFolderAsync(default, default).ReturnsForAnyArgs(Result.Success());
 
+        SharedCalendars.FindAsync(default!, default).ReturnsForAnyArgs(Error.NotFound("no calendar"));
+        SharedCalendars.EnsureAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        SharedCalendars.DeleteAsync(default!, default).ReturnsForAnyArgs(Result.Success());
+
         Mailboxes.ListAsync(default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<SharedMailbox>>.Success([]));
         Mailboxes.GetAsync(default!, default!, default).ReturnsForAnyArgs(Error.NotFound("no shared mailbox"));
         Mailboxes.ListMembersAsync(default!, default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<IdentityAccount>>.Success([]));
@@ -145,6 +149,8 @@ internal sealed class AdminTestBed
     public IMailingLists Lists { get; } = Substitute.For<IMailingLists>();
 
     public IGroupwareGroups GroupwareGroups { get; } = Substitute.For<IGroupwareGroups>();
+
+    public ISharedCalendars SharedCalendars { get; } = Substitute.For<ISharedCalendars>();
 
     public IEntityMailboxes Mailboxes { get; } = Substitute.For<IEntityMailboxes>();
 
@@ -223,7 +229,7 @@ internal sealed class AdminTestBed
 
     public GroupAccess GroupAccess() => new(Actor, Entities, Groups, Identities, Mail, Lists, GroupSync(), Options);
 
-    public SharedMailboxSync SharedMailboxSync() => new(Entities, Mailboxes, SharedMail, Mail);
+    public SharedMailboxSync SharedMailboxSync() => new(Entities, Mailboxes, SharedMail, Mail, GroupwareGroups, SharedCalendars);
 
     public SharedMailboxAccess SharedMailboxAccess() => new(Actor, Entities, Mailboxes, Identities, Mail, Lists, SharedMailboxSync(), Options);
 

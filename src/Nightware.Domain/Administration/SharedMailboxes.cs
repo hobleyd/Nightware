@@ -12,6 +12,12 @@ public sealed record SharedMailbox(string Id, string EntityId, MailAddress Addre
 
     /// <summary>The address and its aliases.</summary>
     public IEnumerable<MailAddress> Addresses => Aliases.Prepend(Address);
+
+    /// <summary>
+    /// The Nextcloud group of its members, which its calendar is shared with (ADR 0004 D6). A Nextcloud uid and a group
+    /// id are separate namespaces; the calendar's own user has the same name.
+    /// </summary>
+    public string CalendarGroupId => "mbx-" + Address.Value.ToLowerInvariant();
 }
 
 /// <summary>What the console asks for when a shared mailbox is created.</summary>

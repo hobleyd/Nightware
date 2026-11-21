@@ -135,4 +135,54 @@ public sealed class SharedMailboxSyncTests
         _bed.Mailboxes.ListUserMailboxesAsync(AdminTestBed.Acme, "u-carol", Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("keycloak down"));
         (await _bed.SharedMailboxSync().ApplyForUserAsync("u-carol", Ct)).Error!.Message.ShouldBe("Shared mailboxes: keycloak down");
     }
+
+    [Fact]
+    public async Task Apply_gives_the_calendar_a_members_group_and_shares_it_with_them()
+    {
+        OnServer();
+
+        (await _bed.SharedMailboxSync().ApplyAsync(Support(), [Carol, Dave, Erin], Ct)).IsSuccess.ShouldBeTrue();
+
+        await _bed.GroupwareGroups.Received(1).CreateAsync("mbx-support@acme.example", "Support", Arg.Any<CancellationToken>());
+        await _bed.GroupwareGroups.Received(1).AddMemberAsync("mbx-support@acme.example", "carol", Arg.Any<CancellationToken>());
+        await _bed.GroupwareGroups.Received(1).AddMemberAsync("mbx-support@acme.example", "dave", Arg.Any<CancellationToken>());
+        await _bed.GroupwareGroups.DidNotReceive().AddMemberAsync("mbx-support@acme.example", "erin", Arg.Any<CancellationToken>());
+        await _bed.SharedCalendars.Received(1).EnsureAsync(AdminTestBed.Address("support@acme.example"), "Support", "mbx-support@acme.example", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Apply_takes_a_former_member_out_of_the_calendar_group_and_notes_one_not_yet_in_nextcloud()
+    {
+        OnServer();
+        _bed.GroupwareGroups.FindAsync("mbx-support@acme.example", Arg.Any<CancellationToken>()).Returns(new GroupwareGroup("mbx-support@acme.example", "Support", ["dave", "zed"]));
+        _bed.GroupwareGroups.AddMemberAsync("mbx-support@acme.example", "carol", Arg.Any<CancellationToken>()).Returns(Error.NotFound("no user"));
+
+        var outcome = (await _bed.SharedMailboxSync().ApplyAsync(Support(), [Carol, Dave], Ct)).Value;
+
+        await _bed.GroupwareGroups.Received(1).RemoveMemberAsync("mbx-support@acme.example", "zed", Arg.Any<CancellationToken>());
+        outcome.Notes.ShouldContain(n => n.Contains("carol") && n.Contains("calendar"));
+    }
+
+    [Fact]
+    public async Task A_calendar_failure_fails_the_apply_naming_the_calendar()
+    {
+        OnServer();
+        _bed.SharedCalendars.EnsureAsync(Arg.Any<MailAddress>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("nextcloud down"));
+
+        (await _bed.SharedMailboxSync().ApplyAsync(Support(), [Carol], Ct)).Error!.Message.ShouldStartWith("Calendar:");
+    }
+
+    [Fact]
+    public async Task Inspect_reports_the_calendar_missing_linked_or_out_of_step()
+    {
+        OnServer();
+        (await _bed.SharedMailboxSync().InspectAsync(Support(), [Carol], Ct)).Single(l => l.Backend == BackendKind.Groupware).State.ShouldBe(LinkState.Missing);
+
+        _bed.SharedCalendars.FindAsync(AdminTestBed.Address("support@acme.example"), Arg.Any<CancellationToken>()).Returns(new SharedCalendarAccount("mbx-support@acme.example", "Support"));
+        _bed.GroupwareGroups.FindAsync("mbx-support@acme.example", Arg.Any<CancellationToken>()).Returns(new GroupwareGroup("mbx-support@acme.example", "Support", ["carol"]));
+        (await _bed.SharedMailboxSync().InspectAsync(Support(), [Carol], Ct)).Single(l => l.Backend == BackendKind.Groupware).State.ShouldBe(LinkState.Linked);
+
+        _bed.GroupwareGroups.FindAsync("mbx-support@acme.example", Arg.Any<CancellationToken>()).Returns(new GroupwareGroup("mbx-support@acme.example", "Support", ["carol", "mallory"]));
+        (await _bed.SharedMailboxSync().InspectAsync(Support(), [Carol], Ct)).Single(l => l.Backend == BackendKind.Groupware).State.ShouldBe(LinkState.Conflict);
+    }
 }

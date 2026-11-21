@@ -40,6 +40,7 @@ public static class DavAdministrationServiceCollectionExtensions
 
         services.TryAddTransient<IGroupwareAccounts, NextcloudGroupwareAccounts>();
         services.TryAddTransient<IGroupwareGroups, NextcloudGroupwareGroups>();
+        services.TryAddTransient<ISharedCalendars, NextcloudSharedCalendars>();
         services.TryAddEnumerable(ServiceDescriptor.Transient<IBackendStatus, NextcloudBackendStatus>());
         return services;
     }

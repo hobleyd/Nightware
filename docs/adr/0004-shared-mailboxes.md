@@ -89,6 +89,30 @@ Every other `/users/{shared}/...` route already worked through
   fresh strong sign-in, and the address typed again. The adapter takes every
   member out first, then destroys the account; the record goes last.
 
+### D6 — A calendar of its own (added 2026-11-21, phase 17)
+A shared mailbox has a calendar in Nextcloud. Nextcloud keeps calendars for its
+own users only, so the mailbox gets one: a local Nextcloud user
+**`mbx-{address}`**, carrying the mailbox's address as its email (the façade's
+`principal-property-search` finds it, as for any person) and its name, with a
+random password nobody keeps. Its `personal` calendar is shared read-write
+with a Nextcloud group of the same name holding the enabled members' Nextcloud
+uids (their usernames), so membership changes touch only the group.
+- `SharedMailboxSync` creates and repairs the group, its members and the
+  calendar (`ISharedCalendars`) with the mail; Inspect reports it as the
+  Groupware link. A member who has never signed in to Nextcloud is waiting.
+- Only a calendar's owner can share it, so each repair sets the user a fresh
+  random password over OCS and acts as it once over WebDAV; nothing is stored.
+  A new account's sample event is removed.
+- The share must name the group URL-encoded (`principals/groups/mbx-a%40b`):
+  Nextcloud accepts the raw `@` and grants nothing by it.
+- Deleting the mailbox deletes its Nextcloud user (and so the calendar and
+  events) and the group, before the record.
+- Through the façade, `/users/{shared}/calendars`, `calendarView` and `events`
+  work for members with no façade change (calendars shared with the caller,
+  owned by the mailbox's principal). An event a member creates there with
+  attendees has the mailbox as ORGANIZER, and Nextcloud invites the attendees
+  as it ("{name} via Nextcloud").
+
 ## Consequences
 - No deploy change: the console's Stalwart role already holds `sysAccount*`.
 - A new member sees the mailbox in NightMail within the façade's session cache
@@ -97,8 +121,8 @@ Every other `/users/{shared}/...` route already worked through
 - Renaming changes the record and `description` only: identities keep the name
   they were created with (the console cannot write another account's
   identities), and a member's own send-as identity carries the member's name.
-- A shared mailbox has no calendar, contacts or files in Nextcloud; those
-  routes answer as for any address Nextcloud does not know.
+- A shared mailbox has a calendar (D6) but no contacts or files in Nextcloud;
+  those routes answer as for any address Nextcloud does not know.
 
 ## Verified
 Against the local stack on 2026-11-19 (Keycloak 26.8.2, Stalwart 1.1.0): step 0

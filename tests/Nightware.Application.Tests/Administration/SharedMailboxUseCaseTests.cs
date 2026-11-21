@@ -27,7 +27,7 @@ public sealed class SharedMailboxUseCaseTests
 
     private UpdateSharedMailbox Update() => new(_bed.Actor, _bed.SharedMailboxAccess(), _bed.Mailboxes, _bed.SharedMailboxSync(), _bed.Audit);
 
-    private DeleteSharedMailbox Delete() => new(_bed.Actor, _bed.SharedMailboxAccess(), _bed.Mailboxes, _bed.SharedMail, _bed.Mail, _bed.Audit, _bed.Options, _bed.Time);
+    private DeleteSharedMailbox Delete() => new(_bed.Actor, _bed.SharedMailboxAccess(), _bed.Mailboxes, _bed.SharedMail, _bed.Mail, _bed.Audit, _bed.Options, _bed.Time, _bed.SharedCalendars, _bed.GroupwareGroups);
 
     [Fact]
     public async Task Shared_mailboxes_are_listed_by_name_for_admins_of_the_entity_only()
@@ -169,9 +169,23 @@ public sealed class SharedMailboxUseCaseTests
         Received.InOrder(() =>
         {
             _bed.SharedMail.DestroyAsync("sm1", Arg.Any<CancellationToken>());
+            _bed.SharedCalendars.DeleteAsync(AdminTestBed.Address("support@acme.example"), Arg.Any<CancellationToken>());
+            _bed.GroupwareGroups.DeleteAsync("mbx-support@acme.example", Arg.Any<CancellationToken>());
             _bed.Mailboxes.DeleteAsync(AdminTestBed.Acme, "s-sup", Arg.Any<CancellationToken>());
         });
         _bed.Audit.Events.Last().Details["mail"].ShouldBe("destroyed");
+    }
+
+    [Fact]
+    public async Task A_calendar_that_cannot_be_deleted_keeps_the_record()
+    {
+        Arrange();
+        _bed.SharedMail.FindByAddressAsync(default!, Ct).ReturnsForAnyArgs(new SharedMailAccount("sm1", "support@acme.example"));
+        _bed.SharedCalendars.DeleteAsync(Arg.Any<MailAddress>(), Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("nextcloud down"));
+
+        (await Delete().ExecuteAsync(AdminTestBed.Acme, "s-sup", "support@acme.example", Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+
+        await _bed.Mailboxes.DidNotReceiveWithAnyArgs().DeleteAsync(default!, default!, Ct);
     }
 
     [Fact]

@@ -11,7 +11,8 @@ public sealed record SharedMailboxSyncOutcome(SharedMailbox Mailbox, IReadOnlyLi
 /// Membership always follows the record; only enabled members are given access, so an offboarded member loses the
 /// mailbox and gets it back when reinstated. The mail server matches members by their own mailbox, found by address.
 /// </summary>
-public sealed class SharedMailboxSync(IEntityRegistry entities, IEntityMailboxes mailboxes, ISharedMailAccounts shared, IMailAccounts mail)
+public sealed class SharedMailboxSync(
+    IEntityRegistry entities, IEntityMailboxes mailboxes, ISharedMailAccounts shared, IMailAccounts mail, IGroupwareGroups groupware, ISharedCalendars calendars)
 {
     /// <summary>The addresses of the mailboxes that belong in the shared mailbox: the enabled members' own.</summary>
     public static IReadOnlyList<string> MemberAddresses(IEnumerable<IdentityAccount> members)
@@ -28,6 +29,7 @@ public sealed class SharedMailboxSync(IEntityRegistry entities, IEntityMailboxes
         [
             new(BackendKind.Identity, LinkState.Linked, $"{members.Count} member(s).", mailbox.Id),
             await InspectMailAsync(mailbox, members, cancellationToken).ConfigureAwait(false),
+            await InspectCalendarAsync(mailbox, members, cancellationToken).ConfigureAwait(false),
         ];
     }
 
@@ -88,7 +90,97 @@ public sealed class SharedMailboxSync(IEntityRegistry entities, IEntityMailboxes
             }
         }
 
-        return new SharedMailboxSyncOutcome(mailbox, notes);
+        Result calendar = await ApplyCalendarAsync(mailbox, members, notes, cancellationToken).ConfigureAwait(false);
+        return calendar.IsSuccess ? new SharedMailboxSyncOutcome(mailbox, notes) : calendar.Error with { Message = $"Calendar: {calendar.Error.Message}" };
+    }
+
+    /// <summary>
+    /// The calendar (ADR 0004 D6): the members' Nextcloud group, then the mailbox's own Nextcloud user, its calendar
+    /// and the calendar's share with that group. Membership is the group's, so it changes with no calendar call.
+    /// </summary>
+    private async Task<Result> ApplyCalendarAsync(SharedMailbox mailbox, IReadOnlyList<IdentityAccount> members, List<string> notes, CancellationToken cancellationToken)
+    {
+        string groupId = mailbox.CalendarGroupId;
+        Result<GroupwareGroup> found = await groupware.FindAsync(groupId, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<string> current;
+        if (found.IsSuccess)
+        {
+            current = found.Value.MemberUids;
+            if (!string.Equals(found.Value.DisplayName, mailbox.Name, StringComparison.Ordinal)
+                && await groupware.SetDisplayNameAsync(groupId, mailbox.Name, cancellationToken).ConfigureAwait(false) is { IsSuccess: false } renamed)
+            {
+                return renamed;
+            }
+        }
+        else if (found.Error.Kind == ErrorKind.NotFound)
+        {
+            Result created = await groupware.CreateAsync(groupId, mailbox.Name, cancellationToken).ConfigureAwait(false);
+            if (!created.IsSuccess)
+            {
+                return created;
+            }
+
+            current = [];
+        }
+        else
+        {
+            return found.Error;
+        }
+
+        IReadOnlyList<string> expected = CalendarMembers(members);
+        foreach (string uid in expected.Except(current, StringComparer.Ordinal))
+        {
+            Result added = await groupware.AddMemberAsync(groupId, uid, cancellationToken).ConfigureAwait(false);
+            if (!added.IsSuccess && added.Error.Kind == ErrorKind.NotFound)
+            {
+                notes.Add($"{uid} has not signed in to Nextcloud yet, so has no calendar access; Repair adds them once they have.");
+            }
+            else if (!added.IsSuccess)
+            {
+                return added;
+            }
+        }
+
+        foreach (string uid in current.Except(expected, StringComparer.Ordinal))
+        {
+            Result removed = await groupware.RemoveMemberAsync(groupId, uid, cancellationToken).ConfigureAwait(false);
+            if (!removed.IsSuccess)
+            {
+                return removed;
+            }
+        }
+
+        return await calendars.EnsureAsync(mailbox.Address, mailbox.Name, groupId, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The Nextcloud uids that may use the calendar: the enabled members' usernames.</summary>
+    public static IReadOnlyList<string> CalendarMembers(IEnumerable<IdentityAccount> members) =>
+        [.. members.Where(static m => m.Enabled).Select(static m => m.Username).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
+
+    private async Task<BackendLink> InspectCalendarAsync(SharedMailbox mailbox, IReadOnlyList<IdentityAccount> members, CancellationToken cancellationToken)
+    {
+        Result<SharedCalendarAccount> account = await calendars.FindAsync(mailbox.Address, cancellationToken).ConfigureAwait(false);
+        if (!account.IsSuccess)
+        {
+            return account.Error.Kind == ErrorKind.NotFound
+                ? new BackendLink(BackendKind.Groupware, LinkState.Missing, "No calendar yet; Repair creates it.")
+                : new BackendLink(BackendKind.Groupware, LinkState.Error, account.Error.Message);
+        }
+
+        Result<GroupwareGroup> group = await groupware.FindAsync(mailbox.CalendarGroupId, cancellationToken).ConfigureAwait(false);
+        if (!group.IsSuccess)
+        {
+            return group.Error.Kind == ErrorKind.NotFound
+                ? new BackendLink(BackendKind.Groupware, LinkState.Conflict, "The calendar has no members' group; Repair creates it.", account.Value.Uid)
+                : new BackendLink(BackendKind.Groupware, LinkState.Error, group.Error.Message);
+        }
+
+        // A member who has never signed in to Nextcloud cannot be in the group yet: waiting, not out of step.
+        var missing = CalendarMembers(members).Except(group.Value.MemberUids, StringComparer.Ordinal).ToList();
+        var extra = group.Value.MemberUids.Except(CalendarMembers(members), StringComparer.Ordinal).ToList();
+        return extra.Count > 0
+            ? new BackendLink(BackendKind.Groupware, LinkState.Conflict, "The calendar is out of step with the record; Repair brings it into line.", account.Value.Uid)
+            : new BackendLink(BackendKind.Groupware, LinkState.Linked, missing.Count == 0 ? "Calendar" : $"Calendar (waiting for {string.Join(", ", missing)} to sign in to Nextcloud)", account.Value.Uid);
     }
 
     /// <summary>Brings every shared mailbox the user may open back into line (offboarding, reinstating), in every entity they are a member of.</summary>

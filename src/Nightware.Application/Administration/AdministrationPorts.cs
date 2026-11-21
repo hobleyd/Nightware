@@ -311,6 +311,26 @@ public sealed record GroupwareGroup(string Id, string? DisplayName, IReadOnlyLis
 /// <param name="Groups">The groups the folder is shared with, by groupware group id.</param>
 public sealed record TeamFolder(int Id, string MountPoint, IReadOnlySet<string> Groups);
 
+/// <summary>A shared mailbox's calendar account in Nextcloud.</summary>
+public sealed record SharedCalendarAccount(string Uid, string? DisplayName);
+
+/// <summary>
+/// A shared mailbox's calendar (ADR 0004 D6): a Nextcloud user of its own, carrying the mailbox's address (so the
+/// façade's principal lookup finds it) and nobody's sign-in, whose <c>personal</c> calendar is shared read-write
+/// with a Nextcloud group of the mailbox's members (<see cref="IGroupwareGroups"/>).
+/// </summary>
+public interface ISharedCalendars
+{
+    /// <summary>NotFound when the mailbox has no Nextcloud user.</summary>
+    Task<Result<SharedCalendarAccount>> FindAsync(MailAddress address, CancellationToken cancellationToken);
+
+    /// <summary>Creates or repairs the user, its calendar and the calendar's share with <paramref name="groupId"/>. Idempotent.</summary>
+    Task<Result> EnsureAsync(MailAddress address, string displayName, string groupId, CancellationToken cancellationToken);
+
+    /// <summary>Deletes the user and so the calendar and its events. NotFound when already gone.</summary>
+    Task<Result> DeleteAsync(MailAddress address, CancellationToken cancellationToken);
+}
+
 /// <summary>Groups and team folders on the groupware server (Nextcloud), managed with the console's own credential.</summary>
 public interface IGroupwareGroups
 {

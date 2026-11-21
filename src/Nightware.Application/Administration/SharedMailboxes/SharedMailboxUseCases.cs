@@ -220,7 +220,7 @@ public sealed class RepairSharedMailbox(IAdminActor actor, SharedMailboxAccess a
 
 /// <summary>
 /// Deletes a shared mailbox and every message in it: its members are taken out and its mail server account is
-/// destroyed, then the record goes, last, so a failure leaves it listed where deleting can be tried again. Global
+/// destroyed, its calendar (its Nextcloud user) and the members' Nextcloud group are deleted, then the record goes, last, so a failure leaves it listed where deleting can be tried again. Global
 /// admins only (or entity admins where the deployment lets them delete data), behind a fresh sign-in and the
 /// mailbox's address typed again, like deleting a user's mail.
 /// </summary>
@@ -232,7 +232,9 @@ public sealed class DeleteSharedMailbox(
     IMailAccounts mail,
     IAuditLog audit,
     AdministrationOptions options,
-    TimeProvider time)
+    TimeProvider time,
+    ISharedCalendars calendars,
+    IGroupwareGroups groupware)
 {
     public async Task<Result> ExecuteAsync(string entityId, string mailboxId, string? typedAddress, CancellationToken cancellationToken)
     {
@@ -256,6 +258,17 @@ public sealed class DeleteSharedMailbox(
                 : await shared.DestroyAsync(found.Value.Id, cancellationToken).ConfigureAwait(false)
             : found.Error;
         bool absent = destroyed.Error is { Kind: ErrorKind.NotFound };
+
+        // The calendar and its events go with the mail (ADR 0004 D6), then the members' group; both before the record.
+        if (destroyed.IsSuccess || absent)
+        {
+            destroyed = await calendars.DeleteAsync(mailbox.Address, cancellationToken).ConfigureAwait(false) is { IsSuccess: false, Error.Kind: not ErrorKind.NotFound } calendarFailed
+                ? calendarFailed
+                : await groupware.DeleteAsync(mailbox.CalendarGroupId, cancellationToken).ConfigureAwait(false) is { IsSuccess: false, Error.Kind: not ErrorKind.NotFound } groupFailed
+                    ? groupFailed
+                    : destroyed;
+        }
+
         Result removed = destroyed.IsSuccess || absent
             ? await mailboxes.DeleteAsync(entityId, mailboxId, cancellationToken).ConfigureAwait(false) is { IsSuccess: false, Error.Kind: not ErrorKind.NotFound } failed
                 ? failed

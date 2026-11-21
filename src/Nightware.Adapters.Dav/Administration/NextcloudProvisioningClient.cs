@@ -69,6 +69,46 @@ internal sealed partial class NextcloudProvisioningClient(
         }
     }
 
+    /// <summary>
+    /// One WebDAV request as another Nextcloud user (Basic), for the few things only an owner can do: a shared
+    /// mailbox's calendar (ADR 0004 D6). The answer's status and body, whatever they are.
+    /// </summary>
+    /// <param name="path">Below the base URL, already escaped, e.g. <c>remote.php/dav/calendars/mbx-x/personal/</c>.</param>
+    public async Task<Result<(int Status, string Body)>> SendDavAsync(
+        HttpMethod method, string path, string user, string password, string? xml, string? depth, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(method);
+        var baseUrl = options.Value.BaseUrl ?? throw new InvalidOperationException("NextcloudProvisioning:BaseUrl is not configured.");
+        using var request = new HttpRequestMessage(method, new Uri(baseUrl, $"{baseUrl.AbsolutePath.TrimEnd('/')}/{path.TrimStart('/')}"));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{user}:{password}")));
+        request.Headers.Add("OCS-APIRequest", "true");
+        if (depth is not null)
+        {
+            request.Headers.Add("Depth", depth);
+        }
+
+        if (xml is not null)
+        {
+            request.Content = new StringContent(xml, Encoding.UTF8, "application/xml");
+        }
+
+        try
+        {
+            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
+            return ((int)response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
+        }
+        catch (HttpRequestException ex)
+        {
+            LogUnreachable(logger, method.Method, ex.Message);
+            return Error.BackendUnavailable("Nextcloud is unreachable.");
+        }
+        catch (Exception ex) when (ex is TimeoutException or ExecutionRejectedException || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            LogUnreachable(logger, method.Method, "timed out");
+            return Error.BackendUnavailable("Nextcloud timed out.");
+        }
+    }
+
     internal Uri Url(string path)
     {
         var baseUrl = options.Value.BaseUrl ?? throw new InvalidOperationException("NextcloudProvisioning:BaseUrl is not configured.");

@@ -141,15 +141,36 @@ public sealed class SharedMailboxesLiveTests : IAsyncDisposable
 
                 arrived.ShouldNotBeNull("the message sent as the shared mailbox reached alice");
 
-                // The rest of what NightMail may call for the account answers without a server error (no calendar or
-                // contacts exist for it in Nextcloud: those are client errors it falls back from).
+                // The rest of what NightMail may call for the account answers without a server error (no contacts exist
+                // for it in Nextcloud: those are client errors it falls back from).
                 foreach (string route in new[] { "mailboxSettings", "mailFolders?$top=50", "calendars", "contacts?$top=10", "todo/lists" })
                 {
                     using HttpResponseMessage answer = await graph.GetAsync($"/v1.0/users/{address}/{route}", Ct);
                     ((int)answer.StatusCode).ShouldBeLessThan(500, $"{route}: {await answer.Content.ReadAsStringAsync(Ct)}");
                 }
                 arrived["from"]!["emailAddress"]!["address"]!.GetValue<string>().ShouldBe(address.Value, StringCompareShould.IgnoreCase);
+
+                // Its calendar (ADR 0004 D6): shared with its members, empty at first, and events made in it are its own.
+                using HttpResponseMessage calendars = await graph.GetAsync($"/v1.0/users/{address}/calendars", Ct);
+                calendars.StatusCode.ShouldBe(HttpStatusCode.OK, await calendars.Content.ReadAsStringAsync(Ct));
+                var calendar = (await calendars.Content.ReadFromJsonAsync<JsonObject>(Ct))!["value"]!.AsArray().ShouldHaveSingleItem()!;
+                calendar["canEdit"]!.GetValue<bool>().ShouldBeTrue();
+                calendar["owner"]!["address"]!.GetValue<string>().ShouldBe(address.Value, StringCompareShould.IgnoreCase);
+                using HttpResponseMessage view = await graph.GetAsync($"/v1.0/users/{address}/calendarView?startDateTime=2020-01-01T00:00:00Z&endDateTime=2030-01-01T00:00:00Z", Ct);
+                (await view.Content.ReadFromJsonAsync<JsonObject>(Ct))!["value"]!.AsArray().ShouldBeEmpty("Nextcloud's sample event is removed from a new account");
+                using HttpResponseMessage booked = await graph.PostAsJsonAsync($"/v1.0/users/{address}/events", new JsonObject
+                {
+                    ["subject"] = "Desk rota " + local,
+                    ["start"] = new JsonObject { ["dateTime"] = "2029-03-05T09:00:00", ["timeZone"] = "UTC" },
+                    ["end"] = new JsonObject { ["dateTime"] = "2029-03-05T10:00:00", ["timeZone"] = "UTC" },
+                }, Ct);
+                booked.StatusCode.ShouldBe(HttpStatusCode.Created, await booked.Content.ReadAsStringAsync(Ct));
+                using HttpResponseMessage rota = await graph.GetAsync($"/v1.0/users/{address}/calendarView?startDateTime=2029-03-01T00:00:00Z&endDateTime=2029-04-01T00:00:00Z", Ct);
+                (await rota.Content.ReadFromJsonAsync<JsonObject>(Ct))!["value"]!.AsArray().ShouldHaveSingleItem()!["subject"]!.GetValue<string>().ShouldBe("Desk rota " + local);
             }
+
+            (await s.GetRequiredService<GetSharedMailbox>().ExecuteAsync(entity.Id, mailbox.Id, Ct)).Value.Links
+                .Single(l => l.Backend == BackendKind.Groupware).State.ShouldBe(LinkState.Linked);
 
             // An address the shared mailbox holds cannot be a new user's.
             ProvisioningPlan plan = (await s.GetRequiredService<Nightware.Application.Administration.Users.PlanUserProvisioning>()
@@ -164,6 +185,8 @@ public sealed class SharedMailboxesLiveTests : IAsyncDisposable
                 using HttpClient graph = await facade.GraphAsync(Ct);
                 using HttpResponseMessage inbox = await graph.GetAsync($"/v1.0/users/{address}/mailFolders/inbox?$select=id", Ct);
                 inbox.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+                using HttpResponseMessage calendar = await graph.GetAsync($"/v1.0/users/{address}/calendarView?startDateTime=2029-03-01T00:00:00Z&endDateTime=2029-04-01T00:00:00Z", Ct);
+                ((int)calendar.StatusCode).ShouldBeOneOf([403, 404], "her calendar access went with her membership");
             }
 
             // Delete: with members (alice back in) the mailbox and its record go.
@@ -171,6 +194,7 @@ public sealed class SharedMailboxesLiveTests : IAsyncDisposable
             (await s.GetRequiredService<DeleteSharedMailbox>().ExecuteAsync(entity.Id, mailbox.Id, address.Value, Ct)).IsSuccess.ShouldBeTrue();
             mailbox = null;
             (await server.FindByAddressAsync(address, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+            (await s.GetRequiredService<ISharedCalendars>().FindAsync(address, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound, "the calendar went with the mailbox");
         }
         finally
         {

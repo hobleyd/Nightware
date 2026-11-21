@@ -73,8 +73,9 @@ what a fix needs. Ordered by impact within each section.
 - A new member of a shared mailbox sees it in NightMail only once the façade's
   cached JMAP session expires (`Jmap:SessionCacheDuration`, 5 minutes) or their
   token is renewed. Removal is immediate (the mail server refuses).
-- A shared mailbox has no calendar, contacts or files: those routes answer as
-  for any address Nextcloud does not know.
+- A shared mailbox has a calendar (ADR 0004 D6) but no contacts or files:
+  those routes answer as for any address Nextcloud does not know. Shared
+  mailboxes created before v1.39 get their calendar from the console's Repair.
 - Graph-only profile fields (`jobTitle`, `department`, `companyName`,
   `officeLocation`, `businessPhones`, `mobilePhone`) are set on the console's
   user page ("Profile"). `keycloak/configure.sh` declares their attributes;
