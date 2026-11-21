@@ -20,21 +20,28 @@ public static class SubscriptionsAdapterServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddSubscriptionsAdapter(this IServiceCollection services, IConfiguration configuration)
     {
+        AddStoreAndEndpoint(services, configuration);
+        services.TryAddScoped<INotificationEndpoint>(static sp =>
+            Settings(sp).IsConfigured ? sp.GetRequiredService<WebhookNotificationEndpoint>() : UnconfiguredSubscriptions.Instance);
+        services.TryAddSingleton<ISubscriptionStore>(static sp =>
+            Settings(sp).IsConfigured ? sp.GetRequiredService<PostgresSubscriptionStore>() : UnconfiguredSubscriptions.Instance);
+        services.TryAddSingleton<PostgresSubscriptionItems>();
+        services.TryAddSingleton<ISubscriptionItems>(static sp =>
+            Settings(sp).IsConfigured ? sp.GetRequiredService<PostgresSubscriptionItems>() : UnconfiguredSubscriptions.Instance);
+        services.AddHostedService<SubscriptionPoller>();
+        return services;
+    }
+
+    /// <summary>The database, its schema and the SSRF-guarded webhook client, shared by the façade and the admin console.</summary>
+    internal static void AddStoreAndEndpoint(IServiceCollection services, IConfiguration configuration)
+    {
         ArgumentNullException.ThrowIfNull(configuration);
         services.AddOptions<SubscriptionOptions>().Bind(configuration.GetSection(SubscriptionOptions.SectionName));
         services.TryAddSingleton(static sp => NpgsqlDataSource.Create(Settings(sp).ConnectionString!));
         services.TryAddSingleton(static sp => new CredentialSealer(Settings(sp).SealingKey!));
         services.TryAddSingleton<SubscriptionSchema>();
         services.TryAddSingleton<PostgresSubscriptionStore>();
-        services.TryAddSingleton<ISubscriptionStore>(static sp =>
-            Settings(sp).IsConfigured ? sp.GetRequiredService<PostgresSubscriptionStore>() : UnconfiguredSubscriptions.Instance);
-        services.TryAddSingleton<PostgresSubscriptionItems>();
-        services.TryAddSingleton<ISubscriptionItems>(static sp =>
-            Settings(sp).IsConfigured ? sp.GetRequiredService<PostgresSubscriptionItems>() : UnconfiguredSubscriptions.Instance);
         services.TryAddScoped<WebhookNotificationEndpoint>();
-        services.TryAddScoped<INotificationEndpoint>(static sp =>
-            Settings(sp).IsConfigured ? sp.GetRequiredService<WebhookNotificationEndpoint>() : UnconfiguredSubscriptions.Instance);
-        services.AddHostedService<SubscriptionPoller>();
         services.AddHttpClient(WebhookNotificationEndpoint.ClientName)
             .ConfigurePrimaryHttpMessageHandler(static sp =>
             {
@@ -49,8 +56,7 @@ public static class SubscriptionsAdapterServiceCollectionExtensions
                     ConnectCallback = (context, cancellationToken) => NotificationAddressGuard.ConnectAsync(context, origins, cancellationToken),
                 };
             });
-        return services;
     }
 
-    private static SubscriptionOptions Settings(IServiceProvider services) => services.GetRequiredService<IOptions<SubscriptionOptions>>().Value;
+    internal static SubscriptionOptions Settings(IServiceProvider services) => services.GetRequiredService<IOptions<SubscriptionOptions>>().Value;
 }

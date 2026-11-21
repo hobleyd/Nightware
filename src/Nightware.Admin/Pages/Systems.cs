@@ -226,4 +226,35 @@ public static class Systems
         UserStatus.Offboarded => "disabled",
         _ => "error",
     };
+
+    /// <summary>What a subscription follows, in words: "Mail in Inbox of a@b", "Calendar of a@b", ….</summary>
+    public static string SubscriptionResource(Nightware.Domain.Subscriptions.Subscription subscription)
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+        return subscription.Target.Kind switch
+        {
+            Nightware.Domain.Subscriptions.SubscriptionResourceKind.Messages => $"Mail in {subscription.Target.Folder}",
+            Nightware.Domain.Subscriptions.SubscriptionResourceKind.Events => "Calendar",
+            Nightware.Domain.Subscriptions.SubscriptionResourceKind.Contacts => "Contacts",
+            _ => "Tasks in a list",
+        } + $" of {subscription.Target.Mailbox.Address}";
+    }
+
+    public static string SubscriptionHealthLabel(Nightware.Application.Administration.Subscriptions.ManagedSubscription subscription)
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+        return subscription.Health switch
+        {
+            Nightware.Application.Administration.Subscriptions.SubscriptionHealth.WaitingForReauthorization => "Waiting for the app to sign in again",
+            Nightware.Application.Administration.Subscriptions.SubscriptionHealth.Failing => $"Failing ({subscription.Failures} in a row)",
+            _ => "Working",
+        };
+    }
+
+    public static string SubscriptionHealthClass(Nightware.Application.Administration.Subscriptions.SubscriptionHealth health) => health switch
+    {
+        Nightware.Application.Administration.Subscriptions.SubscriptionHealth.Healthy => "linked",
+        Nightware.Application.Administration.Subscriptions.SubscriptionHealth.Failing => "error",
+        _ => "pending",
+    };
 }

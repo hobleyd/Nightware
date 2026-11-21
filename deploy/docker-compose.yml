@@ -404,6 +404,9 @@ services:
       NextcloudProvisioning__Username: ${NEXTCLOUD_PROVISIONING_USER:-nightware-admin}
       NextcloudProvisioning__Password: ${NEXTCLOUD_PROVISIONING_PASSWORD:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
       NextcloudProvisioning__OidcProviderId: keycloak
+      # The change-notification store, to list and remove subscriptions (never the sealing key: the console
+      # opens no credential).
+      Subscriptions__ConnectionString: Host=subscriptions-db;Database=subscriptions;Username=subscriptions;Password=${SUBSCRIPTIONS_DB_PASSWORD:-}
       ForwardedHeaders__KnownNetworks__0: ${DOCKER_SUBNET:-172.31.250.0/24}
       SSL_CERT_FILE: ${NIGHTWARE_SSL_CERT_FILE:-/certs/caddy-root.crt}
     volumes:

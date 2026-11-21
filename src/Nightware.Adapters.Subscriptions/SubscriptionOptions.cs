@@ -30,5 +30,8 @@ public sealed class SubscriptionOptions
     /// </summary>
     public IList<string> TestOnlyAllowedOrigins { get; } = [];
 
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(ConnectionString) && !string.IsNullOrWhiteSpace(SealingKey);
+    public bool IsConfigured => HasDatabase && !string.IsNullOrWhiteSpace(SealingKey);
+
+    /// <summary>Enough for the admin console, which lists and removes subscriptions but never opens a credential.</summary>
+    public bool HasDatabase => !string.IsNullOrWhiteSpace(ConnectionString);
 }

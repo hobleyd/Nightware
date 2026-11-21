@@ -104,6 +104,8 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
         SharedCalendars.FindAsync(default!, default).ReturnsForAnyArgs(Error.NotFound("no calendar"));
         SharedCalendars.EnsureAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
         SharedCalendars.DeleteAsync(default!, default).ReturnsForAnyArgs(Result.Success());
+        Subscriptions.ListAsync(default, default).ReturnsForAnyArgs(Result<IReadOnlyList<Nightware.Application.Administration.Subscriptions.ManagedSubscription>>.Success([]));
+        Webhooks.DeliverLifecycleAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
         Mailboxes.ListAsync(default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<SharedMailbox>>.Success([]));
         Mailboxes.GetAsync(default!, default!, default).ReturnsForAnyArgs(Error.NotFound("no shared mailbox"));
         Mailboxes.ListMembersAsync(default!, default!, default).ReturnsForAnyArgs(Result<IReadOnlyList<IdentityAccount>>.Success([]));
@@ -159,6 +161,10 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
     public IGroupwareGroups GroupwareGroups { get; } = Substitute.For<IGroupwareGroups>();
 
     public ISharedCalendars SharedCalendars { get; } = Substitute.For<ISharedCalendars>();
+
+    public Nightware.Application.Administration.Subscriptions.IChangeSubscriptions Subscriptions { get; } = Substitute.For<Nightware.Application.Administration.Subscriptions.IChangeSubscriptions>();
+
+    public Nightware.Application.Subscriptions.INotificationEndpoint Webhooks { get; } = Substitute.For<Nightware.Application.Subscriptions.INotificationEndpoint>();
 
     public IEntityMailboxes Mailboxes { get; } = Substitute.For<IEntityMailboxes>();
 
@@ -266,6 +272,9 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
             services.AddSingleton<TimeProvider>(Time);
             services.AddSingleton(Entities).AddSingleton(Identities).AddSingleton(Scopes).AddSingleton(Mail).AddSingleton(MailDomains).AddSingleton(Groupware).AddSingleton(DnsHosting).AddSingleton(PublicDns);
             services.AddSingleton(Groups).AddSingleton(Lists).AddSingleton(GroupwareGroups).AddSingleton(Mailboxes).AddSingleton(SharedMail).AddSingleton(SharedCalendars);
+            services.RemoveAll<Nightware.Application.Administration.Subscriptions.IChangeSubscriptions>();
+            services.RemoveAll<Nightware.Application.Subscriptions.INotificationEndpoint>();
+            services.AddSingleton(Subscriptions).AddSingleton(Webhooks);
             services.RemoveAll<IGrafanaStatus>();
             services.AddSingleton(Grafana);
             services.RemoveAll<IBackendStatus>();

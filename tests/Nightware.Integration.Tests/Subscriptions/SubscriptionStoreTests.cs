@@ -200,4 +200,27 @@ public sealed class SubscriptionStoreTests : IAsyncLifetime
         await using var count = _source!.CreateCommand("SELECT count(*) FROM nightware_subscription_items");
         ((long)(await count.ExecuteScalarAsync(Ct))!).ShouldBe(0L);
     }
+
+    [Fact]
+    public async Task The_console_lists_subscriptions_with_their_polling_state_and_removes_one()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Live integration tests run only with NIGHTWARE_INTEGRATION=1.");
+        var schema = new SubscriptionSchema(_source!);
+        var store = new PostgresSubscriptionStore(_source!, new CredentialSealer(new string('c', 64)), schema);
+        var console = new Nightware.Adapters.Subscriptions.Administration.PostgresChangeSubscriptions(_source!, schema);
+        var erin = New("erin") with { ExpirationDateTime = DateTimeOffset.UtcNow.AddDays(1) };
+        var frank = New("frank") with { ExpirationDateTime = DateTimeOffset.UtcNow.AddDays(2) };
+        await store.CreateAsync(erin, "r1", Ct);
+        await store.CreateAsync(frank, "r2", Ct);
+        await store.CompletePollAsync(erin.Id, "s1", null, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1), 3, Ct);
+        await store.MarkReauthorizationRequestedAsync(erin.Id, DateTimeOffset.UtcNow, Ct);
+
+        var mine = (await console.ListAsync("erin", Ct)).Value.ShouldHaveSingleItem();
+        (mine.Subscription.Id, mine.Failures, mine.Health).ShouldBe((erin.Id, 3, Nightware.Application.Administration.Subscriptions.SubscriptionHealth.WaitingForReauthorization));
+        (await console.ListAsync(null, Ct)).Value.Select(s => s.Subscription.CreatorId).ShouldContain("frank");
+
+        (await console.RemoveAsync(erin.Id, Ct)).Value.Id.ShouldBe(erin.Id);
+        (await console.RemoveAsync(erin.Id, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        (await store.GetAsync("erin", erin.Id, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
 }

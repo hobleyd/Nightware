@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Nightware.Adapters.Cloudflare.Administration;
 using Nightware.Adapters.DnsHosts.Administration;
 using Nightware.Adapters.Dav.Administration;
+using Nightware.Adapters.Subscriptions.Administration;
 using Nightware.Adapters.Directory;
 using Nightware.Adapters.Directory.Administration;
 using Nightware.Adapters.Jmap.Administration;
@@ -152,6 +153,7 @@ public static partial class AdminComposition
             .AddKeycloakAdministration()
             .AddStalwartAdministration(configuration)
             .AddNextcloudAdministration(configuration)
+            .AddSubscriptionAdministration(configuration)
             .AddCloudflareAdministration(configuration)
             .AddDnsHostsAdministration(configuration);
 

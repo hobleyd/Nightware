@@ -63,6 +63,9 @@ public static class AdministrationServiceCollectionExtensions
         services.TryAddScoped<SetUserAliases>();
         services.TryAddScoped<SetUserProfile>();
         services.TryAddScoped<VerifyUserEmail>();
+        services.TryAddScoped<Subscriptions.ListUserSubscriptions>();
+        services.TryAddScoped<Subscriptions.ListAllSubscriptions>();
+        services.TryAddScoped<Subscriptions.RemoveSubscription>();
         services.TryAddScoped<ResetUserCredential>();
         services.TryAddScoped<OffboardUser>();
         services.TryAddScoped<ReinstateUser>();

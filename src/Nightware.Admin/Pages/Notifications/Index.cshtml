@@ -1,0 +1,44 @@
+@page "/notifications"
+@model Nightware.Admin.Pages.Notifications.IndexModel
+@{ ViewData["Title"] = "Change notifications"; }
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
+<section class="panel">
+<h1>Change notifications</h1>
+<partial name="_Messages" />
+<p>Apps that people signed in to and that asked to be told when mail, calendars, contacts or tasks change. Nightware checks for changes about every ten seconds and posts them to the app's own address. Each subscription expires within days unless the app renews it.</p>
+@if (Model.NotConfigured)
+{
+    <p><strong>Change notifications are not configured for the console.</strong> Give it the subscription store's connection string (<code>Subscriptions__ConnectionString</code>) to see and remove subscriptions here.</p>
+}
+else if (Model.Subscriptions.Count == 0)
+{
+    <p>No app is subscribed.</p>
+}
+else
+{
+    <table aria-label="Change notification subscriptions">
+        <thead><tr><th>Person</th><th>What</th><th>App</th><th>Notifies</th><th>Until</th><th>State</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var o in Model.Subscriptions)
+        {
+            var s = o.Subscription;
+            <tr>
+                <td>@if (o.User is { } user) { <a asp-page="/Users/Detail" asp-route-id="@user.Id">@user.DisplayName</a> } else { <span class="hint">No longer in Keycloak</span> }</td>
+                <td data-label="What">@Systems.SubscriptionResource(s.Subscription)</td>
+                <td data-label="App">@(s.Subscription.ApplicationId ?? "unknown")</td>
+                <td data-label="Notifies">@s.Subscription.NotificationUrl.Host</td>
+                <td data-label="Until">@s.Subscription.ExpirationDateTime.ToString("d MMM yyyy HH:mm 'UTC'", System.Globalization.CultureInfo.InvariantCulture)</td>
+                <td data-label="State"><span class="chip @Systems.SubscriptionHealthClass(s.Health)">@Systems.SubscriptionHealthLabel(s)</span></td>
+                <td>
+                    <form method="post" asp-page-handler="Remove" class="inline">
+                        <input type="hidden" name="userId" value="@s.Subscription.CreatorId">
+                        <input type="hidden" name="subscriptionId" value="@s.Subscription.Id">
+                        <button type="submit" class="secondary">Remove</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+</section>

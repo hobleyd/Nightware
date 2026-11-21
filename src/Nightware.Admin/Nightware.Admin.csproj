@@ -6,6 +6,7 @@
     <ProjectReference Include="..\Nightware.Adapters.Jmap\Nightware.Adapters.Jmap.csproj" />
     <ProjectReference Include="..\Nightware.Adapters.Dav\Nightware.Adapters.Dav.csproj" />
     <ProjectReference Include="..\Nightware.Adapters.Directory\Nightware.Adapters.Directory.csproj" />
+    <ProjectReference Include="..\Nightware.Adapters.Subscriptions\Nightware.Adapters.Subscriptions.csproj" />
     <ProjectReference Include="..\Nightware.Application\Nightware.Application.csproj" />
     <ProjectReference Include="..\Nightware.Hosting\Nightware.Hosting.csproj" />
   </ItemGroup>

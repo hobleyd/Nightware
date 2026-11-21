@@ -76,6 +76,35 @@
             }
         </ul>
     }
+    @if (Model.Subscriptions is { Count: > 0 } subscriptions)
+    {
+        <h2>Apps notified of changes</h2>
+        <p class="hint">Apps @id.DisplayName signed in to that are told when their mail, calendar, contacts or tasks change. Removing one stops it and tells the app.</p>
+        <table aria-label="Change notification subscriptions">
+            <thead><tr><th>What</th><th>App</th><th>Notifies</th><th>Until</th><th>State</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var s in subscriptions)
+            {
+                <tr>
+                    <td data-label="What">@Systems.SubscriptionResource(s.Subscription)</td>
+                    <td data-label="App">@(s.Subscription.ApplicationId ?? "unknown")</td>
+                    <td data-label="Notifies">@s.Subscription.NotificationUrl.Host</td>
+                    <td data-label="Until">@s.Subscription.ExpirationDateTime.ToString("d MMM yyyy HH:mm 'UTC'", System.Globalization.CultureInfo.InvariantCulture)</td>
+                    <td data-label="State"><span class="chip @Systems.SubscriptionHealthClass(s.Health)">@Systems.SubscriptionHealthLabel(s)</span></td>
+                    <td>
+                        @if (offLimits is null)
+                        {
+                            <form method="post" asp-page-handler="RemoveSubscription" class="inline">
+                                <input type="hidden" name="subscriptionId" value="@s.Subscription.Id">
+                                <button type="submit" class="secondary">Remove</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
     @if (offLimits is not null)
     {
         <p><strong>@offLimits</strong> The console shows this account but never changes it, so it offers no actions here.</p>
