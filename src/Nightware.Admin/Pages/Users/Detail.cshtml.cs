@@ -19,6 +19,7 @@ public sealed class DetailModel(
     ResetUserCredential reset,
     SetUserAliases setAliases,
     SetUserProfile setProfile,
+    VerifyUserEmail verifyEmail,
     OffboardUser offboard,
     ReinstateUser reinstate,
     SetGlobalAdmin setGlobalAdmin,
@@ -50,6 +51,9 @@ public sealed class DetailModel(
 
     public async Task<IActionResult> OnPostRepairAsync(CancellationToken cancellationToken) =>
         await AfterAsync(await repair.ExecuteAsync(Id, cancellationToken), "Repair finished.", cancellationToken);
+
+    public async Task<IActionResult> OnPostVerifyEmailAsync(CancellationToken cancellationToken) =>
+        await AfterAsync(await verifyEmail.ExecuteAsync(Id, cancellationToken), "Email marked verified.", cancellationToken);
 
     public async Task<IActionResult> OnPostResetAsync(CredentialDelivery delivery, CancellationToken cancellationToken)
     {

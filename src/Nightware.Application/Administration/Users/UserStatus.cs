@@ -14,6 +14,9 @@ public enum UserStatus
     /// <summary>Signs in, but a system holds an account that disagrees: never merged automatically.</summary>
     Conflict,
 
+    /// <summary>Signs in, but their email is not marked verified, so the façade refuses their mail apps.</summary>
+    EmailNotVerified,
+
     /// <summary>Sign-in is disabled, but a mailbox or Nextcloud account may still let them in.</summary>
     OffboardingIncomplete,
 
@@ -35,6 +38,11 @@ public static class UserStatuses
         if (user.Links.Any(static l => l.State == LinkState.Conflict))
         {
             return UserStatus.Conflict;
+        }
+
+        if (!user.User.Identity.EmailVerified)
+        {
+            return UserStatus.EmailNotVerified;
         }
 
         // A list read from Keycloak alone (very large entities) carries only the identity link: nothing to doubt.

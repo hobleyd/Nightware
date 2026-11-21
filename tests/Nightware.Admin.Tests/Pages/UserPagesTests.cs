@@ -156,6 +156,31 @@ public sealed class UserPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task An_unverified_email_is_shown_and_can_be_marked_verified()
+    {
+        var dan = _host.AddUser("u-dan", "dan", "dan@acme.example");
+        _host.Identities.GetAsync("u-dan", Arg.Any<CancellationToken>()).Returns(dan with { EmailVerified = false });
+        _host.Identities.MarkEmailVerifiedAsync("u-dan", Arg.Any<CancellationToken>()).Returns(Result.Success());
+        HttpClient client = _host.ClientAs(ConsoleHost.EntityAdmin);
+
+        string html = await client.GetStringAsync("/users/u-dan", Ct);
+        html.ShouldContain("Email not verified");
+        html.ShouldContain("handler=VerifyEmail");
+
+        using HttpResponseMessage done = await ConsoleHost.PostFormAsync(client, "/users/u-dan", "/users/u-dan?handler=VerifyEmail", new Dictionary<string, string>());
+        done.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        await _host.Identities.Received(1).MarkEmailVerifiedAsync("u-dan", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_verified_user_offers_no_verify_button()
+    {
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+
+        (await _host.ClientAs(ConsoleHost.EntityAdmin).GetStringAsync("/users/u-dan", Ct)).ShouldNotContain("handler=VerifyEmail");
+    }
+
+    [Fact]
     public async Task The_profile_form_saves_each_field_and_splits_the_work_phones()
     {
         _host.AddUser("u-dan", "dan", "dan@acme.example");

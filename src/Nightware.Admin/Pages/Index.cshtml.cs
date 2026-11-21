@@ -24,6 +24,7 @@ public sealed class IndexModel(
     GetUser getUser,
     OffboardUser offboard,
     RepairUser repair,
+    VerifyUserEmail verifyEmail,
     AddEntityDomain repairDomain,
     AdministrationOptions options,
     IGrafanaStatus grafana,
@@ -98,6 +99,9 @@ public sealed class IndexModel(
 
     public async Task<IActionResult> OnPostRepairUserAsync(string userId, CancellationToken cancellationToken) =>
         await AfterAsync(await repair.ExecuteAsync(userId, cancellationToken), u => $"Repair finished for {u.User.Identity.DisplayName}.", cancellationToken);
+
+    public async Task<IActionResult> OnPostVerifyEmailAsync(string userId, CancellationToken cancellationToken) =>
+        await AfterAsync(await verifyEmail.ExecuteAsync(userId, cancellationToken), u => $"{u.User.Identity.DisplayName}'s email is marked verified.", cancellationToken);
 
     public async Task<IActionResult> OnPostRepairDomainAsync(string entityId, string domain, CancellationToken cancellationToken) =>
         await AfterAsync(await repairDomain.ExecuteAsync(entityId, domain, cancellationToken), Systems.DomainRepairNotice, cancellationToken);

@@ -86,7 +86,7 @@ public sealed class GetAttention(IAdminActor actor, ListEntities entities, GetEn
             {
                 users.AddRange(members.Value
                     .Select(u => new UserNeedingAttention(u, UserStatuses.Of(u), entity))
-                    .Where(static u => u.Status is UserStatus.OffboardingIncomplete or UserStatus.Conflict or UserStatus.NeedsRepair));
+                    .Where(static u => u.Status is UserStatus.OffboardingIncomplete or UserStatus.Conflict or UserStatus.EmailNotVerified or UserStatus.NeedsRepair));
             }
         }
 
@@ -116,7 +116,8 @@ public sealed class GetAttention(IAdminActor actor, ListEntities entities, GetEn
     {
         UserStatus.OffboardingIncomplete => 0,
         UserStatus.Conflict => 1,
-        _ => 2,
+        UserStatus.EmailNotVerified => 2,
+        _ => 3,
     };
 
     private static MailAuthenticationWeakness[] UnsafeIn(DomainMailPolicy policy) =>

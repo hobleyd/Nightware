@@ -16,6 +16,7 @@ internal static class KeycloakAdministrationMapper
             FirstName = Blank(user.FirstName),
             LastName = Blank(user.LastName),
             Aliases = Values(user, KeycloakAdminNames.AliasesAttribute),
+            EmailVerified = user.EmailVerified,
             Profile = new UserProfile
             {
                 JobTitle = Blank(user.Attribute(KeycloakAdminNames.JobTitleAttribute)),

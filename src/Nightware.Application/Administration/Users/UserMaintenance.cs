@@ -63,6 +63,30 @@ public sealed class RepairUser(IAdminActor actor, UserAccess users, IMailAccount
 }
 
 /// <summary>
+/// Marks a user's email verified in Keycloak. The façade refuses tokens without <c>email_verified</c> (the email names
+/// the mailbox), so until this a person created outside the console cannot use their mail apps.
+/// </summary>
+public sealed class VerifyUserEmail(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IAuditLog audit)
+{
+    public async Task<Result<UserDetail>> ExecuteAsync(string userId, CancellationToken cancellationToken)
+    {
+        Result<UserDetail> loaded = await users.LoadWithLinksAsync(userId, cancellationToken).ConfigureAwait(false);
+        if (!loaded.IsSuccess)
+        {
+            return loaded.Error;
+        }
+
+        Result result = await identities.MarkEmailVerifiedAsync(userId, cancellationToken).ConfigureAwait(false);
+        audit.Record(new AuditEvent("user.email.verified", actor.Current.UserId, result.IsSuccess)
+        {
+            TargetUserId = userId,
+            EntityId = loaded.Value.User.EntityId,
+        });
+        return result.IsSuccess ? await users.LoadWithLinksAsync(userId, cancellationToken).ConfigureAwait(false) : result.Error;
+    }
+}
+
+/// <summary>
 /// Replaces a user's Graph profile fields (job title, department, company, office, phones) in Keycloak, where the
 /// façade's directory reads them. Values are trimmed and capped as the realm's user profile declares them.
 /// </summary>

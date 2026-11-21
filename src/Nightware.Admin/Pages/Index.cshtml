@@ -59,6 +59,9 @@
                                 case Nightware.Application.Administration.Users.UserStatus.OffboardingIncomplete:
                                     <form method="post" asp-page-handler="FinishOffboarding" class="inline"><input type="hidden" name="userId" value="@identity.Id"><button type="submit" class="secondary">Finish offboarding</button></form>
                                     break;
+                                case Nightware.Application.Administration.Users.UserStatus.EmailNotVerified:
+                                    <form method="post" asp-page-handler="VerifyEmail" class="inline"><input type="hidden" name="userId" value="@identity.Id"><button type="submit" class="secondary">Mark email verified</button></form>
+                                    break;
                                 case Nightware.Application.Administration.Users.UserStatus.NeedsRepair:
                                     <form method="post" asp-page-handler="RepairUser" class="inline"><input type="hidden" name="userId" value="@identity.Id"><button type="submit" class="secondary">Repair</button></form>
                                     break;

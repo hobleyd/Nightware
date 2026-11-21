@@ -63,6 +63,9 @@ public sealed record IdentityAccount(string Id, string Username, string Email, b
     /// <summary>Secondary addresses (Keycloak attribute <c>nightware_aliases</c>).</summary>
     public IReadOnlyList<string> Aliases { get; init; } = [];
 
+    /// <summary>Keycloak's <c>emailVerified</c>. The façade refuses a token without it, so an unverified person's mail apps cannot connect.</summary>
+    public bool EmailVerified { get; init; } = true;
+
     /// <summary>The Graph profile fields (<c>jobTitle</c>, <c>department</c>, …) the façade's directory shows.</summary>
     public UserProfile Profile { get; init; } = UserProfile.Empty;
 

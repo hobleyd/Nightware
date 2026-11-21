@@ -82,6 +82,13 @@
     }
     else if (id.Enabled)
     {
+        @if (!id.EmailVerified)
+        {
+            <form method="post" asp-page-handler="VerifyEmail" class="row">
+                <p class="hint">@id.Email is not marked verified, so mail and calendar apps are refused until it is. Mark it verified once you know the address is theirs.</p>
+                <button type="submit">Mark email verified</button>
+            </form>
+        }
         <form method="post" asp-page-handler="Repair"><button type="submit" class="@(status == Nightware.Application.Administration.Users.UserStatus.NeedsRepair ? null : "secondary")">Repair</button> <span class="hint">Creates what is missing; never changes a conflicting account.</span></form>
     }
 </section>

@@ -173,6 +173,33 @@ public sealed class UserLifecycleTests
         UserStatuses.Of(User(true, LinkState.Linked, LinkState.Conflict)).ShouldBe(UserStatus.Conflict);
         UserStatuses.Of(User(false, LinkState.Error, LinkState.Disabled)).ShouldBe(UserStatus.OffboardingIncomplete);
         UserStatuses.Of(User(false, LinkState.Disabled, LinkState.Missing)).ShouldBe(UserStatus.Offboarded);
+
+        var unverified = User(true, LinkState.Missing, LinkState.Linked);
+        UserStatuses.Of(unverified with { User = unverified.User with { Identity = unverified.User.Identity with { EmailVerified = false } } })
+            .ShouldBe(UserStatus.EmailNotVerified, "their mail apps are refused, which matters more than a missing account");
+    }
+
+    [Fact]
+    public async Task Marking_an_email_verified_writes_keycloak_and_is_audited()
+    {
+        Carol();
+        _bed.Identities.MarkEmailVerifiedAsync("u-carol", Arg.Any<CancellationToken>()).Returns(Result.Success());
+
+        (await new VerifyUserEmail(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Audit).ExecuteAsync("u-carol", Ct)).IsSuccess.ShouldBeTrue();
+
+        await _bed.Identities.Received(1).MarkEmailVerifiedAsync("u-carol", Arg.Any<CancellationToken>());
+        _bed.Audit.Single("user.email.verified").Succeeded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Only_a_user_within_reach_can_be_marked_verified()
+    {
+        Carol();
+        _bed.ActAsNobody();
+
+        (await new VerifyUserEmail(_bed.Actor, _bed.UserAccess(), _bed.Identities, _bed.Audit).ExecuteAsync("u-carol", Ct)).IsSuccess.ShouldBeFalse();
+
+        await _bed.Identities.DidNotReceiveWithAnyArgs().MarkEmailVerifiedAsync(default!, Ct);
     }
 
     [Fact]

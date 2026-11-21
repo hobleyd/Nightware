@@ -212,6 +212,7 @@ public static class Systems
         UserStatus.Active => "Active",
         UserStatus.NeedsRepair => "Needs repair",
         UserStatus.Conflict => "Conflict",
+        UserStatus.EmailNotVerified => "Email not verified",
         UserStatus.OffboardingIncomplete => "Offboarding incomplete",
         _ => "Offboarded",
     };
@@ -221,6 +222,7 @@ public static class Systems
     {
         UserStatus.Active => "linked",
         UserStatus.NeedsRepair => "pending",
+        UserStatus.EmailNotVerified => "pending",
         UserStatus.Offboarded => "disabled",
         _ => "error",
     };
