@@ -1,0 +1,19 @@
+{
+  "operationId": "calendar.events.dismiss-reminder",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/events/AAMk-id-0010=/dismissReminder",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {},
+    "body": null
+  }
+}

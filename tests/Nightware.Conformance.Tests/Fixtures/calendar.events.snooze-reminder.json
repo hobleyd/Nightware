@@ -1,0 +1,25 @@
+{
+  "operationId": "calendar.events.snooze-reminder",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/events/AAMk-id-0010=/snoozeReminder",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "newReminderTime": {
+        "dateTime": "2026-11-20T23:08:00",
+        "timeZone": "UTC"
+      }
+    }
+  },
+  "response": {
+    "status": 202,
+    "headers": {},
+    "body": null
+  }
+}

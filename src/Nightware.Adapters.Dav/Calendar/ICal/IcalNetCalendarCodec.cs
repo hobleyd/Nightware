@@ -197,6 +197,8 @@ public sealed class IcalNetCalendarCodec : IICalendarCodec
                 : null,
             IsReminderOn = reminderOn,
             ReminderMinutesBeforeStart = reminderMinutes,
+            ReminderAcknowledged = Acknowledged(vevent, zones),
+            ReminderSnoozedUntil = SnoozedUntil(vevent, zones),
             IsOnlineMeeting = !string.IsNullOrWhiteSpace(onlineUrl),
             OnlineMeetingUrl = string.IsNullOrWhiteSpace(onlineUrl) ? null : onlineUrl.Trim(),
             Categories = vevent.Categories?.Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim()).Distinct(StringComparer.Ordinal).ToList() ?? [],
@@ -340,9 +342,31 @@ public sealed class IcalNetCalendarCodec : IICalendarCodec
         return (location, (location is null ? others : others.Prepend(location)).ToList());
     }
 
+    /// <summary>RFC 9074: an alarm added by a snooze names the alarm it snoozes with <c>RELATED-TO;RELTYPE=SNOOZE</c>.</summary>
+    internal static bool IsSnooze(Alarm alarm) =>
+        alarm.Properties.Get<string>("RELATED-TO") is not null
+        && alarm.Properties["RELATED-TO"]?.Parameters.Get("RELTYPE") is { } type
+        && string.Equals(type, "SNOOZE", StringComparison.OrdinalIgnoreCase);
+
+    private static DateTimeOffset? Acknowledged(IcalEvent vevent, IcalZoneContext zones) =>
+        vevent.Alarms.Where(static a => !IsSnooze(a)).Select(a => AcknowledgedOf(a, zones)).Max();
+
+    /// <summary>The latest snooze alarm not itself acknowledged.</summary>
+    private static DateTimeOffset? SnoozedUntil(IcalEvent vevent, IcalZoneContext zones) =>
+        vevent.Alarms.Where(IsSnooze).Where(a => AcknowledgedOf(a, zones) is null)
+            .Select(a => a.Trigger?.DateTime is { } at ? zones.ToInstant(at) : (DateTimeOffset?)null).Max();
+
+    private static DateTimeOffset? AcknowledgedOf(Alarm alarm, IcalZoneContext zones) =>
+        alarm.Properties["ACKNOWLEDGED"]?.Value switch
+        {
+            CalDateTime at => zones.ToInstant(at),
+            string text when DateTimeOffset.TryParseExact(text, "yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var at) => at,
+            _ => null,
+        };
+
     private static (bool On, int Minutes) Reminder(IcalEvent vevent, CalDateTime? dtStart, DateTimeTimeZone start, DateTimeTimeZone end, IcalZoneContext zones)
     {
-        var alarm = vevent.Alarms.FirstOrDefault(a => a.Trigger is not null && !string.Equals(a.Action, "NONE", StringComparison.OrdinalIgnoreCase));
+        var alarm = vevent.Alarms.FirstOrDefault(a => a.Trigger is not null && !IsSnooze(a) && !string.Equals(a.Action, "NONE", StringComparison.OrdinalIgnoreCase));
         if (alarm?.Trigger is not { } trigger)
         {
             return (false, 0);

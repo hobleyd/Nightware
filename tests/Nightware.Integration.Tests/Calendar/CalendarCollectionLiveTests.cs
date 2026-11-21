@@ -111,4 +111,35 @@ public sealed class CalendarCollectionLiveTests : IAsyncLifetime
         var afterDelete = await SendAsync(alice, HttpMethod.Get, LiveStack.Local(afterCreate["@odata.deltaLink"]!.GetValue<string>()));
         afterDelete["value"]!.AsArray().ShouldContain(e => e!["id"]!.GetValue<string>() == id && e["@removed"] != null);
     }
+
+    [Fact]
+    public async Task A_reminder_is_due_snoozed_and_dismissed()
+    {
+        var alice = await _stack.GraphClientAsync(Alice, Ct);
+        var now = DateTime.UtcNow;
+        var start = now.AddHours(1);
+        var created = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/events", $$$"""
+            {"subject":"Remind {{{_run}}}","isReminderOn":true,"reminderMinutesBeforeStart":15,
+             "start":{"dateTime":"{{{start:yyyy-MM-ddTHH:mm:ss}}}","timeZone":"UTC"},"end":{"dateTime":"{{{start.AddMinutes(30):yyyy-MM-ddTHH:mm:ss}}}","timeZone":"UTC"}}
+            """, HttpStatusCode.Created);
+        var id = created["id"]!.GetValue<string>();
+        var view = $"/v1.0/me/reminderView(startDateTime='{now:yyyy-MM-ddTHH:mm:ss}',endDateTime='{now.AddDays(1):yyyy-MM-ddTHH:mm:ss}')";
+        try
+        {
+            var due = (await SendAsync(alice, HttpMethod.Get, view))["value"]!.AsArray().Single(r => r!["eventId"]!.GetValue<string>() == id)!;
+            due["reminderFireTime"]!["dateTime"]!.GetValue<string>().ShouldStartWith($"{start.AddMinutes(-15):yyyy-MM-ddTHH:mm}");
+
+            var snoozeTo = now.AddMinutes(30);
+            await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/events/{id}/snoozeReminder", $$$"""{"newReminderTime":{"dateTime":"{{{snoozeTo:yyyy-MM-ddTHH:mm:ss}}}","timeZone":"UTC"}}""");
+            var snoozed = (await SendAsync(alice, HttpMethod.Get, view))["value"]!.AsArray().Single(r => r!["eventId"]!.GetValue<string>() == id)!;
+            snoozed["reminderFireTime"]!["dateTime"]!.GetValue<string>().ShouldStartWith($"{snoozeTo:yyyy-MM-ddTHH:mm}");
+
+            await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/events/{id}/dismissReminder");
+            (await SendAsync(alice, HttpMethod.Get, view))["value"]!.AsArray().ShouldNotContain(r => r!["eventId"]!.GetValue<string>() == id);
+        }
+        finally
+        {
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/events/{id}", expected: HttpStatusCode.NoContent);
+        }
+    }
 }

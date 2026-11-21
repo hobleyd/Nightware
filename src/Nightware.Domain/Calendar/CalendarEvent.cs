@@ -136,6 +136,12 @@ public sealed record CalendarEvent(EventId Id, string? Subject, DateTimeTimeZone
 
     public int ReminderMinutesBeforeStart { get; init; }
 
+    /// <summary>The reminder was dismissed or snoozed at this time (RFC 9074 <c>ACKNOWLEDGED</c>): it covers fire times up to it.</summary>
+    public DateTimeOffset? ReminderAcknowledged { get; init; }
+
+    /// <summary>A snoozed reminder fires again at this time.</summary>
+    public DateTimeOffset? ReminderSnoozedUntil { get; init; }
+
     public bool IsOnlineMeeting { get; init; }
 
     public string? OnlineMeetingUrl { get; init; }

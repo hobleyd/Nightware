@@ -97,3 +97,48 @@ public sealed class CalendarCollectionUseCaseTests
     [InlineData(null, "auto")]
     public void Stored_hex_reads_as_graph_colour(string? hex, string color) => CalendarColors.FromHex(hex).ShouldBe(color);
 }
+
+public sealed class ReminderUseCaseTests
+{
+    private static readonly MailboxRef Me = new("me@example.com");
+    private static readonly DateTimeOffset Now = new(2026, 12, 1, 9, 0, 0, TimeSpan.Zero);
+    private readonly Nightware.Application.Calendar.ICalendarReader _reader = Substitute.For<Nightware.Application.Calendar.ICalendarReader>();
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    private static CalendarEvent At(string id, int hour, bool reminder = true) =>
+        new(new EventId(id), id, new DateTimeTimeZone(new DateTime(2026, 12, 1, hour, 0, 0), "UTC"), new DateTimeTimeZone(new DateTime(2026, 12, 1, hour, 30, 0), "UTC"))
+        {
+            IsReminderOn = reminder,
+            ReminderMinutesBeforeStart = 15,
+        };
+
+    [Fact]
+    public async Task The_view_holds_due_reminders_snoozed_at_their_snooze_time_without_dismissed_ones()
+    {
+        _reader.CalendarViewAsync(Me, Now, Now.AddDays(1), Arg.Any<ItemQuery>(), Ct).Returns(new Page<CalendarEvent>(
+        [
+            At("plain", 10),
+            At("off", 11, reminder: false),
+            At("dismissed", 12) with { ReminderAcknowledged = new DateTimeOffset(2026, 12, 1, 11, 45, 0, TimeSpan.Zero) },
+            At("snoozed", 13) with { ReminderAcknowledged = Now, ReminderSnoozedUntil = Now.AddMinutes(10) },
+        ]));
+
+        var reminders = (await new GetReminderView(_reader).ExecuteAsync(Me, Now, Now.AddDays(1), Ct)).Value;
+
+        reminders.Select(r => (r.EventId.Value, r.ReminderFireTime.DateTime.Hour, r.ReminderFireTime.DateTime.Minute)).ShouldBe([("snoozed", 9, 10), ("plain", 9, 45)]);
+    }
+
+    [Fact]
+    public async Task Snooze_needs_a_time_and_a_backwards_window_is_refused()
+    {
+        var reminders = Substitute.For<ICalendarReminders>();
+
+        (await new SnoozeReminder(reminders).ExecuteAsync(Me, new EventId("e"), null, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await new GetReminderView(_reader).ExecuteAsync(Me, Now, Now.AddDays(-1), Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        await new SnoozeReminder(reminders).ExecuteAsync(Me, new EventId("e"), new DateTimeTimeZone(new DateTime(2026, 12, 1, 9, 30, 0), "UTC"), Ct);
+        await reminders.Received(1).SnoozeAsync(Me, new EventId("e"), Now.AddMinutes(30), Ct);
+        await new DismissReminder(reminders).ExecuteAsync(Me, new EventId("e"), Ct);
+        await reminders.Received(1).DismissAsync(Me, new EventId("e"), Ct);
+    }
+}

@@ -1,0 +1,76 @@
+{
+  "operationId": "calendar.reminder-view",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/reminderView(startDateTime='2026-11-20T22:38:00',endDateTime='2026-11-21T22:38:00')",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Prefer": "outlook.timezone=\"UTC\""
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(microsoft.graph.reminder)",
+      "value": [
+        {
+          "eventId": "AAMk-id-0010=",
+          "changeKey": "AAMk-changeKey-0007=",
+          "eventSubject": "Nightware capture ae6347 single",
+          "eventWebLink": "https://outlook.office365.com/owa/?itemid=AAMk-ref-0006=&exvsurl=1&path=/calendar/item",
+          "eventStartTime": {
+            "dateTime": "2026-11-20T23:38:00.0000000",
+            "timeZone": "UTC"
+          },
+          "eventEndTime": {
+            "dateTime": "2026-11-21T00:08:00.0000000",
+            "timeZone": "UTC"
+          },
+          "eventLocation": {
+            "displayName": "",
+            "locationType": "default",
+            "uniqueIdType": "unknown",
+            "address": {},
+            "coordinates": {}
+          },
+          "reminderFireTime": {
+            "dateTime": "2026-11-20T23:23:00.0000000",
+            "timeZone": "UTC"
+          }
+        },
+        {
+          "eventId": "AAMk-id-0006=",
+          "changeKey": "AAMk-changeKey-0006=",
+          "eventSubject": "Nightware capture ae6347 series",
+          "eventWebLink": "https://outlook.office365.com/owa/?itemid=AAMk-ref-0002=&exvsurl=1&path=/calendar/item",
+          "eventStartTime": {
+            "dateTime": "2026-11-21T10:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "eventEndTime": {
+            "dateTime": "2026-11-21T10:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "eventLocation": {
+            "displayName": "",
+            "locationType": "default",
+            "uniqueIdType": "unknown",
+            "address": {},
+            "coordinates": {}
+          },
+          "reminderFireTime": {
+            "dateTime": "2026-11-21T09:45:00.0000000",
+            "timeZone": "UTC"
+          }
+        }
+      ]
+    }
+  }
+}

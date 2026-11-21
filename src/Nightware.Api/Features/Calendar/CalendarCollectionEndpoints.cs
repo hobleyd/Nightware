@@ -77,6 +77,42 @@ public sealed record CalendarOwnerDto
     public string? Address { get; init; }
 }
 
+/// <summary>Graph <c>reminder</c>.</summary>
+public sealed record ReminderDto
+{
+    public string? EventId { get; init; }
+
+    public DateTimeTimeZoneDto? EventStartTime { get; init; }
+
+    public DateTimeTimeZoneDto? EventEndTime { get; init; }
+
+    public string? EventSubject { get; init; }
+
+    public LocationDto? EventLocation { get; init; }
+
+    public DateTimeTimeZoneDto? ReminderFireTime { get; init; }
+
+    public static ReminderDto From(Reminder reminder, PreferHeader prefer)
+    {
+        ArgumentNullException.ThrowIfNull(reminder);
+        return new ReminderDto
+        {
+            EventId = reminder.EventId.Value,
+            EventStartTime = EventDtoMapper.ToDto(reminder.EventStartTime, false, prefer),
+            EventEndTime = EventDtoMapper.ToDto(reminder.EventEndTime, false, prefer),
+            EventSubject = reminder.EventSubject,
+            EventLocation = new LocationDto { DisplayName = reminder.EventLocation?.DisplayName ?? string.Empty },
+            ReminderFireTime = EventDtoMapper.ToDto(reminder.ReminderFireTime, false, prefer),
+        };
+    }
+}
+
+/// <summary>Request body of <c>snoozeReminder</c>.</summary>
+public sealed record SnoozeRequestDto
+{
+    public DateTimeTimeZoneDto? NewReminderTime { get; init; }
+}
+
 /// <summary>Graph <c>calendarGroup</c>.</summary>
 public sealed record CalendarGroupDto
 {
@@ -113,6 +149,9 @@ internal static class CalendarCollectionEndpoints
             scope.MapGet("/calendars/{calendarId}/calendarView", CalendarViewAsync);
             scope.MapGet("/events/{eventId}/instances", InstancesAsync);
             scope.MapGet("/calendarView/delta", CalendarViewDeltaAsync);
+            scope.MapGet("/reminderView(startDateTime={start},endDateTime={end})", ReminderViewAsync);
+            scope.MapPost("/events/{eventId}/snoozeReminder", SnoozeAsync);
+            scope.MapPost("/events/{eventId}/dismissReminder", DismissAsync);
             scope.MapGet("/calendarGroups", ListGroupsAsync);
             scope.MapGet("/calendarGroups/{groupId}/calendars", ListGroupCalendarsAsync);
         }
@@ -220,6 +259,46 @@ internal static class CalendarCollectionEndpoints
             prefer.MarkTimeZoneApplied(http.Response);
             return GraphResults.Delta(p, e => EventDtoMapper.ToDto(e, prefer), c, "event", "#microsoft.graph.event");
         });
+    }
+
+    private static async Task<IResult> ReminderViewAsync(
+        Mailbox mailbox, string start, string end, PreferHeader prefer, HttpContext http, GetReminderView useCase, CancellationToken cancellationToken)
+    {
+        // The function's arguments arrive quoted: reminderView(startDateTime='…',endDateTime='…').
+        var from = ParseLiteral(start, EventEndpoints.StartDateTime);
+        var to = ParseLiteral(end, EventEndpoints.EndDateTime);
+        if (!from.IsSuccess || !to.IsSuccess)
+        {
+            return GraphResults.Error(from.Error ?? to.Error!);
+        }
+
+        var reminders = await useCase.ExecuteAsync(mailbox.Ref, from.Value, to.Value, cancellationToken).ConfigureAwait(false);
+        return GraphResults.Match(reminders, list =>
+        {
+            prefer.MarkTimeZoneApplied(http.Response);
+            return GraphResults.Collection(list.Select(r => ReminderDto.From(r, prefer)), "Collection(microsoft.graph.reminder)", Application.Common.Query.ItemQuery.Default);
+        });
+    }
+
+    private static Result<DateTimeOffset> ParseLiteral(string raw, string name) =>
+        DateTimeOffset.TryParse(Uri.UnescapeDataString(raw).Trim('\''), System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out var value)
+            ? value
+            : Error.Validation($"'{raw}' is not a valid {name}.", name);
+
+    private static async Task<IResult> SnoozeAsync(Mailbox mailbox, string eventId, [FromBody] SnoozeRequestDto? body, SnoozeReminder useCase, CancellationToken cancellationToken)
+    {
+        var time = body?.NewReminderTime is { } t ? new DateTimeTimeZone(t.DateTime, string.IsNullOrWhiteSpace(t.TimeZone) ? "UTC" : t.TimeZone) : null;
+        var result = await useCase.ExecuteAsync(mailbox.Ref, new Nightware.Domain.Kernel.EventId(eventId), time, cancellationToken).ConfigureAwait(false);
+
+        // Exchange accepts a snooze (202) and completes a dismissal (200), as captured.
+        return result.IsSuccess ? Results.Accepted() : GraphResults.Error(result.Error);
+    }
+
+    private static async Task<IResult> DismissAsync(Mailbox mailbox, string eventId, DismissReminder useCase, CancellationToken cancellationToken)
+    {
+        var result = await useCase.ExecuteAsync(mailbox.Ref, new Nightware.Domain.Kernel.EventId(eventId), cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? Results.Ok() : GraphResults.Error(result.Error);
     }
 
     private static async Task<IResult> CreateEventAsync(

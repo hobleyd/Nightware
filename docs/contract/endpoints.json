@@ -4810,5 +4810,105 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/event-delta",
     "notes": "sync-collection: a changed resource's occurrences in the window are upserts; a removed one is @removed under its series' id (its occurrences are dropped by seriesMasterId). 410 when the token has expired."
+  },
+  {
+    "id": "calendar.reminder-view",
+    "phase": 13,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/reminderView(startDateTime='{start}',endDateTime='{end}')",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].eventId",
+      "value[].eventSubject",
+      "value[].eventStartTime",
+      "value[].eventEndTime",
+      "value[].reminderFireTime"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-reminderview",
+    "notes": "Reminders of the default calendar's occurrences starting in the window, not dismissed (RFC 9074 ACKNOWLEDGED), firing at the snooze time when snoozed."
+  },
+  {
+    "id": "calendar.events.snooze-reminder",
+    "phase": 13,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}/snoozeReminder",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "newReminderTime"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-snoozereminder",
+    "notes": "Acknowledges the alarms and adds an RFC 9074 snooze alarm at the new time; 202 as Exchange."
+  },
+  {
+    "id": "calendar.events.dismiss-reminder",
+    "phase": 13,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}/dismissReminder",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-dismissreminder",
+    "notes": "ACKNOWLEDGED up to now, or the occurrence's fire time when later, on every alarm."
   }
 ]

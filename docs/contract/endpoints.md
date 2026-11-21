@@ -324,8 +324,8 @@ operation:
 | Phase 5B — Tasks, mailbox settings, files, threat submission | 14 |
 | Phase 11 — JSON batching (Graph parity) | 2 |
 | Phase 12 — Mail (Graph parity) | 19 |
-| Phase 13 — Calendar (Graph parity) | 15 |
-| **Total** | **112** |
+| Phase 13 — Calendar (Graph parity) | 18 |
+| **Total** | **115** |
 
 ### Phase 2 — Mail, read side
 
@@ -1484,6 +1484,9 @@ operation:
 | [`calendar.events.instances`](#calendareventsinstances) | GET | v1.0 | `{mailbox}/events/{eventId}/instances` | none |
 | [`calendar.calendar-view.delta`](#calendarcalendar-viewdelta) | GET | v1.0 | `{mailbox}/calendarView/delta` | deltaLink |
 | [`calendar.calendar-view.delta-changes`](#calendarcalendar-viewdelta-changes) | GET | v1.0 | `{mailbox}/calendarView/delta` | deltaLink |
+| [`calendar.reminder-view`](#calendarreminder-view) | GET | v1.0 | `{mailbox}/reminderView(startDateTime='{start}',endDateTime='{end}')` | none |
+| [`calendar.events.snooze-reminder`](#calendareventssnooze-reminder) | POST | v1.0 | `{mailbox}/events/{eventId}/snoozeReminder` | none |
+| [`calendar.events.dismiss-reminder`](#calendareventsdismiss-reminder) | POST | v1.0 | `{mailbox}/events/{eventId}/dismissReminder` | none |
 
 #### `calendar.calendars.list`
 
@@ -1621,5 +1624,31 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-delta
 - Notes: sync-collection: a changed resource's occurrences in the window are upserts; a removed one is @removed under its series' id (its occurrences are dropped by seriesMasterId). 410 when the token has expired.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendar-view.delta-changes.json`
+
+#### `calendar.reminder-view`
+
+**GET v1.0 `{mailbox}/reminderView(startDateTime='{start}',endDateTime='{end}')`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].eventId`, `value[].eventSubject`, `value[].eventStartTime`, `value[].eventEndTime`, `value[].reminderFireTime`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-reminderview
+- Notes: Reminders of the default calendar's occurrences starting in the window, not dismissed (RFC 9074 ACKNOWLEDGED), firing at the snooze time when snoozed.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.reminder-view.json`
+
+#### `calendar.events.snooze-reminder`
+
+**POST v1.0 `{mailbox}/events/{eventId}/snoozeReminder`** — forms: me, users; success: 202; paging: none
+
+- Request body: `newReminderTime`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-snoozereminder
+- Notes: Acknowledges the alarms and adds an RFC 9074 snooze alarm at the new time; 202 as Exchange.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.snooze-reminder.json`
+
+#### `calendar.events.dismiss-reminder`
+
+**POST v1.0 `{mailbox}/events/{eventId}/dismissReminder`** — forms: me, users; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-dismissreminder
+- Notes: ACKNOWLEDGED up to now, or the occurrence's fire time when later, on every alarm.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.dismiss-reminder.json`
 
 <!-- END GENERATED -->
