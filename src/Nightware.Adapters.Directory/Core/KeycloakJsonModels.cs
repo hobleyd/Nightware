@@ -7,7 +7,8 @@ internal sealed record TokenEndpointResponse(
     [property: JsonPropertyName("access_token")] string? AccessToken,
     [property: JsonPropertyName("expires_in")] int? ExpiresIn,
     [property: JsonPropertyName("token_type")] string? TokenType,
-    [property: JsonPropertyName("issued_token_type")] string? IssuedTokenType);
+    [property: JsonPropertyName("issued_token_type")] string? IssuedTokenType,
+    [property: JsonPropertyName("refresh_token")] string? RefreshToken = null);
 
 /// <summary>Error response (RFC 6749 §5.2).</summary>
 internal sealed record OAuthErrorResponse(

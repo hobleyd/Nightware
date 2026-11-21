@@ -291,6 +291,48 @@ public sealed class KeycloakTokenClientTests : IDisposable
         token.ToString().ShouldNotContain("secret-token-value");
     }
 
+    private void GivenTokenResponse(string json, int status = 200) =>
+        _keycloak.Server.Given(WireMock.RequestBuilders.Request.Create().WithPath(KeycloakStub.TokenPath).UsingPost())
+            .RespondWith(WireMock.ResponseBuilders.Response.Create().WithStatusCode(status).WithHeader("Content-Type", "application/json").WithBody(json));
+
+    [Fact]
+    public async Task A_refresh_token_is_obtained_by_exchange_and_renewed_by_a_refresh_grant()
+    {
+        GivenTokenResponse("""{"access_token":"a1","expires_in":900,"token_type":"Bearer","refresh_token":"r1","issued_token_type":"urn:ietf:params:oauth:token-type:refresh_token"}""");
+        await using AdapterHost host = Host();
+        var client = host.Get<IKeycloakTokenClient>();
+
+        var issued = (await client.ExchangeForRefreshTokenAsync("subject", TestContext.Current.CancellationToken)).Value;
+        var renewed = (await client.RefreshAsync("r1", TestContext.Current.CancellationToken)).Value;
+
+        issued.RefreshToken.ShouldBe("r1");
+        issued.ToString().ShouldNotContain("r1");
+        renewed.Access.Value.ShouldBe("a1");
+        var forms = _keycloak.TokenRequests.Select(r => ParseForm(r.RequestMessage!.Body!)).ToList();
+        forms[0]["requested_token_type"].ShouldBe("urn:ietf:params:oauth:token-type:refresh_token");
+        forms[0]["subject_token"].ShouldBe("subject");
+        forms[0].ContainsKey("audience").ShouldBeFalse();
+        forms[1].ShouldBe(new Dictionary<string, string> { ["grant_type"] = "refresh_token", ["refresh_token"] = "r1" }, ignoreOrder: true);
+    }
+
+    [Fact]
+    public async Task No_refresh_token_in_the_answer_means_the_client_is_not_set_up_for_it()
+    {
+        GivenTokenResponse("""{"access_token":"a1","expires_in":900,"token_type":"Bearer"}""");
+        await using AdapterHost host = Host();
+
+        (await host.Get<IKeycloakTokenClient>().ExchangeForRefreshTokenAsync("subject", TestContext.Current.CancellationToken)).Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+    }
+
+    [Fact]
+    public async Task An_expired_session_is_the_subscribers_problem()
+    {
+        GivenTokenResponse("""{"error":"invalid_grant","error_description":"Session not active"}""", 400);
+        await using AdapterHost host = Host();
+
+        (await host.Get<IKeycloakTokenClient>().RefreshAsync("r1", TestContext.Current.CancellationToken)).Error!.Kind.ShouldBe(ErrorKind.BackendAuthFailed);
+    }
+
     private static Dictionary<string, string> ParseForm(string body) =>
         body.Split('&').Select(static p => p.Split('=', 2)).ToDictionary(static p => Uri.UnescapeDataString(p[0]), static p => Uri.UnescapeDataString(p[1].Replace('+', ' ')));
 }

@@ -24,4 +24,13 @@ public interface IKeycloakTokenClient
     /// <see cref="ErrorKind.BackendAuthFailed"/>; anything else is <see cref="ErrorKind.BackendUnavailable"/>.
     /// </summary>
     Task<Result<AccessToken>> ExchangeAsync(string subjectToken, string audience, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// RFC 8693 exchange of the caller's access token for a refresh token tied to their session (the client's
+    /// "same session" setting): the change-notification credential. Failures classify as <see cref="ExchangeAsync"/>'s.
+    /// </summary>
+    Task<Result<TokenPair>> ExchangeForRefreshTokenAsync(string subjectToken, CancellationToken cancellationToken);
+
+    /// <summary>A refresh grant. Keycloak may rotate the refresh token, so callers keep the one returned.</summary>
+    Task<Result<TokenPair>> RefreshAsync(string refreshToken, CancellationToken cancellationToken);
 }

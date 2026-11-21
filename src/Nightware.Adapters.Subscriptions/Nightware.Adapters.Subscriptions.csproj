@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nightware.Application\Nightware.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Http, Options (with configuration binding) and Logging, as the other adapters get them. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The store is tested against a real Postgres there. -->
+    <InternalsVisibleTo Include="Nightware.Integration.Tests" />
+  </ItemGroup>
+</Project>

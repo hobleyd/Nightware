@@ -5,6 +5,7 @@
     <Project Path="src/Nightware.Adapters.DnsHosts/Nightware.Adapters.DnsHosts.csproj" />
     <Project Path="src/Nightware.Adapters.Directory/Nightware.Adapters.Directory.csproj" />
     <Project Path="src/Nightware.Adapters.Jmap/Nightware.Adapters.Jmap.csproj" />
+    <Project Path="src/Nightware.Adapters.Subscriptions/Nightware.Adapters.Subscriptions.csproj" />
     <Project Path="src/Nightware.Admin/Nightware.Admin.csproj" />
     <Project Path="src/Nightware.Api/Nightware.Api.csproj" />
     <Project Path="src/Nightware.Application/Nightware.Application.csproj" />
@@ -17,6 +18,7 @@
     <Project Path="tests/Nightware.Adapters.DnsHosts.Tests/Nightware.Adapters.DnsHosts.Tests.csproj" />
     <Project Path="tests/Nightware.Adapters.Directory.Tests/Nightware.Adapters.Directory.Tests.csproj" />
     <Project Path="tests/Nightware.Adapters.Jmap.Tests/Nightware.Adapters.Jmap.Tests.csproj" />
+    <Project Path="tests/Nightware.Adapters.Subscriptions.Tests/Nightware.Adapters.Subscriptions.Tests.csproj" />
     <Project Path="tests/Nightware.Admin.Tests/Nightware.Admin.Tests.csproj" />
     <Project Path="tests/Nightware.Api.Tests/Nightware.Api.Tests.csproj" />
     <Project Path="tests/Nightware.Application.Tests/Nightware.Application.Tests.csproj" />

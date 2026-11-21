@@ -11,6 +11,7 @@ using Nightware.Adapters.Directory;
 using Nightware.Adapters.Directory.Core;
 using Nightware.Adapters.Directory.Credentials;
 using Nightware.Adapters.Jmap;
+using Nightware.Adapters.Subscriptions;
 using Nightware.Api.Auth;
 using Nightware.Api.Discovery;
 using Nightware.Api.Features.Calendar;
@@ -22,6 +23,7 @@ using Nightware.Api.Features.MailboxSettings;
 using Nightware.Api.Features.People;
 using Nightware.Api.Features.Rooms;
 using Nightware.Api.Features.Security;
+using Nightware.Api.Features.Subscriptions;
 using Nightware.Api.Features.Tasks;
 using Nightware.Api.Graph;
 using Nightware.Api.Graph.Batch;
@@ -81,7 +83,8 @@ public static class NightwareComposition
             .AddApplication()
             .AddJmapAdapter(configuration)
             .AddDavAdapter(configuration)
-            .AddDirectoryAdapter(configuration);
+            .AddDirectoryAdapter(configuration)
+            .AddSubscriptionsAdapter(configuration);
 
         // Fail fast on bad adapter configuration rather than on the first request that needs it.
         services.AddOptions<DirectoryOptions>().ValidateOnStart();
@@ -152,6 +155,7 @@ public static class NightwareComposition
                 .MapMailboxSettingsEndpoints()
                 .MapFilesEndpoints()
                 .MapSecurityEndpoints()
+                .MapSubscriptionsEndpoints()
                 .MapBatchEndpoints();
             foreach (var contributor in endpoints.ServiceProvider.GetServices<IGraphEndpointContributor>())
             {

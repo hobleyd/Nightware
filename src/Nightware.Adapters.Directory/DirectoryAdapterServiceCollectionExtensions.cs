@@ -1,5 +1,6 @@
 using Nightware.Adapters.Directory.Directory;
 using Nightware.Adapters.Directory.MailboxSettings;
+using Nightware.Adapters.Directory.Subscriptions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -37,7 +38,8 @@ public static class DirectoryAdapterServiceCollectionExtensions
         // Each feature registers its ports from its own folder, so phases never edit this file.
         return services
             .AddDirectoryUsers()
-            .AddDirectoryPreferences();
+            .AddDirectoryPreferences()
+            .AddDirectorySubscriptions();
     }
 
     /// <summary>

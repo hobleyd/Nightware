@@ -23,8 +23,15 @@ public static class ConformanceRunner
     };
 
     /// <summary>Fixture files (relative to the output folder), golden fixtures first, then examples. Missing folders yield nothing.</summary>
+    /// <summary>
+    /// Every replayable fixture. Outbound ones (<c>"direction": "outbound"</c>: requests Nightware sends, such as change
+    /// notifications) are not replayed; their shapes are tested where the sending code lives.
+    /// </summary>
     public static IReadOnlyList<string> FixtureFiles() =>
-        [.. Files(FixturesFolder), .. Files(ExamplesFolder)];
+        [.. Files(FixturesFolder).Concat(Files(ExamplesFolder)).Where(f => !IsOutbound(f))];
+
+    internal static bool IsOutbound(string relativePath) =>
+        System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, relativePath)))?["direction"]?.GetValue<string>() == "outbound";
 
     public static GraphFixture Load(string relativePath) =>
         GraphFixture.Load(Path.Combine(AppContext.BaseDirectory, relativePath));

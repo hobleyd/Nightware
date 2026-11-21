@@ -34,14 +34,14 @@ internal sealed class LiveStack : IAsyncDisposable
     private readonly WebApplicationFactory<Program> _factory;
     private readonly DevStack _stack;
 
-    private LiveStack(DevStack stack)
+    private LiveStack(DevStack stack, IReadOnlyDictionary<string, string?>? extraSettings = null)
     {
         _stack = stack;
         Backchannel = stack.Backchannel();
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
-            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(stack.FacadeSettings()));
+            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(stack.FacadeSettings()).AddInMemoryCollection(extraSettings ?? new Dictionary<string, string?>()));
             builder.ConfigureTestServices(stack.Trust);
         });
     }
@@ -55,6 +55,9 @@ internal sealed class LiveStack : IAsyncDisposable
     {
         return new LiveStack(DevStack.Open());
     }
+
+    /// <summary>As <see cref="Start()"/>, with extra Nightware settings (e.g. the subscription store) layered on top.</summary>
+    public static LiveStack Start(IReadOnlyDictionary<string, string?> extraSettings) => new(DevStack.Open(), extraSettings);
 
     /// <summary>A client of the in-process Nightware carrying <paramref name="user"/>'s NightMail-shaped token.</summary>
     public async Task<HttpClient> GraphClientAsync(string user, CancellationToken cancellationToken)

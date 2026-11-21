@@ -1,0 +1,23 @@
+{
+  "operationId": "subscriptions.validation",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "direction": "outbound",
+  "request": {
+    "method": "POST",
+    "path": "/notify",
+    "query": {
+      "validationToken": "Validation: Testing client application reachability for subscription Request-Id: 66860945-df4e-49b1-80af-ede3bd7f81d2"
+    },
+    "headers": {
+      "Content-Type": "text/plain; charset=utf-8"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "text/plain"
+    },
+    "body": "Validation: Testing client application reachability for subscription Request-Id: 66860945-df4e-49b1-80af-ede3bd7f81d2"
+  }
+}

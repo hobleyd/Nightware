@@ -6757,5 +6757,412 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/todotask-delta",
     "notes": "Changed tasks (a changed checklist item stands for its task) and @removed; the token names its list; an expired one is 410. checklistItems are not embedded: read them from checklistItems."
+  },
+  {
+    "id": "subscriptions.create",
+    "phase": 16,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "subscriptions",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "resource",
+        "changeType",
+        "notificationUrl",
+        "expirationDateTime",
+        "clientState",
+        "lifecycleNotificationUrl"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "resource",
+      "applicationId",
+      "changeType",
+      "clientState",
+      "notificationUrl",
+      "lifecycleNotificationUrl",
+      "expirationDateTime",
+      "creatorId"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/subscription",
+    "notes": "The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. Messages: {mailbox}/messages or {mailbox}/mailFolders('{id}')/messages."
+  },
+  {
+    "id": "subscriptions.create-events",
+    "phase": 16,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "subscriptions",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "resource",
+        "changeType",
+        "notificationUrl",
+        "expirationDateTime",
+        "clientState",
+        "lifecycleNotificationUrl"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "resource",
+      "applicationId",
+      "changeType",
+      "clientState",
+      "notificationUrl",
+      "lifecycleNotificationUrl",
+      "expirationDateTime",
+      "creatorId"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/subscription",
+    "notes": "The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. {mailbox}/events: the default calendar."
+  },
+  {
+    "id": "subscriptions.create-contacts",
+    "phase": 16,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "subscriptions",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "resource",
+        "changeType",
+        "notificationUrl",
+        "expirationDateTime",
+        "clientState",
+        "lifecycleNotificationUrl"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "resource",
+      "applicationId",
+      "changeType",
+      "clientState",
+      "notificationUrl",
+      "lifecycleNotificationUrl",
+      "expirationDateTime",
+      "creatorId"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/subscription",
+    "notes": "The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. {mailbox}/contacts: the default address book."
+  },
+  {
+    "id": "subscriptions.create-tasks",
+    "phase": 16,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "subscriptions",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "resource",
+        "changeType",
+        "notificationUrl",
+        "expirationDateTime",
+        "clientState",
+        "lifecycleNotificationUrl"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "resource",
+      "applicationId",
+      "changeType",
+      "clientState",
+      "notificationUrl",
+      "lifecycleNotificationUrl",
+      "expirationDateTime",
+      "creatorId"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/subscription",
+    "notes": "The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. {mailbox}/todo/lists/{id}/tasks."
+  },
+  {
+    "id": "subscriptions.list",
+    "phase": 16,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "subscriptions",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].resource",
+      "value[].applicationId",
+      "value[].changeType",
+      "value[].clientState",
+      "value[].notificationUrl",
+      "value[].lifecycleNotificationUrl",
+      "value[].expirationDateTime",
+      "value[].creatorId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/subscription",
+    "notes": "The façade's subscription store (ADR 0006 D10). The caller's own; clientState is left out, as Graph does."
+  },
+  {
+    "id": "subscriptions.get",
+    "phase": 16,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "subscriptions/{id}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "resource",
+      "applicationId",
+      "changeType",
+      "clientState",
+      "notificationUrl",
+      "lifecycleNotificationUrl",
+      "expirationDateTime",
+      "creatorId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/subscription",
+    "notes": "The façade's subscription store (ADR 0006 D10). "
+  },
+  {
+    "id": "subscriptions.update",
+    "phase": 16,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "subscriptions/{id}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "expirationDateTime",
+        "notificationUrl"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "resource",
+      "applicationId",
+      "changeType",
+      "clientState",
+      "notificationUrl",
+      "lifecycleNotificationUrl",
+      "expirationDateTime",
+      "creatorId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/subscription",
+    "notes": "The façade's subscription store (ADR 0006 D10). Renewal; it also exchanges the caller's current token afresh, so it reauthorizes a lapsed subscription."
+  },
+  {
+    "id": "subscriptions.delete",
+    "phase": 16,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "subscriptions/{id}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/subscription",
+    "notes": "The façade's subscription store (ADR 0006 D10). The sealed credential goes with the row; the Keycloak session is left alone."
+  },
+  {
+    "id": "subscriptions.validation",
+    "phase": 16,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{notificationUrl}?validationToken={token}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/change-notifications-delivery-webhooks",
+    "notes": "Outbound (Nightware → the subscriber): the create/renew handshake. The endpoint must answer 200 with the token as text/plain within 10 s. Sent only to a public address (SSRF guard at connect time), never with a bearer token."
+  },
+  {
+    "id": "subscriptions.notification",
+    "phase": 16,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{notificationUrl}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].subscriptionId",
+      "value[].changeType",
+      "value[].resource",
+      "value[].resourceData",
+      "value[].clientState"
+    ],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/change-notifications-delivery-webhooks",
+    "notes": "Outbound (Nightware → the subscriber): a changeNotificationCollection. Sent only to a public address, never with a bearer token."
   }
 ]

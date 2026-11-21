@@ -82,7 +82,8 @@ published() {
 }
 for key in KEYCLOAK_ADMIN_PASSWORD KEYCLOAK_DB_PASSWORD NIGHTWARE_API_CLIENT_SECRET NIGHTWARE_DEV_CLIENT_SECRET \
            NEXTCLOUD_OIDC_CLIENT_SECRET STALWART_ADMIN_PASSWORD NEXTCLOUD_ADMIN_PASSWORD NEXTCLOUD_DB_PASSWORD \
-           NIGHTWARE_ADMIN_CLIENT_SECRET NEXTCLOUD_PROVISIONING_PASSWORD NIGHTWARE_GRAFANA_CLIENT_SECRET GRAFANA_ADMIN_PASSWORD; do
+           NIGHTWARE_ADMIN_CLIENT_SECRET NEXTCLOUD_PROVISIONING_PASSWORD NIGHTWARE_GRAFANA_CLIENT_SECRET GRAFANA_ADMIN_PASSWORD \
+           SUBSCRIPTIONS_DB_PASSWORD; do
   value=$(value_of "$key")
   if [[ -z "$value" ]]; then
     put "$key" "$(openssl rand -hex 24)"
@@ -91,6 +92,14 @@ for key in KEYCLOAK_ADMIN_PASSWORD KEYCLOAK_DB_PASSWORD NIGHTWARE_API_CLIENT_SEC
     echo "init-env: ${key} in .env is a published development value; fine on loopback, but anything reachable from a network needs fresh volumes and a fresh .env (see deploy/README.md)" >&2
   fi
 done
+
+# ------------------------------------------------ NIGHTWARE_SUBSCRIPTION_KEY
+# Seals subscriptions' refresh tokens (32 bytes, hex). Generated once; replacing
+# it makes every change-notification subscriber reauthorize.
+if [[ -z "$(value_of NIGHTWARE_SUBSCRIPTION_KEY)" ]]; then
+  put NIGHTWARE_SUBSCRIPTION_KEY "$(openssl rand -hex 32)"
+  echo "init-env: generated NIGHTWARE_SUBSCRIPTION_KEY in .env"
+fi
 
 # ------------------------------------------------- NIGHTWARE_DELTA_LINK_KEY
 value=$(value_of NIGHTWARE_DELTA_LINK_KEY)

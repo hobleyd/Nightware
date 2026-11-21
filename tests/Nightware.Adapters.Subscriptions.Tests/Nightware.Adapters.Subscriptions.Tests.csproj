@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Nightware.Adapters.Subscriptions\Nightware.Adapters.Subscriptions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WireMock.Net" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The outbound captures, which the conformance harness does not replay: their shapes are tested here. -->
+    <None Include="..\Nightware.Conformance.Tests\Fixtures\subscriptions.validation.json;..\Nightware.Conformance.Tests\Fixtures\subscriptions.notification.json"
+          Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

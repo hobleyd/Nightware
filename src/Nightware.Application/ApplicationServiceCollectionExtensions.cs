@@ -9,6 +9,7 @@ using Nightware.Application.Tasks;
 using Nightware.Application.MailboxSettings;
 using Nightware.Application.Files;
 using Nightware.Application.Security;
+using Nightware.Application.Subscriptions;
 
 namespace Nightware.Application;
 
@@ -26,5 +27,6 @@ public static class ApplicationServiceCollectionExtensions
             .AddTasksUseCases()
             .AddMailboxSettingsUseCases()
             .AddFilesUseCases()
-            .AddSecurityUseCases();
+            .AddSecurityUseCases()
+            .AddSubscriptionsUseCases();
 }

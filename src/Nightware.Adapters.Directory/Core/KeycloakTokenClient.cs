@@ -35,6 +35,7 @@ internal sealed partial class KeycloakTokenClient(
 {
     internal const string TokenExchangeGrant = "urn:ietf:params:oauth:grant-type:token-exchange";
     internal const string AccessTokenType = "urn:ietf:params:oauth:token-type:access_token";
+    internal const string RefreshTokenType = "urn:ietf:params:oauth:token-type:refresh_token";
 
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
     private CachedToken? _serviceAccountToken;
@@ -111,6 +112,51 @@ internal sealed partial class KeycloakTokenClient(
             cancellationToken);
     }
 
+    public async Task<Result<TokenPair>> ExchangeForRefreshTokenAsync(string subjectToken, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(subjectToken);
+        var response = await RequestCoreAsync(
+            [
+                new("grant_type", TokenExchangeGrant),
+                new("subject_token", subjectToken),
+                new("subject_token_type", AccessTokenType),
+                new("requested_token_type", RefreshTokenType),
+            ],
+            retrySafe: false,
+            KeycloakTokenErrorClassifier.ClassifyExchange,
+            "token-exchange(refresh_token)",
+            cancellationToken).ConfigureAwait(false);
+        return Pair(response, "token-exchange(refresh_token)");
+    }
+
+    public async Task<Result<TokenPair>> RefreshAsync(string refreshToken, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(refreshToken);
+        var response = await RequestCoreAsync(
+            [new("grant_type", "refresh_token"), new("refresh_token", refreshToken)],
+            retrySafe: false,
+            KeycloakTokenErrorClassifier.ClassifyExchange,
+            "refresh",
+            cancellationToken).ConfigureAwait(false);
+        return Pair(response, "refresh");
+    }
+
+    private Result<TokenPair> Pair(Result<(AccessToken Access, string? Refresh)> response, string operation)
+    {
+        if (!response.IsSuccess)
+        {
+            return response.Error;
+        }
+
+        if (response.Value.Refresh is not { Length: > 0 } refresh)
+        {
+            LogMalformedResponse(logger, operation);
+            return Error.BackendUnavailable("The identity provider issued no refresh token; is refresh-token exchange enabled for the client?");
+        }
+
+        return new TokenPair(response.Value.Access, refresh);
+    }
+
     public void Dispose() => _refreshGate.Dispose();
 
     private AccessToken? TryGetFresh()
@@ -130,6 +176,17 @@ internal sealed partial class KeycloakTokenClient(
     }
 
     private async Task<Result<AccessToken>> RequestAsync(
+        IEnumerable<KeyValuePair<string, string>> form,
+        bool retrySafe,
+        Func<System.Net.HttpStatusCode, OAuthErrorResponse?, KeycloakTokenFailure> classify,
+        string operation,
+        CancellationToken cancellationToken)
+    {
+        var response = await RequestCoreAsync(form, retrySafe, classify, operation, cancellationToken).ConfigureAwait(false);
+        return response.IsSuccess ? response.Value.Access : response.Error;
+    }
+
+    private async Task<Result<(AccessToken Access, string? Refresh)>> RequestCoreAsync(
         IEnumerable<KeyValuePair<string, string>> form,
         bool retrySafe,
         Func<System.Net.HttpStatusCode, OAuthErrorResponse?, KeycloakTokenFailure> classify,
@@ -178,7 +235,7 @@ internal sealed partial class KeycloakTokenClient(
         }
     }
 
-    private async Task<Result<AccessToken>> ReadTokenAsync(HttpResponseMessage response, string operation, CancellationToken cancellationToken)
+    private async Task<Result<(AccessToken Access, string? Refresh)>> ReadTokenAsync(HttpResponseMessage response, string operation, CancellationToken cancellationToken)
     {
         TokenEndpointResponse? body;
         try
@@ -197,7 +254,7 @@ internal sealed partial class KeycloakTokenClient(
             return Error.BackendUnavailable("The identity provider returned an unusable token response.");
         }
 
-        return new AccessToken(body.AccessToken, timeProvider.GetUtcNow().AddSeconds(body.ExpiresIn.Value));
+        return (new AccessToken(body.AccessToken, timeProvider.GetUtcNow().AddSeconds(body.ExpiresIn.Value)), body.RefreshToken);
     }
 
     private static async Task<OAuthErrorResponse?> ReadErrorAsync(HttpResponseMessage response, CancellationToken cancellationToken)

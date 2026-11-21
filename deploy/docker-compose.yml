@@ -35,6 +35,7 @@ volumes:
   caddy-data:
   caddy-config:
   keycloak-db:
+  subscriptions-db:
   stalwart-etc:
   stalwart-data:
   nextcloud-db:
@@ -81,6 +82,23 @@ services:
       retries: 10
 
   # ---------------------------------------------------------------- Keycloak
+  # Change-notification subscriptions (ADR 0006 D10): the façade's one store of record.
+  subscriptions-db:
+    <<: *restart
+    image: postgres:17.12-alpine
+    environment:
+      POSTGRES_DB: subscriptions
+      POSTGRES_USER: subscriptions
+      POSTGRES_PASSWORD: ${SUBSCRIPTIONS_DB_PASSWORD:?set in .env (deploy/scripts/init-env.sh generates it)}
+    volumes:
+      - subscriptions-db:/var/lib/postgresql/data
+    networks: [nightware]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U subscriptions -d subscriptions"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   keycloak-db:
     <<: *restart
     image: postgres:17.12-alpine
@@ -460,10 +478,15 @@ services:
       # NIGHTWARE_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt (the image's
       # own bundle). A missing file trusts nothing.
       SSL_CERT_FILE: ${NIGHTWARE_SSL_CERT_FILE:-/certs/caddy-root.crt}
+      # Change notifications (phase 16): off while either is empty (then /subscriptions is 501).
+      Subscriptions__ConnectionString: Host=subscriptions-db;Database=subscriptions;Username=subscriptions;Password=${SUBSCRIPTIONS_DB_PASSWORD:-}
+      Subscriptions__SealingKey: ${NIGHTWARE_SUBSCRIPTION_KEY:-}
     volumes:
       - ./.certs:/certs:ro
     depends_on:
       keycloak:
+        condition: service_healthy
+      subscriptions-db:
         condition: service_healthy
     networks:
       nightware:

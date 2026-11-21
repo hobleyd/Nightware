@@ -327,7 +327,8 @@ operation:
 | Phase 13 — Calendar (Graph parity) | 27 |
 | Phase 14 — Contacts (Graph parity) | 18 |
 | Phase 15 — To Do (Graph parity) | 19 |
-| **Total** | **161** |
+| Phase 16 — Change notifications (Graph parity) | 10 |
+| **Total** | **171** |
 
 ### Phase 2 — Mail, read side
 
@@ -2126,5 +2127,113 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/todotask-delta
 - Notes: Changed tasks (a changed checklist item stands for its task) and @removed; the token names its list; an expired one is 410. checklistItems are not embedded: read them from checklistItems.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.tasks.delta-changes.json`
+
+### Phase 16 — Change notifications (Graph parity)
+
+| Id | Method | Ver | Path | Paging |
+|---|---|---|---|---|
+| [`subscriptions.create`](#subscriptionscreate) | POST | v1.0 | `subscriptions` | none |
+| [`subscriptions.create-events`](#subscriptionscreate-events) | POST | v1.0 | `subscriptions` | none |
+| [`subscriptions.create-contacts`](#subscriptionscreate-contacts) | POST | v1.0 | `subscriptions` | none |
+| [`subscriptions.create-tasks`](#subscriptionscreate-tasks) | POST | v1.0 | `subscriptions` | none |
+| [`subscriptions.list`](#subscriptionslist) | GET | v1.0 | `subscriptions` | none |
+| [`subscriptions.get`](#subscriptionsget) | GET | v1.0 | `subscriptions/{id}` | none |
+| [`subscriptions.update`](#subscriptionsupdate) | PATCH | v1.0 | `subscriptions/{id}` | none |
+| [`subscriptions.delete`](#subscriptionsdelete) | DELETE | v1.0 | `subscriptions/{id}` | none |
+| [`subscriptions.validation`](#subscriptionsvalidation) | POST | v1.0 | `{notificationUrl}?validationToken={token}` | none |
+| [`subscriptions.notification`](#subscriptionsnotification) | POST | v1.0 | `{notificationUrl}` | none |
+
+#### `subscriptions.create`
+
+**POST v1.0 `subscriptions`** — forms: root; success: 201; paging: none
+
+- Request body: `resource`; `changeType`; `notificationUrl`; `expirationDateTime`; `clientState`; `lifecycleNotificationUrl`
+- Client reads: `id`, `resource`, `applicationId`, `changeType`, `clientState`, `notificationUrl`, `lifecycleNotificationUrl`, `expirationDateTime`, `creatorId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/subscription
+- Notes: The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. Messages: {mailbox}/messages or {mailbox}/mailFolders('{id}')/messages.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/subscriptions.create.json`
+
+#### `subscriptions.create-events`
+
+**POST v1.0 `subscriptions`** — forms: root; success: 201; paging: none
+
+- Request body: `resource`; `changeType`; `notificationUrl`; `expirationDateTime`; `clientState`; `lifecycleNotificationUrl`
+- Client reads: `id`, `resource`, `applicationId`, `changeType`, `clientState`, `notificationUrl`, `lifecycleNotificationUrl`, `expirationDateTime`, `creatorId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/subscription
+- Notes: The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. {mailbox}/events: the default calendar.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/subscriptions.create-events.json`
+
+#### `subscriptions.create-contacts`
+
+**POST v1.0 `subscriptions`** — forms: root; success: 201; paging: none
+
+- Request body: `resource`; `changeType`; `notificationUrl`; `expirationDateTime`; `clientState`; `lifecycleNotificationUrl`
+- Client reads: `id`, `resource`, `applicationId`, `changeType`, `clientState`, `notificationUrl`, `lifecycleNotificationUrl`, `expirationDateTime`, `creatorId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/subscription
+- Notes: The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. {mailbox}/contacts: the default address book.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/subscriptions.create-contacts.json`
+
+#### `subscriptions.create-tasks`
+
+**POST v1.0 `subscriptions`** — forms: root; success: 201; paging: none
+
+- Request body: `resource`; `changeType`; `notificationUrl`; `expirationDateTime`; `clientState`; `lifecycleNotificationUrl`
+- Client reads: `id`, `resource`, `applicationId`, `changeType`, `clientState`, `notificationUrl`, `lifecycleNotificationUrl`, `expirationDateTime`, `creatorId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/subscription
+- Notes: The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. {mailbox}/todo/lists/{id}/tasks.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/subscriptions.create-tasks.json`
+
+#### `subscriptions.list`
+
+**GET v1.0 `subscriptions`** — forms: root; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].resource`, `value[].applicationId`, `value[].changeType`, `value[].clientState`, `value[].notificationUrl`, `value[].lifecycleNotificationUrl`, `value[].expirationDateTime`, `value[].creatorId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/subscription
+- Notes: The façade's subscription store (ADR 0006 D10). The caller's own; clientState is left out, as Graph does.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/subscriptions.list.json`
+
+#### `subscriptions.get`
+
+**GET v1.0 `subscriptions/{id}`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `resource`, `applicationId`, `changeType`, `clientState`, `notificationUrl`, `lifecycleNotificationUrl`, `expirationDateTime`, `creatorId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/subscription
+- Notes: The façade's subscription store (ADR 0006 D10). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/subscriptions.get.json`
+
+#### `subscriptions.update`
+
+**PATCH v1.0 `subscriptions/{id}`** — forms: root; success: 200; paging: none
+
+- Request body: `expirationDateTime`; `notificationUrl`
+- Client reads: `id`, `resource`, `applicationId`, `changeType`, `clientState`, `notificationUrl`, `lifecycleNotificationUrl`, `expirationDateTime`, `creatorId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/subscription
+- Notes: The façade's subscription store (ADR 0006 D10). Renewal; it also exchanges the caller's current token afresh, so it reauthorizes a lapsed subscription.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/subscriptions.update.json`
+
+#### `subscriptions.delete`
+
+**DELETE v1.0 `subscriptions/{id}`** — forms: root; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/subscription
+- Notes: The façade's subscription store (ADR 0006 D10). The sealed credential goes with the row; the Keycloak session is left alone.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/subscriptions.delete.json`
+
+#### `subscriptions.validation`
+
+**POST v1.0 `{notificationUrl}?validationToken={token}`** — forms: root; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/change-notifications-delivery-webhooks
+- Notes: Outbound (Nightware → the subscriber): the create/renew handshake. The endpoint must answer 200 with the token as text/plain within 10 s. Sent only to a public address (SSRF guard at connect time), never with a bearer token.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/subscriptions.validation.json`
+
+#### `subscriptions.notification`
+
+**POST v1.0 `{notificationUrl}`** — forms: root; success: 202; paging: none
+
+- Client reads: `value[].subscriptionId`, `value[].changeType`, `value[].resource`, `value[].resourceData`, `value[].clientState`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/change-notifications-delivery-webhooks
+- Notes: Outbound (Nightware → the subscriber): a changeNotificationCollection. Sent only to a public address, never with a bearer token.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/subscriptions.notification.json`
 
 <!-- END GENERATED -->

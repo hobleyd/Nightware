@@ -1,0 +1,49 @@
+{
+  "operationId": "subscriptions.create-contacts",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/subscriptions",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "changeType": "created,updated,deleted",
+      "notificationUrl": "https://webhook.example.com/notify",
+      "resource": "me/contacts",
+      "expirationDateTime": "2026-11-20T23:40:00Z",
+      "clientState": "nightware-capture-state"
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8",
+      "Location": "https://subscriptionstore-as.windows.net/1.0/OC/subscriptions('00000000-0000-0000-0000-000000000004')"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#subscriptions/$entity",
+      "id": "00000000-0000-0000-0000-000000000004",
+      "resource": "me/contacts",
+      "applicationId": "00000000-0000-0000-0000-000000000001",
+      "changeType": "created,updated,deleted",
+      "clientState": "nightware-capture-state",
+      "notificationUrl": "https://webhook.example.com/notify",
+      "notificationQueryOptions": null,
+      "lifecycleNotificationUrl": null,
+      "expirationDateTime": "2026-11-20T23:40:00Z",
+      "creatorId": "22222222-2222-2222-2222-222222222222",
+      "includeResourceData": null,
+      "latestSupportedTlsVersion": null,
+      "encryptionCertificate": null,
+      "encryptionCertificateId": null,
+      "notificationUrlAppId": null,
+      "vapidPublicKey": null,
+      "webPushEncryptionP256dhPublicKey": null,
+      "webPushEncryptionSecret": null
+    }
+  }
+}

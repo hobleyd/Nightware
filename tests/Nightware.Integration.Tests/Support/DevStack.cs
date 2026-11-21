@@ -126,7 +126,14 @@ internal sealed class DevStack : IDisposable
     {
         // Each adapter client sets its own (cookie-free, no-redirect) primary handler, which replaces anything
         // ConfigureHttpClientDefaults supplies; a handler-builder action runs afterwards, on the real one.
-        services.ConfigureAll<HttpClientFactoryOptions>(o => o.HttpMessageHandlerBuilderActions.Add(b => Trusting(b.PrimaryHandler)));
+        // Except the change-notification client: it never talks to the stack, and its connect hook is the SSRF guard.
+        services.ConfigureAll<HttpClientFactoryOptions>(o => o.HttpMessageHandlerBuilderActions.Add(b =>
+        {
+            if (b.Name != Nightware.Adapters.Subscriptions.WebhookNotificationEndpoint.ClientName)
+            {
+                Trusting(b.PrimaryHandler);
+            }
+        }));
 
         // Configure, not PostConfigure: the framework's own post-configure builds the metadata manager from it.
         // The authority too: AddGraphAuthentication reads Auth:Authority while Program registers services, before

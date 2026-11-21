@@ -9,6 +9,7 @@
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="11.0.0" />
     <PackageVersion Include="Ical.Net" Version="5.2.4" />
     <PackageVersion Include="MimeKit" Version="5.0.0" />
+    <PackageVersion Include="Npgsql" Version="8.0.5" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="11.0.0" />
