@@ -107,3 +107,54 @@ public sealed record UploadSessionDto
 
     public IReadOnlyList<string> NextExpectedRanges { get; init; } = ["0-"];
 }
+
+/// <summary>Graph <c>checklistItem</c> (also the create and PATCH body).</summary>
+public sealed record ChecklistItemDto
+{
+    public string? DisplayName { get; init; }
+
+    [JsonConverter(typeof(PreciseInstantConverter))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTimeOffset? CreatedDateTime { get; init; }
+
+    /// <summary>Only while checked, as Graph writes it.</summary>
+    [JsonConverter(typeof(PreciseInstantConverter))]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTimeOffset? CheckedDateTime { get; init; }
+
+    public bool? IsChecked { get; init; }
+
+    public string? Id { get; init; }
+
+    public static ChecklistItemDto From(ChecklistItem item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        return new ChecklistItemDto { DisplayName = item.DisplayName, CreatedDateTime = item.CreatedDateTime, CheckedDateTime = item.CheckedDateTime, IsChecked = item.IsChecked, Id = item.Id };
+    }
+}
+
+/// <summary>Graph <c>linkedResource</c> (also the create and PATCH body).</summary>
+public sealed record LinkedResourceDto
+{
+    public string? WebUrl { get; init; }
+
+    public string? ApplicationName { get; init; }
+
+    public string? DisplayName { get; init; }
+
+    public string? ExternalId { get; init; }
+
+    public string? Id { get; init; }
+
+    public static LinkedResourceDto From(LinkedResource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+        return new LinkedResourceDto
+        {
+            WebUrl = resource.WebUrl, ApplicationName = resource.ApplicationName, DisplayName = resource.DisplayName, ExternalId = resource.ExternalId, Id = resource.Id,
+        };
+    }
+
+    public LinkedResource ToDomain(string id) =>
+        new(id) { WebUrl = WebUrl, ApplicationName = ApplicationName, DisplayName = DisplayName, ExternalId = ExternalId };
+}

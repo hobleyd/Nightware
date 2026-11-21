@@ -265,6 +265,7 @@ public sealed class DavTaskStoreTests : IDisposable
     [Fact]
     public async Task Deletes_a_task()
     {
+        _h.Respond("REPORT", TaskAdapterHarness.TasksList, 207, Fixture.Read("Tasks/calendar-query-tasks.xml"));
         _h.Respond("DELETE", TaskAdapterHarness.OpenTask, 204);
 
         var result = await _h.Store.DeleteAsync(TaskAdapterHarness.Alice, TaskAdapterHarness.ListId(), TaskAdapterHarness.TaskIdOf(), Ct);

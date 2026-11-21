@@ -43,7 +43,13 @@ internal sealed class TaskAdapterHarness : IDisposable
         Lists = new DavTaskListReader(Collections, Dav.Client, Dav.Paths);
         Files = new TaskAttachmentFiles(Dav.Client, Dav.Paths);
         Attachments = new DavTaskAttachmentStore(Collections, Store, Dav.Client, Codec, Files, Dav.Time);
+        Checklist = new DavChecklistStore(Collections, Store, Dav.Client, Codec);
+        LinkedResources = new DavLinkedResourceStore(Store, Dav.Client, Codec);
     }
+
+    public DavChecklistStore Checklist { get; }
+
+    public DavLinkedResourceStore LinkedResources { get; }
 
     public DavTestServer Dav { get; } = new();
 

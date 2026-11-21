@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Nodes;
 using Nightware.Integration.Tests.Directory;
@@ -45,8 +46,31 @@ public sealed class TodoParityLiveTests : IAsyncLifetime
         return text.Length == 0 ? [] : JsonNode.Parse(text)!.AsObject();
     }
 
+    /// <summary>An id minted by the DAV adapter is the resource's href, base64url-encoded behind an "r:" kind marker.</summary>
+    private static string DavUrl(string id)
+    {
+        var padded = id.Replace('-', '+').Replace('_', '/');
+        padded += new string('=', (4 - (padded.Length % 4)) % 4);
+        return $"{LiveStack.CloudBase}/remote.php/dav/{Encoding.UTF8.GetString(Convert.FromBase64String(padded))["r:".Length..]}";
+    }
+
+    /// <summary>A raw CalDAV request as Nextcloud's own apps make them (not through the façade).</summary>
+    private async Task<(HttpStatusCode Status, string Body)> RawAsync(HttpMethod method, string url, string? ics = null)
+    {
+        using var request = new HttpRequestMessage(method, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _stack.NextcloudTokenAsync(Alice, Ct));
+        request.Headers.TryAddWithoutValidation("OCS-APIRequest", "true");
+        if (ics is not null)
+        {
+            request.Content = new StringContent(ics, Encoding.UTF8, "text/calendar");
+        }
+
+        using var response = await _stack.Backchannel.SendAsync(request, Ct);
+        return (response.StatusCode, (await response.Content.ReadAsStringAsync(Ct)).Replace("\r\n ", string.Empty, StringComparison.Ordinal));
+    }
+
     [Fact]
-    public async Task A_list_of_its_own_holds_a_task_with_an_attachment_until_all_are_deleted()
+    public async Task A_list_of_its_own_holds_a_task_with_its_attachment_checklist_and_links_until_all_are_deleted()
     {
         var alice = await _stack.GraphClientAsync(Alice, Ct);
         var lists = await SendAsync(alice, HttpMethod.Get, "/v1.0/me/todo/lists");
@@ -76,8 +100,40 @@ public sealed class TodoParityLiveTests : IAsyncLifetime
             await SendAsync(alice, HttpMethod.Delete, attachmentUrl, expected: HttpStatusCode.NoContent);
             await SendAsync(alice, HttpMethod.Get, attachmentUrl, expected: HttpStatusCode.NotFound);
 
+            // Two checklist items are two subtasks in Nextcloud, hidden from the task listing.
+            var checklist = $"/v1.0/me/todo/lists/{listId}/tasks/{taskId}/checklistItems";
+            var one = await SendAsync(alice, HttpMethod.Post, checklist, """{"displayName":"Step one"}""", HttpStatusCode.Created);
+            await SendAsync(alice, HttpMethod.Post, checklist, """{"displayName":"Step two"}""", HttpStatusCode.Created);
+            var oneUrl = DavUrl(one["id"]!.GetValue<string>());
+            var (_, stored) = await RawAsync(HttpMethod.Get, oneUrl);
+            stored.ShouldContain("RELATED-TO:");
+            (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/todo/lists/{listId}/tasks"))["value"]!.AsArray().ShouldHaveSingleItem();
+
+            // Checked off in Nextcloud (as its Tasks app does), seen over Graph.
+            var completed = stored.Replace("STATUS:NEEDS-ACTION", "STATUS:COMPLETED\r\nCOMPLETED:20261121T010203Z\r\nPERCENT-COMPLETE:100", StringComparison.Ordinal);
+            (await RawAsync(HttpMethod.Put, oneUrl, completed)).Status.ShouldBeOneOf(HttpStatusCode.NoContent, HttpStatusCode.Created, HttpStatusCode.OK);
+            var items = (await SendAsync(alice, HttpMethod.Get, checklist))["value"]!.AsArray();
+            items.Count.ShouldBe(2);
+            var checkedItem = items.Single(i => i!["displayName"]!.GetValue<string>() == "Step one")!;
+            checkedItem["isChecked"]!.GetValue<bool>().ShouldBeTrue();
+            checkedItem["checkedDateTime"]!.GetValue<string>().ShouldBe("2026-11-21T01:02:03Z");
+            var cleared = await SendAsync(alice, HttpMethod.Patch, $"{checklist}/{one["id"]!.GetValue<string>()}", """{"isChecked":false}""");
+            cleared["isChecked"]!.GetValue<bool>().ShouldBeFalse();
+            cleared.ContainsKey("checkedDateTime").ShouldBeFalse();
+
+            var linked = $"/v1.0/me/todo/lists/{listId}/tasks/{taskId}/linkedResources";
+            var link = await SendAsync(alice, HttpMethod.Post, linked, """{"webUrl":"https://example.com/items/1","applicationName":"Live; \"app\"","displayName":"Item 1","externalId":"item-1"}""", HttpStatusCode.Created);
+            (await SendAsync(alice, HttpMethod.Patch, $"{linked}/{link["id"]!.GetValue<string>()}", """{"displayName":"Item 1 renamed"}"""))["displayName"]!.GetValue<string>().ShouldBe("Item 1 renamed");
+            var links = (await SendAsync(alice, HttpMethod.Get, linked))["value"]!.AsArray().ShouldHaveSingleItem()!;
+            links["applicationName"]!.GetValue<string>().ShouldBe("Live; \"app\"");
+            await SendAsync(alice, HttpMethod.Delete, $"{linked}/{link["id"]!.GetValue<string>()}", expected: HttpStatusCode.NoContent);
+            (await SendAsync(alice, HttpMethod.Get, linked))["value"]!.AsArray().ShouldBeEmpty();
+
+            // Deleting the task takes its subtasks with it (CalDAV alone would leave them).
             await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/todo/lists/{listId}/tasks/{taskId}", expected: HttpStatusCode.NoContent);
             await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/todo/lists/{listId}/tasks/{taskId}", expected: HttpStatusCode.NotFound);
+            (await RawAsync(HttpMethod.Get, oneUrl)).Status.ShouldBe(HttpStatusCode.NotFound);
+            (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/todo/lists/{listId}/tasks"))["value"]!.AsArray().ShouldBeEmpty();
         }
         finally
         {

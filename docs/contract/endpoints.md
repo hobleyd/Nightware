@@ -326,8 +326,8 @@ operation:
 | Phase 12 — Mail (Graph parity) | 19 |
 | Phase 13 — Calendar (Graph parity) | 27 |
 | Phase 14 — Contacts (Graph parity) | 18 |
-| Phase 15 — To Do (Graph parity) | 8 |
-| **Total** | **150** |
+| Phase 15 — To Do (Graph parity) | 16 |
+| **Total** | **158** |
 
 ### Phase 2 — Mail, read side
 
@@ -1943,6 +1943,14 @@ operation:
 | [`tasks.tasks.delete`](#taskstasksdelete) | DELETE | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}` | none |
 | [`tasks.attachments.get`](#tasksattachmentsget) | GET | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/attachments/{attachmentId}` | none |
 | [`tasks.attachments.delete`](#tasksattachmentsdelete) | DELETE | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/attachments/{attachmentId}` | none |
+| [`tasks.checklist-items.list`](#taskschecklist-itemslist) | GET | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/checklistItems` | none |
+| [`tasks.checklist-items.create`](#taskschecklist-itemscreate) | POST | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/checklistItems` | none |
+| [`tasks.checklist-items.update`](#taskschecklist-itemsupdate) | PATCH | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/checklistItems/{itemId}` | none |
+| [`tasks.checklist-items.delete`](#taskschecklist-itemsdelete) | DELETE | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/checklistItems/{itemId}` | none |
+| [`tasks.linked-resources.list`](#taskslinked-resourceslist) | GET | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources` | none |
+| [`tasks.linked-resources.create`](#taskslinked-resourcescreate) | POST | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources` | none |
+| [`tasks.linked-resources.update`](#taskslinked-resourcesupdate) | PATCH | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources/{resourceId}` | none |
+| [`tasks.linked-resources.delete`](#taskslinked-resourcesdelete) | DELETE | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources/{resourceId}` | none |
 
 #### `tasks.lists.create`
 
@@ -2014,5 +2022,79 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/taskfileattachment
 - Notes: Unlinks the ATTACH, then deletes the file.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.attachments.delete.json`
+
+#### `tasks.checklist-items.list`
+
+**GET v1.0 `{mailbox}/todo/lists/{listId}/tasks/{taskId}/checklistItems`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].displayName`, `value[].isChecked`, `value[].createdDateTime`, `value[].checkedDateTime`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/checklistitem
+- Notes: Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.checklist-items.list.json`
+
+#### `tasks.checklist-items.create`
+
+**POST v1.0 `{mailbox}/todo/lists/{listId}/tasks/{taskId}/checklistItems`** — forms: me, users; success: 201; paging: none
+
+- Request body: `displayName`; `isChecked`
+- Client reads: `id`, `displayName`, `isChecked`, `createdDateTime`, `checkedDateTime`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/checklistitem
+- Notes: Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.checklist-items.create.json`
+
+#### `tasks.checklist-items.update`
+
+**PATCH v1.0 `{mailbox}/todo/lists/{listId}/tasks/{taskId}/checklistItems/{itemId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `displayName`; `isChecked`
+- Client reads: `id`, `displayName`, `isChecked`, `createdDateTime`, `checkedDateTime`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/checklistitem
+- Notes: Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8). isChecked is STATUS:COMPLETED with COMPLETED and PERCENT-COMPLETE:100.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.checklist-items.update.json`
+
+#### `tasks.checklist-items.delete`
+
+**DELETE v1.0 `{mailbox}/todo/lists/{listId}/tasks/{taskId}/checklistItems/{itemId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/checklistitem
+- Notes: Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.checklist-items.delete.json`
+
+#### `tasks.linked-resources.list`
+
+**GET v1.0 `{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].webUrl`, `value[].applicationName`, `value[].displayName`, `value[].externalId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/linkedresource
+- Notes: X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.linked-resources.list.json`
+
+#### `tasks.linked-resources.create`
+
+**POST v1.0 `{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources`** — forms: me, users; success: 201; paging: none
+
+- Request body: `webUrl`; `applicationName`; `displayName`; `externalId`
+- Client reads: `id`, `webUrl`, `applicationName`, `displayName`, `externalId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/linkedresource
+- Notes: X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.linked-resources.create.json`
+
+#### `tasks.linked-resources.update`
+
+**PATCH v1.0 `{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources/{resourceId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `webUrl`; `applicationName`; `displayName`; `externalId`
+- Client reads: `id`, `webUrl`, `applicationName`, `displayName`, `externalId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/linkedresource
+- Notes: X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.linked-resources.update.json`
+
+#### `tasks.linked-resources.delete`
+
+**DELETE v1.0 `{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources/{resourceId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/linkedresource
+- Notes: X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.linked-resources.delete.json`
 
 <!-- END GENERATED -->

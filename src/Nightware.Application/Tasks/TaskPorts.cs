@@ -50,3 +50,30 @@ public interface ITaskAttachmentStore
     /// <param name="rangeStart">First byte offset of <paramref name="chunk"/> (from <c>Content-Range</c>).</param>
     Task<Result<UploadProgress>> PutChunkAsync(UploadSession session, long rangeStart, long rangeEnd, Stream chunk, CancellationToken cancellationToken);
 }
+
+/// <summary>A task's checklist (Graph <c>checklistItems</c>): its subtasks.</summary>
+public interface IChecklistStore
+{
+    Task<Result<IReadOnlyList<ChecklistItem>>> ListAsync(MailboxRef mailbox, TaskListId list, TaskId task, CancellationToken cancellationToken);
+
+    Task<Result<ChecklistItem>> CreateAsync(MailboxRef mailbox, TaskListId list, TaskId task, string displayName, bool isChecked, CancellationToken cancellationToken);
+
+    /// <summary>Applies the non-null arguments.</summary>
+    Task<Result<ChecklistItem>> UpdateAsync(MailboxRef mailbox, TaskListId list, TaskId task, string item, string? displayName, bool? isChecked, CancellationToken cancellationToken);
+
+    Task<Result> DeleteAsync(MailboxRef mailbox, TaskListId list, TaskId task, string item, CancellationToken cancellationToken);
+}
+
+/// <summary>A task's links to items elsewhere (Graph <c>linkedResources</c>).</summary>
+public interface ILinkedResourceStore
+{
+    Task<Result<IReadOnlyList<LinkedResource>>> ListAsync(MailboxRef mailbox, TaskListId list, TaskId task, CancellationToken cancellationToken);
+
+    /// <param name="resource">Its <see cref="LinkedResource.Id"/> is ignored; the store mints one.</param>
+    Task<Result<LinkedResource>> CreateAsync(MailboxRef mailbox, TaskListId list, TaskId task, LinkedResource resource, CancellationToken cancellationToken);
+
+    /// <param name="patch">Its non-null members replace the stored ones.</param>
+    Task<Result<LinkedResource>> UpdateAsync(MailboxRef mailbox, TaskListId list, TaskId task, string id, LinkedResource patch, CancellationToken cancellationToken);
+
+    Task<Result> DeleteAsync(MailboxRef mailbox, TaskListId list, TaskId task, string id, CancellationToken cancellationToken);
+}

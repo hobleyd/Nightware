@@ -68,5 +68,41 @@ public sealed class TaskParityArrangements : IConformanceArrangements
 
         yield return new ConformanceArrangement("tasks.attachments.delete", static fakes =>
             fakes.For<ITaskAttachmentStore>().DeleteAsync(Me, ListId, TaskId, new AttachmentId("AAMk-id-0010="), Arg.Any<CancellationToken>()).Returns(Result.Success()));
+
+        var one = new ChecklistItem("00000000-0000-0000-0000-000000000007", "Step one", false) { CreatedDateTime = new DateTimeOffset(2026, 11, 20, 22, 39, 6, TimeSpan.Zero) };
+        var two = new ChecklistItem("00000000-0000-0000-0000-000000000008", "Step two", false)
+        {
+            CreatedDateTime = DateTimeOffset.Parse("2026-11-20T22:39:07.0193979Z", System.Globalization.CultureInfo.InvariantCulture),
+        };
+        yield return new ConformanceArrangement("tasks.checklist-items.list", fakes =>
+            fakes.For<IChecklistStore>().ListAsync(Me, ListId, TaskId, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<ChecklistItem>>.Success([one, two])));
+
+        yield return new ConformanceArrangement("tasks.checklist-items.create", fakes =>
+            fakes.For<IChecklistStore>().CreateAsync(Me, ListId, TaskId, "Step one", false, Arg.Any<CancellationToken>())
+                .Returns(one with { CreatedDateTime = DateTimeOffset.Parse("2026-11-20T22:39:06.7418119Z", System.Globalization.CultureInfo.InvariantCulture) }));
+
+        yield return new ConformanceArrangement("tasks.checklist-items.update", fakes =>
+            fakes.For<IChecklistStore>().UpdateAsync(Me, ListId, TaskId, one.Id, null, true, Arg.Any<CancellationToken>())
+                .Returns(one with { IsChecked = true, CheckedDateTime = new DateTimeOffset(2026, 11, 20, 22, 39, 7, TimeSpan.Zero) }));
+
+        yield return new ConformanceArrangement("tasks.checklist-items.delete", fakes =>
+            fakes.For<IChecklistStore>().DeleteAsync(Me, ListId, TaskId, one.Id, Arg.Any<CancellationToken>()).Returns(Result.Success()));
+
+        var link = new LinkedResource("00000000-0000-0000-0000-000000000009")
+        {
+            WebUrl = "https://example.com/items/1", ApplicationName = "Nightware capture", DisplayName = "Item 1", ExternalId = "item-1",
+        };
+        yield return new ConformanceArrangement("tasks.linked-resources.list", fakes =>
+            fakes.For<ILinkedResourceStore>().ListAsync(Me, ListId, TaskId, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<LinkedResource>>.Success([link])));
+
+        yield return new ConformanceArrangement("tasks.linked-resources.create", fakes =>
+            fakes.For<ILinkedResourceStore>().CreateAsync(Me, ListId, TaskId, link with { Id = string.Empty }, Arg.Any<CancellationToken>()).Returns(link));
+
+        yield return new ConformanceArrangement("tasks.linked-resources.update", fakes =>
+            fakes.For<ILinkedResourceStore>().UpdateAsync(Me, ListId, TaskId, link.Id, new LinkedResource(link.Id) { DisplayName = "Item 1 renamed" }, Arg.Any<CancellationToken>())
+                .Returns(link with { DisplayName = "Item 1 renamed" }));
+
+        yield return new ConformanceArrangement("tasks.linked-resources.delete", fakes =>
+            fakes.For<ILinkedResourceStore>().DeleteAsync(Me, ListId, TaskId, link.Id, Arg.Any<CancellationToken>()).Returns(Result.Success()));
     }
 }

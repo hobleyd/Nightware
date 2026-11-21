@@ -86,3 +86,44 @@ public sealed class TaskListUseCaseTests
         (await new DeleteTaskAttachment(store).ExecuteAsync(Me, Mine.Id, task, attachment.Id, Ct)).IsSuccess.ShouldBeTrue();
     }
 }
+
+public sealed class TaskPartsUseCaseTests
+{
+    private static readonly MailboxRef Me = new("me@example.com");
+    private static readonly TaskListId List = new("l");
+    private static readonly TaskId Task = new("t");
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task A_checklist_item_needs_a_name()
+    {
+        var store = Substitute.For<IChecklistStore>();
+        var item = new ChecklistItem("i", "Step", false);
+        store.CreateAsync(Me, List, Task, "Step", false, Ct).Returns(item);
+        store.UpdateAsync(Me, List, Task, "i", null, true, Ct).Returns(item with { IsChecked = true });
+        store.DeleteAsync(Me, List, Task, "i", Ct).Returns(Result.Success());
+        var useCase = new ChecklistItemsUseCase(store);
+
+        (await useCase.CreateAsync(Me, List, Task, " Step ", null, Ct)).Value.ShouldBe(item);
+        (await useCase.CreateAsync(Me, List, Task, null, true, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await useCase.UpdateAsync(Me, List, Task, "i", null, true, Ct)).Value.IsChecked.ShouldBeTrue();
+        (await useCase.UpdateAsync(Me, List, Task, "i", " ", null, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await useCase.DeleteAsync(Me, List, Task, "i", Ct)).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task A_linked_resources_url_must_be_absolute()
+    {
+        var store = Substitute.For<ILinkedResourceStore>();
+        var resource = new LinkedResource("") { WebUrl = "https://example.com/1" };
+        store.CreateAsync(Me, List, Task, resource, Ct).Returns(resource with { Id = "r" });
+        store.DeleteAsync(Me, List, Task, "r", Ct).Returns(Result.Success());
+        var useCase = new LinkedResourcesUseCase(store);
+
+        (await useCase.CreateAsync(Me, List, Task, resource, Ct)).Value.Id.ShouldBe("r");
+        (await useCase.CreateAsync(Me, List, Task, resource with { WebUrl = "not a url" }, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await useCase.UpdateAsync(Me, List, Task, "r", resource with { WebUrl = "/relative" }, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await useCase.DeleteAsync(Me, List, Task, "r", Ct)).IsSuccess.ShouldBeTrue();
+    }
+}

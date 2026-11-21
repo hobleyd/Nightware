@@ -6357,5 +6357,305 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/resources/taskfileattachment",
     "notes": "Unlinks the ATTACH, then deletes the file."
+  },
+  {
+    "id": "tasks.checklist-items.list",
+    "phase": 15,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/checklistItems",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].displayName",
+      "value[].isChecked",
+      "value[].createdDateTime",
+      "value[].checkedDateTime"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/checklistitem",
+    "notes": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8). "
+  },
+  {
+    "id": "tasks.checklist-items.create",
+    "phase": 15,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/checklistItems",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "displayName",
+        "isChecked"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "displayName",
+      "isChecked",
+      "createdDateTime",
+      "checkedDateTime"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/checklistitem",
+    "notes": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8). "
+  },
+  {
+    "id": "tasks.checklist-items.update",
+    "phase": 15,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/checklistItems/{itemId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "displayName",
+        "isChecked"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "displayName",
+      "isChecked",
+      "createdDateTime",
+      "checkedDateTime"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/checklistitem",
+    "notes": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8). isChecked is STATUS:COMPLETED with COMPLETED and PERCENT-COMPLETE:100."
+  },
+  {
+    "id": "tasks.checklist-items.delete",
+    "phase": 15,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/checklistItems/{itemId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/checklistitem",
+    "notes": "Subtasks: VTODOs in the same list with RELATED-TO the task (as Nextcloud Tasks writes them); hidden from the task listing (ADR 0006 D8). "
+  },
+  {
+    "id": "tasks.linked-resources.list",
+    "phase": 15,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].webUrl",
+      "value[].applicationName",
+      "value[].displayName",
+      "value[].externalId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/linkedresource",
+    "notes": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8). "
+  },
+  {
+    "id": "tasks.linked-resources.create",
+    "phase": 15,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "webUrl",
+        "applicationName",
+        "displayName",
+        "externalId"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "webUrl",
+      "applicationName",
+      "displayName",
+      "externalId"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/linkedresource",
+    "notes": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8). "
+  },
+  {
+    "id": "tasks.linked-resources.update",
+    "phase": 15,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources/{resourceId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "webUrl",
+        "applicationName",
+        "displayName",
+        "externalId"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "webUrl",
+      "applicationName",
+      "displayName",
+      "externalId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/linkedresource",
+    "notes": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8). "
+  },
+  {
+    "id": "tasks.linked-resources.delete",
+    "phase": 15,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/todo/lists/{listId}/tasks/{taskId}/linkedResources/{resourceId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/resources/linkedresource",
+    "notes": "X-NIGHTWARE-LINKED-RESOURCE properties on the task's VTODO (ADR 0006 D8). "
   }
 ]

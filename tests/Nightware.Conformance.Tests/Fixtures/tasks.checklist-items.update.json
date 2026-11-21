@@ -1,0 +1,31 @@
+{
+  "operationId": "tasks.checklist-items.update",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "PATCH",
+    "path": "/v1.0/me/todo/lists/AAMk-id-0004=/tasks/AAMk-id-0006=/checklistItems/00000000-0000-0000-0000-000000000007",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "isChecked": true
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/todo/lists('AAMk-id-0004%3D')/tasks('AAMk-id-0006%3D')/checklistItems/$entity",
+      "displayName": "Step one",
+      "createdDateTime": "2026-11-20T22:39:06Z",
+      "checkedDateTime": "2026-11-20T22:39:07Z",
+      "isChecked": true,
+      "id": "00000000-0000-0000-0000-000000000007"
+    }
+  }
+}

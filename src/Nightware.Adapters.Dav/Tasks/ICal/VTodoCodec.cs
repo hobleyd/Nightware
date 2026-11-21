@@ -14,7 +14,16 @@ using IcalCalendar = Ical.Net.Calendar;
 namespace Nightware.Adapters.Dav.Tasks.ICal;
 
 /// <summary>A VTODO parsed from a resource, with its UID (needed to write it back).</summary>
-public sealed record ParsedTodo(TodoTask Task, string? Uid);
+public sealed record ParsedTodo(TodoTask Task, string? Uid)
+{
+    /// <summary>The parent's UID when this VTODO is a subtask (<c>RELATED-TO</c> with RELTYPE PARENT or none).</summary>
+    public string? ParentUid { get; init; }
+
+    /// <summary>When it was completed (COMPLETED), as an instant.</summary>
+    public DateTimeOffset? CompletedAt { get; init; }
+
+    public IReadOnlyList<LinkedResource> LinkedResources { get; init; } = [];
+}
 
 /// <summary>An <c>ATTACH</c> that points at a stored file.</summary>
 public sealed record TodoAttachmentLink(Uri Uri, string FileName, string ContentType)
@@ -38,6 +47,9 @@ public sealed record TodoAttachmentLink(Uri Uri, string FileName, string Content
 public sealed class VTodoCodec
 {
     public const string StatusExtension = "X-NIGHTWARE-TASK-STATUS";
+
+    /// <summary>One linked resource per property; the value is base64url JSON (no iCalendar quoting to get wrong).</summary>
+    public const string LinkedResourceExtension = "X-NIGHTWARE-LINKED-RESOURCE";
 
     /// <summary>RFC 8607 §4.2: the attachment's file name.</summary>
     public const string FileNameParameter = "FILENAME";
@@ -68,7 +80,12 @@ public sealed class VTodoCodec
         var id = href is null ? new TaskId(string.Empty) : DavItemId.Resource(href).ToTaskId();
         IReadOnlyList<ParsedTodo> todos = loaded.Value.Todos
             .Where(t => t.RecurrenceIdentifier?.StartTime is null)
-            .Select(t => new ParsedTodo(ToDomain(t, id, zones), t.Uid))
+            .Select(t => new ParsedTodo(ToDomain(t, id, zones), t.Uid)
+            {
+                ParentUid = ParentOf(t),
+                CompletedAt = t.Completed is { } completed ? completed.AsUtc : null,
+                LinkedResources = ReadLinkedResources(t),
+            })
             .ToList();
         return Result<IReadOnlyList<ParsedTodo>>.Success(todos);
     }
@@ -84,6 +101,60 @@ public sealed class VTodoCodec
         calendar.Todos.Add(todo);
         ApplyFields(todo, draft with { Status = draft.Status ?? DomainTaskStatus.NotStarted });
         return Write(calendar);
+    }
+
+    /// <summary>A new subtask of <paramref name="parentUid"/>, written as Nextcloud Tasks writes one (<c>RELATED-TO</c>, no RELTYPE).</summary>
+    public string CreateChild(TaskDraft draft, string uid, string parentUid)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(parentUid);
+        return Edit(Create(draft, uid), todo => todo.AddProperty("RELATED-TO", parentUid)).Value;
+    }
+
+    /// <summary>Replaces the linked resources of the first VTODO (and bumps LAST-MODIFIED).</summary>
+    public Result<string> SetLinkedResources(string existingIcs, IReadOnlyList<LinkedResource> resources)
+    {
+        ArgumentNullException.ThrowIfNull(resources);
+        var now = IcalNetCalendarCodec.Utc(_timeProvider.GetUtcNow());
+        return Edit(existingIcs, todo =>
+        {
+            RemoveProperty(todo, LinkedResourceExtension);
+            foreach (var resource in resources)
+            {
+                todo.AddProperty(LinkedResourceExtension, System.Buffers.Text.Base64Url.EncodeToString(
+                    System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(resource, TodoJsonContext.Default.LinkedResource)));
+            }
+
+            todo.DtStamp = now;
+            todo.LastModified = now;
+        });
+    }
+
+    private static string? ParentOf(Todo todo) =>
+        todo.Properties.Where(p => string.Equals(p.Name, "RELATED-TO", StringComparison.OrdinalIgnoreCase))
+            .Where(p => p.Parameters.Get("RELTYPE") is not { Length: > 0 } type || string.Equals(type, "PARENT", StringComparison.OrdinalIgnoreCase))
+            .Select(p => p.Value?.ToString())
+            .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
+
+    private static List<LinkedResource> ReadLinkedResources(Todo todo)
+    {
+        var resources = new List<LinkedResource>();
+        foreach (var property in todo.Properties.Where(p => string.Equals(p.Name, LinkedResourceExtension, StringComparison.OrdinalIgnoreCase)))
+        {
+            try
+            {
+                if (property.Value?.ToString() is { } value
+                    && System.Text.Json.JsonSerializer.Deserialize(System.Buffers.Text.Base64Url.DecodeFromChars(value), TodoJsonContext.Default.LinkedResource) is { } resource)
+                {
+                    resources.Add(resource);
+                }
+            }
+            catch (Exception ex) when (ex is FormatException or System.Text.Json.JsonException)
+            {
+                // Someone else's edit broke it; it is not a linked resource any more.
+            }
+        }
+
+        return resources;
     }
 
     /// <summary>Serialises a whole task (e.g. a copy); prefer <see cref="Apply"/> for updates.</summary>
@@ -441,3 +512,8 @@ public sealed class VTodoCodec
         }
     }
 }
+
+[System.Text.Json.Serialization.JsonSerializable(typeof(LinkedResource))]
+[System.Text.Json.Serialization.JsonSourceGenerationOptions(PropertyNamingPolicy = System.Text.Json.Serialization.JsonKnownNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+internal sealed partial class TodoJsonContext : System.Text.Json.Serialization.JsonSerializerContext;

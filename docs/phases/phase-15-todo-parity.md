@@ -1,6 +1,6 @@
 # Phase 15 — To Do parity
 
-> **Status (2026-11-21): in progress** — 15a (lists, task get/delete, attachment get/delete) done. Decisions: [ADR 0006](../adr/0006-graph-parity.md) D8.
+> **Status (2026-11-21): in progress** — 15a (lists, task get/delete, attachment get/delete) and 15b (checklist items, linked resources) done. Decisions: [ADR 0006](../adr/0006-graph-parity.md) D8.
 
 **Goal:** list management, task delete, checklist items, linked resources and
 delta.
@@ -45,3 +45,12 @@ delta.
   façade now does too, except the upload session's expiry, which NightMail's parser
   expects with seven digits. `categories` is omitted when empty, as NightMail's own
   task fixtures carry none.
+- A checklist item is a subtask: a VTODO in the same list whose `RELATED-TO` names
+  the task (no RELTYPE, as Nextcloud Tasks writes it); its id is its resource's
+  `DavItemId`. Subtasks whose parent is in the same list are left out of the task
+  listing; an orphan stays a task. Deleting a task deletes its subtasks (deepest
+  first); its attachment files stay in Nextcloud Files.
+- A linked resource is an `X-NIGHTWARE-LINKED-RESOURCE` property whose value is
+  base64url JSON, so no iCalendar quoting is involved.
+- The `checklistItems`, `linkedResources` and `todo/lists` create captures carry the
+  same bare-service-root `Location` as `findMeetingTimes`; the fixtures drop it.

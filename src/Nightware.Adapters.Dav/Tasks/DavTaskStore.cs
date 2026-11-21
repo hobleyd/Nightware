@@ -25,18 +25,31 @@ internal sealed class DavTaskStore(DavTaskCollections collections, IDavClient da
             return listHref.Error;
         }
 
-        var report = await dav.ReportAsync(listHref.Value, DavDepth.One, DavRequestBodies.CalendarQuery(new CalendarQuery(DavTaskCollections.TaskComponent)), cancellationToken).ConfigureAwait(false);
+        var all = await ReadAllAsync(listHref.Value, cancellationToken).ConfigureAwait(false);
+        if (!all.IsSuccess)
+        {
+            return all.Error;
+        }
+
+        var tasks = WithoutChecklistItems(all.Value).Select(t => t.Todo.Task);
+        return TaskQueryEvaluator.Apply(tasks.OrderBy(t => t.Id.Value, StringComparer.Ordinal), query);
+    }
+
+    /// <summary>Every VTODO resource directly in the list, parsed, with its href (relative).</summary>
+    internal async Task<Result<List<(string Href, ParsedTodo Todo)>>> ReadAllAsync(string listHref, CancellationToken cancellationToken)
+    {
+        var report = await dav.ReportAsync(listHref, DavDepth.One, DavRequestBodies.CalendarQuery(new CalendarQuery(DavTaskCollections.TaskComponent)), cancellationToken).ConfigureAwait(false);
         if (!report.IsSuccess)
         {
             return report.Error;
         }
 
-        var tasks = new List<TodoTask>();
+        var todos = new List<(string Href, ParsedTodo Todo)>();
         foreach (var response in report.Value.Responses.Where(r => r.IsFound && r.CalendarData is not null))
         {
             // Anything Sabre lists outside the collection, or that does not parse, is not a task of this list.
             var href = paths.ToRelative(response.Href);
-            if (href is null || !DavTaskCollections.ResolveTask(listHref.Value, DavItemId.Resource(href).ToTaskId()).IsSuccess)
+            if (href is null || !DavTaskCollections.ResolveTask(listHref, DavItemId.Resource(href).ToTaskId()).IsSuccess)
             {
                 continue;
             }
@@ -44,11 +57,21 @@ internal sealed class DavTaskStore(DavTaskCollections collections, IDavClient da
             var parsed = codec.Parse(response.CalendarData!, href);
             if (parsed is { IsSuccess: true, Value.Count: > 0 })
             {
-                tasks.Add(parsed.Value[0].Task);
+                todos.Add((href, parsed.Value[0]));
             }
         }
 
-        return TaskQueryEvaluator.Apply(tasks.OrderBy(t => t.Id.Value, StringComparer.Ordinal), query);
+        return todos;
+    }
+
+    /// <summary>
+    /// Leaves out the checklist items: subtasks whose parent is in the same list. An orphan (its parent gone
+    /// or elsewhere) stays a task, as Nextcloud Tasks shows it.
+    /// </summary>
+    internal static IEnumerable<(string Href, ParsedTodo Todo)> WithoutChecklistItems(IReadOnlyCollection<(string Href, ParsedTodo Todo)> todos)
+    {
+        var uids = todos.Select(t => t.Todo.Uid).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        return todos.Where(t => t.Todo.ParentUid is not { } parent || !uids.Contains(parent));
     }
 
     public async Task<Result<TodoTask>> GetAsync(MailboxRef mailbox, TaskListId list, TaskId id, CancellationToken cancellationToken)
@@ -93,12 +116,64 @@ internal sealed class DavTaskStore(DavTaskCollections collections, IDavClient da
         return edited.IsSuccess ? First(codec.Parse(edited.Value, href.Value)) : edited.Error;
     }
 
+    /// <summary>
+    /// Deletes the task and, first, its checklist items and their own subtasks (a CalDAV DELETE does not
+    /// cascade). Attachment files stay in the owner's Nextcloud Files.
+    /// </summary>
     public async Task<Result> DeleteAsync(MailboxRef mailbox, TaskListId list, TaskId id, CancellationToken cancellationToken)
     {
-        var href = await ResolveAsync(mailbox, list, id, cancellationToken).ConfigureAwait(false);
-        return href.IsSuccess
-            ? await dav.DeleteAsync(href.Value, DavPrecondition.None, cancellationToken).ConfigureAwait(false)
-            : href.Error;
+        var listHref = await collections.ResolveListAsync(mailbox, list, cancellationToken).ConfigureAwait(false);
+        if (!listHref.IsSuccess)
+        {
+            return listHref.Error;
+        }
+
+        var href = DavTaskCollections.ResolveTask(listHref.Value, id);
+        if (!href.IsSuccess)
+        {
+            return href.Error;
+        }
+
+        var all = await ReadAllAsync(listHref.Value, cancellationToken).ConfigureAwait(false);
+        if (!all.IsSuccess)
+        {
+            return all.Error;
+        }
+
+        foreach (var descendant in Descendants(all.Value, href.Value))
+        {
+            var removed = await dav.DeleteAsync(descendant, DavPrecondition.None, cancellationToken).ConfigureAwait(false);
+            if (!removed.IsSuccess && removed.Error.Kind != ErrorKind.NotFound)
+            {
+                return removed;
+            }
+        }
+
+        return await dav.DeleteAsync(href.Value, DavPrecondition.None, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The hrefs of every subtask below <paramref name="href"/>, deepest first.</summary>
+    internal static List<string> Descendants(IReadOnlyCollection<(string Href, ParsedTodo Todo)> todos, string href)
+    {
+        var result = new List<string>();
+        var uid = todos.FirstOrDefault(t => t.Href == href).Todo?.Uid;
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        void Walk(string? parent)
+        {
+            if (parent is null || !seen.Add(parent))
+            {
+                return;
+            }
+
+            foreach (var child in todos.Where(t => t.Todo.ParentUid == parent))
+            {
+                Walk(child.Todo.Uid);
+                result.Add(child.Href);
+            }
+        }
+
+        Walk(uid);
+        return result;
     }
 
     /// <summary>The task's href (relative) after checking the list belongs to the mailbox and the task to the list.</summary>

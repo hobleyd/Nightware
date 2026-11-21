@@ -1,0 +1,31 @@
+{
+  "operationId": "tasks.linked-resources.update",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "PATCH",
+    "path": "/v1.0/me/todo/lists/AAMk-id-0004=/tasks/AAMk-id-0006=/linkedResources/00000000-0000-0000-0000-000000000009",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "displayName": "Item 1 renamed"
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/todo/lists('AAMk-id-0004%3D')/tasks('AAMk-id-0006%3D')/linkedResources/$entity",
+      "webUrl": "https://example.com/items/1",
+      "applicationName": "Nightware capture",
+      "displayName": "Item 1 renamed",
+      "externalId": "item-1",
+      "id": "00000000-0000-0000-0000-000000000009"
+    }
+  }
+}

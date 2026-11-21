@@ -94,3 +94,23 @@ public sealed record UploadSession(string Token, DateTimeOffset ExpirationDateTi
 
 /// <summary>Result of uploading a chunk: either more ranges are expected, or the attachment is complete.</summary>
 public sealed record UploadProgress(IReadOnlyList<string> NextExpectedRanges, TaskAttachment? Completed);
+
+/// <summary>A step of a task (Graph <c>checklistItem</c>): a subtask in Nextcloud Tasks.</summary>
+public sealed record ChecklistItem(string Id, string DisplayName, bool IsChecked)
+{
+    public DateTimeOffset? CreatedDateTime { get; init; }
+
+    public DateTimeOffset? CheckedDateTime { get; init; }
+}
+
+/// <summary>A link from a task to an item in another application (Graph <c>linkedResource</c>).</summary>
+public sealed record LinkedResource(string Id)
+{
+    public string? WebUrl { get; init; }
+
+    public string? ApplicationName { get; init; }
+
+    public string? DisplayName { get; init; }
+
+    public string? ExternalId { get; init; }
+}

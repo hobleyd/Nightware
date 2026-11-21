@@ -23,8 +23,8 @@ namespace Nightware.Api.Features.Tasks;
 
 /// <summary>
 /// Microsoft To Do (<c>{mailbox}/todo/lists…</c>): lists (list, get, create, rename, delete), tasks (list,
-/// get, create, patch, delete) and task attachments (list, get, inline create, upload session, <c>$value</c>,
-/// delete).
+/// get, create, patch, delete), task attachments (list, get, inline create, upload session, <c>$value</c>,
+/// delete), checklist items and linked resources.
 /// </summary>
 public static partial class TasksEndpoints
 {
@@ -32,6 +32,8 @@ public static partial class TasksEndpoints
     private const string Tasks = Lists + "/{listId}/tasks";
     private const string Task = Tasks + "/{taskId}";
     private const string Attachments = Task + "/attachments";
+    private const string Checklist = Task + "/checklistItems";
+    private const string Linked = Task + "/linkedResources";
 
     /// <summary>
     /// Maps the Tasks routes onto a Graph version group (<c>/v1.0</c> and <c>/beta</c>). Owned by the phase
@@ -51,6 +53,14 @@ public static partial class TasksEndpoints
             scope.MapDelete(Task, DeleteTaskAsync);
             scope.MapGet(Attachments + "/{attachmentId}", GetAttachmentAsync);
             scope.MapDelete(Attachments + "/{attachmentId}", DeleteAttachmentAsync);
+            scope.MapGet(Checklist, ListChecklistAsync);
+            scope.MapPost(Checklist, CreateChecklistItemAsync);
+            scope.MapPatch(Checklist + "/{itemId}", UpdateChecklistItemAsync);
+            scope.MapDelete(Checklist + "/{itemId}", DeleteChecklistItemAsync);
+            scope.MapGet(Linked, ListLinkedAsync);
+            scope.MapPost(Linked, CreateLinkedAsync);
+            scope.MapPatch(Linked + "/{resourceId}", UpdateLinkedAsync);
+            scope.MapDelete(Linked + "/{resourceId}", DeleteLinkedAsync);
             scope.MapGet(Tasks, ListTasksAsync);
             scope.MapPost(Tasks, CreateTaskAsync);
             scope.MapPatch(Task, UpdateTaskAsync);
@@ -118,6 +128,56 @@ public static partial class TasksEndpoints
         Mailbox mailbox, string listId, string taskId, string attachmentId, DeleteTaskAttachment useCase, CancellationToken cancellationToken) =>
         GraphResults.Match(
             await useCase.ExecuteAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), new AttachmentId(attachmentId), cancellationToken).ConfigureAwait(false),
+            GraphResults.NoContent);
+
+    private static string ChecklistContext(Mailbox mailbox, string listId, string taskId) => $"{TasksContext(mailbox, listId)}('{taskId}')/checklistItems";
+
+    private static string LinkedContext(Mailbox mailbox, string listId, string taskId) => $"{TasksContext(mailbox, listId)}('{taskId}')/linkedResources";
+
+    private static async Task<IResult> ListChecklistAsync(Mailbox mailbox, string listId, string taskId, ChecklistItemsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.ListAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), cancellationToken).ConfigureAwait(false),
+            items => GraphResults.Collection(items.Select(ChecklistItemDto.From), ChecklistContext(mailbox, listId, taskId), Application.Common.Query.ItemQuery.Default));
+
+    private static async Task<IResult> CreateChecklistItemAsync(
+        Mailbox mailbox, string listId, string taskId, ChecklistItemDto? body, ChecklistItemsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.CreateAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), body?.DisplayName, body?.IsChecked, cancellationToken).ConfigureAwait(false),
+            item => GraphResults.Created(ChecklistItemDto.From(item), ChecklistContext(mailbox, listId, taskId)));
+
+    private static async Task<IResult> UpdateChecklistItemAsync(
+        Mailbox mailbox, string listId, string taskId, string itemId, ChecklistItemDto? body, ChecklistItemsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.UpdateAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), itemId, body?.DisplayName, body?.IsChecked, cancellationToken).ConfigureAwait(false),
+            item => GraphResults.Entity(ChecklistItemDto.From(item), ChecklistContext(mailbox, listId, taskId)));
+
+    private static async Task<IResult> DeleteChecklistItemAsync(
+        Mailbox mailbox, string listId, string taskId, string itemId, ChecklistItemsUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.DeleteAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), itemId, cancellationToken).ConfigureAwait(false),
+            GraphResults.NoContent);
+
+    private static async Task<IResult> ListLinkedAsync(Mailbox mailbox, string listId, string taskId, LinkedResourcesUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.ListAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), cancellationToken).ConfigureAwait(false),
+            items => GraphResults.Collection(items.Select(LinkedResourceDto.From), LinkedContext(mailbox, listId, taskId), Application.Common.Query.ItemQuery.Default));
+
+    private static async Task<IResult> CreateLinkedAsync(
+        Mailbox mailbox, string listId, string taskId, LinkedResourceDto? body, LinkedResourcesUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.CreateAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), (body ?? new LinkedResourceDto()).ToDomain(string.Empty), cancellationToken).ConfigureAwait(false),
+            resource => GraphResults.Created(LinkedResourceDto.From(resource), LinkedContext(mailbox, listId, taskId)));
+
+    private static async Task<IResult> UpdateLinkedAsync(
+        Mailbox mailbox, string listId, string taskId, string resourceId, LinkedResourceDto? body, LinkedResourcesUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.UpdateAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), resourceId, (body ?? new LinkedResourceDto()).ToDomain(resourceId), cancellationToken).ConfigureAwait(false),
+            resource => GraphResults.Entity(LinkedResourceDto.From(resource), LinkedContext(mailbox, listId, taskId)));
+
+    private static async Task<IResult> DeleteLinkedAsync(
+        Mailbox mailbox, string listId, string taskId, string resourceId, LinkedResourcesUseCase useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(
+            await useCase.DeleteAsync(mailbox.Ref, new TaskListId(listId), new TaskId(taskId), resourceId, cancellationToken).ConfigureAwait(false),
             GraphResults.NoContent);
 
     private static async Task<IResult> ListTasksAsync(Mailbox mailbox, string listId, ODataQuery odata, ListTasks useCase, CancellationToken cancellationToken) =>
