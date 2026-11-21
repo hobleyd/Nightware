@@ -130,6 +130,25 @@ public sealed class MailboxPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task The_calendar_panel_shows_its_state_and_who_is_waiting()
+    {
+        GivenSupport();
+        IdentityAccount carol = _host.AddUser("u-carol", "carol", "carol@acme.example");
+        _host.Mailboxes.ListMembersAsync(ConsoleHost.Acme, "s-sup", Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([carol]));
+
+        string missing = (await GetAsync(MailboxUrl)).Html;
+        missing.ShouldContain("<h2>Calendar</h2>");
+        missing.ShouldContain("Calendar: ");
+        missing.ShouldContain("Not created yet");
+
+        _host.SharedCalendars.FindAsync(Address("support@acme.example"), Arg.Any<CancellationToken>()).Returns(new SharedCalendarAccount("mbx-support@acme.example", "Support"));
+        _host.GroupwareGroups.FindAsync("mbx-support@acme.example", Arg.Any<CancellationToken>()).Returns(new GroupwareGroup("mbx-support@acme.example", "Support", []));
+        string waiting = (await GetAsync(MailboxUrl)).Html;
+        waiting.ShouldContain("Ready");
+        waiting.ShouldContain("waiting for carol to sign in to Nextcloud");
+    }
+
+    [Fact]
     public async Task Members_are_added_and_removed_from_the_mailbox_page()
     {
         GivenSupport();

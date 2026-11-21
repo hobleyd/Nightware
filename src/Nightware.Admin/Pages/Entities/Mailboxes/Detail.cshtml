@@ -30,6 +30,33 @@
     <p>Mail to <strong>@mailbox.Address</strong>@(mailbox.Aliases.Count > 0 ? $" (or {string.Join(", ", mailbox.Aliases.Select(a => a.Value))})" : "") lands in this mailbox. Its members see it in NightMail beside their own mailbox, and can send as it.</p>
 </section>
 
+@{ var calendar = Model.Detail.Links.FirstOrDefault(l => l.Backend == BackendKind.Groupware); }
+@if (calendar is not null)
+{
+    <section class="panel">
+        <h2>Calendar</h2>
+        <p>
+            <span class="chip @Systems.LinkClass(calendar, false)">@(calendar.State switch { LinkState.Linked => "Ready", LinkState.Missing => "Not created yet", LinkState.Conflict => "Out of step", _ => "Could not be checked" })</span>
+        </p>
+        <p>@mailbox.Name has a calendar of its own. Its members see it in NightMail and Nextcloud beside their own, and can add and change events in it; meetings made there are organised by @mailbox.Address, and invitations go out from it.</p>
+        @if (!string.IsNullOrEmpty(calendar.Detail) && (calendar.State != LinkState.Linked || calendar.Detail.Contains("waiting", StringComparison.Ordinal)))
+        {
+            <p class="hint">@calendar.Detail</p>
+        }
+        @if (calendar.State is LinkState.Missing or LinkState.Conflict or LinkState.Error)
+        {
+            <form method="post" asp-page-handler="Repair">
+                <button type="submit" class="secondary">Repair</button>
+                <span class="hint">Creates the calendar if it is missing and gives it to exactly the members below.</span>
+            </form>
+        }
+        else
+        {
+            <p class="hint">A member who has never signed in to Nextcloud gets the calendar once they have, at the next Repair.</p>
+        }
+    </section>
+}
+
 <section class="panel">
     <h2>Members</h2>
     @if (Model.Detail.Members.Count == 0)

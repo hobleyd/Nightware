@@ -1,7 +1,12 @@
 @model IReadOnlyList<BackendLink>
-@* A shared mailbox's state in each backend. Like _GroupLinks, named for what it is in each: who may open it, and the mailbox. *@
+@* A shared mailbox's state in each backend. Like _GroupLinks, named for what it is in each: who may open it, the mailbox, and its calendar. *@
 @{
-    static string Name(BackendKind backend) => backend == BackendKind.Identity ? "Members" : "Mailbox";
+    static string Name(BackendKind backend) => backend switch
+    {
+        BackendKind.Identity => "Members",
+        BackendKind.Groupware => "Calendar",
+        _ => "Mailbox",
+    };
 }
 <ul class="chips">
     @foreach (var link in Model)
