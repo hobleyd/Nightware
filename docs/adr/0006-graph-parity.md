@@ -210,9 +210,11 @@ Required:
 - The `validationToken` handshake within 10 s, and `clientState` echoed.
 - Never a bearer token in a notification.
 - Graph's maximum expirations; lifecycle notifications (`reauthorizationRequired`,
-  `missed`); retries with backoff. `subscriptionRemoved` is not sent: Nightware
-  removes a subscription only when it expires, and Graph sends nothing on expiry
-  (phase 16 findings).
+  `missed`); retries with backoff. *Amended 2026-11-21:* a subscription not
+  reauthorized within an hour of `reauthorizationRequired` is removed with
+  `subscriptionRemoved`, as Graph removes one whose access is gone. Expiry still
+  sends nothing. Each subscription keeps a set of hashed item ids it has seen, so
+  `created` and `updated` are exact rather than guessed.
 - Rich notifications (`includeResourceData`) are `400 notSupported`.
 
 ## Consequences

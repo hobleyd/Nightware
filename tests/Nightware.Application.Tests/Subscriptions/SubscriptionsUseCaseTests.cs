@@ -45,10 +45,13 @@ public sealed class SubscriptionsUseCaseTests
         _contacts.DeltaAsync(Arg.Any<MailboxRef>(), new ContactFolderId("c"), null, Arg.Any<CancellationToken>()).Returns(DeltaPage<Contact>.Done([], new DeltaToken("contacts-baseline")));
         _tasks.DeltaAsync(Arg.Any<MailboxRef>(), Arg.Any<TaskListId>(), null, Arg.Any<CancellationToken>())
             .Returns(DeltaPage<Nightware.Domain.Tasks.TodoTask>.Done([], new DeltaToken("tasks-baseline")));
-        _events.BaselineAsync(Arg.Any<MailboxRef>(), Arg.Any<CancellationToken>()).Returns("events-baseline");
+        _events.BaselineAsync(Arg.Any<MailboxRef>(), Arg.Any<CancellationToken>()).Returns(new FeedBaseline("events-baseline", []));
+        _items.ReplaceAsync(Arg.Any<string>(), Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>()).Returns(Result.Success());
     }
 
-    private SubscriptionsUseCase UseCase => new(_store, _credentials, _endpoint, new ChangeFeed(_mail, _folders, _contacts, _tasks, _events), _caller, _mailboxes, _time);
+    private readonly ISubscriptionItems _items = Substitute.For<ISubscriptionItems>();
+
+    private SubscriptionsUseCase UseCase => new(_store, _credentials, _endpoint, new ChangeFeed(_mail, _folders, _contacts, _tasks, _events), _caller, _mailboxes, _time, _items);
 
     private static SubscriptionRequest Request(string resource = "me/mailFolders('Inbox')/messages", string changeType = "created,updated", TimeSpan? lifetime = null) =>
         new(resource, changeType, Hook.AbsoluteUri, Now + (lifetime ?? TimeSpan.FromHours(2))) { ClientState = "state", ApplicationId = "app" };
@@ -178,5 +181,18 @@ public sealed class SubscriptionsUseCaseTests
 
         (await UseCase.ListAsync(Ct)).Value.ShouldBeEmpty();
         (await UseCase.DeleteAsync("x", Ct)).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task A_new_subscription_starts_out_knowing_what_exists()
+    {
+        _mail.DeltaAsync(Arg.Any<MailboxRef>(), Arg.Any<Nightware.Domain.Mail.FolderRef>(), null, Arg.Any<DeltaRequest>(), Arg.Any<CancellationToken>())
+            .Returns(DeltaPage<Nightware.Domain.Mail.MailMessage>.Done(
+                [new DeltaEntry<Nightware.Domain.Mail.MailMessage>.Upsert(new Nightware.Domain.Mail.MailMessage(new Nightware.Domain.Kernel.MessageId("m1")))],
+                new DeltaToken("mail-baseline")));
+
+        var created = (await UseCase.CreateAsync(Request(), Ct)).Value;
+
+        await _items.Received(1).ReplaceAsync(created.Id, Arg.Is<IReadOnlyCollection<string>>(ids => ids.SequenceEqual(new[] { "m1" })), Arg.Any<CancellationToken>());
     }
 }

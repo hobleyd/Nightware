@@ -41,7 +41,8 @@ public sealed class DavEventChangeFeedTests : IDisposable
         _h.ServeIcs(AlicePersonal + "new.ics", Event("new", "20261121T100001Z"));
         _h.ServeIcs(AlicePersonal + "old.ics", Event("old", "20261101T000000Z"));
 
-        var batch = (await Feed.ChangesAsync(AliceMailbox, baseline, Since, Ct)).Value;
+        baseline.Ids.ShouldBe([_h.IdOf(AlicePersonal + "old.ics").Value], "what exists at the baseline is what the subscription starts out knowing");
+        var batch = (await Feed.ChangesAsync(AliceMailbox, baseline.State, Since, Ct)).Value;
 
         batch.Changes.ShouldBe(
         [
@@ -49,7 +50,7 @@ public sealed class DavEventChangeFeedTests : IDisposable
             new(_h.IdOf(AlicePersonal + "old.ics").Value, SubscriptionChangeType.Updated),
             new(_h.IdOf(AlicePersonal + "gone.ics").Value, SubscriptionChangeType.Deleted),
         ]);
-        batch.State.ShouldNotBe(baseline);
+        batch.State.ShouldNotBe(baseline.State);
     }
 
     [Fact]

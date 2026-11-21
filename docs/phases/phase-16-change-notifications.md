@@ -63,10 +63,14 @@ receives Graph notifications at its own HTTPS endpoint.
   most an hour) without losing state.
 - At creation the baseline state is read with the caller's own credential, so what
   already exists is never announced, and `last_poll` starts then.
-- **created vs updated** is a heuristic: delta does not say. An item whose
-  `createdDateTime` is later than the previous poll, less 2 seconds (Stalwart keeps
-  whole seconds), is `created`; otherwise `updated`. An item updated within those 2
-  seconds of its creation can be reported as `created` twice.
+- **created vs updated** (amended 2026-11-21): each subscription keeps the items it
+  has seen (`nightware_subscription_items`: subscription id and the first 8 bytes of
+  SHA-256 of the item id). The baseline seeds it; an upsert of a seen item is
+  `updated`, of an unseen one `created`; delivered changes are recorded (created
+  added, deleted removed) only after the 2xx, so a retried batch classifies the
+  same way. Only the ids of a poll's changes are looked up. Subscriptions created
+  before this (`items_tracked = false`) keep the old heuristic: an item whose
+  `createdDateTime` is later than the previous poll, less 2 seconds, is `created`.
 - Notifications name items `Users/{address}/Messages/{id}` (and `…/Events/`,
   `…/Contacts/`, `…/todo/lists/{list}/tasks/`), which resolve over Graph. They carry
   no `tenantId` and no etag in `resourceData`.
@@ -75,12 +79,14 @@ receives Graph notifications at its own HTTPS endpoint.
 
 - **Events** follow `sync-collection` on the default calendar (no window, no
   expansion): one change per resource under its series id, created when its
-  `CREATED` is after the previous poll. New events written by the façade now carry
-  `CREATED` and `LAST-MODIFIED` (Nextcloud adds neither); an event another client
-  wrote without `CREATED` is reported as updated.
+  `CREATED` is after the previous poll (untracked subscriptions only; tracked ones
+  use the items they have seen). New events written by the façade carry `CREATED`
+  and `LAST-MODIFIED` (Nextcloud adds neither).
 - **Lifecycle** notifications go only to a `lifecycleNotificationUrl`, as Graph's:
   `reauthorizationRequired` once when the subscriber's session has ended (or the
-  sealing key changed), after which a PATCH with a fresh token reauthorizes;
+  sealing key changed), after which a PATCH with a fresh token reauthorizes; if
+  none comes within an hour (`reauth_requested`), the subscription is deleted and
+  `subscriptionRemoved` sent (amended 2026-11-21);
   `missed` when a delta state has expired, after which the subscription starts again
   from now (the gap is not replayed). Expired subscriptions are removed with their
   credentials each round, without a notification (Graph sends none on expiry).

@@ -23,6 +23,7 @@ public sealed class SubscriptionPollerTests
     private readonly IMailDeltaReader _mail = Substitute.For<IMailDeltaReader>();
     private readonly INotificationEndpoint _endpoint = Substitute.For<INotificationEndpoint>();
     private readonly TimeProvider _time = Substitute.For<TimeProvider>();
+    private readonly ISubscriptionItems _items = Substitute.For<ISubscriptionItems>();
     private IUserContext? _actingAs;
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -38,6 +39,9 @@ public sealed class SubscriptionPollerTests
         _endpoint.DeliverAsync(Arg.Any<Uri>(), Arg.Any<IReadOnlyList<ChangeNotification>>(), Arg.Any<CancellationToken>()).Returns(Result.Success());
         _endpoint.DeliverLifecycleAsync(Arg.Any<Uri>(), Arg.Any<LifecycleNotification>(), Arg.Any<CancellationToken>()).Returns(Result.Success());
         _store.RemoveExpiredAsync(Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<Subscription>>.Success([]));
+        _items.KnownAsync(default!, default!, default).ReturnsForAnyArgs(Result<IReadOnlySet<string>?>.Success(null));
+        _items.ReplaceAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        _items.RecordAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
     }
 
     private static readonly Uri Lifecycle = new("https://hooks.example.com/lifecycle");
@@ -47,7 +51,7 @@ public sealed class SubscriptionPollerTests
         time ??= _time;
         var services = new ServiceCollection();
         services.AddSubscriptionsUseCases();
-        services.AddSingleton(_store).AddSingleton(_sessions).AddSingleton(_endpoint).AddSingleton(time);
+        services.AddSingleton(_store).AddSingleton(_sessions).AddSingleton(_endpoint).AddSingleton(time).AddSingleton(_items);
         services.AddSingleton(Substitute.For<IContactFolderStore>()).AddSingleton(Substitute.For<IContactDelta>())
             .AddSingleton(Substitute.For<ITaskDelta>()).AddSingleton(Substitute.For<IEventChangeFeed>());
         services.AddScoped<IUserContext>(sp => sp.GetRequiredService<SubscriberContext>().Current ?? throw new InvalidOperationException("no caller"));
@@ -218,13 +222,33 @@ public sealed class SubscriptionPollerTests
         var subscription = Inbox with { LifecycleNotificationUrl = Lifecycle, ClientState = "c" };
         _sessions.RenewAsync("refresh-1", Arg.Any<CancellationToken>()).Returns(Error.BackendAuthFailed("session ended"));
 
+        _store.MarkReauthorizationRequestedAsync("s1", Now, Arg.Any<CancellationToken>()).Returns(Result.Success());
+
         Due(new LeasedSubscription(subscription, "refresh-1", Now, 0));
         await Poller().PollDueAsync(Ct);
-        Due(new LeasedSubscription(subscription, "refresh-1", Now, 1));
+        Due(new LeasedSubscription(subscription, "refresh-1", Now, 1) { ReauthorizationRequestedAt = Now.AddMinutes(-59) });
         await Poller().PollDueAsync(Ct);
 
         await _endpoint.Received(1).DeliverLifecycleAsync(Lifecycle, Arg.Is<LifecycleNotification>(n => n.LifecycleEvent == "reauthorizationRequired" && n.ClientState == "c" && n.SubscriptionId == "s1"),
             Arg.Any<CancellationToken>());
+        await _store.Received(1).MarkReauthorizationRequestedAsync("s1", Now, Arg.Any<CancellationToken>());
+        await _store.DidNotReceiveWithAnyArgs().DeleteAsync(default!, default!, Ct);
+    }
+
+    [Fact]
+    public async Task A_subscription_not_reauthorized_within_the_hour_is_removed_and_the_client_told()
+    {
+        var subscription = Inbox with { LifecycleNotificationUrl = Lifecycle, ClientState = "c" };
+        _sessions.RenewAsync("refresh-1", Arg.Any<CancellationToken>()).Returns(Error.BackendAuthFailed("session ended"));
+        _store.DeleteAsync("sub-alice", "s1", Arg.Any<CancellationToken>()).Returns(Result.Success());
+        Due(new LeasedSubscription(subscription, "refresh-1", Now, 6) { ReauthorizationRequestedAt = Now - SubscriptionPoller.ReauthorizationGrace });
+
+        await Poller().PollDueAsync(Ct);
+
+        await _store.Received(1).DeleteAsync("sub-alice", "s1", Arg.Any<CancellationToken>());
+        await _endpoint.Received(1).DeliverLifecycleAsync(Lifecycle, Arg.Is<LifecycleNotification>(n => n.LifecycleEvent == "subscriptionRemoved" && n.ClientState == "c"),
+            Arg.Any<CancellationToken>());
+        await _store.DidNotReceiveWithAnyArgs().CompletePollAsync(default!, default, default, default, default, default, Ct);
     }
 
     [Fact]

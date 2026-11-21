@@ -34,13 +34,40 @@ public interface ISubscriptionStore
     Task<Result> CompletePollAsync(
         string id, string? syncState, string? refreshToken, DateTimeOffset? polledAt, DateTimeOffset nextPoll, int failures, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Notes that <c>reauthorizationRequired</c> was sent at <paramref name="at"/>; a renewal with a new credential
+    /// clears it (<see cref="LeasedSubscription.ReauthorizationRequestedAt"/>).
+    /// </summary>
+    Task<Result> MarkReauthorizationRequestedAsync(string id, DateTimeOffset at, CancellationToken cancellationToken);
+
     /// <summary>Removes subscriptions that expired before <paramref name="now"/> (with their credentials) and returns them.</summary>
     Task<Result<IReadOnlyList<Subscription>>> RemoveExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// The items a subscription has already seen (ADR 0006 D10, amended): an upsert of a known item is <c>updated</c>, of an
+/// unknown one <c>created</c>. Seeded with the baseline when a subscription starts or starts over; a subscription
+/// that was never seeded is not tracked, and its feed's own guess stands.
+/// </summary>
+public interface ISubscriptionItems
+{
+    /// <summary>Replaces what the subscription has seen with <paramref name="ids"/>, and marks it tracked.</summary>
+    Task<Result> ReplaceAsync(string subscriptionId, IReadOnlyCollection<string> ids, CancellationToken cancellationToken);
+
+    /// <returns>Which of <paramref name="ids"/> it has seen; null when the subscription is not tracked.</returns>
+    Task<Result<IReadOnlySet<string>?>> KnownAsync(string subscriptionId, IReadOnlyCollection<string> ids, CancellationToken cancellationToken);
+
+    /// <summary>Records delivered changes: <paramref name="added"/> are now seen, <paramref name="removed"/> are gone.</summary>
+    Task<Result> RecordAsync(string subscriptionId, IReadOnlyCollection<string> added, IReadOnlyCollection<string> removed, CancellationToken cancellationToken);
+}
+
 /// <param name="RefreshToken">Opened from its seal; null when it no longer opens (the key changed).</param>
 /// <param name="Failures">Consecutive failed polls or deliveries, for backoff.</param>
-public sealed record LeasedSubscription(Subscription Subscription, string? RefreshToken, DateTimeOffset LastPoll, int Failures);
+public sealed record LeasedSubscription(Subscription Subscription, string? RefreshToken, DateTimeOffset LastPoll, int Failures)
+{
+    /// <summary>When <c>reauthorizationRequired</c> was sent and not yet answered by a renewal; null otherwise.</summary>
+    public DateTimeOffset? ReauthorizationRequestedAt { get; init; }
+}
 
 /// <summary>A fresh access token for a subscriber, and the refresh token to keep for next time.</summary>
 public sealed record SubscriberSession(string AccessToken, string RefreshToken)
@@ -95,6 +122,7 @@ public sealed record LifecycleNotification(string SubscriptionId, DateTimeOffset
 {
     public const string ReauthorizationRequired = "reauthorizationRequired";
     public const string Missed = "missed";
+    public const string SubscriptionRemoved = "subscriptionRemoved";
 
     public string? ClientState { get; init; }
 

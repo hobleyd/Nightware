@@ -57,7 +57,8 @@ public sealed class SubscriptionArrangements : IConformanceArrangements
         fakes.For<IContactFolderStore>().GetAsync(Me, "contacts", Arg.Any<CancellationToken>()).Returns(new ContactFolder(new ContactFolderId("c"), "Contacts", null, "contacts"));
         fakes.For<IContactDelta>().DeltaAsync(Me, new ContactFolderId("c"), null, Arg.Any<CancellationToken>()).Returns(DeltaPage<Contact>.Done([], new DeltaToken("contacts")));
         fakes.For<ITaskDelta>().DeltaAsync(Me, Arg.Any<TaskListId>(), null, Arg.Any<CancellationToken>()).Returns(DeltaPage<TodoTask>.Done([], new DeltaToken("tasks")));
-        fakes.For<IEventChangeFeed>().BaselineAsync(Me, Arg.Any<CancellationToken>()).Returns("events");
+        fakes.For<IEventChangeFeed>().BaselineAsync(Me, Arg.Any<CancellationToken>()).Returns(new FeedBaseline("events", []));
+        fakes.For<ISubscriptionItems>().ReplaceAsync(Arg.Any<string>(), Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>()).Returns(Result.Success());
     }
 
     public IEnumerable<ConformanceArrangement> Arrangements()

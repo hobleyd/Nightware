@@ -66,6 +66,7 @@ internal sealed class PostgresSubscriptionStore(NpgsqlDataSource database, Crede
                SET resource = $3, mailbox = $4, kind = $5, folder = $6, change_type = $7, notification_url = $8, lifecycle_url = $9,
                    client_state = $10, application_id = $11, expiration = $12, credential = COALESCE($14, credential),
                    failures = CASE WHEN $14 IS NULL THEN failures ELSE 0 END,
+                   reauth_requested = CASE WHEN $14 IS NULL THEN reauth_requested ELSE NULL END,
                    next_poll = CASE WHEN $14 IS NULL THEN next_poll ELSE '-infinity'::timestamptz END
              WHERE id = $1 AND creator_id = $2
             """);
@@ -100,7 +101,7 @@ internal sealed class PostgresSubscriptionStore(NpgsqlDataSource database, Crede
                  LIMIT $3
                  FOR UPDATE SKIP LOCKED)
             UPDATE nightware_subscriptions s SET leased_until = $2 FROM due WHERE s.id = due.id
-            RETURNING {prefixed}, s.credential, s.last_poll, s.failures
+            RETURNING {prefixed}, s.credential, s.last_poll, s.failures, s.reauth_requested
             """);
         command.Parameters.Add(new NpgsqlParameter { Value = now.UtcDateTime });
         command.Parameters.Add(new NpgsqlParameter { Value = (now + lease).UtcDateTime });
@@ -112,7 +113,10 @@ internal sealed class PostgresSubscriptionStore(NpgsqlDataSource database, Crede
             var subscription = Read(reader);
             var credential = sealer.Open(subscription.Id, (byte[])reader[13]);
             var lastPoll = reader.IsDBNull(14) ? now : new DateTimeOffset(DateTime.SpecifyKind(reader.GetDateTime(14), DateTimeKind.Utc));
-            leased.Add(new LeasedSubscription(subscription, credential.IsSuccess ? credential.Value : null, lastPoll, reader.GetInt32(15)));
+            leased.Add(new LeasedSubscription(subscription, credential.IsSuccess ? credential.Value : null, lastPoll, reader.GetInt32(15))
+            {
+                ReauthorizationRequestedAt = reader.IsDBNull(16) ? null : new DateTimeOffset(DateTime.SpecifyKind(reader.GetDateTime(16), DateTimeKind.Utc)),
+            });
         }
 
         return leased;
@@ -134,6 +138,15 @@ internal sealed class PostgresSubscriptionStore(NpgsqlDataSource database, Crede
         command.Parameters.Add(new NpgsqlParameter { Value = polledAt is { } at ? at.UtcDateTime : DBNull.Value, NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.TimestampTz });
         command.Parameters.Add(new NpgsqlParameter { Value = nextPoll.UtcDateTime });
         command.Parameters.Add(new NpgsqlParameter { Value = failures });
+        return await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) == 1 ? Result.Success() : NotFound();
+    }
+
+    public async Task<Result> MarkReauthorizationRequestedAsync(string id, DateTimeOffset at, CancellationToken cancellationToken)
+    {
+        await schema.EnsureAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = database.CreateCommand("UPDATE nightware_subscriptions SET reauth_requested = $2 WHERE id = $1");
+        command.Parameters.Add(new NpgsqlParameter { Value = id });
+        command.Parameters.Add(new NpgsqlParameter { Value = at.UtcDateTime });
         return await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) == 1 ? Result.Success() : NotFound();
     }
 
@@ -193,7 +206,7 @@ internal sealed class PostgresSubscriptionStore(NpgsqlDataSource database, Crede
     private static Error NotFound() => Error.NotFound("The object was not found.", "id");
 }
 
-/// <summary>Creates the subscription table once per process (idempotent DDL).</summary>
+/// <summary>Creates the subscription tables once per process (idempotent DDL, so an older table gains what is new).</summary>
 internal sealed class SubscriptionSchema(NpgsqlDataSource database) : IDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -236,6 +249,13 @@ internal sealed class SubscriptionSchema(NpgsqlDataSource database) : IDisposabl
                     );
                     CREATE INDEX IF NOT EXISTS nightware_subscriptions_creator ON nightware_subscriptions (creator_id);
                     CREATE INDEX IF NOT EXISTS nightware_subscriptions_due ON nightware_subscriptions (next_poll);
+                    ALTER TABLE nightware_subscriptions ADD COLUMN IF NOT EXISTS items_tracked boolean NOT NULL DEFAULT false;
+                    ALTER TABLE nightware_subscriptions ADD COLUMN IF NOT EXISTS reauth_requested timestamptz;
+                    CREATE TABLE IF NOT EXISTS nightware_subscription_items (
+                        subscription_id text NOT NULL REFERENCES nightware_subscriptions (id) ON DELETE CASCADE,
+                        item_hash       bigint NOT NULL,
+                        PRIMARY KEY (subscription_id, item_hash)
+                    );
                     """);
                 await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
                 _ready = true;

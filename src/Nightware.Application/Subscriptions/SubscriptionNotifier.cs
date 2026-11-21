@@ -24,17 +24,18 @@ public sealed record PollOutcome(string? State, int Delivered);
 
 /// <summary>
 /// One poll of one subscription, run as the subscriber: what changed since its state, filtered to its change types,
-/// delivered to its endpoint. The state advances only after a 2xx, so delivery is at least once.
+/// delivered to its endpoint. The state advances only after a 2xx, so delivery is at least once. A tracked
+/// subscription's upserts are <c>created</c> or <c>updated</c> by whether it has seen the item (<see cref="ISubscriptionItems"/>);
+/// what it has seen advances with the state, so a retried delivery classifies the same way.
 /// </summary>
-public sealed class SubscriptionNotifier(ChangeFeed feed, INotificationEndpoint endpoint)
+public sealed class SubscriptionNotifier(ChangeFeed feed, INotificationEndpoint endpoint, ISubscriptionItems items)
 {
     public async Task<Result<PollOutcome>> PollAsync(Subscription subscription, DateTimeOffset lastPoll, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(subscription);
         if (subscription.SyncState is not { } state)
         {
-            var baseline = await feed.BaselineAsync(subscription.Target, cancellationToken).ConfigureAwait(false);
-            return baseline.IsSuccess ? new PollOutcome(baseline.Value, 0) : baseline.Error;
+            return await StartAsync(subscription, cancellationToken).ConfigureAwait(false);
         }
 
         var batch = await feed.ChangesAsync(subscription.Target, state, lastPoll, cancellationToken).ConfigureAwait(false);
@@ -43,7 +44,8 @@ public sealed class SubscriptionNotifier(ChangeFeed feed, INotificationEndpoint 
             return batch.Error;
         }
 
-        var notifications = batch.Value.Changes
+        var changes = await ClassifyAsync(subscription, batch.Value.Changes, cancellationToken).ConfigureAwait(false);
+        var notifications = changes
             .Where(c => subscription.ChangeType.HasFlag(c.ChangeType))
             .Select(c => ToNotification(subscription, c))
             .ToList();
@@ -56,7 +58,48 @@ public sealed class SubscriptionNotifier(ChangeFeed feed, INotificationEndpoint 
             }
         }
 
+        // Best effort: if this fails, an item seen now reads as created again on a later change.
+        await items.RecordAsync(
+            subscription.Id,
+            [.. changes.Where(static c => c.ChangeType == SubscriptionChangeType.Created).Select(static c => c.Id)],
+            [.. changes.Where(static c => c.ChangeType == SubscriptionChangeType.Deleted).Select(static c => c.Id)],
+            cancellationToken).ConfigureAwait(false);
         return new PollOutcome(batch.Value.State, notifications.Count);
+    }
+
+    /// <summary>The feed's guess, corrected by what the subscription has seen when it is tracked.</summary>
+    private async Task<IReadOnlyList<ResourceChange>> ClassifyAsync(Subscription subscription, IReadOnlyList<ResourceChange> changes, CancellationToken cancellationToken)
+    {
+        var upserted = changes.Where(static c => c.ChangeType != SubscriptionChangeType.Deleted).Select(static c => c.Id).Distinct(StringComparer.Ordinal).ToList();
+        if (upserted.Count == 0)
+        {
+            return changes;
+        }
+
+        var known = await items.KnownAsync(subscription.Id, upserted, cancellationToken).ConfigureAwait(false);
+        if (known is not { IsSuccess: true, Value: { } seen })
+        {
+            return changes;
+        }
+
+        // An item changed twice in one batch is created once, then updated.
+        var fresh = new HashSet<string>(StringComparer.Ordinal);
+        return [.. changes.Select(c => c.ChangeType == SubscriptionChangeType.Deleted
+            ? c
+            : c with { ChangeType = seen.Contains(c.Id) || !fresh.Add(c.Id) ? SubscriptionChangeType.Updated : SubscriptionChangeType.Created })];
+    }
+
+    /// <summary>The baseline: the state to start from, and every item that exists now as seen.</summary>
+    private async Task<Result<PollOutcome>> StartAsync(Subscription subscription, CancellationToken cancellationToken)
+    {
+        var baseline = await feed.BaselineAsync(subscription.Target, cancellationToken).ConfigureAwait(false);
+        if (!baseline.IsSuccess)
+        {
+            return baseline.Error;
+        }
+
+        await items.ReplaceAsync(subscription.Id, baseline.Value.Ids, cancellationToken).ConfigureAwait(false);
+        return new PollOutcome(baseline.Value.State, 0);
     }
 
     /// <summary>
@@ -71,8 +114,7 @@ public sealed class SubscriptionNotifier(ChangeFeed feed, INotificationEndpoint 
             await endpoint.DeliverLifecycleAsync(lifecycle, LifecycleNotification.For(subscription, LifecycleNotification.Missed), cancellationToken).ConfigureAwait(false);
         }
 
-        var baseline = await feed.BaselineAsync(subscription.Target, cancellationToken).ConfigureAwait(false);
-        return baseline.IsSuccess ? new PollOutcome(baseline.Value, 0) : baseline.Error;
+        return await StartAsync(subscription, cancellationToken).ConfigureAwait(false);
     }
 
     internal static ChangeNotification ToNotification(Subscription subscription, ResourceChange change)

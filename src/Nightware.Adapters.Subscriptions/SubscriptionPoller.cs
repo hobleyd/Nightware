@@ -22,6 +22,9 @@ internal sealed partial class SubscriptionPoller(IServiceScopeFactory scopes, IO
     private static readonly TimeSpan Lease = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan MaxBackoff = TimeSpan.FromHours(1);
 
+    /// <summary>How long a subscriber has to renew after <c>reauthorizationRequired</c> before the subscription is removed.</summary>
+    internal static readonly TimeSpan ReauthorizationGrace = TimeSpan.FromHours(1);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (!options.Value.IsConfigured)
@@ -80,10 +83,22 @@ internal sealed partial class SubscriptionPoller(IServiceScopeFactory scopes, IO
         if (!session.IsSuccess)
         {
             LogSessionFailed(logger, subscription.Id, session.Error.Kind);
-            if (session.Error.Kind is ErrorKind.BackendAuthFailed or ErrorKind.Unauthorized && leased.Failures == 0)
+            if (session.Error.Kind is ErrorKind.BackendAuthFailed or ErrorKind.Unauthorized)
             {
-                // Once, on the first failure: the client renews (PATCH) with a fresh token to reauthorize.
-                await LifecycleAsync(scope, subscription, LifecycleNotification.ReauthorizationRequired, cancellationToken).ConfigureAwait(false);
+                if (leased.ReauthorizationRequestedAt is not { } asked)
+                {
+                    // Once: the client renews (PATCH) with a fresh token to reauthorize.
+                    await LifecycleAsync(scope, subscription, LifecycleNotification.ReauthorizationRequired, cancellationToken).ConfigureAwait(false);
+                    await store.MarkReauthorizationRequestedAsync(subscription.Id, time.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+                }
+                else if (time.GetUtcNow() - asked >= ReauthorizationGrace)
+                {
+                    // Not renewed in time: Graph removes such a subscription and says so.
+                    LogRemoved(logger, subscription.Id);
+                    await store.DeleteAsync(subscription.CreatorId, subscription.Id, cancellationToken).ConfigureAwait(false);
+                    await LifecycleAsync(scope, subscription, LifecycleNotification.SubscriptionRemoved, cancellationToken).ConfigureAwait(false);
+                    return;
+                }
             }
 
             await BackOffAsync(store, leased, null, cancellationToken).ConfigureAwait(false);
@@ -144,6 +159,9 @@ internal sealed partial class SubscriptionPoller(IServiceScopeFactory scopes, IO
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Subscription {SubscriptionId}: poll or delivery failed ({Kind})")]
     private static partial void LogNotifyFailed(ILogger logger, string subscriptionId, ErrorKind kind);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Subscription {SubscriptionId}: not reauthorized in time; removed")]
+    private static partial void LogRemoved(ILogger logger, string subscriptionId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Removed {Count} expired subscription(s)")]
     private static partial void LogExpired(ILogger logger, int count);

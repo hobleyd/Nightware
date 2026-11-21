@@ -18,7 +18,7 @@ namespace Nightware.Adapters.Dav.Calendar;
 /// </summary>
 internal sealed partial class DavEventChangeFeed(DavCalendarScopes scopes, IDavClient dav, DavPaths paths) : IEventChangeFeed
 {
-    public async Task<Result<string>> BaselineAsync(MailboxRef mailbox, CancellationToken cancellationToken)
+    public async Task<Result<FeedBaseline>> BaselineAsync(MailboxRef mailbox, CancellationToken cancellationToken)
     {
         var calendar = await DefaultAsync(mailbox, cancellationToken).ConfigureAwait(false);
         if (!calendar.IsSuccess)
@@ -26,9 +26,18 @@ internal sealed partial class DavEventChangeFeed(DavCalendarScopes scopes, IDavC
             return calendar.Error;
         }
 
-        // Unlimited: Sabre refuses a size-limited initial sync (507).
+        // Unlimited: Sabre refuses a size-limited initial sync (507). An initial sync lists every resource.
         var sync = await dav.SyncCollectionAsync(calendar.Value, null, [DavNames.GetETag], null, cancellationToken).ConfigureAwait(false);
-        return sync.IsSuccess ? Encode(sync.Value.SyncToken, calendar.Value) : sync.Error;
+        return sync.IsSuccess
+            ? new FeedBaseline(Encode(sync.Value.SyncToken, calendar.Value), [.. EventIds(sync.Value.Changed.Where(static r => r.IsFound).Select(static r => r.Href), calendar.Value)])
+            : sync.Error;
+    }
+
+    /// <summary>The event ids of resources in the calendar (not the calendar itself).</summary>
+    private IEnumerable<string> EventIds(IEnumerable<string> hrefs, string calendar)
+    {
+        var calendarPath = paths.ToRelative(calendar);
+        return hrefs.Select(paths.ToRelative).OfType<string>().Where(h => h != calendarPath).Select(static h => DavItemId.Resource(h).ToEventId().Value);
     }
 
     public async Task<Result<ChangeBatch>> ChangesAsync(MailboxRef mailbox, string state, DateTimeOffset since, CancellationToken cancellationToken)

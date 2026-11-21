@@ -20,15 +20,23 @@ public sealed class SubscriptionNotifierTests
     private readonly ITaskDelta _tasks = Substitute.For<ITaskDelta>();
     private readonly IEventChangeFeed _events = Substitute.For<IEventChangeFeed>();
     private readonly INotificationEndpoint _endpoint = Substitute.For<INotificationEndpoint>();
+    private readonly ISubscriptionItems _items = Substitute.For<ISubscriptionItems>();
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    public SubscriptionNotifierTests() =>
+    public SubscriptionNotifierTests()
+    {
         _endpoint.DeliverAsync(Arg.Any<Uri>(), Arg.Any<IReadOnlyList<ChangeNotification>>(), Arg.Any<CancellationToken>()).Returns(Result.Success());
+
+        // Untracked unless a test says otherwise: the feed's own guess stands.
+        _items.KnownAsync(default!, default!, default).ReturnsForAnyArgs(Result<IReadOnlySet<string>?>.Success(null));
+        _items.ReplaceAsync(default!, default!, default).ReturnsForAnyArgs(Result.Success());
+        _items.RecordAsync(default!, default!, default!, default).ReturnsForAnyArgs(Result.Success());
+    }
 
     private ChangeFeed Feed => new(_mail, _folders, _contacts, _tasks, _events);
 
-    private SubscriptionNotifier Notifier => new(Feed, _endpoint);
+    private SubscriptionNotifier Notifier => new(Feed, _endpoint, _items);
 
     private static Subscription Inbox(SubscriptionChangeType types = SubscriptionChangeType.Created | SubscriptionChangeType.Updated | SubscriptionChangeType.Deleted) => new(
         "s1", "sub", "me/mailFolders('Inbox')/messages", new SubscriptionTarget(Me, SubscriptionResourceKind.Messages, "Inbox"), types,
@@ -151,5 +159,46 @@ public sealed class SubscriptionNotifierTests
         public bool Equals(ChangeBatch? x, ChangeBatch? y) => x!.State == y!.State && x.Changes.SequenceEqual(y.Changes);
 
         public int GetHashCode(ChangeBatch obj) => obj.State.GetHashCode(StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_tracked_subscription_classifies_by_what_it_has_seen_not_by_dates()
+    {
+        // The dates say "new" is new and "old" is old; what the subscription has seen says otherwise.
+        MailPages();
+        _items.KnownAsync("s1", Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>())
+            .Returns(Result<IReadOnlySet<string>?>.Success(new HashSet<string> { "new" }));
+
+        (await Notifier.PollAsync(Inbox(), LastPoll, Ct)).IsSuccess.ShouldBeTrue();
+
+        await _endpoint.Received().DeliverAsync(Arg.Any<Uri>(), Arg.Is<IReadOnlyList<ChangeNotification>>(n =>
+            n.Select(x => x.Id + ":" + x.ChangeType).SequenceEqual(new[] { "new:updated", "old:created", "gone:deleted" })), Arg.Any<CancellationToken>());
+        await _items.Received(1).RecordAsync("s1",
+            Arg.Is<IReadOnlyCollection<string>>(a => a.SequenceEqual(new[] { "old" })),
+            Arg.Is<IReadOnlyCollection<string>>(r => r.SequenceEqual(new[] { "gone" })),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task What_was_seen_advances_only_with_a_delivered_batch()
+    {
+        MailPages();
+        _items.KnownAsync("s1", Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>()).Returns(Result<IReadOnlySet<string>?>.Success(new HashSet<string>()));
+        _endpoint.DeliverAsync(Arg.Any<Uri>(), Arg.Any<IReadOnlyList<ChangeNotification>>(), Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("down"));
+
+        (await Notifier.PollAsync(Inbox(), LastPoll, Ct)).IsSuccess.ShouldBeFalse();
+
+        await _items.DidNotReceiveWithAnyArgs().RecordAsync(default!, default!, default!, Ct);
+    }
+
+    [Fact]
+    public async Task Starting_over_seeds_what_exists_now()
+    {
+        _mail.DeltaAsync(Me, new FolderRef.WellKnown(WellKnownFolder.Inbox), null, Arg.Any<DeltaRequest>(), Arg.Any<CancellationToken>())
+            .Returns(DeltaPage<MailMessage>.Done([new DeltaEntry<MailMessage>.Upsert(Message("a", LastPoll)), new DeltaEntry<MailMessage>.Upsert(Message("b", LastPoll))], new DeltaToken("t9")));
+
+        (await Notifier.PollAsync(Inbox() with { SyncState = null }, LastPoll, Ct)).Value.ShouldBe(new PollOutcome("t9", 0));
+
+        await _items.Received(1).ReplaceAsync("s1", Arg.Is<IReadOnlyCollection<string>>(ids => ids.SequenceEqual(new[] { "a", "b" })), Arg.Any<CancellationToken>());
     }
 }

@@ -119,12 +119,18 @@ public sealed class SubscriptionStoreTests : IAsyncLifetime
         var sub = New("carol") with { ExpirationDateTime = DateTimeOffset.UtcNow.AddDays(1) };
         await store.CreateAsync(sub, "r1", Ct);
         var leased = (await store.LeaseDueAsync(DateTimeOffset.UtcNow.AddSeconds(1), TimeSpan.FromMinutes(2), 10, Ct)).Value.Single(l => l.Subscription.Id == sub.Id);
-        await store.CompletePollAsync(sub.Id, "s9", null, null, DateTimeOffset.UtcNow.AddHours(1), 5, Ct);
+        leased.ReauthorizationRequestedAt.ShouldBeNull();
+        var asked = new DateTimeOffset(2026, 11, 21, 10, 0, 0, TimeSpan.Zero);
+        (await store.MarkReauthorizationRequestedAsync(sub.Id, asked, Ct)).IsSuccess.ShouldBeTrue();
+        await store.CompletePollAsync(sub.Id, "s9", null, null, DateTimeOffset.UtcNow.AddSeconds(-1), 5, Ct);
+        (await store.LeaseDueAsync(DateTimeOffset.UtcNow.AddSeconds(1), TimeSpan.FromMinutes(2), 10, Ct)).Value.Single(l => l.Subscription.Id == sub.Id)
+            .ReauthorizationRequestedAt.ShouldBe(asked);
+        await store.CompletePollAsync(sub.Id, null, null, null, DateTimeOffset.UtcNow.AddHours(1), 5, Ct);
 
         (await store.UpdateAsync(leased.Subscription, "r2", Ct)).IsSuccess.ShouldBeTrue();
 
         var again = (await store.LeaseDueAsync(DateTimeOffset.UtcNow.AddSeconds(1), TimeSpan.FromMinutes(2), 10, Ct)).Value.Single(l => l.Subscription.Id == sub.Id);
-        (again.RefreshToken, again.Failures, again.Subscription.SyncState).ShouldBe(("r2", 0, "s9"));
+        (again.RefreshToken, again.Failures, again.Subscription.SyncState, again.ReauthorizationRequestedAt).ShouldBe(("r2", 0, "s9", (DateTimeOffset?)null));
     }
 
     [Fact]
@@ -169,5 +175,29 @@ public sealed class SubscriptionStoreTests : IAsyncLifetime
         (await store.CompletePollAsync("missing", "s", "r", null, DateTimeOffset.UtcNow, 0, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
         (await store.UpdateAsync(New("frank"), "r", Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
         (await store.RemoveExpiredAsync(DateTimeOffset.UtcNow, Ct)).Value.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Seen_items_are_seeded_looked_up_recorded_and_go_with_their_subscription()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Live integration tests run only with NIGHTWARE_INTEGRATION=1.");
+        var schema = new SubscriptionSchema(_source!);
+        var store = new PostgresSubscriptionStore(_source!, new CredentialSealer(new string('c', 64)), schema);
+        var items = new PostgresSubscriptionItems(_source!, schema);
+        var sub = New("dave");
+        await store.CreateAsync(sub, "r1", Ct);
+
+        (await items.KnownAsync(sub.Id, ["a"], Ct)).Value.ShouldBeNull("not tracked until seeded");
+
+        (await items.ReplaceAsync(sub.Id, [.. Enumerable.Range(0, 5000).Select(static i => "id-" + i)], Ct)).IsSuccess.ShouldBeTrue();
+        (await items.KnownAsync(sub.Id, ["id-1", "id-4999", "new"], Ct)).Value!.ShouldBe(new HashSet<string> { "id-1", "id-4999" }, ignoreOrder: true);
+
+        (await items.RecordAsync(sub.Id, ["new"], ["id-1"], Ct)).IsSuccess.ShouldBeTrue();
+        (await items.KnownAsync(sub.Id, ["id-1", "new"], Ct)).Value!.ShouldBe(new HashSet<string> { "new" });
+        (await items.ReplaceAsync("missing", ["x"], Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+
+        (await store.DeleteAsync("dave", sub.Id, Ct)).IsSuccess.ShouldBeTrue();
+        await using var count = _source!.CreateCommand("SELECT count(*) FROM nightware_subscription_items");
+        ((long)(await count.ExecuteScalarAsync(Ct))!).ShouldBe(0L);
     }
 }

@@ -28,6 +28,9 @@ public static class SubscriptionsAdapterServiceCollectionExtensions
         services.TryAddSingleton<PostgresSubscriptionStore>();
         services.TryAddSingleton<ISubscriptionStore>(static sp =>
             Settings(sp).IsConfigured ? sp.GetRequiredService<PostgresSubscriptionStore>() : UnconfiguredSubscriptions.Instance);
+        services.TryAddSingleton<PostgresSubscriptionItems>();
+        services.TryAddSingleton<ISubscriptionItems>(static sp =>
+            Settings(sp).IsConfigured ? sp.GetRequiredService<PostgresSubscriptionItems>() : UnconfiguredSubscriptions.Instance);
         services.TryAddScoped<WebhookNotificationEndpoint>();
         services.TryAddScoped<INotificationEndpoint>(static sp =>
             Settings(sp).IsConfigured ? sp.GetRequiredService<WebhookNotificationEndpoint>() : UnconfiguredSubscriptions.Instance);

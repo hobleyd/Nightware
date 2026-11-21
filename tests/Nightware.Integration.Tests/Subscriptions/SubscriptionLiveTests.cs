@@ -154,13 +154,14 @@ public sealed class SubscriptionLiveTests : IAsyncLifetime
         }
     }
 
-    private async Task<JsonObject?> WaitForAsync(string subscriptionId, string id)
+    private async Task<JsonObject?> WaitForAsync(string subscriptionId, string id, string? changeType = null)
     {
         var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
         while (DateTimeOffset.UtcNow < deadline)
         {
             var found = _receiver!.Notifications.Select(n => JsonNode.Parse(n)!["value"]!.AsArray()).SelectMany(v => v).OfType<JsonObject>()
-                .FirstOrDefault(n => n["subscriptionId"]!.GetValue<string>() == subscriptionId && n["resourceData"]!["id"]!.GetValue<string>() == id);
+                .FirstOrDefault(n => n["subscriptionId"]!.GetValue<string>() == subscriptionId && n["resourceData"]!["id"]!.GetValue<string>() == id
+                    && (changeType is null || n["changeType"]!.GetValue<string>() == changeType));
             if (found is not null)
             {
                 return found;
@@ -205,6 +206,14 @@ public sealed class SubscriptionLiveTests : IAsyncLifetime
             var task = (await WaitForAsync(subscriptions[$"me/todo/lists/{listId}/tasks"], taskId)).ShouldNotBeNull("a task notification");
             task["changeType"]!.GetValue<string>().ShouldBe("created");
             (await SendAsync(alice, HttpMethod.Get, $"/v1.0/{task["resource"]!.GetValue<string>()}"))["title"]!.GetValue<string>().ShouldBe($"Notify {run}");
+
+            // An edit, even within seconds of creating it, is an update: the subscription has seen the item.
+            await SendAsync(alice, HttpMethod.Patch, $"/v1.0/me/contacts/{contactId}", """{"jobTitle":"Edited"}""");
+            await SendAsync(alice, HttpMethod.Patch, $"/v1.0/me/todo/lists/{listId}/tasks/{taskId}", """{"importance":"high"}""");
+            (await WaitForAsync(subscriptions["me/contacts"], contactId, "updated")).ShouldNotBeNull("a contact edit is an update");
+            (await WaitForAsync(subscriptions[$"me/todo/lists/{listId}/tasks"], taskId, "updated")).ShouldNotBeNull("a task edit is an update");
+            _receiver!.Notifications.Select(n => JsonNode.Parse(n)!["value"]!.AsArray()).SelectMany(v => v).OfType<JsonObject>()
+                .Count(n => n["resourceData"]!["id"]!.GetValue<string>() == contactId && n["changeType"]!.GetValue<string>() == "created").ShouldBe(1);
         }
         finally
         {

@@ -26,7 +26,8 @@ public sealed record SubscriptionPatch(DateTimeOffset? ExpirationDateTime, strin
 /// subscription with a refresh credential for the caller. Only the creator sees or changes a subscription.
 /// </summary>
 public sealed partial class SubscriptionsUseCase(
-    ISubscriptionStore store, ISubscriberCredentials credentials, INotificationEndpoint endpoint, ChangeFeed feed, IUserContext caller, IMailboxResolver mailboxes, TimeProvider time)
+    ISubscriptionStore store, ISubscriberCredentials credentials, INotificationEndpoint endpoint, ChangeFeed feed, IUserContext caller, IMailboxResolver mailboxes, TimeProvider time,
+    ISubscriptionItems items)
 {
     /// <summary>Graph raises any expiry sooner than this to it.</summary>
     public static readonly TimeSpan MinimumLifetime = TimeSpan.FromMinutes(45);
@@ -120,9 +121,16 @@ public sealed partial class SubscriptionsUseCase(
             ClientState = request.ClientState,
             LifecycleNotificationUrl = lifecycle,
             ApplicationId = request.ApplicationId,
-            SyncState = baseline.Value,
+            SyncState = baseline.Value.State,
         };
-        return await store.CreateAsync(subscription, credential.Value, cancellationToken).ConfigureAwait(false);
+        var created = await store.CreateAsync(subscription, credential.Value, cancellationToken).ConfigureAwait(false);
+        if (created.IsSuccess)
+        {
+            // Best effort: untracked, the subscription falls back to the feed's own created/updated guess.
+            await items.ReplaceAsync(subscription.Id, baseline.Value.Ids, cancellationToken).ConfigureAwait(false);
+        }
+
+        return created;
     }
 
     public Task<Result<IReadOnlyList<Subscription>>> ListAsync(CancellationToken cancellationToken) =>

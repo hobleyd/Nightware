@@ -5,7 +5,7 @@ using Nightware.Domain.Subscriptions;
 namespace Nightware.Adapters.Subscriptions;
 
 /// <summary>The store and endpoint when the server has no subscription store configured: every call is 501.</summary>
-internal sealed class UnconfiguredSubscriptions : ISubscriptionStore, INotificationEndpoint
+internal sealed class UnconfiguredSubscriptions : ISubscriptionStore, INotificationEndpoint, ISubscriptionItems
 {
     public static readonly UnconfiguredSubscriptions Instance = new();
 
@@ -44,4 +44,14 @@ internal sealed class UnconfiguredSubscriptions : ISubscriptionStore, INotificat
 
     public Task<Result> DeliverLifecycleAsync(Uri lifecycleNotificationUrl, LifecycleNotification notification, CancellationToken cancellationToken) =>
         Task.FromResult(Result.Failure(NotConfigured));
+
+    public Task<Result> ReplaceAsync(string subscriptionId, IReadOnlyCollection<string> ids, CancellationToken cancellationToken) => Task.FromResult<Result>(NotConfigured);
+
+    public Task<Result<IReadOnlySet<string>?>> KnownAsync(string subscriptionId, IReadOnlyCollection<string> ids, CancellationToken cancellationToken) =>
+        Task.FromResult<Result<IReadOnlySet<string>?>>(NotConfigured);
+
+    public Task<Result> RecordAsync(string subscriptionId, IReadOnlyCollection<string> added, IReadOnlyCollection<string> removed, CancellationToken cancellationToken) =>
+        Task.FromResult<Result>(NotConfigured);
+
+    public Task<Result> MarkReauthorizationRequestedAsync(string id, DateTimeOffset at, CancellationToken cancellationToken) => Task.FromResult<Result>(NotConfigured);
 }

@@ -13,10 +13,13 @@ public sealed record ResourceChange(string Id, SubscriptionChangeType ChangeType
 /// <summary>A page of changes and the state to resume from once they have been delivered.</summary>
 public sealed record ChangeBatch(IReadOnlyList<ResourceChange> Changes, string State);
 
+/// <summary>The state as of now, and the ids of the items that exist at it (what a subscription starts out knowing).</summary>
+public sealed record FeedBaseline(string State, IReadOnlyList<string> Ids);
+
 /// <summary>Changes to the events of a mailbox's default calendar (no window, no expansion), by an adapter's own state.</summary>
 public interface IEventChangeFeed
 {
-    Task<Result<string>> BaselineAsync(MailboxRef mailbox, CancellationToken cancellationToken);
+    Task<Result<FeedBaseline>> BaselineAsync(MailboxRef mailbox, CancellationToken cancellationToken);
 
     /// <param name="since">Items created after this are reported as created, older ones as updated.</param>
     Task<Result<ChangeBatch>> ChangesAsync(MailboxRef mailbox, string state, DateTimeOffset since, CancellationToken cancellationToken);
@@ -25,8 +28,9 @@ public interface IEventChangeFeed
 /// <summary>
 /// What changed in a subscription's resource since its state, over the same delta ports clients use. Delta does not
 /// say whether an item is new, so an item created after the previous poll (less <see cref="CreatedTolerance"/>) is
-/// reported as created and any other as updated (a heuristic; see the phase 16 doc). Runs as the subscriber: in a
-/// request, or in the notifier's scope.
+/// reported as created and any other as updated. That guess stands only for subscriptions the notifier does not
+/// track (<see cref="ISubscriptionItems"/>); tracked ones are classified by the items they have seen. Runs as the
+/// subscriber: in a request, or in the notifier's scope.
 /// </summary>
 public sealed class ChangeFeed(IMailDeltaReader mail, IContactFolderStore contactFolders, IContactDelta contacts, ITaskDelta tasks, IEventChangeFeed events)
 {
@@ -38,8 +42,8 @@ public sealed class ChangeFeed(IMailDeltaReader mail, IContactFolderStore contac
 
     private static readonly DeltaRequest Page = new(DeltaRequest.DefaultPageSize, new HashSet<string>(StringComparer.Ordinal) { "id", "createdDateTime", "receivedDateTime" });
 
-    /// <summary>The state as of now, without reporting what already exists.</summary>
-    public async Task<Result<string>> BaselineAsync(SubscriptionTarget target, CancellationToken cancellationToken)
+    /// <summary>The state as of now and the items that exist at it, without reporting them.</summary>
+    public async Task<Result<FeedBaseline>> BaselineAsync(SubscriptionTarget target, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(target);
         if (target.Kind == SubscriptionResourceKind.Events)
@@ -47,8 +51,11 @@ public sealed class ChangeFeed(IMailDeltaReader mail, IContactFolderStore contac
             return await events.BaselineAsync(target.Mailbox, cancellationToken).ConfigureAwait(false);
         }
 
+        // An initial delta lists every item once, as an upsert.
         var batch = await DrainAsync(target, null, DateTimeOffset.MaxValue, cancellationToken).ConfigureAwait(false);
-        return batch.IsSuccess ? batch.Value.State : batch.Error;
+        return batch.IsSuccess
+            ? new FeedBaseline(batch.Value.State, [.. batch.Value.Changes.Where(static c => c.ChangeType != SubscriptionChangeType.Deleted).Select(static c => c.Id).Distinct(StringComparer.Ordinal)])
+            : batch.Error;
     }
 
     public Task<Result<ChangeBatch>> ChangesAsync(SubscriptionTarget target, string state, DateTimeOffset since, CancellationToken cancellationToken)
