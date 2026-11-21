@@ -5978,5 +5978,104 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/resources/contact",
     "notes": "CardDAV address books (ADR 0006 D7). As contacts.create, in the named book."
+  },
+  {
+    "id": "contacts.delta",
+    "phase": 14,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/contactFolders/{folderId}/contacts/delta",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[]",
+      "@odata.deltaLink"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/contact-delta",
+    "notes": "CardDAV sync-collection on the folder's book (ADR 0006 D7): the initial sync is every card."
+  },
+  {
+    "id": "contacts.delta-changes",
+    "phase": 14,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/contactFolders('{folderId}')/contacts/delta",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[]",
+      "@odata.deltaLink"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/contact-delta",
+    "notes": "Changed cards (multiget) and @removed; the token names its folder; an expired one is 410. Graph's key form contactFolders('{id}') is routed as well."
+  },
+  {
+    "id": "contacts.folders.delta",
+    "phase": 14,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/contactFolders/delta",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[]",
+      "@odata.deltaLink"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/contactfolder-delta",
+    "notes": "An address-book home has no sync token: the token is a snapshot of folder ids and name hashes, so new, renamed and removed folders are reported."
   }
 ]

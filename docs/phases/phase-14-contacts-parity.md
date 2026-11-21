@@ -1,6 +1,6 @@
 # Phase 14 — Contacts parity
 
-> **Status (2026-11-21): in progress** — 14a (contact CRUD, photo) and 14b (folders) done. Decisions: [ADR 0006](../adr/0006-graph-parity.md) D7.
+> **Status (2026-11-21): done** (v1.23.0–v1.25.0). Decisions: [ADR 0006](../adr/0006-graph-parity.md) D7.
 
 **Goal:** full contact read/write across address books, with photos and delta.
 
@@ -40,7 +40,8 @@
   DELETE all work. The home also holds `z-server-generated--system` ("Accounts")
   and `z-app-generated--contactsinteraction--recent`, which are not folders.
 - An initial `sync-collection` with a limit answers 507 for the collection, as on
-  calendars: an initial delta takes the book's own `sync-token` from PROPFIND.
+  calendars. An unlimited one works, so a contacts delta starts with one unlimited
+  `sync-collection`, which gives every card and the token they are current as of.
 - After a session cookie is set, Nextcloud's CSRF check refuses further cookie-bearing
   DAV requests unless they send `OCS-APIRequest: true` (only the raw-DAV probes and
   live tests hit this; the adapter sends no cookies).
@@ -53,3 +54,9 @@
   is their `parentFolderId` and is reachable by id or as `contacts`. The default
   folder cannot be renamed or deleted (400); a name already taken is 409. New books
   are `nightware-{guid}` by extended MKCOL.
+- Contact delta upserts carry `@odata.type` in Graph's capture (mail deltas do not),
+  so `GraphResults.Delta` types upserts on request. Graph's deltaLink names the
+  folder in key form, `contactFolders('{id}')/contacts/delta`; that route is mapped
+  beside the plain one.
+- Folder delta has no backend token (the address-book home has none): the token is a
+  snapshot of folder ids and name hashes, diffed in the Application layer.

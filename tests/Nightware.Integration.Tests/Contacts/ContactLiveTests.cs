@@ -47,14 +47,18 @@ public sealed class ContactLiveTests : IAsyncLifetime
         return text.Length == 0 ? [] : JsonNode.Parse(text)!.AsObject();
     }
 
+    /// <summary>A contact id is the card's DAV href, base64url-encoded behind an "r:" kind marker.</summary>
+    private static string CardUrl(string contactId)
+    {
+        var padded = contactId.Replace('-', '+').Replace('_', '/');
+        padded += new string('=', (4 - (padded.Length % 4)) % 4);
+        return $"{LiveStack.CloudBase}/remote.php/dav/{Encoding.UTF8.GetString(Convert.FromBase64String(padded))["r:".Length..]}";
+    }
+
     /// <summary>The card as Nextcloud stores it, read straight over CardDAV.</summary>
     private async Task<string> RawCardAsync(string contactId)
     {
-        // A contact id is the card's DAV href, base64url-encoded behind an "r:" kind marker.
-        var padded = contactId.Replace('-', '+').Replace('_', '/');
-        padded += new string('=', (4 - (padded.Length % 4)) % 4);
-        var href = Encoding.UTF8.GetString(Convert.FromBase64String(padded))["r:".Length..];
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"{LiveStack.CloudBase}/remote.php/dav/{href}");
+        using var request = new HttpRequestMessage(HttpMethod.Get, CardUrl(contactId));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _stack.NextcloudTokenAsync(Alice, Ct));
         request.Headers.TryAddWithoutValidation("OCS-APIRequest", "true");
         using var response = await _stack.Backchannel.SendAsync(request, Ct);
@@ -170,5 +174,69 @@ public sealed class ContactLiveTests : IAsyncLifetime
         }
 
         await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/contactFolders/{folderId}", expected: HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task An_edit_made_in_nextcloud_shows_in_the_folders_delta()
+    {
+        var alice = await _stack.GraphClientAsync(Alice, Ct);
+        var created = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/contacts", $$"""{"givenName":"Delta","surname":"{{_run}}"}""", HttpStatusCode.Created);
+        var id = created["id"]!.GetValue<string>();
+        var deleted = false;
+        try
+        {
+            var initial = await SendAsync(alice, HttpMethod.Get, "/v1.0/me/contactFolders/contacts/contacts/delta");
+            initial["value"]!.AsArray().ShouldContain(c => c!["id"]!.GetValue<string>() == id);
+            var link = LiveStack.Local(initial["@odata.deltaLink"]!.GetValue<string>());
+
+            // The edit is Nextcloud's own (as from its Contacts app), not the façade's.
+            var card = (await RawCardAsync(id)).Replace($"FN:Delta {_run}", $"FN:Delta {_run} edited", StringComparison.Ordinal);
+            using (var put = new HttpRequestMessage(HttpMethod.Put, CardUrl(id)) { Content = new StringContent(card, Encoding.UTF8, "text/vcard") })
+            {
+                put.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await _stack.NextcloudTokenAsync(Alice, Ct));
+                put.Headers.TryAddWithoutValidation("OCS-APIRequest", "true");
+                using var response = await _stack.Backchannel.SendAsync(put, Ct);
+                response.IsSuccessStatusCode.ShouldBeTrue();
+            }
+
+            var changes = await SendAsync(alice, HttpMethod.Get, link);
+            changes["value"]!.AsArray().ShouldHaveSingleItem()!["displayName"]!.GetValue<string>().ShouldBe($"Delta {_run} edited");
+
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/contacts/{id}", expected: HttpStatusCode.NoContent);
+            deleted = true;
+            var removal = await SendAsync(alice, HttpMethod.Get, LiveStack.Local(changes["@odata.deltaLink"]!.GetValue<string>()));
+            var gone = removal["value"]!.AsArray().ShouldHaveSingleItem()!;
+            gone["id"]!.GetValue<string>().ShouldBe(id);
+            gone["@removed"]!["reason"]!.GetValue<string>().ShouldBe("deleted");
+        }
+        finally
+        {
+            if (!deleted)
+            {
+                await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/contacts/{id}", expected: HttpStatusCode.NoContent);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Folder_delta_reports_a_new_folder_and_its_removal()
+    {
+        var alice = await _stack.GraphClientAsync(Alice, Ct);
+        var initial = await SendAsync(alice, HttpMethod.Get, "/v1.0/me/contactFolders/delta");
+        var folder = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/contactFolders", $$"""{"displayName":"Delta {{_run}}"}""", HttpStatusCode.Created);
+        var folderId = folder["id"]!.GetValue<string>();
+        JsonObject added;
+        try
+        {
+            added = await SendAsync(alice, HttpMethod.Get, LiveStack.Local(initial["@odata.deltaLink"]!.GetValue<string>()));
+            added["value"]!.AsArray().ShouldHaveSingleItem()!["id"]!.GetValue<string>().ShouldBe(folderId);
+        }
+        finally
+        {
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/contactFolders/{folderId}", expected: HttpStatusCode.NoContent);
+        }
+
+        var removed = await SendAsync(alice, HttpMethod.Get, LiveStack.Local(added["@odata.deltaLink"]!.GetValue<string>()));
+        removed["value"]!.AsArray().ShouldHaveSingleItem()!["@removed"].ShouldNotBeNull();
     }
 }

@@ -6,7 +6,7 @@ using Nightware.Domain.Kernel;
 
 namespace Nightware.Conformance.Tests.Arrangements;
 
-/// <summary>Phase 14 contact folders (ADR 0006 D7), against captures from Microsoft 365.</summary>
+/// <summary>Phase 14 contact folders and both deltas (ADR 0006 D7), against captures from Microsoft 365.</summary>
 public sealed class ContactFolderArrangements : IConformanceArrangements
 {
     private static readonly MailboxRef Me = new("me@example.com");
@@ -65,5 +65,27 @@ public sealed class ContactFolderArrangements : IConformanceArrangements
                 .CreateAsync(Me, Folder.Id, Arg.Is<ContactDraft>(d => d.GivenName == "Sam" && d.Surname == "Folder"), Arg.Any<CancellationToken>())
                 .Returns(Sam);
         });
+
+        yield return new ConformanceArrangement("contacts.delta", static fakes =>
+        {
+            Known(fakes);
+            fakes.For<IContactDelta>().DeltaAsync(Me, Folder.Id, null, Arg.Any<CancellationToken>())
+                .Returns(DeltaPage<Contact>.Done([], new DeltaToken("initial")));
+        });
+
+        // The capture follows Graph's deltaLink, which names the folder in key form: contactFolders('…').
+        yield return new ConformanceArrangement("contacts.delta-changes", static fakes =>
+        {
+            Known(fakes);
+            fakes.For<IContactDelta>().DeltaAsync(Me, Folder.Id, new DeltaToken("initial"), Arg.Any<CancellationToken>())
+                .Returns(DeltaPage<Contact>.Done([new DeltaEntry<Contact>.Upsert(Sam)], new DeltaToken("next")));
+        })
+        {
+            RequestToken = new DeltaToken("initial"),
+        };
+
+        yield return new ConformanceArrangement("contacts.folders.delta", static fakes =>
+            fakes.For<IContactFolderStore>().ListAsync(Me, Arg.Any<CancellationToken>())
+                .Returns(Result<IReadOnlyList<ContactFolder>>.Success([Folder with { DisplayName = "Nightware 12fa34 renamed" }])));
     }
 }

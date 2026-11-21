@@ -13,6 +13,8 @@ namespace Nightware.Api.Tests.Features.Contacts;
 public sealed class ContactsEndpointsTests : IAsyncLifetime
 {
     private readonly IContactStore _store = Substitute.For<IContactStore>();
+    private readonly IContactFolderStore _folders = Substitute.For<IContactFolderStore>();
+    private readonly IContactDelta _delta = Substitute.For<IContactDelta>();
     private TestHost _host = null!;
 
     private static readonly Contact Pat = new(new ContactId("c-pat"), "Pat Contact")
@@ -25,7 +27,7 @@ public sealed class ContactsEndpointsTests : IAsyncLifetime
     };
 
     public async ValueTask InitializeAsync() =>
-        _host = await TestHost.StartAsync(services => services.AddSingleton(_store));
+        _host = await TestHost.StartAsync(services => services.AddSingleton(_store).AddSingleton(_folders).AddSingleton(_delta));
 
     public async ValueTask DisposeAsync() => await _host.DisposeAsync();
 
@@ -148,5 +150,21 @@ public sealed class ContactsEndpointsTests : IAsyncLifetime
         using var get = await _host.AuthorizedClient().GetAsync("/v1.0/me/contacts/c-pat/photo/$value", Ct);
         get.Content.Headers.ContentType!.MediaType.ShouldBe("image/jpeg");
         (await get.Content.ReadAsByteArrayAsync(Ct)).ShouldBe(jpeg);
+    }
+
+    [Theory]
+    [InlineData("/v1.0/me/contactFolders/f1/contacts/delta")]
+    [InlineData("/v1.0/me/contactFolders('f1')/contacts/delta")]
+    public async Task Contact_delta_answers_on_both_key_forms_with_typed_upserts(string path)
+    {
+        _folders.GetAsync(Me, "f1", Arg.Any<CancellationToken>()).Returns(new ContactFolder(new ContactFolderId("f1"), "F", null));
+        _delta.DeltaAsync(Me, new ContactFolderId("f1"), null, Arg.Any<CancellationToken>())
+            .Returns(DeltaPage<Contact>.Done([new DeltaEntry<Contact>.Upsert(Pat), new DeltaEntry<Contact>.Removed("gone", RemovedReason.Deleted)], new DeltaToken("t")));
+
+        var body = await (await _host.AuthorizedClient().GetAsync(path, Ct)).ReadObjectAsync();
+
+        body["value"]![0]!["@odata.type"]!.GetValue<string>().ShouldBe("#microsoft.graph.contact");
+        body["value"]![1]!.Str("@removed.reason").ShouldBe("deleted");
+        body["@odata.deltaLink"]!.GetValue<string>().ShouldContain("deltatoken");
     }
 }

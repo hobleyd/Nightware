@@ -1,0 +1,79 @@
+{
+  "operationId": "contacts.delta-changes",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/contactFolders('AAMk-id-0001=')/contacts/delta",
+    "query": {
+      "$deltatoken": "{token}"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(contact)",
+      "value": [
+        {
+          "@odata.type": "#microsoft.graph.contact",
+          "@odata.etag": "W/\"AAMk-changeKey-0001=\"",
+          "id": "AAMk-id-0002=",
+          "createdDateTime": "2026-11-20T22:39:01Z",
+          "lastModifiedDateTime": "2026-11-20T22:39:01Z",
+          "changeKey": "AAMk-changeKey-0001=",
+          "categories": [],
+          "parentFolderId": "AAMk-id-0001=",
+          "birthday": null,
+          "fileAs": "",
+          "displayName": "Sam Folder",
+          "givenName": "Sam",
+          "initials": null,
+          "middleName": null,
+          "nickName": null,
+          "surname": "Folder",
+          "title": null,
+          "yomiGivenName": null,
+          "yomiSurname": null,
+          "yomiCompanyName": null,
+          "generation": null,
+          "imAddresses": [],
+          "jobTitle": null,
+          "companyName": null,
+          "department": null,
+          "officeLocation": null,
+          "profession": null,
+          "businessHomePage": null,
+          "assistantName": null,
+          "manager": null,
+          "homePhones": [],
+          "mobilePhone": null,
+          "businessPhones": [],
+          "spouseName": null,
+          "personalNotes": "",
+          "children": [],
+          "emailAddresses": [
+            {
+              "name": "Sam Folder",
+              "address": "sam.folder@example.com"
+            }
+          ],
+          "primaryEmailAddress": {
+            "name": "Sam Folder",
+            "address": "sam.folder@example.com"
+          },
+          "homeAddress": {},
+          "businessAddress": {},
+          "otherAddress": {}
+        }
+      ],
+      "@odata.deltaLink": "https://graph.microsoft.com/v1.0/me/contactFolders('AAMk-id-0001=')/contacts/delta?$deltatoken={token}"
+    }
+  }
+}

@@ -32,6 +32,11 @@ public static class ContactsEndpoints
             scope.MapGet("/contacts/{contactId}/photo/$value", GetPhotoAsync);
             scope.MapPut("/contacts/{contactId}/photo/$value", SetPhotoAsync);
 
+            scope.MapGet("/contactFolders/delta", FoldersDeltaAsync);
+
+            // Graph's own deltaLinks use the key form, contactFolders('{id}'), so a client following one lands here.
+            scope.MapGet("/contactFolders/{folderId}/contacts/delta", ContactsDeltaAsync);
+            scope.MapGet("/contactFolders('{folderId}')/contacts/delta", ContactsDeltaAsync);
             scope.MapGet("/contactFolders", ListFoldersAsync);
             scope.MapPost("/contactFolders", CreateFolderAsync);
             scope.MapGet("/contactFolders/{folderId}", GetFolderAsync);
@@ -132,6 +137,32 @@ public static class ContactsEndpoints
         var created = await useCase.CreateContactAsync(mailbox.Ref, folderId, draft.Value, cancellationToken).ConfigureAwait(false);
         return GraphResults.Match(created, c => GraphResults.CreatedAt(
             ContactDtoMapper.ToDto(c), $"{Folder(mailbox, folderId)}/contacts", $"{Folder(mailbox, folderId)}/contacts('{Uri.EscapeDataString(c.Id.Value)}')"));
+    }
+
+    private static async Task<IResult> FoldersDeltaAsync(
+        Mailbox mailbox, ODataQuery odata, HttpContext http, Graph.Json.DeltaLinkCodec links, SyncContactFolders useCase, CancellationToken cancellationToken)
+    {
+        var cursor = links.ReadCursor(http.Request.Query, odata.Query);
+        if (!cursor.IsSuccess)
+        {
+            return GraphResults.Error(cursor.Error);
+        }
+
+        var page = await useCase.ExecuteAsync(mailbox.Ref, cursor.Value.Token, cancellationToken).ConfigureAwait(false);
+        return GraphResults.Match(page, p => GraphResults.Delta(p, ContactFolderDto.From, cursor.Value, "contactFolder", "#microsoft.graph.contactFolder", typeUpserts: true));
+    }
+
+    private static async Task<IResult> ContactsDeltaAsync(
+        Mailbox mailbox, string folderId, ODataQuery odata, HttpContext http, Graph.Json.DeltaLinkCodec links, SyncFolderContacts useCase, CancellationToken cancellationToken)
+    {
+        var cursor = links.ReadCursor(http.Request.Query, odata.Query);
+        if (!cursor.IsSuccess)
+        {
+            return GraphResults.Error(cursor.Error);
+        }
+
+        var page = await useCase.ExecuteAsync(mailbox.Ref, Uri.UnescapeDataString(folderId), cursor.Value.Token, cancellationToken).ConfigureAwait(false);
+        return GraphResults.Match(page, p => GraphResults.Delta(p, ContactDtoMapper.ToDto, cursor.Value, "contact", "#microsoft.graph.contact", typeUpserts: true));
     }
 
     private static async Task<IResult> GetPhotoAsync(Mailbox mailbox, string contactId, GetContactPhoto useCase, CancellationToken cancellationToken)

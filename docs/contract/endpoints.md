@@ -325,8 +325,8 @@ operation:
 | Phase 11 — JSON batching (Graph parity) | 2 |
 | Phase 12 — Mail (Graph parity) | 19 |
 | Phase 13 — Calendar (Graph parity) | 27 |
-| Phase 14 — Contacts (Graph parity) | 15 |
-| **Total** | **139** |
+| Phase 14 — Contacts (Graph parity) | 18 |
+| **Total** | **142** |
 
 ### Phase 2 — Mail, read side
 
@@ -1763,6 +1763,9 @@ operation:
 | [`contacts.folders.child-folders.list`](#contactsfolderschild-folderslist) | GET | v1.0 | `{mailbox}/contactFolders/{folderId}/childFolders` | none |
 | [`contacts.folders.contacts.list`](#contactsfolderscontactslist) | GET | v1.0 | `{mailbox}/contactFolders/{folderId}/contacts` | none |
 | [`contacts.folders.contacts.create`](#contactsfolderscontactscreate) | POST | v1.0 | `{mailbox}/contactFolders/{folderId}/contacts` | none |
+| [`contacts.delta`](#contactsdelta) | GET | v1.0 | `{mailbox}/contactFolders/{folderId}/contacts/delta` | none |
+| [`contacts.delta-changes`](#contactsdelta-changes) | GET | v1.0 | `{mailbox}/contactFolders('{folderId}')/contacts/delta` | none |
+| [`contacts.folders.delta`](#contactsfoldersdelta) | GET | v1.0 | `{mailbox}/contactFolders/delta` | none |
 
 #### `contacts.create`
 
@@ -1899,5 +1902,32 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/contact
 - Notes: CardDAV address books (ADR 0006 D7). As contacts.create, in the named book.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.contacts.create.json`
+
+#### `contacts.delta`
+
+**GET v1.0 `{mailbox}/contactFolders/{folderId}/contacts/delta`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[]`, `@odata.deltaLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/contact-delta
+- Notes: CardDAV sync-collection on the folder's book (ADR 0006 D7): the initial sync is every card.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.delta.json`
+
+#### `contacts.delta-changes`
+
+**GET v1.0 `{mailbox}/contactFolders('{folderId}')/contacts/delta`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[]`, `@odata.deltaLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/contact-delta
+- Notes: Changed cards (multiget) and @removed; the token names its folder; an expired one is 410. Graph's key form contactFolders('{id}') is routed as well.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.delta-changes.json`
+
+#### `contacts.folders.delta`
+
+**GET v1.0 `{mailbox}/contactFolders/delta`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[]`, `@odata.deltaLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/contactfolder-delta
+- Notes: An address-book home has no sync token: the token is a snapshot of folder ids and name hashes, so new, renamed and removed folders are reported.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.delta.json`
 
 <!-- END GENERATED -->

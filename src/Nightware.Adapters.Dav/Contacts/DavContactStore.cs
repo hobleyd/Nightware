@@ -106,23 +106,15 @@ internal sealed partial class DavContactStore(
         var contacts = new Dictionary<string, Contact>(StringComparer.Ordinal);
         foreach (var group in window.GroupBy(static c => c.Book))
         {
-            var fetched = await dav.ReportAsync(
-                    group.Key.Href,
-                    DavDepth.One,
-                    DavRequestBodies.AddressBookMultiget(group.Select(static c => c.Absolute)),
-                    cancellationToken)
-                .ConfigureAwait(false);
+            var fetched = await FetchAsync(group.Key.Href, [.. group.Select(static c => c.Absolute)], cancellationToken).ConfigureAwait(false);
             if (!fetched.IsSuccess)
             {
                 return fetched.Error;
             }
 
-            foreach (var response in fetched.Value.Responses.Where(static r => r.IsFound && r.AddressData is not null))
+            foreach (var (href, contact) in fetched.Value)
             {
-                if (paths.ToRelative(response.Href) is { } href && Parse(response.AddressData!, href) is { } contact)
-                {
-                    contacts[href] = contact with { ParentFolderId = FolderOf(href), ChangeKey = response.ETag };
-                }
+                contacts[href] = contact;
             }
         }
 
@@ -202,6 +194,35 @@ internal sealed partial class DavContactStore(
     {
         var edited = await EditAsync(mailbox, id, vcf => codec.WritePhoto(vcf, photo, contentType), cancellationToken).ConfigureAwait(false);
         return edited.IsSuccess ? Result.Success() : edited.Error;
+    }
+
+    /// <summary>
+    /// The cards at <paramref name="absoluteHrefs"/> (server-absolute, as a multiget must name them) by one
+    /// <c>addressbook-multiget</c>, keyed by DAV-relative href. Unparsable or vanished cards are left out.
+    /// </summary>
+    internal async Task<Result<Dictionary<string, Contact>>> FetchAsync(string bookHref, IReadOnlyCollection<string> absoluteHrefs, CancellationToken cancellationToken)
+    {
+        var contacts = new Dictionary<string, Contact>(StringComparer.Ordinal);
+        if (absoluteHrefs.Count == 0)
+        {
+            return contacts;
+        }
+
+        var fetched = await dav.ReportAsync(bookHref, DavDepth.One, DavRequestBodies.AddressBookMultiget(absoluteHrefs), cancellationToken).ConfigureAwait(false);
+        if (!fetched.IsSuccess)
+        {
+            return fetched.Error;
+        }
+
+        foreach (var response in fetched.Value.Responses.Where(static r => r.IsFound && r.AddressData is not null))
+        {
+            if (paths.ToRelative(response.Href) is { } href && Parse(response.AddressData!, href) is { } contact)
+            {
+                contacts[href] = contact with { ParentFolderId = FolderOf(href), ChangeKey = response.ETag };
+            }
+        }
+
+        return contacts;
     }
 
     /// <summary>The folder id of an address book (or of the book a card href is in).</summary>

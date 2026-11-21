@@ -91,7 +91,8 @@ public static class GraphResults
     /// the adapter token with the frozen <c>$select</c>/<c>$top</c> via <see cref="DeltaLinkCodec"/>.
     /// </summary>
     /// <param name="removedODataType">E.g. <c>#microsoft.graph.message</c>; null omits it.</param>
-    public static IResult Delta<T>(DeltaPage<T> page, Func<T, object> toDto, DeltaCursor cursor, string contextFragment, string? removedODataType = null)
+    /// <param name="typeUpserts">Also lead each upsert with <paramref name="removedODataType"/>, as Graph's contact and contactFolder deltas do.</param>
+    public static IResult Delta<T>(DeltaPage<T> page, Func<T, object> toDto, DeltaCursor cursor, string contextFragment, string? removedODataType = null, bool typeUpserts = false)
     {
         ArgumentNullException.ThrowIfNull(page);
         ArgumentNullException.ThrowIfNull(toDto);
@@ -106,7 +107,20 @@ public static class GraphResults
                 switch (entry)
                 {
                     case DeltaEntry<T>.Upsert upsert:
-                        value.Add(GraphProjection.Apply(GraphJson.ToObject(toDto(upsert.Item)!), cursor.Select));
+                        var projected = GraphProjection.Apply(GraphJson.ToObject(toDto(upsert.Item)!), cursor.Select);
+                        if (typeUpserts && removedODataType is not null)
+                        {
+                            var typed = new JsonObject { [GraphProjection.ODataType] = removedODataType };
+                            foreach (var (name, member) in projected.ToList())
+                            {
+                                projected.Remove(name);
+                                typed[name] = member;
+                            }
+
+                            projected = typed;
+                        }
+
+                        value.Add(projected);
                         break;
                     case DeltaEntry<T>.Removed removed:
                         var item = new JsonObject();

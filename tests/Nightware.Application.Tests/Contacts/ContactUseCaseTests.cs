@@ -130,3 +130,57 @@ public sealed class ContactFoldersUseCaseTests
         (await UseCase.ContactsAsync(Me, "nope", Nightware.Application.Common.Query.ItemQuery.Default, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
     }
 }
+
+public sealed class ContactDeltaUseCaseTests
+{
+    private static readonly MailboxRef Me = new("me@example.com");
+    private static readonly ContactFolder Work = new(new ContactFolderId("w"), "Work", null);
+    private static readonly ContactFolder Home = new(new ContactFolderId("h"), "Home", null);
+    private readonly IContactFolderStore _folders = Substitute.For<IContactFolderStore>();
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    private void Folders(params ContactFolder[] folders) =>
+        _folders.ListAsync(Me, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<ContactFolder>>.Success(folders));
+
+    [Fact]
+    public async Task Folder_delta_reports_new_renamed_and_removed_folders_against_its_snapshot()
+    {
+        var sync = new SyncContactFolders(_folders);
+        Folders(Work, Home);
+        var initial = (await sync.ExecuteAsync(Me, null, Ct)).Value;
+        initial.Entries.Count.ShouldBe(2);
+
+        var extra = new ContactFolder(new ContactFolderId("x"), "Extra", null);
+        Folders(Work with { DisplayName = "Work 2" }, extra);
+        var changes = (await sync.ExecuteAsync(Me, initial.Final, Ct)).Value;
+
+        changes.Entries.OfType<DeltaEntry<ContactFolder>.Upsert>().Select(u => u.Item.DisplayName).ShouldBe(["Work 2", "Extra"]);
+        changes.Entries.OfType<DeltaEntry<ContactFolder>.Removed>().ShouldHaveSingleItem().Id.ShouldBe("h");
+
+        (await sync.ExecuteAsync(Me, changes.Final, Ct)).Value.Entries.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("!!")]
+    [InlineData("eDE")]
+    public async Task A_garbled_folder_token_is_gone(string token)
+    {
+        Folders(Work);
+
+        (await new SyncContactFolders(_folders).ExecuteAsync(Me, new DeltaToken(token), Ct)).Error!.Kind.ShouldBe(ErrorKind.SyncStateGone);
+    }
+
+    [Fact]
+    public async Task Contact_delta_resolves_the_folder_first()
+    {
+        var delta = Substitute.For<IContactDelta>();
+        var page = DeltaPage<Contact>.Done([], new DeltaToken("t"));
+        _folders.GetAsync(Me, "w", Ct).Returns(Work);
+        _folders.GetAsync(Me, "nope", Ct).Returns(Error.NotFound("no"));
+        delta.DeltaAsync(Me, Work.Id, null, Ct).Returns(page);
+
+        (await new SyncFolderContacts(_folders, delta).ExecuteAsync(Me, "w", null, Ct)).Value.ShouldBe(page);
+        (await new SyncFolderContacts(_folders, delta).ExecuteAsync(Me, "nope", null, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+}
