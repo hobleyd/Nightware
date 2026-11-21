@@ -3,7 +3,10 @@ using System.Text;
 namespace Nightware.Adapters.Dav.Contacts.VCard;
 
 /// <summary>One parameter (<c>TYPE=work,voice</c>). vCard 2.1 bare parameters (<c>TEL;WORK</c>) become <c>TYPE</c>.</summary>
-public sealed record VCardParameter(string Name, IReadOnlyList<string> Values);
+public sealed record VCardParameter(string Name, IReadOnlyList<string> Values)
+{
+    public bool Is(string name) => string.Equals(Name, name, StringComparison.OrdinalIgnoreCase);
+}
 
 /// <summary>
 /// One content line. <see cref="Value"/> is still vCard-escaped (<c>\,</c> <c>\;</c> <c>\n</c>);
@@ -117,6 +120,29 @@ public static class VCardText
 
         parts.Add(Unescape(value[start..]));
         return parts;
+    }
+
+    /// <summary>Splits a list value (CATEGORIES, NICKNAME) on unescaped <c>,</c> and unescapes each item.</summary>
+    public static IReadOnlyList<string> SplitList(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        var items = new List<string>();
+        var start = 0;
+        for (var i = 0; i < value.Length; i++)
+        {
+            if (value[i] == '\\')
+            {
+                i++;
+            }
+            else if (value[i] == ',')
+            {
+                items.Add(Unescape(value[start..i]));
+                start = i + 1;
+            }
+        }
+
+        items.Add(Unescape(value[start..]));
+        return items;
     }
 
     public static string JoinStructured(IEnumerable<string?> components) =>

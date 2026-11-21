@@ -239,15 +239,34 @@ Use `Parse(ics, href?)`, `Create(TaskDraft, uid)` for new tasks, `Apply(existing
 
 ### `VCardCodec` (hand-written)
 
-Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf, ContactDraft)` and `Serialize(Contact, uid, version)`. `Apply` replaces only the touched properties, so PHOTO, groups and X- properties survive. Version 2.1 input is upgraded to 3.0.
+Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf, ContactDraft)` `Serialize(Contact, uid, version)`, `ReadPhoto(vcf)` and `WritePhoto(vcf, bytes, type)`. `Apply` replaces only the touched properties, so PHOTO, groups and X- properties survive. Version 2.1 input is upgraded to 3.0.
 
-- **Fields**: FN (derived when missing), N, ORG, TITLE, EMAIL (preferred first), TEL, ADR, BDAY, NOTE, REV and UID.
-- **TEL**:
-  - cell → `mobilePhone`;
-  - home → `homePhones`;
-  - work or untyped → `businessPhones`;
-  - fax and pager are ignored.
-- **ADR**: work → business, and home or untyped → home.
+- **Mapping (vCard ↔ Graph `contact`, ADR 0006 D7).** Cards are written as vCard 3, which is how Nextcloud stores them.
+
+  | vCard | Graph |
+  |---|---|
+  | FN | `displayName`; when none is given it is composed as Exchange does: title, given, middle, surname, generation |
+  | N (5 parts) | `surname`; `givenName`; `middleName`; `title` (honorific); `generation` (suffix) |
+  | NICKNAME | `nickName` |
+  | ORG (2 parts) | `companyName`; `department` |
+  | TITLE / ROLE | `jobTitle` / `profession` |
+  | EMAIL (preferred first), parameter `X-NAME` | `emailAddresses[]` (`address`, `name`); the first is `primaryEmailAddress` |
+  | TEL cell / home / work or untyped | `mobilePhone` (first) / `homePhones` / `businessPhones`; fax and pager are ignored |
+  | ADR work / other / home or untyped | `businessAddress` / `otherAddress` / `homeAddress` (first of each) |
+  | IMPP | `imAddresses` |
+  | URL;TYPE=work | `businessHomePage` |
+  | CATEGORIES | `categories` |
+  | RELATED;TYPE=spouse / child (VALUE=text) | `spouseName` / `children` |
+  | BDAY | `birthday` (Graph shows it at 11:59 UTC, as Exchange does) |
+  | NOTE | `personalNotes` |
+  | PHOTO (`ENCODING=b`; v4 `data:` read too) | `photo/$value` |
+  | REV / X-NIGHTWARE-CREATED | `lastModifiedDateTime` / `createdDateTime` (REV when the card was not made here) |
+  | X-ASSISTANT, X-MANAGER | `assistantName`, `manager` |
+  | X-PHONETIC-FIRST-NAME, -LAST-NAME, -ORG | `yomiGivenName`, `yomiSurname`, `yomiCompanyName` |
+  | X-NIGHTWARE-INITIALS, -OFFICE-LOCATION, -FILE-AS | `initials`, `officeLocation`, `fileAs` |
+  | (the resource ETag) / (the address book) | `changeKey` / `parentFolderId` |
+
+- In a patch, a null member is untouched and an empty value (or an address with every part empty) removes the property; `ClearBirthday` removes BDAY.
 - **Reader**:
   - Accepts CRLF or LF line ends, and space or tab folding.
   - Handles v2.1 quoted-printable with soft breaks and CHARSET, bare types (`TEL;WORK;VOICE`), v4 quoted `TYPE="work,voice"`, `tel:` URIs and `item1.` groups.
@@ -264,9 +283,12 @@ Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf,
 | BUSY-UNAVAILABLE | oof |
 | FREE | free |
 
-## Contacts and user photos (phase 5A)
+## Contacts and user photos (phases 5A and 14)
 
-**`DavContactStore` (`IContactStore`, `Contacts/`)** serves `{mailbox}/contacts`. It is read-only, as the contract requires: create, update and delete return `Unsupported`.
+**`DavContactStore` (`IContactStore`, `Contacts/`)** serves `{mailbox}/contacts`.
+
+- Writes (phase 14): create PUTs `{book}/{uuid}.vcf` with `If-None-Match: *` into the default book (`contacts`, else the first of the user's own) or a named folder. Update and photo writes GET the card, edit it with `Apply`/`WritePhoto` and PUT it back with `If-Match` on its ETag, so a concurrent change fails (412) rather than being lost.
+- A contact's `parentFolderId` is its address book's `DavItemId`; its `changeKey` is the card's ETag.
 
 - It reads the mailbox's own address books and the ones shared with it. It skips the books Nextcloud generates into every home: `z-server-generated--system` (every account, already served by `/users`) and `z-app-generated--*` (for example Contacts Interaction's "Recently contacted").
 - Paging is stateless. Each page sends one `addressbook-query` per book without data, orders the cards by (book href, card href), slices at the offset in the `$skiptoken` (versioned base64url) and fetches only that slice with `addressbook-multiget`. A multiget must name server-absolute hrefs, because Sabre refuses hrefs outside its base URI. The default page size is 10, Graph's default.
@@ -360,5 +382,5 @@ Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf,
 - Unresolvable TZIDs are reported in UTC, so the original wall-clock zone is lost. Server-side expansion is unaffected, because Sabre has its own Outlook zone table.
 - In expanded calendar-query output, every instance is typed `Occurrence`. Telling a modified instance (`Exception`) apart requires comparing it with the master, which is the feature's job.
 - Tasks: inline (BASE64) and non-Nextcloud `ATTACH` values count towards `hasAttachments` but are not listed. Attachments of a shared mailbox's task go to that mailbox's Files, which the delegate can write only if Nextcloud allows it.
-- vCard: `--MMDD` birthdays, PHOTO, URL, IMPP, other phone types and additional addresses beyond the first work and home ones are not mapped. `Apply` preserves all of them.
+- vCard: `--MMDD` birthdays, URLs other than the work one, other phone types and addresses beyond the first of each kind are not mapped. `Apply` preserves all of them. A photo given by URL (not inline) reads as no photo.
 - There is no Nextcloud service-account or impersonation path (see Credentials).

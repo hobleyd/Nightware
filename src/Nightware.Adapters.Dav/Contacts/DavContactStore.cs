@@ -13,7 +13,8 @@ namespace Nightware.Adapters.Dav.Contacts;
 
 /// <summary>
 /// <see cref="IContactStore"/> over CardDAV: the mailbox owner's own and shared-with-them Nextcloud address
-/// books. Read-only — the contract has no contact writes, so they answer <see cref="ErrorKind.Unsupported"/>.
+/// books. A contact's folder is its address book; new contacts go to the default book (<c>contacts</c>)
+/// unless a folder is named. Writes are conditional on the card's ETag and keep what Graph does not map.
 /// </summary>
 /// <remarks>
 /// <para>Nextcloud also mounts address books it generates into every user's home: the system address book
@@ -35,6 +36,10 @@ internal sealed partial class DavContactStore(
 {
     /// <summary>Graph's default <c>/contacts</c> page size.</summary>
     public const int DefaultPageSize = 10;
+
+    public const string DefaultBookName = "contacts";
+
+    private const string VCardContentType = "text/vcard; charset=utf-8";
 
     private static readonly string[] GeneratedBookPrefixes = ["z-server-generated--", "z-app-generated--"];
 
@@ -98,7 +103,7 @@ internal sealed partial class DavContactStore(
             {
                 if (paths.ToRelative(response.Href) is { } href && Parse(response.AddressData!, href) is { } contact)
                 {
-                    contacts[href] = contact;
+                    contacts[href] = contact with { ParentFolderId = FolderOf(href), ChangeKey = response.ETag };
                 }
             }
         }
@@ -110,10 +115,91 @@ internal sealed partial class DavContactStore(
 
     public async Task<Result<Contact>> GetAsync(MailboxRef mailbox, ContactId id, CancellationToken cancellationToken)
     {
-        var item = id.ToDavItemId();
+        var item = await ResolveAsync(mailbox, id, cancellationToken).ConfigureAwait(false);
+        return item.IsSuccess ? await ReadAsync(item.Value, cancellationToken).ConfigureAwait(false) : item.Error;
+    }
+
+    public async Task<Result<Contact>> CreateAsync(MailboxRef mailbox, ContactFolderId? folder, ContactDraft draft, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(draft);
+        var book = await BookAsync(mailbox, folder, cancellationToken).ConfigureAwait(false);
+        if (!book.IsSuccess)
+        {
+            return book.Error;
+        }
+
+        if (paths.ToRelative(book.Value.Href) is not { } bookPath)
+        {
+            return Error.NotFound("The specified folder was not found in the store.", "id");
+        }
+
+        var uid = Guid.NewGuid().ToString();
+        var href = bookPath + uid + ".vcf";
+        var written = await dav.PutAsync(href, codec.Create(draft, uid), VCardContentType, DavPrecondition.CreateOnly, cancellationToken).ConfigureAwait(false);
+        return written.IsSuccess ? await ReadAsync(DavItemId.Resource(href), cancellationToken).ConfigureAwait(false) : written.Error;
+    }
+
+    public async Task<Result<Contact>> UpdateAsync(MailboxRef mailbox, ContactId id, ContactDraft patch, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(patch);
+        var edited = await EditAsync(mailbox, id, vcf => codec.Apply(vcf, patch), cancellationToken).ConfigureAwait(false);
+        return edited.IsSuccess ? await ReadAsync(edited.Value, cancellationToken).ConfigureAwait(false) : edited.Error;
+    }
+
+    public async Task<Result> DeleteAsync(MailboxRef mailbox, ContactId id, CancellationToken cancellationToken)
+    {
+        var item = await ResolveAsync(mailbox, id, cancellationToken).ConfigureAwait(false);
+        return item.IsSuccess ? await dav.DeleteAsync(item.Value.Href, DavPrecondition.None, cancellationToken).ConfigureAwait(false) : item.Error;
+    }
+
+    public async Task<Result<BlobContent>> GetPhotoAsync(MailboxRef mailbox, ContactId id, CancellationToken cancellationToken)
+    {
+        var item = await ResolveAsync(mailbox, id, cancellationToken).ConfigureAwait(false);
         if (!item.IsSuccess)
         {
             return item.Error;
+        }
+
+        var resource = await dav.GetAsync(item.Value.Href, cancellationToken).ConfigureAwait(false);
+        if (!resource.IsSuccess)
+        {
+            return resource.Error;
+        }
+
+        var photo = codec.ReadPhoto(resource.Value.Body);
+        if (!photo.IsSuccess)
+        {
+            return NotFound();
+        }
+
+        if (photo.Value is not { } found)
+        {
+            return Error.NotFound("The contact has no photo.");
+        }
+
+        return new BlobContent(found.ContentType, found.Bytes.Length, _ => Task.FromResult<Stream>(new MemoryStream(found.Bytes, writable: false)));
+    }
+
+    public async Task<Result> SetPhotoAsync(MailboxRef mailbox, ContactId id, byte[] photo, string contentType, CancellationToken cancellationToken)
+    {
+        var edited = await EditAsync(mailbox, id, vcf => codec.WritePhoto(vcf, photo, contentType), cancellationToken).ConfigureAwait(false);
+        return edited.IsSuccess ? Result.Success() : edited.Error;
+    }
+
+    /// <summary>The folder id of an address book (or of the book a card href is in).</summary>
+    internal static ContactFolderId FolderOf(string relativeHref)
+    {
+        var book = relativeHref.EndsWith('/') ? relativeHref : relativeHref[..(relativeHref.LastIndexOf('/') + 1)];
+        return new ContactFolderId(DavItemId.Resource(book).ToString());
+    }
+
+    /// <summary>The card behind <paramref name="id"/>, provided it is in this mailbox's address-book home.</summary>
+    private async Task<Result<DavItemId>> ResolveAsync(MailboxRef mailbox, ContactId id, CancellationToken cancellationToken)
+    {
+        var item = id.ToDavItemId();
+        if (!item.IsSuccess)
+        {
+            return NotFound();
         }
 
         var principal = await discovery.DiscoverAsync(mailbox, cancellationToken).ConfigureAwait(false);
@@ -123,11 +209,32 @@ internal sealed partial class DavContactStore(
         }
 
         // An id only proves its href is inside the DAV root; it must also be this mailbox's card.
-        if (principal.Value.AddressBookHomeSet is not { } home
-            || paths.ToRelative(home) is not { } homePath
-            || !item.Value.IsWithin(homePath))
+        return principal.Value.AddressBookHomeSet is { } home && paths.ToRelative(home) is { } homePath && item.Value.IsWithin(homePath)
+            ? item.Value
+            : NotFound();
+    }
+
+    private async Task<Result<Contact>> ReadAsync(DavItemId item, CancellationToken cancellationToken)
+    {
+        var resource = await dav.GetAsync(item.Href, cancellationToken).ConfigureAwait(false);
+        if (!resource.IsSuccess)
         {
-            return NotFound();
+            return resource.Error;
+        }
+
+        var parsed = codec.Parse(resource.Value.Body, item.Href);
+        return parsed.IsSuccess
+            ? parsed.Value.Contact with { ParentFolderId = FolderOf(item.Href), ChangeKey = resource.Value.ETag }
+            : NotFound();
+    }
+
+    /// <summary>GET, edit, PUT back on the same ETag (a concurrent change fails rather than being lost).</summary>
+    private async Task<Result<DavItemId>> EditAsync(MailboxRef mailbox, ContactId id, Func<string, Result<string>> edit, CancellationToken cancellationToken)
+    {
+        var item = await ResolveAsync(mailbox, id, cancellationToken).ConfigureAwait(false);
+        if (!item.IsSuccess)
+        {
+            return item.Error;
         }
 
         var resource = await dav.GetAsync(item.Value.Href, cancellationToken).ConfigureAwait(false);
@@ -136,18 +243,36 @@ internal sealed partial class DavContactStore(
             return resource.Error;
         }
 
-        var parsed = codec.Parse(resource.Value.Body, item.Value.Href);
-        return parsed.IsSuccess ? parsed.Value.Contact : NotFound();
+        var edited = edit(resource.Value.Body);
+        if (!edited.IsSuccess)
+        {
+            return edited.Error;
+        }
+
+        var precondition = resource.Value.ETag is { } etag ? DavPrecondition.Matching(etag) : DavPrecondition.None;
+        var written = await dav.PutAsync(item.Value.Href, edited.Value, VCardContentType, precondition, cancellationToken).ConfigureAwait(false);
+        return written.IsSuccess ? item.Value : written.Error;
     }
 
-    public Task<Result<Contact>> CreateAsync(MailboxRef mailbox, ContactDraft draft, CancellationToken cancellationToken) =>
-        Task.FromResult<Result<Contact>>(ReadOnly());
+    /// <summary>The address book to create in: the named folder, or the default book.</summary>
+    private async Task<Result<DavAddressBook>> BookAsync(MailboxRef mailbox, ContactFolderId? folder, CancellationToken cancellationToken)
+    {
+        var books = await AddressBooksAsync(mailbox, cancellationToken).ConfigureAwait(false);
+        if (!books.IsSuccess)
+        {
+            return books.Error;
+        }
 
-    public Task<Result<Contact>> UpdateAsync(MailboxRef mailbox, ContactId id, ContactDraft patch, CancellationToken cancellationToken) =>
-        Task.FromResult<Result<Contact>>(ReadOnly());
+        var match = folder is { } wanted
+            ? books.Value.FirstOrDefault(b => paths.ToRelative(b.Href) is { } path && FolderOf(path) == wanted)
+            : DefaultBook(books.Value);
+        return match is null ? Error.NotFound("The specified folder was not found in the store.", "id") : match;
+    }
 
-    public Task<Result> DeleteAsync(MailboxRef mailbox, ContactId id, CancellationToken cancellationToken) =>
-        Task.FromResult<Result>(ReadOnly());
+    /// <summary>Nextcloud's default book is <c>contacts</c>; failing that, the first of the user's own.</summary>
+    internal static DavAddressBook? DefaultBook(IReadOnlyList<DavAddressBook> books) =>
+        books.FirstOrDefault(b => b.Href.TrimEnd('/').EndsWith("/" + DefaultBookName, StringComparison.Ordinal))
+        ?? books.FirstOrDefault(b => !b.IsShared);
 
     internal static bool IsGenerated(DavAddressBook book)
     {
@@ -191,8 +316,6 @@ internal sealed partial class DavContactStore(
         : null;
 
     private static Error NotFound() => Error.NotFound("The specified object was not found in the store.", "id");
-
-    private static Error ReadOnly() => Error.Unsupported("Contacts are read-only.");
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Skipping contact {Href}: {Reason}")]
     private static partial void LogUnparsable(ILogger logger, string href, string reason);

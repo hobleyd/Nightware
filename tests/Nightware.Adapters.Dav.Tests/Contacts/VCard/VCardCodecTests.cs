@@ -180,7 +180,93 @@ public sealed class VCardCodecTests
         contact.LastModifiedDateTime.ShouldBe(Now);
 
         var reserialised = _codec.Parse(_codec.Serialize(contact, "rt", version)).Value.Contact;
-        reserialised.ShouldBe(contact with { EmailAddresses = reserialised.EmailAddresses, BusinessPhones = reserialised.BusinessPhones, HomePhones = reserialised.HomePhones });
+        reserialised.ShouldBe(contact with
+        {
+            EmailAddresses = reserialised.EmailAddresses, BusinessPhones = reserialised.BusinessPhones, HomePhones = reserialised.HomePhones,
+            ImAddresses = reserialised.ImAddresses, Children = reserialised.Children, Categories = reserialised.Categories,
+        });
+    }
+
+    [Theory]
+    [InlineData(VCardVersion.V3)]
+    [InlineData(VCardVersion.V4)]
+    public void Round_trips_the_fields_beyond_the_basics(VCardVersion version)
+    {
+        var draft = new ContactDraft
+        {
+            GivenName = "Pat", MiddleName = "Q", Surname = "Capture", Title = "Dr", Generation = "Jr", NickName = "Patty, P",
+            Department = "R&D", CompanyName = "Example Ltd", Profession = "Boffin", OfficeLocation = "Level 3", Initials = "P.Q.C.",
+            FileAs = "Capture, Pat", YomiGivenName = "Patto", YomiSurname = "Kapcha", YomiCompanyName = "Ekzampl",
+            AssistantName = "Ann", Manager = "Max", SpouseName = "Sam", Children = ["Kid One", "Kid; Two"],
+            ImAddresses = ["pat@im.example.com"], BusinessHomePage = "https://example.com/pat", Categories = ["Red, hot", "Blue"],
+            OtherAddress = new PhysicalAddress("3 Other St", "Sydney", "NSW", "2002", "Australia"),
+            EmailAddresses = [new EmailAddress("pat@example.com", "Pat at work")],
+        };
+
+        var vcf = _codec.Create(draft, "f", version);
+        var c = _codec.Parse(vcf).Value.Contact;
+
+        c.DisplayName.ShouldBe("Dr Pat Q Capture Jr", "Exchange composes the display name from the name parts");
+        (c.Title, c.GivenName, c.MiddleName, c.Surname, c.Generation).ShouldBe(("Dr", "Pat", "Q", "Capture", "Jr"));
+        (c.CompanyName, c.Department, c.Profession, c.OfficeLocation).ShouldBe(("Example Ltd", "R&D", "Boffin", "Level 3"));
+        (c.NickName, c.Initials, c.FileAs).ShouldBe(("Patty, P", "P.Q.C.", "Capture, Pat"));
+        (c.YomiGivenName, c.YomiSurname, c.YomiCompanyName).ShouldBe(("Patto", "Kapcha", "Ekzampl"));
+        (c.AssistantName, c.Manager, c.SpouseName).ShouldBe(("Ann", "Max", "Sam"));
+        c.Children.ShouldBe(["Kid One", "Kid; Two"]);
+        c.ImAddresses.ShouldBe(["pat@im.example.com"]);
+        c.BusinessHomePage.ShouldBe("https://example.com/pat");
+        c.Categories.ShouldBe(["Red, hot", "Blue"]);
+        c.OtherAddress.ShouldBe(draft.OtherAddress);
+        c.HomeAddress.ShouldBeNull("an other address is not the home one");
+        c.EmailAddresses.ShouldBe([new EmailAddress("pat@example.com", "Pat at work")]);
+        c.CreatedDateTime.ShouldBe(Now);
+    }
+
+    [Fact]
+    public void Patching_clears_with_empty_values_and_keeps_untouched_name_parts()
+    {
+        var vcf = _codec.Create(new ContactDraft { GivenName = "Pat", Surname = "Capture", Title = "Dr", Department = "R&D", CompanyName = "Ex",
+            OtherAddress = new PhysicalAddress("3 Other St", null, null, null, null), Categories = ["Red"], SpouseName = "Sam", Birthday = new DateOnly(1990, 5, 17) }, "p");
+
+        var patched = _codec.Parse(_codec.Apply(vcf, new ContactDraft
+        {
+            MiddleName = "Q", Department = string.Empty, OtherAddress = new PhysicalAddress(null, null, null, null, null),
+            Categories = [], SpouseName = string.Empty, ClearBirthday = true,
+        }).Value).Value.Contact;
+
+        (patched.Title, patched.GivenName, patched.MiddleName, patched.Surname).ShouldBe(("Dr", "Pat", "Q", "Capture"));
+        (patched.CompanyName, patched.Department).ShouldBe(("Ex", null));
+        patched.OtherAddress.ShouldBeNull();
+        patched.Categories.ShouldBeEmpty();
+        patched.SpouseName.ShouldBeNull();
+        patched.Birthday.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Photos_are_read_from_v3_base64_and_v4_data_uris()
+    {
+        var bytes = new byte[] { 1, 2, 3 };
+        var b64 = Convert.ToBase64String(bytes);
+
+        var v3 = _codec.ReadPhoto($"BEGIN:VCARD\r\nVERSION:3.0\r\nFN:x\r\nPHOTO;ENCODING=b;TYPE=PNG:{b64}\r\nEND:VCARD\r\n").Value!.Value;
+        v3.Bytes.ShouldBe(bytes);
+        v3.ContentType.ShouldBe("image/png");
+        var v4 = _codec.ReadPhoto($"BEGIN:VCARD\r\nVERSION:4.0\r\nFN:x\r\nPHOTO;VALUE=URI:data:image/jpeg;base64\\,{b64}\r\nEND:VCARD\r\n").Value!.Value;
+        v4.Bytes.ShouldBe(bytes);
+        v4.ContentType.ShouldBe("image/jpeg");
+        _codec.ReadPhoto("BEGIN:VCARD\r\nVERSION:4.0\r\nFN:x\r\nPHOTO:https://example.com/p.jpg\r\nEND:VCARD\r\n").Value.ShouldBeNull();
+        _codec.ReadPhoto("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:x\r\nEND:VCARD\r\n").Value.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Writing_a_photo_makes_the_card_vcard_3()
+    {
+        var v4 = _codec.Create(new ContactDraft { DisplayName = "x" }, "p", VCardVersion.V4);
+
+        var written = Unfold(_codec.WritePhoto(v4, [1, 2, 3], "image/png").Value);
+
+        written.ShouldContain("VERSION:3.0");
+        written.ShouldContain("PHOTO;ENCODING=b;TYPE=PNG:AQID");
     }
 
     [Fact]

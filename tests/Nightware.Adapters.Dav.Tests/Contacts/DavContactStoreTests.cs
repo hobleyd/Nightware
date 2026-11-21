@@ -226,15 +226,121 @@ public sealed class DavContactStoreTests : IDisposable
         (await Store.GetAsync(Alice, new ContactId("garbage"), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
     }
 
-    [Fact]
-    public async Task Writes_are_unsupported_because_contacts_are_read_only()
-    {
-        var id = DavItemId.Resource("addressbooks/users/alice/contacts/b-pat.vcf").ToContactId();
+    private const string Pat = "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:pat\r\nFN:Pat Contact\r\nN:Contact;Pat;;;\r\nEMAIL:pat@example.com\r\nX-CUSTOM:kept\r\nEND:VCARD\r\n";
+    private static readonly ContactId PatId = DavItemId.Resource("addressbooks/users/alice/contacts/b-pat.vcf").ToContactId();
 
-        (await Store.CreateAsync(Alice, new ContactDraft(), Ct)).Error!.Kind.ShouldBe(ErrorKind.Unsupported);
-        (await Store.UpdateAsync(Alice, id, new ContactDraft(), Ct)).Error!.Kind.ShouldBe(ErrorKind.Unsupported);
-        (await Store.DeleteAsync(Alice, id, Ct)).Error!.Kind.ShouldBe(ErrorKind.Unsupported);
-        _dav.Server.LogEntries.ShouldBeEmpty();
+    private void GivenCard(string path, string body, string etag = "\"e1\"") =>
+        _dav.Server.Given(Request.Create().WithPath(path).UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "text/vcard").WithHeader("ETag", etag).WithBody(body));
+
+    private void GivenPut(string path, int status = 204) =>
+        _dav.Server.Given(Request.Create().WithPath(path).UsingPut()).RespondWith(Response.Create().WithStatusCode(status).WithHeader("ETag", "\"e2\""));
+
+    private ILogEntry Put() => _dav.Server.LogEntries.Single(e => e.RequestMessage!.Method == "PUT");
+
+    [Fact]
+    public async Task A_contact_is_its_books_child_with_the_etag_as_change_key()
+    {
+        GivenCard(Book + "b-pat.vcf", Pat);
+
+        var pat = (await Store.GetAsync(Alice, PatId, Ct)).Value;
+
+        pat.ParentFolderId.ShouldBe(DavContactStore.FolderOf("addressbooks/users/alice/contacts/"));
+        pat.ChangeKey.ShouldBe("\"e1\"");
+    }
+
+    [Fact]
+    public async Task Creating_puts_a_new_card_in_the_default_book_only_if_absent()
+    {
+        GivenBooks(new DavAddressBook(Team, "Team") { IsShared = true }, new DavAddressBook(Book, "Contacts"));
+        _dav.Server.Given(Request.Create().WithPath(new WireMock.Matchers.WildcardMatcher(Book + "*.vcf")).UsingPut()).RespondWith(Response.Create().WithStatusCode(201));
+        _dav.Server.Given(Request.Create().WithPath(new WireMock.Matchers.WildcardMatcher(Book + "*.vcf")).UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(200).WithHeader("ETag", "\"n1\"").WithBody("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Dr Ann B New\r\nN:New;Ann;B;Dr;\r\nEND:VCARD\r\n"));
+
+        var created = (await Store.CreateAsync(Alice, null, new ContactDraft { GivenName = "Ann", Surname = "New", MiddleName = "B", Title = "Dr" }, Ct)).Value;
+
+        created.DisplayName.ShouldBe("Dr Ann B New");
+        var put = Put().RequestMessage!;
+        put.Path.ShouldStartWith(Book);
+        put.Headers!["If-None-Match"].ShouldBe(["*"]);
+        put.Body!.ShouldContain("N:New;Ann;B;Dr;");
+        created.Id.ShouldBe(DavItemId.Resource(put.Path[_dav.Root.Length..].TrimStart('/')).ToContactId());
+    }
+
+    [Fact]
+    public async Task Creating_in_a_folder_that_is_not_the_mailboxs_is_not_found()
+    {
+        (await Store.CreateAsync(Alice, new ContactFolderId("nope"), new ContactDraft { GivenName = "x" }, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        _dav.Server.LogEntries.ShouldNotContain(e => e.RequestMessage!.Method == "PUT");
+    }
+
+    [Fact]
+    public async Task Updating_applies_the_patch_on_the_cards_etag_and_keeps_the_rest()
+    {
+        GivenCard(Book + "b-pat.vcf", Pat);
+        GivenPut(Book + "b-pat.vcf");
+
+        (await Store.UpdateAsync(Alice, PatId, new ContactDraft { CompanyName = "Example Pty Ltd" }, Ct)).IsSuccess.ShouldBeTrue();
+
+        var put = Put().RequestMessage!;
+        put.Headers!["If-Match"].ShouldBe(["\"e1\""]);
+        put.Body!.ShouldContain("ORG:Example Pty Ltd");
+        put.Body!.ShouldContain("X-CUSTOM:kept");
+    }
+
+    [Fact]
+    public async Task A_concurrent_change_fails_the_update()
+    {
+        GivenCard(Book + "b-pat.vcf", Pat);
+        GivenPut(Book + "b-pat.vcf", 412);
+
+        (await Store.UpdateAsync(Alice, PatId, new ContactDraft { JobTitle = "x" }, Ct)).Error!.Kind.ShouldBe(ErrorKind.PreconditionFailed);
+    }
+
+    [Fact]
+    public async Task Deleting_removes_the_card()
+    {
+        _dav.Server.Given(Request.Create().WithPath(Book + "b-pat.vcf").UsingDelete()).RespondWith(Response.Create().WithStatusCode(204));
+
+        (await Store.DeleteAsync(Alice, PatId, Ct)).IsSuccess.ShouldBeTrue();
+        (await Store.DeleteAsync(Alice, DavItemId.Resource("addressbooks/users/bob/contacts/x.vcf").ToContactId(), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task A_photo_is_written_as_vcard_3_base64_and_read_back()
+    {
+        GivenCard(Book + "b-pat.vcf", Pat);
+        GivenPut(Book + "b-pat.vcf");
+        byte[] jpeg = [0xFF, 0xD8, 0xFF, 0xD9];
+
+        (await Store.SetPhotoAsync(Alice, PatId, jpeg, "image/jpeg", Ct)).IsSuccess.ShouldBeTrue();
+        var written = Put().RequestMessage!.Body!;
+        written.ShouldContain("PHOTO;ENCODING=b;TYPE=JPEG:" + Convert.ToBase64String(jpeg));
+
+        _dav.Server.Reset();
+        GivenCard(Book + "b-pat.vcf", written);
+        var photo = (await Store.GetPhotoAsync(Alice, PatId, Ct)).Value;
+        photo.ContentType.ShouldBe("image/jpeg");
+        using var stream = await photo.Open(Ct);
+        using var copy = new MemoryStream();
+        await stream.CopyToAsync(copy, Ct);
+        copy.ToArray().ShouldBe(jpeg);
+    }
+
+    [Fact]
+    public async Task A_contact_without_a_photo_has_none()
+    {
+        GivenCard(Book + "b-pat.vcf", Pat);
+
+        (await Store.GetPhotoAsync(Alice, PatId, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public void The_default_book_is_contacts_else_the_first_own_book()
+    {
+        DavContactStore.DefaultBook([new DavAddressBook(Team, "Team") { IsShared = true }, new DavAddressBook(Book, "Contacts")])!.Href.ShouldBe(Book);
+        DavContactStore.DefaultBook([new DavAddressBook(Team, "Team") { IsShared = true }, new DavAddressBook(Home + "work/", "Work")])!.Href.ShouldBe(Home + "work/");
+        DavContactStore.DefaultBook([new DavAddressBook(Team, "Team") { IsShared = true }]).ShouldBeNull();
     }
 
     [Theory]

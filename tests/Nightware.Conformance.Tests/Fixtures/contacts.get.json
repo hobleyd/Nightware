@@ -1,0 +1,91 @@
+{
+  "operationId": "contacts.get",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/contacts/AAMk-id-0003=",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/contacts/$entity",
+      "@odata.etag": "W/\"AAMk-changeKey-0002=\"",
+      "id": "AAMk-id-0003=",
+      "createdDateTime": "2026-11-20T22:39:02Z",
+      "lastModifiedDateTime": "2026-11-20T22:39:02Z",
+      "changeKey": "AAMk-changeKey-0002=",
+      "categories": [
+        "Nightware 12fa34"
+      ],
+      "parentFolderId": "AAMk-parentFolderId-0001=",
+      "birthday": "1990-05-17T11:59:00Z",
+      "fileAs": "",
+      "displayName": "Dr Pat Q Capture",
+      "givenName": "Pat",
+      "initials": null,
+      "middleName": "Q",
+      "nickName": "Patty",
+      "surname": "Capture",
+      "title": "Dr",
+      "yomiGivenName": null,
+      "yomiSurname": null,
+      "yomiCompanyName": null,
+      "generation": null,
+      "imAddresses": [
+        "pat@im.example.com"
+      ],
+      "jobTitle": "Engineer",
+      "companyName": "Example Ltd",
+      "department": "R&D",
+      "officeLocation": null,
+      "profession": null,
+      "businessHomePage": "https://example.com/pat",
+      "assistantName": null,
+      "manager": null,
+      "homePhones": [
+        "+61 2 5550 0101"
+      ],
+      "mobilePhone": "+61 400 555 010",
+      "businessPhones": [
+        "+61 2 5550 0100"
+      ],
+      "spouseName": null,
+      "personalNotes": "Nightware capture 12fa34",
+      "children": [],
+      "emailAddresses": [
+        {
+          "name": "Pat Capture",
+          "address": "pat.capture@example.com"
+        }
+      ],
+      "primaryEmailAddress": {
+        "name": "Pat Capture",
+        "address": "pat.capture@example.com"
+      },
+      "homeAddress": {
+        "street": "2 Sample Rd",
+        "city": "Sydney",
+        "state": "NSW",
+        "countryOrRegion": "Australia",
+        "postalCode": "2001"
+      },
+      "businessAddress": {
+        "street": "1 Example St",
+        "city": "Sydney",
+        "state": "NSW",
+        "countryOrRegion": "Australia",
+        "postalCode": "2000"
+      },
+      "otherAddress": {}
+    }
+  }
+}

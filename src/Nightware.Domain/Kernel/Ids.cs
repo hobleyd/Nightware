@@ -28,6 +28,12 @@ public readonly record struct ContactId(string Value)
     public override string ToString() => Value;
 }
 
+/// <summary>A contact folder (Graph <c>contactFolder</c>); opaque, minted by the adapter.</summary>
+public readonly record struct ContactFolderId(string Value)
+{
+    public override string ToString() => Value;
+}
+
 /// <summary>An event calendar (Graph <c>calendar</c>); opaque, minted by the adapter.</summary>
 public readonly record struct CalendarId(string Value)
 {

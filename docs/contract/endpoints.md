@@ -325,7 +325,8 @@ operation:
 | Phase 11 — JSON batching (Graph parity) | 2 |
 | Phase 12 — Mail (Graph parity) | 19 |
 | Phase 13 — Calendar (Graph parity) | 27 |
-| **Total** | **124** |
+| Phase 14 — Contacts (Graph parity) | 7 |
+| **Total** | **131** |
 
 ### Phase 2 — Mail, read side
 
@@ -1742,5 +1743,79 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-findmeetingtimes
 - Notes: Computed over CalDAV free/busy and the organizer's working hours (ADR 0006 D6): half-hour starts, confidence is the share of attendees free (tentative/unknown half, optional attendees half weight). locationConstraint is ignored; no locations are suggested.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.find-meeting-times.json`
+
+### Phase 14 — Contacts (Graph parity)
+
+| Id | Method | Ver | Path | Paging |
+|---|---|---|---|---|
+| [`contacts.create`](#contactscreate) | POST | v1.0 | `{mailbox}/contacts` | none |
+| [`contacts.get`](#contactsget) | GET | v1.0 | `{mailbox}/contacts/{contactId}` | none |
+| [`contacts.update`](#contactsupdate) | PATCH | v1.0 | `{mailbox}/contacts/{contactId}` | none |
+| [`contacts.delete`](#contactsdelete) | DELETE | v1.0 | `{mailbox}/contacts/{contactId}` | none |
+| [`contacts.list-full`](#contactslist-full) | GET | v1.0 | `{mailbox}/contacts` | none |
+| [`contacts.photo-put`](#contactsphoto-put) | PUT | v1.0 | `{mailbox}/contacts/{contactId}/photo/$value` | none |
+| [`contacts.photo-get`](#contactsphoto-get) | GET | v1.0 | `{mailbox}/contacts/{contactId}/photo/$value` | none |
+
+#### `contacts.create`
+
+**POST v1.0 `{mailbox}/contacts`** — forms: me, users; success: 201; paging: none
+
+- Request body: `categories`; `birthday`; `fileAs`; `displayName`; `givenName`; `initials`; `middleName`; `nickName`; `surname`; `title`; `yomiGivenName`; `yomiSurname`; `yomiCompanyName`; `generation`; `imAddresses`; `jobTitle`; `companyName`; `department`; `officeLocation`; `profession`; `businessHomePage`; `assistantName`; `manager`; `homePhones`; `mobilePhone`; `businessPhones`; `spouseName`; `personalNotes`; `children`; `emailAddresses`; `homeAddress`; `businessAddress`; `otherAddress`
+- Client reads: `id`, `createdDateTime`, `lastModifiedDateTime`, `changeKey`, `categories`, `parentFolderId`, `birthday`, `fileAs`, `displayName`, `givenName`, `initials`, `middleName`, `nickName`, `surname`, `title`, `yomiGivenName`, `yomiSurname`, `yomiCompanyName`, `generation`, `imAddresses`, `jobTitle`, `companyName`, `department`, `officeLocation`, `profession`, `businessHomePage`, `assistantName`, `manager`, `homePhones`, `mobilePhone`, `businessPhones`, `spouseName`, `personalNotes`, `children`, `emailAddresses`, `primaryEmailAddress`, `homeAddress`, `businessAddress`, `otherAddress`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/contact
+- Notes: CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). Created in the default address book; a null member clears, an unmapped one is 400.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.create.json`
+
+#### `contacts.get`
+
+**GET v1.0 `{mailbox}/contacts/{contactId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `createdDateTime`, `lastModifiedDateTime`, `changeKey`, `categories`, `parentFolderId`, `birthday`, `fileAs`, `displayName`, `givenName`, `initials`, `middleName`, `nickName`, `surname`, `title`, `yomiGivenName`, `yomiSurname`, `yomiCompanyName`, `generation`, `imAddresses`, `jobTitle`, `companyName`, `department`, `officeLocation`, `profession`, `businessHomePage`, `assistantName`, `manager`, `homePhones`, `mobilePhone`, `businessPhones`, `spouseName`, `personalNotes`, `children`, `emailAddresses`, `primaryEmailAddress`, `homeAddress`, `businessAddress`, `otherAddress`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/contact
+- Notes: CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.get.json`
+
+#### `contacts.update`
+
+**PATCH v1.0 `{mailbox}/contacts/{contactId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `categories`; `birthday`; `fileAs`; `displayName`; `givenName`; `initials`; `middleName`; `nickName`; `surname`; `title`; `yomiGivenName`; `yomiSurname`; `yomiCompanyName`; `generation`; `imAddresses`; `jobTitle`; `companyName`; `department`; `officeLocation`; `profession`; `businessHomePage`; `assistantName`; `manager`; `homePhones`; `mobilePhone`; `businessPhones`; `spouseName`; `personalNotes`; `children`; `emailAddresses`; `homeAddress`; `businessAddress`; `otherAddress`
+- Client reads: `id`, `createdDateTime`, `lastModifiedDateTime`, `changeKey`, `categories`, `parentFolderId`, `birthday`, `fileAs`, `displayName`, `givenName`, `initials`, `middleName`, `nickName`, `surname`, `title`, `yomiGivenName`, `yomiSurname`, `yomiCompanyName`, `generation`, `imAddresses`, `jobTitle`, `companyName`, `department`, `officeLocation`, `profession`, `businessHomePage`, `assistantName`, `manager`, `homePhones`, `mobilePhone`, `businessPhones`, `spouseName`, `personalNotes`, `children`, `emailAddresses`, `primaryEmailAddress`, `homeAddress`, `businessAddress`, `otherAddress`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/contact
+- Notes: CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). Conditional on the card's ETag; unmapped vCard properties are kept.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.update.json`
+
+#### `contacts.delete`
+
+**DELETE v1.0 `{mailbox}/contacts/{contactId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/contact
+- Notes: CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). 
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.delete.json`
+
+#### `contacts.list-full`
+
+**GET v1.0 `{mailbox}/contacts`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].createdDateTime`, `value[].lastModifiedDateTime`, `value[].changeKey`, `value[].categories`, `value[].parentFolderId`, `value[].birthday`, `value[].fileAs`, `value[].displayName`, `value[].givenName`, `value[].initials`, `value[].middleName`, `value[].nickName`, `value[].surname`, `value[].title`, `value[].yomiGivenName`, `value[].yomiSurname`, `value[].yomiCompanyName`, `value[].generation`, `value[].imAddresses`, `value[].jobTitle`, `value[].companyName`, `value[].department`, `value[].officeLocation`, `value[].profession`, `value[].businessHomePage`, `value[].assistantName`, `value[].manager`, `value[].homePhones`, `value[].mobilePhone`, `value[].businessPhones`, `value[].spouseName`, `value[].personalNotes`, `value[].children`, `value[].emailAddresses`, `value[].primaryEmailAddress`, `value[].homeAddress`, `value[].businessAddress`, `value[].otherAddress`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/resources/contact
+- Notes: CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). Spans every address book (NightMail's typeahead relies on it); Graph lists only the default folder.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.list-full.json`
+
+#### `contacts.photo-put`
+
+**PUT v1.0 `{mailbox}/contacts/{contactId}/photo/$value`** — forms: me, users; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-update
+- Notes: CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). vCard PHOTO (v3 ENCODING=b); images up to 4 MB.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.photo-put.json`
+
+#### `contacts.photo-get`
+
+**GET v1.0 `{mailbox}/contacts/{contactId}/photo/$value`** — forms: me, users; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-get
+- Notes: CardDAV vCard 3 in Nextcloud (ADR 0006 D7; mapping table in the Dav adapter README). 404 when the contact has no photo.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.photo-get.json`
 
 <!-- END GENERATED -->

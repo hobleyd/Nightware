@@ -1,0 +1,25 @@
+{
+  "operationId": "contacts.photo-put",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "PUT",
+    "path": "/v1.0/me/contacts/AAMk-id-0003=/photo/$value",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "image/jpeg"
+    },
+    "body": {
+      "$binary": {
+        "length": 775,
+        "sha256": "a2cae4b4675966576519fd9de178f689eaa10083900b9e56f44d63cd0683736c"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {},
+    "body": null
+  }
+}

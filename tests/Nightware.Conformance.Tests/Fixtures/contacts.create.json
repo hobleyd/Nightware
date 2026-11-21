@@ -1,0 +1,138 @@
+{
+  "operationId": "contacts.create",
+  "provenance": "Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/contacts",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "givenName": "Pat",
+      "surname": "Capture",
+      "middleName": "Q",
+      "nickName": "Patty",
+      "title": "Dr",
+      "jobTitle": "Engineer",
+      "department": "R&D",
+      "companyName": "Example Ltd",
+      "emailAddresses": [
+        {
+          "name": "Pat Capture",
+          "address": "pat.capture@example.com"
+        }
+      ],
+      "businessPhones": [
+        "+61 2 5550 0100"
+      ],
+      "homePhones": [
+        "+61 2 5550 0101"
+      ],
+      "mobilePhone": "+61 400 555 010",
+      "businessAddress": {
+        "street": "1 Example St",
+        "city": "Sydney",
+        "state": "NSW",
+        "postalCode": "2000",
+        "countryOrRegion": "Australia"
+      },
+      "homeAddress": {
+        "street": "2 Sample Rd",
+        "city": "Sydney",
+        "state": "NSW",
+        "postalCode": "2001",
+        "countryOrRegion": "Australia"
+      },
+      "birthday": "1990-05-17T00:00:00Z",
+      "personalNotes": "Nightware capture 12fa34",
+      "imAddresses": [
+        "pat@im.example.com"
+      ],
+      "categories": [
+        "Nightware 12fa34"
+      ],
+      "businessHomePage": "https://example.com/pat"
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8",
+      "Location": "https://graph.microsoft.com/v1.0/users('22222222-2222-2222-2222-222222222222')/contacts('AAMk-id-0003=')"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/contacts/$entity",
+      "@odata.etag": "W/\"AAMk-changeKey-0002=\"",
+      "id": "AAMk-id-0003=",
+      "createdDateTime": "2026-11-20T22:39:02Z",
+      "lastModifiedDateTime": "2026-11-20T22:39:02Z",
+      "changeKey": "AAMk-changeKey-0002=",
+      "categories": [
+        "Nightware 12fa34"
+      ],
+      "parentFolderId": "AAMk-parentFolderId-0001=",
+      "birthday": "1990-05-17T11:59:00Z",
+      "fileAs": "",
+      "displayName": "Dr Pat Q Capture",
+      "givenName": "Pat",
+      "initials": null,
+      "middleName": "Q",
+      "nickName": "Patty",
+      "surname": "Capture",
+      "title": "Dr",
+      "yomiGivenName": null,
+      "yomiSurname": null,
+      "yomiCompanyName": null,
+      "generation": null,
+      "imAddresses": [
+        "pat@im.example.com"
+      ],
+      "jobTitle": "Engineer",
+      "companyName": "Example Ltd",
+      "department": "R&D",
+      "officeLocation": null,
+      "profession": null,
+      "businessHomePage": "https://example.com/pat",
+      "assistantName": null,
+      "manager": null,
+      "homePhones": [
+        "+61 2 5550 0101"
+      ],
+      "mobilePhone": "+61 400 555 010",
+      "businessPhones": [
+        "+61 2 5550 0100"
+      ],
+      "spouseName": null,
+      "personalNotes": "Nightware capture 12fa34",
+      "children": [],
+      "emailAddresses": [
+        {
+          "name": "Pat Capture",
+          "address": "pat.capture@example.com"
+        }
+      ],
+      "primaryEmailAddress": {
+        "name": "Pat Capture",
+        "address": "pat.capture@example.com"
+      },
+      "homeAddress": {
+        "street": "2 Sample Rd",
+        "city": "Sydney",
+        "state": "NSW",
+        "countryOrRegion": "Australia",
+        "postalCode": "2001"
+      },
+      "businessAddress": {
+        "street": "1 Example St",
+        "city": "Sydney",
+        "state": "NSW",
+        "countryOrRegion": "Australia",
+        "postalCode": "2000"
+      },
+      "otherAddress": {}
+    }
+  }
+}

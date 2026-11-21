@@ -1,6 +1,6 @@
 # Phase 14 — Contacts parity
 
-> **Status (2026-11-20): planned.** Decisions: [ADR 0006](../adr/0006-graph-parity.md) D7.
+> **Status (2026-11-21): in progress** — 14a (contact CRUD, photo) done. Decisions: [ADR 0006](../adr/0006-graph-parity.md) D7.
 
 **Goal:** full contact read/write across address books, with photos and delta.
 
@@ -27,3 +27,25 @@
 - A contact created over Graph appears in Nextcloud Contacts with every mapped
   field. An edit there shows in delta.
 - NightMail's `contacts.list` fixture is unchanged.
+
+## Findings (Step 0, Nextcloud 35)
+- Nextcloud stores and serves vCard 3. Every property probed survived a PUT and GET
+  unchanged: five-part N, NICKNAME, two-part ORG, ROLE, IMPP, URL;TYPE=WORK,
+  CATEGORIES, ADR;TYPE=OTHER, RELATED;VALUE=text, X- properties and an X- parameter
+  on EMAIL. `Accept: text/vcard; version=4.0` converts on the way out.
+- A vCard 4 card PUT with `PHOTO:data:image/jpeg;base64,…` came back as vCard 3
+  **without its photo**. Photos are therefore always written as vCard 3
+  `PHOTO;ENCODING=b`.
+- An address-book MKCOL (RFC 5689 extended MKCOL), PROPPATCH of `displayname`, and
+  DELETE all work. The home also holds `z-server-generated--system` ("Accounts")
+  and `z-app-generated--contactsinteraction--recent`, which are not folders.
+- An initial `sync-collection` with a limit answers 507 for the collection, as on
+  calendars: an initial delta takes the book's own `sync-token` from PROPFIND.
+- After a session cookie is set, Nextcloud's CSRF check refuses further cookie-bearing
+  DAV requests unless they send `OCS-APIRequest: true` (only the raw-DAV probes and
+  live tests hit this; the adapter sends no cookies).
+- `GET {mailbox}/contacts` keeps spanning every address book, because NightMail's
+  typeahead depends on it; Graph lists only the default folder. New contacts go to
+  the default book (`contacts`).
+- The Graph birthday is shown at 11:59 UTC, as Exchange stores it, so no time zone
+  moves it to another day.
