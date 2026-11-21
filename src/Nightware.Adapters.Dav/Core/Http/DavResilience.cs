@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;
 using Polly.Retry;
+using Polly.Timeout;
 
 namespace Nightware.Adapters.Dav.Core.Http;
 
@@ -44,7 +45,30 @@ public static class DavResilience
         return ValueTask.FromResult(HttpClientResiliencePredicates.IsTransient(args.Outcome));
     }
 
-    /// <summary>Total timeout → retry (safe methods) → per-attempt timeout.</summary>
+    /// <summary>
+    /// What the circuit breaker counts: the server down or failing as a whole (500, 502, 503, 504, a network error,
+    /// an attempt timeout). Never a 4xx, 429 included, nor a per-user 5xx such as 507 (quota), so one caller's
+    /// requests can't open the circuit for everyone.
+    /// </summary>
+    public static bool IsServerFailure(Outcome<HttpResponseMessage> outcome) =>
+        outcome.Exception is HttpRequestException or TimeoutRejectedException
+        || outcome.Result?.StatusCode is HttpStatusCode.InternalServerError or HttpStatusCode.BadGateway
+            or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout;
+
+    /// <summary>
+    /// The breaker: open for 15 s once half of at least 20 attempts in 30 s failed (<see cref="IsServerFailure"/>),
+    /// so callers get a 503 at once instead of each waiting out the timeouts of a server that is down.
+    /// </summary>
+    public static HttpCircuitBreakerStrategyOptions CircuitBreaker() => new()
+    {
+        FailureRatio = 0.5,
+        MinimumThroughput = 20,
+        SamplingDuration = TimeSpan.FromSeconds(30),
+        BreakDuration = TimeSpan.FromSeconds(15),
+        ShouldHandle = static args => ValueTask.FromResult(IsServerFailure(args.Outcome)),
+    };
+
+    /// <summary>Total timeout → retry (safe methods) → circuit breaker → per-attempt timeout.</summary>
     public static void Configure(ResiliencePipelineBuilder<HttpResponseMessage> builder, DavOptions options)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -63,6 +87,7 @@ public static class DavResilience
             });
         }
 
+        builder.AddCircuitBreaker(CircuitBreaker());
         builder.AddTimeout(options.AttemptTimeout);
     }
 }

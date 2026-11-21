@@ -70,8 +70,11 @@ healthy (do not restart the façade).
 
 **Confirm.** `docker compose ps stalwart`, `docker compose logs stalwart` (from `deploy/`).
 
-**Fix.** Restart Stalwart (`docker compose restart stalwart`). The façade recovers on
-the next request — no restart, nothing cached to clear. Clients' delta links stay valid.
+**Fix.** Restart Stalwart (`docker compose restart stalwart`). The façade recovers by itself — no
+restart, nothing cached to clear. Clients' delta links stay valid. Each backend client (Stalwart,
+Nextcloud, Keycloak) has a circuit breaker: once half of at least 20 calls in 30 s fail with a
+500/502/503/504, a network error or a timeout, it answers 503 at once for 15 s, then lets a trial
+call through. So after the backend is back, the first requests can still be 503 for up to 15 s.
 
 ## Nextcloud is slow
 

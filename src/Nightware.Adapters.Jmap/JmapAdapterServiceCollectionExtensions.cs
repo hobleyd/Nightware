@@ -1,3 +1,4 @@
+using System.Net;
 using Nightware.Adapters.Jmap.Security;
 using Nightware.Adapters.Jmap.Directory;
 using Nightware.Adapters.Jmap.MailboxSettings;
@@ -16,6 +17,7 @@ using Nightware.Adapters.Jmap.Core.Http;
 using Nightware.Adapters.Jmap.Core.Session;
 using Polly;
 using Polly.Retry;
+using Polly.Timeout;
 
 namespace Nightware.Adapters.Jmap;
 
@@ -79,7 +81,7 @@ public static class JmapAdapterServiceCollectionExtensions
     // user's request would otherwise be replayed on the next user's request.
     private static SocketsHttpHandler NoRedirects() => new() { AllowAutoRedirect = false, UseCookies = false };
 
-    /// <summary>Total timeout → retry (safe requests, transient failures, honours Retry-After) → per-attempt timeout.</summary>
+    /// <summary>Total timeout → retry (safe requests, transient failures) → circuit breaker → per-attempt timeout.</summary>
     internal static void ConfigurePipeline(ResiliencePipelineBuilder<HttpResponseMessage> pipeline, TimeSpan total, TimeSpan attempt, int maxRetryAttempts)
     {
         pipeline.AddTimeout(total);
@@ -91,14 +93,38 @@ public static class JmapAdapterServiceCollectionExtensions
                 BackoffType = DelayBackoffType.Exponential,
                 UseJitter = true,
                 Delay = TimeSpan.FromMilliseconds(200),
-                ShouldRetryAfterHeader = true,
+                ShouldRetryAfterHeader = false, // short backoff only; Retry-After is reported to the caller
                 ShouldHandle = ShouldRetry,
             });
         }
 
+        pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
+        {
+            FailureRatio = 0.5,
+            MinimumThroughput = 20,
+            SamplingDuration = TimeSpan.FromSeconds(30),
+            BreakDuration = TimeSpan.FromSeconds(15),
+            ShouldHandle = static args => ValueTask.FromResult(IsServerFailure(args.Outcome)),
+        });
         pipeline.AddTimeout(attempt);
     }
 
+    /// <summary>
+    /// A transient failure of a safe request; never 429, which is surfaced (Throttled + Retry-After): honouring a
+    /// long Retry-After here would stall the caller until the request budget answers 503.
+    /// </summary>
     internal static ValueTask<bool> ShouldRetry(RetryPredicateArguments<HttpResponseMessage> args) =>
-        ValueTask.FromResult(args.Context.GetRequestMessage().IsSafe() && HttpClientResiliencePredicates.IsTransient(args.Outcome));
+        ValueTask.FromResult(args.Context.GetRequestMessage().IsSafe()
+            && args.Outcome.Result?.StatusCode != HttpStatusCode.TooManyRequests
+            && HttpClientResiliencePredicates.IsTransient(args.Outcome));
+
+    /// <summary>
+    /// What the breaker counts (open 15 s once half of at least 20 attempts in 30 s failed): the server down or
+    /// failing as a whole (500, 502, 503, 504, a network error, an attempt timeout), never a 4xx or 429, so one
+    /// caller's requests can't open the circuit for everyone. An open circuit is a 503 at once.
+    /// </summary>
+    internal static bool IsServerFailure(Outcome<HttpResponseMessage> outcome) =>
+        outcome.Exception is HttpRequestException or TimeoutRejectedException
+        || outcome.Result?.StatusCode is HttpStatusCode.InternalServerError or HttpStatusCode.BadGateway
+            or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout;
 }

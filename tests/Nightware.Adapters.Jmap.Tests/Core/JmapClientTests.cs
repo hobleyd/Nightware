@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json.Nodes;
 using Nightware.Adapters.Jmap.Core;
 using Nightware.Adapters.Jmap.Core.Protocol;
@@ -5,6 +6,7 @@ using Nightware.Adapters.Jmap.Core.Requests;
 using Nightware.Adapters.Jmap.Tests.Support;
 using Nightware.Application.Common.Identity;
 using Nightware.Domain.Kernel;
+using Polly;
 using WireMock.Matchers;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
@@ -400,6 +402,57 @@ public sealed class JmapClientTests
 
         response.Value.Get(get).IsSuccess.ShouldBeTrue();
         host.Requests("/jmap/", "POST").Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task A_throttled_request_is_surfaced_not_replayed()
+    {
+        await using var host = new JmapTestHost(s => s["Jmap:MaxRetryAttempts"] = "2");
+        host.StubSession();
+        host.Server.Given(Request.Create().WithPath("/jmap/").UsingPost())
+            .RespondWith(Response.Create().WithStatusCode(429).WithHeader("Retry-After", "30"));
+
+        var error = (await host.Client().SendAsync(MailboxGet(out _), Ct)).Error!;
+
+        (error.Kind, error.RetryAfterSeconds).ShouldBe((ErrorKind.Throttled, 30));
+        host.Requests("/jmap/", "POST").Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task A_failing_server_opens_the_circuit_so_later_calls_fail_at_once()
+    {
+        await using var host = new JmapTestHost(s => s["Jmap:MaxRetryAttempts"] = "0");
+        host.StubSession();
+        host.Server.Given(Request.Create().WithPath("/jmap/").UsingPost()).RespondWith(Response.Create().WithStatusCode(503));
+
+        for (var i = 0; i < 20; i++)
+        {
+            await host.Client().SendAsync(MailboxGet(out _), Ct);
+        }
+
+        var sent = host.Requests("/jmap/", "POST").Count;
+        (await host.Client().SendAsync(MailboxGet(out _), Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+        host.Requests("/jmap/", "POST").Count.ShouldBe(sent, "the open circuit answers without a request");
+    }
+
+    [Theory]
+    [InlineData(500, true)]
+    [InlineData(502, true)]
+    [InlineData(503, true)]
+    [InlineData(504, true)]
+    [InlineData(429, false)]
+    [InlineData(400, false)]
+    [InlineData(404, false)]
+    [InlineData(507, false)]
+    public void Only_server_wide_failures_count_towards_the_circuit(int status, bool counts) =>
+        JmapAdapterServiceCollectionExtensions.IsServerFailure(Outcome.FromResult(new HttpResponseMessage((HttpStatusCode)status))).ShouldBe(counts);
+
+    [Fact]
+    public void Network_errors_and_attempt_timeouts_count_towards_the_circuit()
+    {
+        JmapAdapterServiceCollectionExtensions.IsServerFailure(Outcome.FromException<HttpResponseMessage>(new HttpRequestException())).ShouldBeTrue();
+        JmapAdapterServiceCollectionExtensions.IsServerFailure(Outcome.FromException<HttpResponseMessage>(new Polly.Timeout.TimeoutRejectedException())).ShouldBeTrue();
+        JmapAdapterServiceCollectionExtensions.IsServerFailure(Outcome.FromException<HttpResponseMessage>(new OperationCanceledException())).ShouldBeFalse();
     }
 
     [Fact]
