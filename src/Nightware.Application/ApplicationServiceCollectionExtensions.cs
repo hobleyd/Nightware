@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Nightware.Application.Mail;
 using Nightware.Application.Calendar;
+using Nightware.Application.Changes;
 using Nightware.Application.Rooms;
 using Nightware.Application.Directory;
 using Nightware.Application.Contacts;
@@ -28,5 +29,6 @@ public static class ApplicationServiceCollectionExtensions
             .AddMailboxSettingsUseCases()
             .AddFilesUseCases()
             .AddSecurityUseCases()
-            .AddSubscriptionsUseCases();
+            .AddSubscriptionsUseCases()
+            .AddChangesUseCases();
 }

@@ -87,6 +87,12 @@ what a fix needs. Ordered by impact within each section.
   user page ("Profile"). `keycloak/configure.sh` declares their attributes;
   until it has run on a stack they are null.
 
+### Change stream (ADR 0007)
+- A signal is up to `ChangeStream:PollInterval` (10 s) late: it polls backend
+  state rather than following Stalwart's JMAP push.
+- Contacts and To Do have no area yet; NightMail syncs them on its own timers.
+- The per-user cap is per façade instance.
+
 ## Operations and security
 - **Stalwart's default inbound throttle (25 messages/hour per sender domain and
   recipient)** would cap a whole single-domain organisation at 25 messages an

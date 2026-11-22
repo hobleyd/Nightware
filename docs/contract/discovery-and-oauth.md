@@ -36,6 +36,13 @@ anonymously.
   entries rather than refusing the document. Configured as
   `Discovery:FilesBaseUrls` (validated: absolute http(s), no query, fragment or
   credentials).
+- **Optional `changesUrl`** (ADR 0007): the change stream, e.g.
+  `https://graph.example.com/nightware/v1/changes`. Derived from `graphBaseUrl`
+  (`…/v1.0` → `…/nightware/v1/changes`) unless `Discovery:ChangesUrl` is set;
+  absent when `ChangeStream:Enabled` is false. The client opens it with the
+  account's bearer token, so it uses it only on `graphBaseUrl`'s scheme, host
+  and port, and falls back to polling when it is absent or fails.
+
 - URLs must be absolute `https` (`http` only for `localhost`/`127.0.0.1`/`::1`);
   trailing slashes are stripped; `authorizationEndpoint` must not carry a query.
 
@@ -71,3 +78,36 @@ The client treats **any** HTTP response to a token refresh — including a proxy
 502/503 while a backend restarts — as bad credentials and forces re-sign-in.
 Keep the token endpoint (Keycloak) highly available and never put a
 maintenance page in front of it.
+
+## Change stream — `GET <changesUrl>[?mailbox={address}]` (ADR 0007)
+
+Not Graph surface. `Authorization: Bearer` as for Graph; `mailbox` names a
+shared mailbox (default: the caller's own). A `text/event-stream` answer:
+
+```
+retry: 10000
+
+event: ready
+data: {"areas":["mail","calendar"]}
+
+event: changed
+data: {"areas":["mail"]}
+
+: keepalive
+
+event: end
+data: {"reason":"expired"}
+```
+
+- `ready` once the baseline is read: the client syncs once then, since a change
+  between its last sync and `ready` is not signalled.
+- `changed` names the areas whose backend state moved in the last round
+  (`ChangeStream:PollInterval`, 10 s); it carries no ids, the client fetches
+  over its delta routes.
+- A comment line at least every `ChangeStream:KeepAlive` (25 s).
+- `end` with `expired` (30 s before the token's `exp`, or after
+  `ChangeStream:MaxDuration`, 30 min) or `credentials` (a backend refused the
+  token): the server closes; reconnect with a current token.
+- Before the stream opens: 401 (token), 404 (nothing to watch, or a mailbox the
+  caller may not open), 429 with `Retry-After` past
+  `ChangeStream:MaxStreamsPerUser` (8) on one instance.

@@ -27,7 +27,8 @@ public sealed class ProgramTests : IClassFixture<WebApplicationFactory<Program>>
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var body = await response.ReadObjectAsync();
-        body.Select(p => p.Key).Order().ShouldBe(["authorizationEndpoint", "clientId", "graphBaseUrl", "graphBetaBaseUrl", "scopes", "tokenEndpoint"]);
+        body.Select(p => p.Key).Order().ShouldBe(["authorizationEndpoint", "changesUrl", "clientId", "graphBaseUrl", "graphBetaBaseUrl", "scopes", "tokenEndpoint"]);
+        body.Str("changesUrl").ShouldBe("https://nightware.localhost/graph/nightware/v1/changes", "beside /v1.0, under the proxy's /graph prefix");
         body.Str("graphBaseUrl").ShouldBe("https://nightware.localhost/graph/v1.0");
         body.Str("graphBetaBaseUrl").ShouldBe("https://nightware.localhost/graph/beta");
         body.Str("clientId").ShouldBe("nightmail");

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Nightware.Adapters.Jmap.Mail.Ids;
+using Nightware.Application.Changes;
 using Nightware.Application.Mail;
 
 namespace Nightware.Adapters.Jmap.Mail.Read;
@@ -16,6 +17,7 @@ internal static class JmapMailReadServiceCollectionExtensions
         services.TryAddScoped<IMailDeltaReader, JmapMailDeltaReader>();
         services.TryAddScoped<IMailFolderDeltaReader, JmapMailFolderDeltaReader>();
         services.TryAddScoped<IRecentCorrespondents, JmapRecentCorrespondents>();
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<IChangeStateProbe, JmapMailChangeProbe>());
         return services;
     }
 }

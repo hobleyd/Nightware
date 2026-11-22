@@ -263,6 +263,20 @@ public sealed class RequestBudgetTests
         new RequestBudgetOptionsValidator().Validate(null, new RequestBudgetOptions()).Succeeded.ShouldBeTrue();
     }
 
+    [Fact]
+    public void A_long_lived_route_has_no_budget()
+    {
+        var context = new DefaultHttpContext();
+        context.SetEndpoint(new RouteEndpoint(
+            static _ => Task.CompletedTask,
+            Microsoft.AspNetCore.Routing.Patterns.RoutePatternFactory.Parse("/nightware/v1/changes"),
+            0,
+            new EndpointMetadataCollection(LongLivedRequest.Instance),
+            "changes"));
+
+        RequestBudgetMiddleware.BudgetFor(context, new RequestBudgetOptions()).ShouldBe(Timeout.InfiniteTimeSpan);
+    }
+
     private static DefaultHttpContext Context(string? routeTemplate, long? contentLength = null)
     {
         var context = new DefaultHttpContext();

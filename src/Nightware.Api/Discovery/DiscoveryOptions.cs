@@ -50,8 +50,27 @@ public sealed class DiscoveryOptions : IValidatableObject
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IList<string>? FilesBaseUrls { get; set; }
 
+    /// <summary>
+    /// Optional. The change stream's absolute URL (ADR 0007), which NightMail opens with the account's bearer token
+    /// and therefore uses only on the scheme, host and port of <see cref="GraphBaseUrl"/>. Left unset it is derived
+    /// from <see cref="GraphBaseUrl"/> (<c>…/v1.0</c> → <c>…/nightware/v1/changes</c>) while
+    /// <c>ChangeStream:Enabled</c>; with the stream off it is left out of the document.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ChangesUrl { get; set; }
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
+        if (ChangesUrl is not null
+            && (!Uri.TryCreate(ChangesUrl, UriKind.Absolute, out var changes)
+                || (changes.Scheme != Uri.UriSchemeHttps && changes.Scheme != Uri.UriSchemeHttp)
+                || !string.IsNullOrEmpty(changes.Query) || !string.IsNullOrEmpty(changes.Fragment) || !string.IsNullOrEmpty(changes.UserInfo)))
+        {
+            yield return new ValidationResult(
+                $"Discovery:ChangesUrl '{ChangesUrl}' must be an absolute http(s) URL without a query, fragment or credentials.",
+                [nameof(ChangesUrl)]);
+        }
+
         foreach (var url in FilesBaseUrls ?? [])
         {
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)

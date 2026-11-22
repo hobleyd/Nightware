@@ -13,6 +13,7 @@ using Nightware.Adapters.Directory.Credentials;
 using Nightware.Adapters.Jmap;
 using Nightware.Adapters.Subscriptions;
 using Nightware.Api.Auth;
+using Nightware.Api.Changes;
 using Nightware.Api.Discovery;
 using Nightware.Api.Features.Calendar;
 using Nightware.Api.Features.Contacts;
@@ -64,6 +65,7 @@ public static class NightwareComposition
             .Bind(configuration.GetSection(DiscoveryOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
+        services.AddChangeStream(configuration);
         services.AddOptions<DeltaLinkOptions>().Bind(configuration.GetSection(DeltaLinkOptions.SectionName)).ValidateOnStart();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DeltaLinkOptions>, SigningKeyValidator>());
 
@@ -114,6 +116,7 @@ public static class NightwareComposition
         app.UseRequestPipeline();
 
         app.MapDiscovery().RequireNightMailCors();
+        app.MapChangeStream();
         app.MapReadiness(HealthPath).AllowAnonymous();
         app.MapHealthChecks(LivenessPath, new HealthCheckOptions { Predicate = static _ => false }).AllowAnonymous();
         app.MapGraph();

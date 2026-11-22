@@ -30,6 +30,8 @@ NightMail ──HTTPS + OIDC bearer──▶ Nightware.Api (Graph façade)
    A cache, if ever added, must be disposable.
    The one exception is the change-notification subscription store (ADR 0006
    D10).
+   The change stream (ADR 0007) keeps nothing either: it is one long request
+   that reads backend state as the caller.
 3. **Graph fidelity is defined by golden fixtures**, not by reading docs.
    `tests/Nightware.Conformance.Tests/Fixtures` holds request/response pairs;
    a response shape change that breaks a fixture is a bug.

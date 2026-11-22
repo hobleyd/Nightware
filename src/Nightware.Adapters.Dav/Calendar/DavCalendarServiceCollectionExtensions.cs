@@ -20,6 +20,7 @@ internal static class DavCalendarServiceCollectionExtensions
         services.TryAddScoped<Application.Calendar.Calendars.ICalendarEventsIn>(sp => sp.GetRequiredService<DavCalendarStore>());
         services.TryAddScoped<Application.Calendar.Calendars.ICalendarViewDelta, DavCalendarViewDelta>();
         services.TryAddScoped<Application.Subscriptions.IEventChangeFeed, DavEventChangeFeed>();
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<Application.Changes.IChangeStateProbe, DavCalendarChangeProbe>());
         services.TryAddScoped<Application.Calendar.Calendars.ICalendarReminders, DavCalendarReminders>();
         services.TryAddScoped<Tasks.Attachments.TaskAttachmentFiles>();
         services.TryAddScoped<Application.Calendar.Calendars.IEventAttachmentStore, DavEventAttachmentStore>();

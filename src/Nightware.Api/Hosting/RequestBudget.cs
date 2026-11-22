@@ -60,6 +60,19 @@ internal sealed class RequestBudgetOptionsValidator : IValidateOptions<RequestBu
 }
 
 /// <summary>
+/// Endpoint metadata for a route that holds its request open by design (the change stream, ADR 0007): it gets no
+/// budget, and bounds its own lifetime.
+/// </summary>
+public sealed class LongLivedRequest
+{
+    public static readonly LongLivedRequest Instance = new();
+
+    private LongLivedRequest()
+    {
+    }
+}
+
+/// <summary>
 /// Gives every request a time budget and answers a request that overruns it with a Graph error
 /// instead of letting it hang until the client's own timeout.
 /// </summary>
@@ -111,11 +124,19 @@ public sealed partial class RequestBudgetMiddleware(
         }
     }
 
-    /// <summary>The budget for this request: transfer-shaped routes and large bodies get the long one.</summary>
+    /// <summary>
+    /// The budget for this request: transfer-shaped routes and large bodies get the long one, a
+    /// <see cref="LongLivedRequest"/> none.
+    /// </summary>
     public static TimeSpan BudgetFor(HttpContext context, RequestBudgetOptions options)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(options);
+        if (context.GetEndpoint()?.Metadata.GetMetadata<LongLivedRequest>() is not null)
+        {
+            return Timeout.InfiniteTimeSpan;
+        }
+
         var route = (context.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText;
         var transfer = (route is not null && TransferRoute().IsMatch(route))
             || context.Request.ContentLength > options.TransferBodyThresholdBytes;
