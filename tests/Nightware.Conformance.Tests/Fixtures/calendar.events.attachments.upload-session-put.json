@@ -1,0 +1,33 @@
+{
+  "operationId": "calendar.events.attachments.upload-session-put",
+  "provenance": "mail.attachments.upload-session-put's tenant capture (2026-11-20, scrubbed) for an event: Graph's reference lists events/{id}/attachments/createUploadSession beside messages' (https://learn.microsoft.com/graph/api/attachment-createuploadsession); constructed, no event capture yet; request path is Nightware's own upload route",
+  "request": {
+    "method": "PUT",
+    "path": "/v1.0/users/me@example.com/events/AAMk-id-0005=/attachmentSessions/AAMk-ref-0003=/content",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Content-Range": "bytes 0-1966079/3670016",
+      "Content-Type": "application/octet-stream"
+    },
+    "body": {
+      "$binary": {
+        "length": 1966080,
+        "sha256": "92fd45c62bf2641e0dd33eb05d215c9c15b5c5856aaa4a758bcde6d65ea16e4f"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#microsoft.graph.uploadSession",
+      "expirationDateTime": "2026-11-21T00:31:51.2091831Z",
+      "nextExpectedRanges": [
+        "1966080"
+      ]
+    }
+  }
+}

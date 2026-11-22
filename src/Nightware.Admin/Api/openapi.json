@@ -4596,6 +4596,144 @@
         }
       }
     },
+    "/me/events/{eventId}/attachments/createUploadSession": {
+      "post": {
+        "operationId": "calendar.events.attachments.create-upload-session",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar events attachments: create upload session",
+        "description": "A large event attachment (up to 150 MB) in chunks of up to 4 MB, as for messages: the upload URL is self-authorising (sent without a bearer) and lives an hour. Chunks are staged in Nextcloud's chunked upload; the last one makes the file an attachment of the event (in the owner's Files, linked by ATTACH). Only file attachments, not inline (501).\n\nGraph reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession",
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "AttachmentItem": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "uploadUrl": {},
+                    "expirationDateTime": {},
+                    "nextExpectedRanges": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/events/{eventId}/attachments/createUploadSession": {
+      "post": {
+        "operationId": "calendar.events.attachments.create-upload-session.users",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar events attachments: create upload session",
+        "description": "A large event attachment (up to 150 MB) in chunks of up to 4 MB, as for messages: the upload URL is self-authorising (sent without a bearer) and lives an hour. Chunks are staged in Nextcloud's chunked upload; the last one makes the file an attachment of the event (in the owner's Files, linked by ATTACH). Only file attachments, not inline (501).\n\nGraph reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "AttachmentItem": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "uploadUrl": {},
+                    "expirationDateTime": {},
+                    "nextExpectedRanges": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me/events/{eventId}/attachments/{attachmentId}": {
       "delete": {
         "operationId": "calendar.events.attachments.delete",
@@ -4813,6 +4951,170 @@
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/{uploadUrl}": {
+      "put": {
+        "operationId": "calendar.events.attachments.upload-session-put",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar events attachments: upload session put",
+        "description": "Calendar events attachments: upload session put: One chunk, Content-Range required and starting at the next expected byte (400 otherwise). Answers the next byte wanted, as Outlook's attachment sessions do (no trailing '-').\n\nCalendar events attachments: upload session put final: The last chunk: the file becomes an attachment of the event. 201 with the attachment's Location and no body.\n\nGraph reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession",
+        "parameters": [
+          {
+            "name": "uploadUrl",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Content-Range",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "bytes first-last/total"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "expirationDateTime": {},
+                    "nextExpectedRanges": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/events/{eventId}/attachments/{attachmentId}/$value": {
+      "get": {
+        "operationId": "calendar.events.attachments.value",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar events attachments: value",
+        "description": "The attachment's bytes with its own content type, streamed from Nextcloud Files (any size, unlike the inline contentBytes).\n\nGraph reference: https://learn.microsoft.com/graph/api/attachment-get",
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attachmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/events/{eventId}/attachments/{attachmentId}/$value": {
+      "get": {
+        "operationId": "calendar.events.attachments.value.users",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar events attachments: value",
+        "description": "The attachment's bytes with its own content type, streamed from Nextcloud Files (any size, unlike the inline contentBytes).\n\nGraph reference: https://learn.microsoft.com/graph/api/attachment-get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attachmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
           },
           "400": {
             "$ref": "#/components/responses/Error"

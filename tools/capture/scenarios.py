@@ -447,6 +447,27 @@ MIME = [
     step("mail.messages.send-mime", "POST", "/v1.0/me/sendMail", mime={"to": "${me.mail}", "subject": "Nightware capture ${run} MIME sent"}),
 ]
 
+EVENT_UPLOAD = [
+    setup("POST", "/v1.0/me/events", headers=UTC, body={
+        "subject": "Nightware capture ${run} event upload",
+        "start": {"dateTime": "${tomorrow10}", "timeZone": "UTC"},
+        "end": {"dateTime": "${tomorrow1030}", "timeZone": "UTC"},
+    }, save={"evId": "id"}),
+    step("calendar.events.attachments.create-upload-session", "POST",
+         "/v1.0/me/events/${evId}/attachments/createUploadSession",
+         body={"AttachmentItem": {"attachmentType": "file", "name": "capture.bin", "size": UPLOAD_SIZE}},
+         save={"uploadUrl": "uploadUrl"}),
+    step("calendar.events.attachments.upload-session-put", "PUT", url="${uploadUrl}", record_path="{uploadUrl}",
+         auth=False, binary={"range": [0, FIRST_CHUNK - 1]},
+         headers={"Content-Range": f"bytes 0-{FIRST_CHUNK - 1}/{UPLOAD_SIZE}"}),
+    step("calendar.events.attachments.upload-session-put-final", "PUT", url="${uploadUrl}", record_path="{uploadUrl}",
+         auth=False, binary={"range": [FIRST_CHUNK, UPLOAD_SIZE - 1]},
+         headers={"Content-Range": f"bytes {FIRST_CHUNK}-{UPLOAD_SIZE - 1}/{UPLOAD_SIZE}"}),
+    setup("GET", "/v1.0/me/events/${evId}/attachments", query={"$select": "id"}, save={"attId": "value[0].id"}),
+    step("calendar.events.attachments.value", "GET", "/v1.0/me/events/${evId}/attachments/${attId}/$value"),
+    setup("DELETE", "/v1.0/me/events/${evId}", always=True),
+]
+
 PHOTOS = [
     step("directory.me.photo.get", "GET", "/v1.0/me/photo"),
     step("directory.me.photo.put", "PUT", "/v1.0/me/photo/$value", binary={"photo": True, "contentType": "image/jpeg"}),
@@ -485,5 +506,5 @@ PHASES = {
     15: [("todo", TODO)],
     16: [("notifications", NOTIFICATIONS)],
     18: [("settings", SETTINGS), ("aliases", ALIASES), ("todo items", TODO_ITEMS)],
-    19: [("folders", FOLDERS), ("counts", COUNTS), ("photos", PHOTOS), ("mime", MIME)],
+    19: [("folders", FOLDERS), ("counts", COUNTS), ("photos", PHOTOS), ("mime", MIME), ("event upload", EVENT_UPLOAD)],
 }

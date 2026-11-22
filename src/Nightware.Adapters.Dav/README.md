@@ -347,6 +347,20 @@ Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf,
   body is streamed to Nextcloud and must be exactly the declared size (`CountingReadStream` stops at the
   limit: more is 413, less is 400, and the file is removed).
 
+**Event attachments** (`DavEventAttachmentStore`, ADR 0006 D6) live as task attachments do, under
+`files/{uid}/Nightware/Event attachments/{uuid}/{name}`, linked by the event's `ATTACH`. Phase 19 adds:
+
+- `$value` streams the file (`GetContentAsync`, `DownloadStream`), so it has no inline size cap.
+- **Chunked uploads** (`DavEventAttachmentUploads`) use Nextcloud's chunked upload v1 (no minimum chunk
+  size, so Graph clients' 320 KiB multiples fit; v2 wants 5 MB): `MKCOL uploads/{uid}/nw-{uuid}/` when
+  the session opens, each chunk `PUT` as its zero-padded first byte (15 digits), and after the last one
+  a `MOVE` of the folder's virtual `.file` (the chunks joined in name order) into a fresh attachment
+  folder, then the `ATTACH` (`LinkAsync`, shared with the small attachment path). What has arrived is
+  the folder's listing, so the session token (`EventUploadToken`: mailbox, event, name, type, size,
+  staging and home folders, expiry of one hour) is all the state. Only the next byte is accepted; a chunk
+  shorter than its `Content-Range` is deleted again. Nextcloud removes the staging folder on the `MOVE`;
+  abandoned ones are left to its own cleanup of stale uploads.
+
 ## Documents linked from mail (Phase 7)
 
 `Files/` implements `ISharedFileReader`; `Office/` implements `IDocumentConverter`.

@@ -9115,5 +9115,142 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/user-sendmail",
     "notes": "MIME form (Content-Type: text/plain, base64): sends the message as written and saves it to Sent Items. Bcc recipients get it, without the Bcc header. From must be an address the mailbox may send as (403 otherwise). Not base64: 400 ErrorMimeContentInvalidBase64String; over 4 MB: 413."
+  },
+  {
+    "id": "calendar.events.attachments.value",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}/attachments/{attachmentId}/$value",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-get",
+    "notes": "The attachment's bytes with its own content type, streamed from Nextcloud Files (any size, unlike the inline contentBytes)."
+  },
+  {
+    "id": "calendar.events.attachments.create-upload-session",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/events/{eventId}/attachments/createUploadSession",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "AttachmentItem"
+      ]
+    },
+    "responseFields": [
+      "uploadUrl",
+      "expirationDateTime",
+      "nextExpectedRanges"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-createuploadsession",
+    "notes": "A large event attachment (up to 150 MB) in chunks of up to 4 MB, as for messages: the upload URL is self-authorising (sent without a bearer) and lives an hour. Chunks are staged in Nextcloud's chunked upload; the last one makes the file an attachment of the event (in the owner's Files, linked by ATTACH). Only file attachments, not inline (501)."
+  },
+  {
+    "id": "calendar.events.attachments.upload-session-put",
+    "phase": 19,
+    "method": "PUT",
+    "version": "v1.0",
+    "path": "{uploadUrl}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {
+      "Content-Range": [
+        "bytes first-last/total"
+      ]
+    },
+    "requestBody": null,
+    "responseFields": [
+      "expirationDateTime",
+      "nextExpectedRanges"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-createuploadsession",
+    "notes": "One chunk, Content-Range required and starting at the next expected byte (400 otherwise). Answers the next byte wanted, as Outlook's attachment sessions do (no trailing '-')."
+  },
+  {
+    "id": "calendar.events.attachments.upload-session-put-final",
+    "phase": 19,
+    "method": "PUT",
+    "version": "v1.0",
+    "path": "{uploadUrl}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {
+      "Content-Range": [
+        "bytes first-last/total"
+      ]
+    },
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-createuploadsession",
+    "notes": "The last chunk: the file becomes an attachment of the event. 201 with the attachment's Location and no body."
   }
 ]

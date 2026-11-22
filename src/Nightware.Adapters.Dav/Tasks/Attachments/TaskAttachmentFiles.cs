@@ -40,26 +40,13 @@ internal sealed class TaskAttachmentFiles(IDavClient dav, DavPaths paths)
     public async Task<Result<(string Href, long Size)>> StoreAsync(
         string home, IReadOnlyList<string> folderPath, string name, string contentType, Stream content, long? expectedSize, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(folderPath);
-        var folder = home;
-        foreach (var segment in folderPath)
+        var created = await NewFolderAsync(home, folderPath, cancellationToken).ConfigureAwait(false);
+        if (!created.IsSuccess)
         {
-            folder += Uri.EscapeDataString(segment) + "/";
-            var created = await dav.MkColAsync(folder, null, cancellationToken).ConfigureAwait(false);
-            if (!created.IsSuccess && created.Error.Kind != ErrorKind.Conflict)
-            {
-                return created.Error;
-            }
+            return created.Error;
         }
 
-        // A folder of its own keeps the user's file name intact without ever overwriting another attachment.
-        folder += Guid.NewGuid().ToString("N") + "/";
-        var made = await dav.MkColAsync(folder, null, cancellationToken).ConfigureAwait(false);
-        if (!made.IsSuccess)
-        {
-            return made.Error;
-        }
-
+        var folder = created.Value;
         var href = folder + Uri.EscapeDataString(SafeName(name));
         var counted = new CountingReadStream(content, expectedSize);
         var put = await dav.PutAsync(href, counted, contentType, DavPrecondition.CreateOnly, cancellationToken).ConfigureAwait(false);
@@ -78,6 +65,29 @@ internal sealed class TaskAttachmentFiles(IDavClient dav, DavPaths paths)
         }
 
         return (href, counted.BytesRead);
+    }
+
+    /// <summary>
+    /// A new, empty folder of its own under <paramref name="folderPath"/> (created as needed): it keeps the user's file
+    /// name intact without ever overwriting another attachment.
+    /// </summary>
+    public async Task<Result<string>> NewFolderAsync(string home, IReadOnlyList<string> folderPath, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(folderPath);
+        var folder = home;
+        foreach (var segment in folderPath)
+        {
+            folder += Uri.EscapeDataString(segment) + "/";
+            var created = await dav.MkColAsync(folder, null, cancellationToken).ConfigureAwait(false);
+            if (!created.IsSuccess && created.Error.Kind != ErrorKind.Conflict)
+            {
+                return created.Error;
+            }
+        }
+
+        folder += Guid.NewGuid().ToString("N") + "/";
+        var made = await dav.MkColAsync(folder, null, cancellationToken).ConfigureAwait(false);
+        return made.IsSuccess ? folder : made.Error;
     }
 
     /// <summary>Removes an attachment's folder; best effort, used to undo a half-finished attach.</summary>

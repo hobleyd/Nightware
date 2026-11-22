@@ -19,6 +19,10 @@
   is 201.
 - **Stalwart** creates a whole subtree in one `Mailbox/set`: a child's
   `parentId` may be `#creationId` of a folder created in the same call.
+- **Nextcloud chunked upload v1** (`uploads/{uid}/{folder}/`: MKCOL, a PUT per
+  chunk named so the names sort by offset, `MOVE …/.file` to the destination)
+  works with the caller's bearer, takes chunks of any size, and removes the
+  staging folder on the MOVE.
 - **Nextcloud 35 avatars:** `POST index.php/avatar/` (multipart `files[]`)
   accepts a bearer token when the request carries `OCS-APIRequest: true`, and
   `DELETE index.php/avatar/` removes it. Only a **square JPEG or PNG** is stored
@@ -33,8 +37,15 @@
 | `/$count` on the eight lists that take `$count=true` | 1.50.0 |
 | `/me/photo/$value`; `/me/photo` and `/users/{x}/photo` metadata; PUT, PATCH and DELETE of one's own photo | 1.51.0 |
 | MIME `POST messages` and `POST sendMail` | 1.53.0 |
+| Event attachment `$value` and upload sessions (chunked) | 1.54.0 |
 
 ## Decisions
+- Event upload sessions stage chunks in Nextcloud's own chunked upload (v1),
+  not in the façade, and read progress back from the staging folder, so the
+  session stays stateless. Responses match the mail upload's (Outlook's
+  attachment sessions): the next byte without a trailing `-`, and 201 with a
+  `Location` for the last chunk. (The To Do upload session still takes the
+  whole file in one request.)
 - MIME is its own endpoint per route, chosen by `Content-Type: text/plain`, so
   the JSON forms can't change. The base64 may be wrapped. The Message-ID is
   always minted (see `Adapters.Jmap/README.md`); 4 MB is the limit (413), as

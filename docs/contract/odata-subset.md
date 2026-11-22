@@ -227,6 +227,7 @@ wall-clock. Top-level timestamps (`receivedDateTime`, `sentDateTime`,
 | `mail.folders.create`, `mail.folders.copy` | nothing (Graph's reference lists no options for either) |
 | `directory.*photo*` (phase 19) | nothing |
 | `mail.messages.create-mime`, `mail.messages.send-mime` | nothing |
+| `calendar.events.attachments.{value,create-upload-session,upload-session-put*}` | nothing |
 | `tasks.checklist-items.get`, `tasks.linked-resources.get` | nothing |
 
 ### `$count` (phase 18)

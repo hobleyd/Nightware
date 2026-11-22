@@ -329,8 +329,8 @@ operation:
 | Phase 15 — To Do (Graph parity) | 19 |
 | Phase 16 — Change notifications (Graph parity) | 10 |
 | Phase 18 — Settings, aliases, single items and $count (Graph parity) | 26 |
-| Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 21 |
-| **Total** | **218** |
+| Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 25 |
+| **Total** | **222** |
 
 ### Phase 2 — Mail, read side
 
@@ -2539,6 +2539,10 @@ operation:
 | [`directory.users.photo.delete`](#directoryusersphotodelete) | DELETE | v1.0 | `/users/{userIdOrUpn}/photo/$value` | none |
 | [`mail.messages.create-mime`](#mailmessagescreate-mime) | POST | v1.0 | `{mailbox}/messages` | none |
 | [`mail.messages.send-mime`](#mailmessagessend-mime) | POST | v1.0 | `{mailbox}/sendMail` | none |
+| [`calendar.events.attachments.value`](#calendareventsattachmentsvalue) | GET | v1.0 | `{mailbox}/events/{eventId}/attachments/{attachmentId}/$value` | none |
+| [`calendar.events.attachments.create-upload-session`](#calendareventsattachmentscreate-upload-session) | POST | v1.0 | `{mailbox}/events/{eventId}/attachments/createUploadSession` | none |
+| [`calendar.events.attachments.upload-session-put`](#calendareventsattachmentsupload-session-put) | PUT | v1.0 | `{uploadUrl}` | none |
+| [`calendar.events.attachments.upload-session-put-final`](#calendareventsattachmentsupload-session-put-final) | PUT | v1.0 | `{uploadUrl}` | none |
 
 #### `mail.folders.create`
 
@@ -2728,5 +2732,42 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-sendmail
 - Notes: MIME form (Content-Type: text/plain, base64): sends the message as written and saves it to Sent Items. Bcc recipients get it, without the Bcc header. From must be an address the mailbox may send as (403 otherwise). Not base64: 400 ErrorMimeContentInvalidBase64String; over 4 MB: 413.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.messages.send-mime.json`
+
+#### `calendar.events.attachments.value`
+
+**GET v1.0 `{mailbox}/events/{eventId}/attachments/{attachmentId}/$value`** — forms: me, users; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-get
+- Notes: The attachment's bytes with its own content type, streamed from Nextcloud Files (any size, unlike the inline contentBytes).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.attachments.value.json`
+
+#### `calendar.events.attachments.create-upload-session`
+
+**POST v1.0 `{mailbox}/events/{eventId}/attachments/createUploadSession`** — forms: me, users; success: 201; paging: none
+
+- Request body: `AttachmentItem`
+- Client reads: `uploadUrl`, `expirationDateTime`, `nextExpectedRanges`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession
+- Notes: A large event attachment (up to 150 MB) in chunks of up to 4 MB, as for messages: the upload URL is self-authorising (sent without a bearer) and lives an hour. Chunks are staged in Nextcloud's chunked upload; the last one makes the file an attachment of the event (in the owner's Files, linked by ATTACH). Only file attachments, not inline (501).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.attachments.create-upload-session.json`
+
+#### `calendar.events.attachments.upload-session-put`
+
+**PUT v1.0 `{uploadUrl}`** — forms: root; success: 200; paging: none
+
+- Headers: `Content-Range: bytes first-last/total`
+- Client reads: `expirationDateTime`, `nextExpectedRanges`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession
+- Notes: One chunk, Content-Range required and starting at the next expected byte (400 otherwise). Answers the next byte wanted, as Outlook's attachment sessions do (no trailing '-').
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.attachments.upload-session-put.json`
+
+#### `calendar.events.attachments.upload-session-put-final`
+
+**PUT v1.0 `{uploadUrl}`** — forms: root; success: 201; paging: none
+
+- Headers: `Content-Range: bytes first-last/total`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession
+- Notes: The last chunk: the file becomes an attachment of the event. 201 with the attachment's Location and no body.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.attachments.upload-session-put-final.json`
 
 <!-- END GENERATED -->

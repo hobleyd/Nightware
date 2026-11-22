@@ -10,12 +10,15 @@ public interface IEventAttachmentStore
 
     Task<Result<EventAttachment>> GetAsync(MailboxRef mailbox, EventId eventId, AttachmentId id, CancellationToken cancellationToken);
 
+    /// <summary>The attachment's bytes, streamed (Graph <c>…/attachments/{id}/$value</c>; any size, unlike <see cref="GetAsync"/>).</summary>
+    Task<Result<BlobContent>> GetContentAsync(MailboxRef mailbox, EventId eventId, AttachmentId id, CancellationToken cancellationToken);
+
     Task<Result<EventAttachment>> AddAsync(MailboxRef mailbox, EventId eventId, string name, string contentType, ReadOnlyMemory<byte> content, CancellationToken cancellationToken);
 
     Task<Result> DeleteAsync(MailboxRef mailbox, EventId eventId, AttachmentId id, CancellationToken cancellationToken);
 }
 
-/// <summary>Graph <c>events/{id}/attachments</c>: list, get (with content), add a file, delete.</summary>
+/// <summary>Graph <c>events/{id}/attachments</c>: list, get (with content), the raw content, add a file, delete.</summary>
 public sealed class EventAttachmentsUseCase(IEventAttachmentStore store)
 {
     /// <summary>Graph's limit on an attachment added in one request.</summary>
@@ -26,6 +29,9 @@ public sealed class EventAttachmentsUseCase(IEventAttachmentStore store)
 
     public Task<Result<EventAttachment>> GetAsync(MailboxRef mailbox, EventId eventId, AttachmentId id, CancellationToken cancellationToken) =>
         store.GetAsync(mailbox, eventId, id, cancellationToken);
+
+    public Task<Result<BlobContent>> GetContentAsync(MailboxRef mailbox, EventId eventId, AttachmentId id, CancellationToken cancellationToken) =>
+        store.GetContentAsync(mailbox, eventId, id, cancellationToken);
 
     public async Task<Result<EventAttachment>> AddAsync(MailboxRef mailbox, EventId eventId, string? name, string? contentType, ReadOnlyMemory<byte> content, CancellationToken cancellationToken)
     {

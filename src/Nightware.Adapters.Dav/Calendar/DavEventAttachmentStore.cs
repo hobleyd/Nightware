@@ -16,7 +16,7 @@ namespace Nightware.Adapters.Dav.Calendar;
 internal sealed class DavEventAttachmentStore(DavEventResources resources, DavCalendarScopes scopes, TaskAttachmentFiles files, IcsEditor editor, IDavClient dav)
     : IEventAttachmentStore
 {
-    private static readonly string[] Folder = ["Nightware", "Event attachments"];
+    internal static readonly string[] Folder = ["Nightware", "Event attachments"];
 
     public async Task<Result<IReadOnlyList<EventAttachment>>> ListAsync(MailboxRef mailbox, EventId eventId, CancellationToken cancellationToken)
     {
@@ -60,21 +60,46 @@ internal sealed class DavEventAttachmentStore(DavEventResources resources, DavCa
 
         using var body = new MemoryStream(content.ToArray());
         var file = await files.StoreAsync(home.Value, Folder, name, contentType, body, content.Length, cancellationToken).ConfigureAwait(false);
-        if (!file.IsSuccess)
+        return file.IsSuccess
+            ? await LinkAsync(stored.Value, file.Value.Href, name, contentType, file.Value.Size, cancellationToken).ConfigureAwait(false)
+            : file.Error;
+    }
+
+    public async Task<Result<BlobContent>> GetContentAsync(MailboxRef mailbox, EventId eventId, AttachmentId id, CancellationToken cancellationToken)
+    {
+        var found = await FindAsync(mailbox, eventId, id, cancellationToken).ConfigureAwait(false);
+        if (!found.IsSuccess)
         {
-            return file.Error;
+            return found.Error;
         }
 
-        var link = new EventAttachmentLink(files.ToUri(file.Value.Href), TaskAttachmentFiles.SafeName(name), contentType, file.Value.Size);
-        var edited = editor.AddAttachment(stored.Value.Body, link);
-        var saved = edited.IsSuccess ? await resources.SaveAsync(stored.Value, edited.Value, cancellationToken).ConfigureAwait(false) : edited.ToResult();
+        var download = await dav.OpenReadAsync(found.Value.Href, cancellationToken).ConfigureAwait(false);
+        if (!download.IsSuccess)
+        {
+            return download.Error;
+        }
+
+        Stream body = new DownloadStream(download.Value);
+        var attachment = found.Value.Attachment;
+        return new BlobContent(attachment.ContentType, download.Value.Length ?? attachment.Size, _ => Task.FromResult(body)) { FileName = attachment.Name };
+    }
+
+    /// <summary>
+    /// Gives the event an <c>ATTACH</c> for a file already in its owner's Files (a fresh folder of its own); the folder
+    /// goes again when the event can't be saved, so nothing is left behind. Shared with the chunked upload.
+    /// </summary>
+    internal async Task<Result<EventAttachment>> LinkAsync(StoredEvent stored, string fileHref, string name, string contentType, long size, CancellationToken cancellationToken)
+    {
+        var link = new EventAttachmentLink(files.ToUri(fileHref), TaskAttachmentFiles.SafeName(name), contentType, size);
+        var edited = editor.AddAttachment(stored.Body, link);
+        var saved = edited.IsSuccess ? await resources.SaveAsync(stored, edited.Value, cancellationToken).ConfigureAwait(false) : edited.ToResult();
         if (!saved.IsSuccess)
         {
-            await files.DeleteFolderOfAsync(file.Value.Href, cancellationToken).ConfigureAwait(false);
+            await files.DeleteFolderOfAsync(fileHref, cancellationToken).ConfigureAwait(false);
             return saved.Error;
         }
 
-        return new EventAttachment(DavItemId.Resource(file.Value.Href).ToAttachmentId(), link.FileName, contentType, file.Value.Size);
+        return new EventAttachment(DavItemId.Resource(fileHref).ToAttachmentId(), link.FileName, contentType, size);
     }
 
     public async Task<Result> DeleteAsync(MailboxRef mailbox, EventId eventId, AttachmentId id, CancellationToken cancellationToken)

@@ -12,6 +12,7 @@ public static class CalendarEndpoints
     {
         EventEndpoints.Map(graph);
         CalendarCollectionEndpoints.Map(graph);
+        EventAttachmentUploadEndpoints.Map(graph);
         SchedulingEndpoints.Map(graph);
         MessageEventEndpoints.Map(graph);
         ScheduleEndpoints.Map(graph);
