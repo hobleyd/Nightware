@@ -9252,5 +9252,1903 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/attachment-createuploadsession",
     "notes": "The last chunk: the file becomes an attachment of the event. 201 with the attachment's Location and no body."
+  },
+  {
+    "id": "calendar.default.events.accept",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/events/{eventId}/accept",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "sendResponse (always true)",
+        "comment (string, may be '')"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of calendar.events.accept on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-accept"
+  },
+  {
+    "id": "calendar.calendars.events.accept",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events/{eventId}/accept",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "sendResponse (always true)",
+        "comment (string, may be '')"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of calendar.events.accept on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-accept"
+  },
+  {
+    "id": "calendar.default.events.tentatively-accept",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/events/{eventId}/tentativelyAccept",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "sendResponse (always true)",
+        "comment (string, may be '')"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of calendar.events.tentatively-accept on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-tentativelyaccept"
+  },
+  {
+    "id": "calendar.calendars.events.tentatively-accept",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events/{eventId}/tentativelyAccept",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "sendResponse (always true)",
+        "comment (string, may be '')"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of calendar.events.tentatively-accept on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-tentativelyaccept"
+  },
+  {
+    "id": "calendar.default.events.decline",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/events/{eventId}/decline",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "sendResponse (always true)",
+        "comment (string, may be '')",
+        "proposedNewTime? {start,end: {dateTime, timeZone}} — propose-new-time is a decline carrying this"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of calendar.events.decline on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-decline"
+  },
+  {
+    "id": "calendar.calendars.events.decline",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events/{eventId}/decline",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "sendResponse (always true)",
+        "comment (string, may be '')",
+        "proposedNewTime? {start,end: {dateTime, timeZone}} — propose-new-time is a decline carrying this"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of calendar.events.decline on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-decline"
+  },
+  {
+    "id": "calendar.default.events.cancel",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/events/{eventId}/cancel",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "comment (always '')"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of calendar.events.cancel on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-cancel"
+  },
+  {
+    "id": "calendar.calendars.events.cancel",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events/{eventId}/cancel",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "comment (always '')"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of calendar.events.cancel on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-cancel"
+  },
+  {
+    "id": "calendar.default.events.forward",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/events/{eventId}/forward",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "ToRecipients[].emailAddress.address (PascalCase key)",
+        "Comment (PascalCase key, may be '')"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of calendar.events.forward on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-forward"
+  },
+  {
+    "id": "calendar.calendars.events.forward",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events/{eventId}/forward",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "ToRecipients[].emailAddress.address (PascalCase key)",
+        "Comment (PascalCase key, may be '')"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of calendar.events.forward on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-forward"
+  },
+  {
+    "id": "calendar.default.events.instances",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/events/{eventId}/instances",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].subject",
+      "value[].start",
+      "value[].end",
+      "value[].seriesMasterId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-list-instances",
+    "notes": "Graph's alias of calendar.events.instances on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.calendars.events.instances",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events/{eventId}/instances",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].subject",
+      "value[].start",
+      "value[].end",
+      "value[].seriesMasterId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-list-instances",
+    "notes": "Graph's alias of calendar.events.instances on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.default.events.snooze-reminder",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/events/{eventId}/snoozeReminder",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "newReminderTime"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-snoozereminder",
+    "notes": "Graph's alias of calendar.events.snooze-reminder on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.calendars.events.snooze-reminder",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events/{eventId}/snoozeReminder",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "newReminderTime"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-snoozereminder",
+    "notes": "Graph's alias of calendar.events.snooze-reminder on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.default.events.dismiss-reminder",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/events/{eventId}/dismissReminder",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-dismissreminder",
+    "notes": "Graph's alias of calendar.events.dismiss-reminder on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.calendars.events.dismiss-reminder",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events/{eventId}/dismissReminder",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-dismissreminder",
+    "notes": "Graph's alias of calendar.events.dismiss-reminder on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.default.events.attachments.list",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/events/{eventId}/attachments",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].name",
+      "value[].contentType",
+      "value[].size",
+      "value[].isInline",
+      "value[].lastModifiedDateTime"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-list-attachments",
+    "notes": "Graph's alias of calendar.events.attachments.list on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.calendars.events.attachments.list",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events/{eventId}/attachments",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].name",
+      "value[].contentType",
+      "value[].size",
+      "value[].isInline",
+      "value[].lastModifiedDateTime"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-list-attachments",
+    "notes": "Graph's alias of calendar.events.attachments.list on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.default.events.attachments.get",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/events/{eventId}/attachments/{attachmentId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "name",
+      "contentType",
+      "size",
+      "isInline",
+      "lastModifiedDateTime",
+      "contentBytes"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-get",
+    "notes": "Graph's alias of calendar.events.attachments.get on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.calendars.events.attachments.get",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events/{eventId}/attachments/{attachmentId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "name",
+      "contentType",
+      "size",
+      "isInline",
+      "lastModifiedDateTime",
+      "contentBytes"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-get",
+    "notes": "Graph's alias of calendar.events.attachments.get on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.default.events.attachments.create",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/events/{eventId}/attachments",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "@odata.type",
+        "name",
+        "contentType?",
+        "contentBytes"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "name",
+      "contentType",
+      "size",
+      "isInline",
+      "lastModifiedDateTime"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-post-attachments",
+    "notes": "Graph's alias of calendar.events.attachments.create on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.calendars.events.attachments.create",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events/{eventId}/attachments",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "@odata.type",
+        "name",
+        "contentType?",
+        "contentBytes"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "name",
+      "contentType",
+      "size",
+      "isInline",
+      "lastModifiedDateTime"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/event-post-attachments",
+    "notes": "Graph's alias of calendar.events.attachments.create on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.default.events.attachments.delete",
+    "phase": 19,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/events/{eventId}/attachments/{attachmentId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-delete",
+    "notes": "Graph's alias of calendar.events.attachments.delete on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.calendars.events.attachments.delete",
+    "phase": 19,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events/{eventId}/attachments/{attachmentId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-delete",
+    "notes": "Graph's alias of calendar.events.attachments.delete on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.default.events.attachments.value",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/events/{eventId}/attachments/{attachmentId}/$value",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-get",
+    "notes": "Graph's alias of calendar.events.attachments.value on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.calendars.events.attachments.value",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events/{eventId}/attachments/{attachmentId}/$value",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-get",
+    "notes": "Graph's alias of calendar.events.attachments.value on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.default.events.attachments.create-upload-session",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/events/{eventId}/attachments/createUploadSession",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "AttachmentItem"
+      ]
+    },
+    "responseFields": [
+      "uploadUrl",
+      "expirationDateTime",
+      "nextExpectedRanges"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-createuploadsession",
+    "notes": "Graph's alias of calendar.events.attachments.create-upload-session on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.calendars.events.attachments.create-upload-session",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendars/{calendarId}/events/{eventId}/attachments/createUploadSession",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "AttachmentItem"
+      ]
+    },
+    "responseFields": [
+      "uploadUrl",
+      "expirationDateTime",
+      "nextExpectedRanges"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-createuploadsession",
+    "notes": "Graph's alias of calendar.events.attachments.create-upload-session on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "mail.folders.messages.get-mime",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/$value",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "<raw RFC 822 bytes>"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of mail.messages.get-mime on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-get"
+  },
+  {
+    "id": "mail.folders.messages.attachments.list",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        [
+          "id",
+          "name",
+          "contentType"
+        ],
+        [
+          "id",
+          "name",
+          "size"
+        ]
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].name",
+      "value[].contentType",
+      "value[].size"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of mail.attachments.list on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-list-attachments"
+  },
+  {
+    "id": "mail.folders.messages.attachments.get",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments/{attachmentId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "@odata.type",
+      "id",
+      "name",
+      "contentType",
+      "size",
+      "isInline",
+      "contentId",
+      "contentBytes"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of mail.attachments.get on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-get"
+  },
+  {
+    "id": "mail.folders.messages.attachments.get-value",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments/{attachmentId}/$value",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "<raw bytes>"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of mail.attachments.get-value on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-get"
+  },
+  {
+    "id": "mail.folders.messages.attachments.create",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "@odata.type ('#microsoft.graph.fileAttachment')",
+        "name",
+        "contentType",
+        "contentBytes (base64)",
+        "isInline (only when true)",
+        "contentId (inline only)"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of mail.attachments.create on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-post-attachments"
+  },
+  {
+    "id": "mail.folders.messages.attachments.delete",
+    "phase": 19,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments/{attachmentId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of mail.attachments.delete on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-delete"
+  },
+  {
+    "id": "mail.folders.messages.attachments.create-upload-session",
+    "method": "POST",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments/createUploadSession",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "AttachmentItem.attachmentType",
+        "AttachmentItem.name",
+        "AttachmentItem.size",
+        "AttachmentItem.contentType?",
+        "AttachmentItem.isInline?",
+        "AttachmentItem.contentId?"
+      ]
+    },
+    "responseFields": [
+      "uploadUrl",
+      "expirationDateTime",
+      "nextExpectedRanges"
+    ],
+    "successStatus": 201,
+    "notes": "Graph's alias of mail.attachments.create-upload-session on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "phase": 19,
+    "version": "v1.0",
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/attachment-createuploadsession",
+    "paging": "none"
+  },
+  {
+    "id": "mail.folders.messages.move",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/move",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "destinationId (folder id or well-known name: deleteditems, junkemail, inbox)"
+      ]
+    },
+    "responseFields": [
+      "id"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of mail.messages.move on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-move"
+  },
+  {
+    "id": "mail.folders.messages.copy",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/copy",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "destinationId"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "flag.flagStatus",
+      "flag.startDateTime?",
+      "flag.dueDateTime?",
+      "flag.completedDateTime?",
+      "categories",
+      "importance",
+      "parentFolderId"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-copy",
+    "notes": "Graph's alias of mail.messages.copy on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "mail.folders.messages.permanent-delete",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/permanentDelete",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of mail.messages.permanent-delete on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-permanentdelete"
+  },
+  {
+    "id": "mail.folders.messages.send-draft",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/send",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of mail.messages.send-draft on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-send"
+  },
+  {
+    "id": "mail.folders.messages.reply",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/reply",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "message.subject (optional; Graph builds 'RE: …' when absent)",
+        "message.body.{contentType,content}",
+        "message.toRecipients / ccRecipients / bccRecipients (each only when non-empty)"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of mail.messages.reply on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-reply"
+  },
+  {
+    "id": "mail.folders.messages.reply-all",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/replyAll",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "message.subject (optional; Graph builds 'RE: …' when absent)",
+        "message.body.{contentType,content}",
+        "message.toRecipients / ccRecipients / bccRecipients (each only when non-empty)"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of mail.messages.reply-all on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-replyall"
+  },
+  {
+    "id": "mail.folders.messages.create-reply",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/createReply",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "message.subject?",
+        "message.body.{contentType,content}",
+        "message.{to,cc,bcc}Recipients?"
+      ]
+    },
+    "responseFields": [
+      "id"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of mail.messages.create-reply on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-createreply"
+  },
+  {
+    "id": "mail.folders.messages.create-reply-all",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/createReplyAll",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "message.subject?",
+        "message.body.{contentType,content}",
+        "message.{to,cc,bcc}Recipients?"
+      ]
+    },
+    "responseFields": [
+      "id"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of mail.messages.create-reply-all on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-createreplyall"
+  },
+  {
+    "id": "mail.folders.messages.forward",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/forward",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "message.subject?",
+        "message.body.{contentType,content}",
+        "message.ccRecipients?",
+        "message.bccRecipients?",
+        "toRecipients[].emailAddress.address (top level, not inside message)"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of mail.messages.forward on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-forward"
+  },
+  {
+    "id": "mail.folders.messages.create-forward",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/mailFolders/{folderId}/messages/{messageId}/createForward",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "message.subject?",
+        "message.body.{contentType,content}",
+        "message.ccRecipients?",
+        "message.bccRecipients?",
+        "toRecipients (top level)"
+      ]
+    },
+    "responseFields": [
+      "id"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "notes": "Graph's alias of mail.messages.create-forward on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).",
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/message-createforward"
+  },
+  {
+    "id": "contacts.folders.contacts.photo-get",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/contactFolders/{folderId}/contacts/{contactId}/photo/$value",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/profilephoto-get",
+    "notes": "Graph's alias of contacts.photo-get on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "contacts.folders.contacts.photo-put",
+    "phase": 19,
+    "method": "PUT",
+    "version": "v1.0",
+    "path": "{mailbox}/contactFolders/{folderId}/contacts/{contactId}/photo/$value",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/profilephoto-update",
+    "notes": "Graph's alias of contacts.photo-put on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox)."
+  },
+  {
+    "id": "calendar.default.update",
+    "phase": 19,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "name?",
+        "color?"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "name",
+      "color",
+      "hexColor",
+      "isDefaultCalendar",
+      "canEdit",
+      "isRemovable",
+      "owner"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/calendar-update",
+    "notes": "Graph's alias of calendar.calendars.update on the default calendar route: the same handling (the parent segment is not checked; item ids are unique in the mailbox). The default calendar is resolved first."
+  },
+  {
+    "id": "calendar.default.permissions.list",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/calendarPermissions",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].role",
+      "value[].emailAddress",
+      "value[].isRemovable",
+      "value[].isInsideOrganization",
+      "value[].allowedRoles"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/calendar-list-calendarpermissions",
+    "notes": "Graph's alias of calendar.permissions.list on the default calendar route: the same handling (the parent segment is not checked; item ids are unique in the mailbox). The default calendar is resolved first."
+  },
+  {
+    "id": "calendar.default.permissions.create",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/calendarPermissions",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "emailAddress",
+        "role"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "role",
+      "emailAddress",
+      "isRemovable",
+      "isInsideOrganization",
+      "allowedRoles"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/calendar-post-calendarpermissions",
+    "notes": "Graph's alias of calendar.permissions.create on the default calendar route: the same handling (the parent segment is not checked; item ids are unique in the mailbox). The default calendar is resolved first."
+  },
+  {
+    "id": "calendar.default.permissions.update",
+    "phase": 19,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/calendarPermissions/{permissionId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "role"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "role",
+      "emailAddress",
+      "isRemovable",
+      "isInsideOrganization",
+      "allowedRoles"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/calendarpermission-update",
+    "notes": "Graph's alias of calendar.permissions.update on the default calendar route: the same handling (the parent segment is not checked; item ids are unique in the mailbox). The default calendar is resolved first."
+  },
+  {
+    "id": "calendar.default.permissions.delete",
+    "phase": 19,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/calendar/calendarPermissions/{permissionId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/calendarpermission-delete",
+    "notes": "Graph's alias of calendar.permissions.delete on the default calendar route: the same handling (the parent segment is not checked; item ids are unique in the mailbox). The default calendar is resolved first."
+  },
+  {
+    "id": "calendar.calendar-groups.get",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/calendarGroups/{groupId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "name",
+      "classId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/calendargroup-get",
+    "notes": "The one calendar group, \"My Calendars\" (calendargroup-default), which holds every calendar (Nextcloud has no groups). Any other id is 404."
   }
 ]

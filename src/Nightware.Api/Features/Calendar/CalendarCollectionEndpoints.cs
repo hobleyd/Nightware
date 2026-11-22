@@ -217,23 +217,71 @@ internal static class CalendarCollectionEndpoints
             scope.MapGet("/calendar/events/$count", DefaultEventsAsync).AsCountSegment();
             scope.MapPost("/calendar/events", DefaultCreateEventAsync);
             scope.MapGet("/calendar/calendarView", DefaultCalendarViewAsync);
-            scope.MapGet("/events/{eventId}/instances", InstancesAsync);
+            foreach (var events in ItemRoutes.Event)
+            {
+                scope.MapGet(events + "/instances", InstancesAsync);
+                scope.MapPost(events + "/snoozeReminder", SnoozeAsync);
+                scope.MapPost(events + "/dismissReminder", DismissAsync);
+                scope.MapGet(events + "/attachments", ListAttachmentsAsync);
+                scope.MapPost(events + "/attachments", AddAttachmentAsync);
+                scope.MapGet(events + "/attachments/{attachmentId}", GetAttachmentAsync);
+                scope.MapDelete(events + "/attachments/{attachmentId}", DeleteAttachmentAsync);
+            }
             scope.MapGet("/calendarView/delta", CalendarViewDeltaAsync);
             scope.MapGet("/reminderView(startDateTime={start},endDateTime={end})", ReminderViewAsync);
-            scope.MapPost("/events/{eventId}/snoozeReminder", SnoozeAsync);
-            scope.MapPost("/events/{eventId}/dismissReminder", DismissAsync);
-            scope.MapGet("/events/{eventId}/attachments", ListAttachmentsAsync);
-            scope.MapPost("/events/{eventId}/attachments", AddAttachmentAsync);
-            scope.MapGet("/events/{eventId}/attachments/{attachmentId}", GetAttachmentAsync);
-            scope.MapDelete("/events/{eventId}/attachments/{attachmentId}", DeleteAttachmentAsync);
             scope.MapGet("/calendars/{calendarId}/calendarPermissions", ListPermissionsAsync);
             scope.MapPost("/calendars/{calendarId}/calendarPermissions", CreatePermissionAsync);
             scope.MapPatch("/calendars/{calendarId}/calendarPermissions/{permissionId}", UpdatePermissionAsync);
             scope.MapDelete("/calendars/{calendarId}/calendarPermissions/{permissionId}", DeletePermissionAsync);
             scope.MapGet("/calendarGroups", ListGroupsAsync);
             scope.MapGet("/calendarGroups/{groupId}/calendars", ListGroupCalendarsAsync);
+
+            // Phase 19: the default calendar's own update and permissions, and the one group by id.
+            scope.MapPatch("/calendar", DefaultUpdateAsync);
+            scope.MapGet("/calendar/calendarPermissions", DefaultListPermissionsAsync);
+            scope.MapPost("/calendar/calendarPermissions", DefaultCreatePermissionAsync);
+            scope.MapPatch("/calendar/calendarPermissions/{permissionId}", DefaultUpdatePermissionAsync);
+            scope.MapDelete("/calendar/calendarPermissions/{permissionId}", DefaultDeletePermissionAsync);
+            scope.MapGet("/calendarGroups/{groupId}", GetGroupAsync);
         }
     }
+
+    /// <summary>
+    /// Runs <paramref name="handle"/> on the default calendar's id: Graph's <c>calendar/…</c> routes, through the
+    /// <c>calendars/{id}/…</c> handling so they can't drift from it.
+    /// </summary>
+    private static async Task<IResult> OnDefaultAsync(Mailbox mailbox, GetCalendar calendar, Func<string, Task<IResult>> handle, CancellationToken cancellationToken)
+    {
+        var found = await calendar.ExecuteAsync(mailbox.Ref, null, cancellationToken).ConfigureAwait(false);
+        return found.IsSuccess ? await handle(found.Value.Id.Value).ConfigureAwait(false) : GraphResults.Error(found.Error);
+    }
+
+    private static Task<IResult> DefaultUpdateAsync(
+        Mailbox mailbox, ODataQuery odata, [FromBody] CalendarWriteDto? body, GetCalendar calendar, UpdateCalendar useCase, CancellationToken cancellationToken) =>
+        OnDefaultAsync(mailbox, calendar, id => UpdateAsync(mailbox, id, odata, body, useCase, cancellationToken), cancellationToken);
+
+    private static Task<IResult> DefaultListPermissionsAsync(
+        Mailbox mailbox, ODataQuery odata, GetCalendar calendar, CalendarPermissionsUseCase useCase, CancellationToken cancellationToken) =>
+        OnDefaultAsync(mailbox, calendar, id => ListPermissionsAsync(mailbox, id, odata, useCase, cancellationToken), cancellationToken);
+
+    private static Task<IResult> DefaultCreatePermissionAsync(
+        Mailbox mailbox, [FromBody] CalendarPermissionDto? body, GetCalendar calendar, CalendarPermissionsUseCase useCase, CancellationToken cancellationToken) =>
+        OnDefaultAsync(mailbox, calendar, id => CreatePermissionAsync(mailbox, id, body, useCase, cancellationToken), cancellationToken);
+
+    private static Task<IResult> DefaultUpdatePermissionAsync(
+        Mailbox mailbox, string permissionId, ODataQuery odata, [FromBody] CalendarPermissionDto? body, GetCalendar calendar, CalendarPermissionsUseCase useCase,
+        CancellationToken cancellationToken) =>
+        OnDefaultAsync(mailbox, calendar, id => UpdatePermissionAsync(mailbox, id, permissionId, odata, body, useCase, cancellationToken), cancellationToken);
+
+    private static Task<IResult> DefaultDeletePermissionAsync(
+        Mailbox mailbox, string permissionId, GetCalendar calendar, CalendarPermissionsUseCase useCase, CancellationToken cancellationToken) =>
+        OnDefaultAsync(mailbox, calendar, id => DeletePermissionAsync(mailbox, id, permissionId, useCase, cancellationToken), cancellationToken);
+
+    /// <summary><c>calendarGroups/{id}</c>: the one synthetic group ("My Calendars"); any other id is 404.</summary>
+    private static IResult GetGroupAsync(Mailbox mailbox, string groupId, ODataQuery odata) =>
+        string.Equals(groupId, CalendarGroups.DefaultId, StringComparison.Ordinal)
+            ? GraphResults.Entity(new CalendarGroupDto(), $"{mailbox.ContextSegment}/calendarGroups", odata.Query.Select)
+            : GraphResults.Error(Error.NotFound("The specified object was not found in the store.", "id"));
 
     private static string Calendars(Mailbox mailbox) => $"{mailbox.ContextSegment}/calendars";
 

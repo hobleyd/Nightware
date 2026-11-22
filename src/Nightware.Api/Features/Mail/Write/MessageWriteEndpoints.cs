@@ -26,12 +26,15 @@ internal static class MessageWriteEndpoints
             scope.MapDelete("/messages/{messageId}", DeleteAsync);
             scope.MapPatch("/mailFolders/{folderId}/messages/{messageId}", UpdateAsync);
             scope.MapDelete("/mailFolders/{folderId}/messages/{messageId}", DeleteAsync);
-            scope.MapPost("/messages/{messageId}/move", MoveAsync);
-            scope.MapPost("/messages/{messageId}/copy", CopyAsync);
-            scope.MapPost("/messages/{messageId}/permanentDelete", PermanentDeleteAsync);
+            foreach (var messages in ItemRoutes.Message)
+            {
+                scope.MapPost(messages + "/move", MoveAsync);
+                scope.MapPost(messages + "/copy", CopyAsync);
+                scope.MapPost(messages + "/permanentDelete", PermanentDeleteAsync);
+                scope.MapPost(messages + "/attachments", AddAttachmentAsync);
+                scope.MapDelete(messages + "/attachments/{attachmentId}", RemoveAttachmentAsync);
+            }
             scope.MapPost("/mailFolders/{folderId}/messages", ImportAsync);
-            scope.MapPost("/messages/{messageId}/attachments", AddAttachmentAsync);
-            scope.MapDelete("/messages/{messageId}/attachments/{attachmentId}", RemoveAttachmentAsync);
         }
     }
 

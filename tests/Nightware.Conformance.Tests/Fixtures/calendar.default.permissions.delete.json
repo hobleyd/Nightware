@@ -1,0 +1,19 @@
+{
+  "operationId": "calendar.default.permissions.delete",
+  "provenance": "calendar.permissions.delete's fixture on the alias path (phase 19: same handling). Base: Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "DELETE",
+    "path": "/v1.0/me/calendar/calendarPermissions/AAMk-id-0015=",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 204,
+    "headers": {},
+    "body": null
+  }
+}

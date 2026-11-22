@@ -1,0 +1,19 @@
+{
+  "operationId": "calendar.calendars.events.dismiss-reminder",
+  "provenance": "calendar.events.dismiss-reminder's fixture on the alias path (phase 19: same handling). Base: Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/calendars/AAMk-id-0004=/events/AAMk-id-0010=/dismissReminder",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {},
+    "body": null
+  }
+}

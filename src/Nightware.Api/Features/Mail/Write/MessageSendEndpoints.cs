@@ -17,18 +17,21 @@ internal static class MessageSendEndpoints
     {
         foreach (var scope in graph.MapMailboxGroups())
         {
-            scope.MapPost("/messages/{messageId}/send", SendDraftAsync);
+            foreach (var messages in ItemRoutes.Message)
+            {
+                scope.MapPost(messages + "/send", SendDraftAsync);
+                scope.MapPost(messages + "/reply", (Mailbox m, string messageId, [FromBody] ReplyRequestDto? b, ReplyToMessage u, CancellationToken ct) =>
+                    ReplyAsync(m, messageId, b, u, replyAll: false, ct));
+                scope.MapPost(messages + "/replyAll", (Mailbox m, string messageId, [FromBody] ReplyRequestDto? b, ReplyToMessage u, CancellationToken ct) =>
+                    ReplyAsync(m, messageId, b, u, replyAll: true, ct));
+                scope.MapPost(messages + "/forward", ForwardAsync);
+                scope.MapPost(messages + "/createReply", (Mailbox m, string messageId, [FromBody] ReplyRequestDto? b, CreateReplyDraft u, CancellationToken ct) =>
+                    CreateReplyAsync(m, messageId, b, u, replyAll: false, ct));
+                scope.MapPost(messages + "/createReplyAll", (Mailbox m, string messageId, [FromBody] ReplyRequestDto? b, CreateReplyDraft u, CancellationToken ct) =>
+                    CreateReplyAsync(m, messageId, b, u, replyAll: true, ct));
+                scope.MapPost(messages + "/createForward", CreateForwardAsync);
+            }
             scope.MapPost("/sendMail", SendMailAsync);
-            scope.MapPost("/messages/{messageId}/reply", (Mailbox m, string messageId, [FromBody] ReplyRequestDto? b, ReplyToMessage u, CancellationToken ct) =>
-                ReplyAsync(m, messageId, b, u, replyAll: false, ct));
-            scope.MapPost("/messages/{messageId}/replyAll", (Mailbox m, string messageId, [FromBody] ReplyRequestDto? b, ReplyToMessage u, CancellationToken ct) =>
-                ReplyAsync(m, messageId, b, u, replyAll: true, ct));
-            scope.MapPost("/messages/{messageId}/forward", ForwardAsync);
-            scope.MapPost("/messages/{messageId}/createReply", (Mailbox m, string messageId, [FromBody] ReplyRequestDto? b, CreateReplyDraft u, CancellationToken ct) =>
-                CreateReplyAsync(m, messageId, b, u, replyAll: false, ct));
-            scope.MapPost("/messages/{messageId}/createReplyAll", (Mailbox m, string messageId, [FromBody] ReplyRequestDto? b, CreateReplyDraft u, CancellationToken ct) =>
-                CreateReplyAsync(m, messageId, b, u, replyAll: true, ct));
-            scope.MapPost("/messages/{messageId}/createForward", CreateForwardAsync);
         }
     }
 

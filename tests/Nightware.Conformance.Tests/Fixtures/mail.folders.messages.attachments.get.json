@@ -1,0 +1,34 @@
+{
+  "operationId": "mail.folders.messages.attachments.get",
+  "provenance": "mail.attachments.get's fixture on the alias path (phase 19: same handling). Base: Shape after nightmail test/data/datasources/remote/graph_api_download_attachment_test.dart:48 'decodes contentBytes for an ordinary file attachment'; message_parser_isolate_test.dart:464 (parseGraphIcsAttachment); body constructed with example.com data",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/mailFolders/inbox/messages/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=/attachments/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAABEgAQAB2nJ2D2OlBJopWQ8IC1ngE=",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/messages('AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAEMAAAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAA=')/attachments/$entity",
+      "@odata.type": "#microsoft.graph.fileAttachment",
+      "@odata.mediaContentType": "text/calendar",
+      "id": "AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAYbvZDAAABEgAQAB2nJ2D2OlBJopWQ8IC1ngE=",
+      "lastModifiedDateTime": "2026-06-01T10:00:00Z",
+      "name": "invite.ics",
+      "contentType": "text/calendar",
+      "size": 912,
+      "isInline": false,
+      "contentId": null,
+      "contentLocation": null,
+      "contentBytes": "QkVHSU46VkNBTEVOREFSDQpNRVRIT0Q6UkVRVUVTVA0KVkVSU0lPTjoyLjANClBST0RJRDotLy9FeGFtcGxlLy9FTg0KQkVHSU46VkVWRU5UDQpVSUQ6MDQwMDAwMDA4MjAwRTAwMDc0QzVCNzEwMUE4MkUwMDgwMDAwMDAwMEExQjJDM0Q0RTVGNkQ5MDEwMDAwMDAwMDAwMDAwMDAwMTAwMDAwMDBGMUUyRDNDNEI1QTY5Nzg4DQpTVU1NQVJZOlF1YXJ0ZXJseSByZXZpZXcNCkRUU1RBUlQ6MjAyNjA2MTBUMDkwMDAwWg0KRFRFTkQ6MjAyNjA2MTBUMTAwMDAwWg0KT1JHQU5JWkVSO0NOPUFsZXggT3JnYW5pc2VyOm1haWx0bzphbGV4QGV4YW1wbGUuY29tDQpBVFRFTkRFRTtQQVJUU1RBVD1ORUVEUy1BQ1RJT046bWFpbHRvOm1lQGV4YW1wbGUuY29tDQpFTkQ6VkVWRU5UDQpFTkQ6VkNBTEVOREFSDQo="
+    }
+  }
+}

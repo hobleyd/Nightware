@@ -20,7 +20,10 @@ internal static class MailUploadEndpoints
     {
         foreach (var scope in graph.MapMailboxGroups())
         {
-            scope.MapPost("/messages/{messageId}/attachments/createUploadSession", BeginAsync);
+            foreach (var messages in ItemRoutes.Message)
+            {
+                scope.MapPost(messages + "/attachments/createUploadSession", BeginAsync);
+            }
         }
 
         // As for To Do uploads: no bearer, only the sealed URL, which always names the mailbox by address.

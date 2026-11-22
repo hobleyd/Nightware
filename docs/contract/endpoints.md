@@ -329,8 +329,8 @@ operation:
 | Phase 15 — To Do (Graph parity) | 19 |
 | Phase 16 — Change notifications (Graph parity) | 10 |
 | Phase 18 — Settings, aliases, single items and $count (Graph parity) | 26 |
-| Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 25 |
-| **Total** | **222** |
+| Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 78 |
+| **Total** | **275** |
 
 ### Phase 2 — Mail, read side
 
@@ -2543,6 +2543,59 @@ operation:
 | [`calendar.events.attachments.create-upload-session`](#calendareventsattachmentscreate-upload-session) | POST | v1.0 | `{mailbox}/events/{eventId}/attachments/createUploadSession` | none |
 | [`calendar.events.attachments.upload-session-put`](#calendareventsattachmentsupload-session-put) | PUT | v1.0 | `{uploadUrl}` | none |
 | [`calendar.events.attachments.upload-session-put-final`](#calendareventsattachmentsupload-session-put-final) | PUT | v1.0 | `{uploadUrl}` | none |
+| [`calendar.default.events.accept`](#calendardefaulteventsaccept) | POST | v1.0 | `{mailbox}/calendar/events/{eventId}/accept` | none |
+| [`calendar.calendars.events.accept`](#calendarcalendarseventsaccept) | POST | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}/accept` | none |
+| [`calendar.default.events.tentatively-accept`](#calendardefaulteventstentatively-accept) | POST | v1.0 | `{mailbox}/calendar/events/{eventId}/tentativelyAccept` | none |
+| [`calendar.calendars.events.tentatively-accept`](#calendarcalendarseventstentatively-accept) | POST | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}/tentativelyAccept` | none |
+| [`calendar.default.events.decline`](#calendardefaulteventsdecline) | POST | v1.0 | `{mailbox}/calendar/events/{eventId}/decline` | none |
+| [`calendar.calendars.events.decline`](#calendarcalendarseventsdecline) | POST | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}/decline` | none |
+| [`calendar.default.events.cancel`](#calendardefaulteventscancel) | POST | v1.0 | `{mailbox}/calendar/events/{eventId}/cancel` | none |
+| [`calendar.calendars.events.cancel`](#calendarcalendarseventscancel) | POST | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}/cancel` | none |
+| [`calendar.default.events.forward`](#calendardefaulteventsforward) | POST | v1.0 | `{mailbox}/calendar/events/{eventId}/forward` | none |
+| [`calendar.calendars.events.forward`](#calendarcalendarseventsforward) | POST | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}/forward` | none |
+| [`calendar.default.events.instances`](#calendardefaulteventsinstances) | GET | v1.0 | `{mailbox}/calendar/events/{eventId}/instances` | none |
+| [`calendar.calendars.events.instances`](#calendarcalendarseventsinstances) | GET | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}/instances` | none |
+| [`calendar.default.events.snooze-reminder`](#calendardefaulteventssnooze-reminder) | POST | v1.0 | `{mailbox}/calendar/events/{eventId}/snoozeReminder` | none |
+| [`calendar.calendars.events.snooze-reminder`](#calendarcalendarseventssnooze-reminder) | POST | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}/snoozeReminder` | none |
+| [`calendar.default.events.dismiss-reminder`](#calendardefaulteventsdismiss-reminder) | POST | v1.0 | `{mailbox}/calendar/events/{eventId}/dismissReminder` | none |
+| [`calendar.calendars.events.dismiss-reminder`](#calendarcalendarseventsdismiss-reminder) | POST | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}/dismissReminder` | none |
+| [`calendar.default.events.attachments.list`](#calendardefaulteventsattachmentslist) | GET | v1.0 | `{mailbox}/calendar/events/{eventId}/attachments` | none |
+| [`calendar.calendars.events.attachments.list`](#calendarcalendarseventsattachmentslist) | GET | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}/attachments` | none |
+| [`calendar.default.events.attachments.get`](#calendardefaulteventsattachmentsget) | GET | v1.0 | `{mailbox}/calendar/events/{eventId}/attachments/{attachmentId}` | none |
+| [`calendar.calendars.events.attachments.get`](#calendarcalendarseventsattachmentsget) | GET | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}/attachments/{attachmentId}` | none |
+| [`calendar.default.events.attachments.create`](#calendardefaulteventsattachmentscreate) | POST | v1.0 | `{mailbox}/calendar/events/{eventId}/attachments` | none |
+| [`calendar.calendars.events.attachments.create`](#calendarcalendarseventsattachmentscreate) | POST | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}/attachments` | none |
+| [`calendar.default.events.attachments.delete`](#calendardefaulteventsattachmentsdelete) | DELETE | v1.0 | `{mailbox}/calendar/events/{eventId}/attachments/{attachmentId}` | none |
+| [`calendar.calendars.events.attachments.delete`](#calendarcalendarseventsattachmentsdelete) | DELETE | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}/attachments/{attachmentId}` | none |
+| [`calendar.default.events.attachments.value`](#calendardefaulteventsattachmentsvalue) | GET | v1.0 | `{mailbox}/calendar/events/{eventId}/attachments/{attachmentId}/$value` | none |
+| [`calendar.calendars.events.attachments.value`](#calendarcalendarseventsattachmentsvalue) | GET | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}/attachments/{attachmentId}/$value` | none |
+| [`calendar.default.events.attachments.create-upload-session`](#calendardefaulteventsattachmentscreate-upload-session) | POST | v1.0 | `{mailbox}/calendar/events/{eventId}/attachments/createUploadSession` | none |
+| [`calendar.calendars.events.attachments.create-upload-session`](#calendarcalendarseventsattachmentscreate-upload-session) | POST | v1.0 | `{mailbox}/calendars/{calendarId}/events/{eventId}/attachments/createUploadSession` | none |
+| [`mail.folders.messages.get-mime`](#mailfoldersmessagesget-mime) | GET | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/$value` | none |
+| [`mail.folders.messages.attachments.list`](#mailfoldersmessagesattachmentslist) | GET | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments` | none |
+| [`mail.folders.messages.attachments.get`](#mailfoldersmessagesattachmentsget) | GET | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments/{attachmentId}` | none |
+| [`mail.folders.messages.attachments.get-value`](#mailfoldersmessagesattachmentsget-value) | GET | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments/{attachmentId}/$value` | none |
+| [`mail.folders.messages.attachments.create`](#mailfoldersmessagesattachmentscreate) | POST | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments` | none |
+| [`mail.folders.messages.attachments.delete`](#mailfoldersmessagesattachmentsdelete) | DELETE | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments/{attachmentId}` | none |
+| [`mail.folders.messages.attachments.create-upload-session`](#mailfoldersmessagesattachmentscreate-upload-session) | POST | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments/createUploadSession` | none |
+| [`mail.folders.messages.move`](#mailfoldersmessagesmove) | POST | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/move` | none |
+| [`mail.folders.messages.copy`](#mailfoldersmessagescopy) | POST | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/copy` | none |
+| [`mail.folders.messages.permanent-delete`](#mailfoldersmessagespermanent-delete) | POST | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/permanentDelete` | none |
+| [`mail.folders.messages.send-draft`](#mailfoldersmessagessend-draft) | POST | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/send` | none |
+| [`mail.folders.messages.reply`](#mailfoldersmessagesreply) | POST | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/reply` | none |
+| [`mail.folders.messages.reply-all`](#mailfoldersmessagesreply-all) | POST | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/replyAll` | none |
+| [`mail.folders.messages.create-reply`](#mailfoldersmessagescreate-reply) | POST | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/createReply` | none |
+| [`mail.folders.messages.create-reply-all`](#mailfoldersmessagescreate-reply-all) | POST | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/createReplyAll` | none |
+| [`mail.folders.messages.forward`](#mailfoldersmessagesforward) | POST | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/forward` | none |
+| [`mail.folders.messages.create-forward`](#mailfoldersmessagescreate-forward) | POST | v1.0 | `{mailbox}/mailFolders/{folderId}/messages/{messageId}/createForward` | none |
+| [`contacts.folders.contacts.photo-get`](#contactsfolderscontactsphoto-get) | GET | v1.0 | `{mailbox}/contactFolders/{folderId}/contacts/{contactId}/photo/$value` | none |
+| [`contacts.folders.contacts.photo-put`](#contactsfolderscontactsphoto-put) | PUT | v1.0 | `{mailbox}/contactFolders/{folderId}/contacts/{contactId}/photo/$value` | none |
+| [`calendar.default.update`](#calendardefaultupdate) | PATCH | v1.0 | `{mailbox}/calendar` | none |
+| [`calendar.default.permissions.list`](#calendardefaultpermissionslist) | GET | v1.0 | `{mailbox}/calendar/calendarPermissions` | none |
+| [`calendar.default.permissions.create`](#calendardefaultpermissionscreate) | POST | v1.0 | `{mailbox}/calendar/calendarPermissions` | none |
+| [`calendar.default.permissions.update`](#calendardefaultpermissionsupdate) | PATCH | v1.0 | `{mailbox}/calendar/calendarPermissions/{permissionId}` | none |
+| [`calendar.default.permissions.delete`](#calendardefaultpermissionsdelete) | DELETE | v1.0 | `{mailbox}/calendar/calendarPermissions/{permissionId}` | none |
+| [`calendar.calendar-groups.get`](#calendarcalendar-groupsget) | GET | v1.0 | `{mailbox}/calendarGroups/{groupId}` | none |
 
 #### `mail.folders.create`
 
@@ -2769,5 +2822,484 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession
 - Notes: The last chunk: the file becomes an attachment of the event. 201 with the attachment's Location and no body.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.attachments.upload-session-put-final.json`
+
+#### `calendar.default.events.accept`
+
+**POST v1.0 `{mailbox}/calendar/events/{eventId}/accept`** — forms: me, users; success: 202; paging: none
+
+- Request body: `sendResponse (always true)`; `comment (string, may be '')`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-accept
+- Notes: Graph's alias of calendar.events.accept on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.accept.json`
+
+#### `calendar.calendars.events.accept`
+
+**POST v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}/accept`** — forms: me, users; success: 202; paging: none
+
+- Request body: `sendResponse (always true)`; `comment (string, may be '')`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-accept
+- Notes: Graph's alias of calendar.events.accept on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.accept.json`
+
+#### `calendar.default.events.tentatively-accept`
+
+**POST v1.0 `{mailbox}/calendar/events/{eventId}/tentativelyAccept`** — forms: me, users; success: 202; paging: none
+
+- Request body: `sendResponse (always true)`; `comment (string, may be '')`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-tentativelyaccept
+- Notes: Graph's alias of calendar.events.tentatively-accept on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.tentatively-accept.json`
+
+#### `calendar.calendars.events.tentatively-accept`
+
+**POST v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}/tentativelyAccept`** — forms: me, users; success: 202; paging: none
+
+- Request body: `sendResponse (always true)`; `comment (string, may be '')`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-tentativelyaccept
+- Notes: Graph's alias of calendar.events.tentatively-accept on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.tentatively-accept.json`
+
+#### `calendar.default.events.decline`
+
+**POST v1.0 `{mailbox}/calendar/events/{eventId}/decline`** — forms: me, users; success: 202; paging: none
+
+- Request body: `sendResponse (always true)`; `comment (string, may be '')`; `proposedNewTime? {start,end: {dateTime, timeZone}} — propose-new-time is a decline carrying this`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-decline
+- Notes: Graph's alias of calendar.events.decline on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.decline.json`
+
+#### `calendar.calendars.events.decline`
+
+**POST v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}/decline`** — forms: me, users; success: 202; paging: none
+
+- Request body: `sendResponse (always true)`; `comment (string, may be '')`; `proposedNewTime? {start,end: {dateTime, timeZone}} — propose-new-time is a decline carrying this`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-decline
+- Notes: Graph's alias of calendar.events.decline on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.decline.json`
+
+#### `calendar.default.events.cancel`
+
+**POST v1.0 `{mailbox}/calendar/events/{eventId}/cancel`** — forms: me, users; success: 202; paging: none
+
+- Request body: `comment (always '')`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-cancel
+- Notes: Graph's alias of calendar.events.cancel on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.cancel.json`
+
+#### `calendar.calendars.events.cancel`
+
+**POST v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}/cancel`** — forms: me, users; success: 202; paging: none
+
+- Request body: `comment (always '')`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-cancel
+- Notes: Graph's alias of calendar.events.cancel on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.cancel.json`
+
+#### `calendar.default.events.forward`
+
+**POST v1.0 `{mailbox}/calendar/events/{eventId}/forward`** — forms: me, users; success: 202; paging: none
+
+- Request body: `ToRecipients[].emailAddress.address (PascalCase key)`; `Comment (PascalCase key, may be '')`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-forward
+- Notes: Graph's alias of calendar.events.forward on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.forward.json`
+
+#### `calendar.calendars.events.forward`
+
+**POST v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}/forward`** — forms: me, users; success: 202; paging: none
+
+- Request body: `ToRecipients[].emailAddress.address (PascalCase key)`; `Comment (PascalCase key, may be '')`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-forward
+- Notes: Graph's alias of calendar.events.forward on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.forward.json`
+
+#### `calendar.default.events.instances`
+
+**GET v1.0 `{mailbox}/calendar/events/{eventId}/instances`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].subject`, `value[].start`, `value[].end`, `value[].seriesMasterId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-list-instances
+- Notes: Graph's alias of calendar.events.instances on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.instances.json`
+
+#### `calendar.calendars.events.instances`
+
+**GET v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}/instances`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].subject`, `value[].start`, `value[].end`, `value[].seriesMasterId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-list-instances
+- Notes: Graph's alias of calendar.events.instances on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.instances.json`
+
+#### `calendar.default.events.snooze-reminder`
+
+**POST v1.0 `{mailbox}/calendar/events/{eventId}/snoozeReminder`** — forms: me, users; success: 202; paging: none
+
+- Request body: `newReminderTime`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-snoozereminder
+- Notes: Graph's alias of calendar.events.snooze-reminder on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.snooze-reminder.json`
+
+#### `calendar.calendars.events.snooze-reminder`
+
+**POST v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}/snoozeReminder`** — forms: me, users; success: 202; paging: none
+
+- Request body: `newReminderTime`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-snoozereminder
+- Notes: Graph's alias of calendar.events.snooze-reminder on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.snooze-reminder.json`
+
+#### `calendar.default.events.dismiss-reminder`
+
+**POST v1.0 `{mailbox}/calendar/events/{eventId}/dismissReminder`** — forms: me, users; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-dismissreminder
+- Notes: Graph's alias of calendar.events.dismiss-reminder on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.dismiss-reminder.json`
+
+#### `calendar.calendars.events.dismiss-reminder`
+
+**POST v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}/dismissReminder`** — forms: me, users; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-dismissreminder
+- Notes: Graph's alias of calendar.events.dismiss-reminder on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.dismiss-reminder.json`
+
+#### `calendar.default.events.attachments.list`
+
+**GET v1.0 `{mailbox}/calendar/events/{eventId}/attachments`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].name`, `value[].contentType`, `value[].size`, `value[].isInline`, `value[].lastModifiedDateTime`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-list-attachments
+- Notes: Graph's alias of calendar.events.attachments.list on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.attachments.list.json`
+
+#### `calendar.calendars.events.attachments.list`
+
+**GET v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}/attachments`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].name`, `value[].contentType`, `value[].size`, `value[].isInline`, `value[].lastModifiedDateTime`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-list-attachments
+- Notes: Graph's alias of calendar.events.attachments.list on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.attachments.list.json`
+
+#### `calendar.default.events.attachments.get`
+
+**GET v1.0 `{mailbox}/calendar/events/{eventId}/attachments/{attachmentId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `name`, `contentType`, `size`, `isInline`, `lastModifiedDateTime`, `contentBytes`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-get
+- Notes: Graph's alias of calendar.events.attachments.get on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.attachments.get.json`
+
+#### `calendar.calendars.events.attachments.get`
+
+**GET v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}/attachments/{attachmentId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `name`, `contentType`, `size`, `isInline`, `lastModifiedDateTime`, `contentBytes`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-get
+- Notes: Graph's alias of calendar.events.attachments.get on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.attachments.get.json`
+
+#### `calendar.default.events.attachments.create`
+
+**POST v1.0 `{mailbox}/calendar/events/{eventId}/attachments`** — forms: me, users; success: 201; paging: none
+
+- Request body: `@odata.type`; `name`; `contentType?`; `contentBytes`
+- Client reads: `id`, `name`, `contentType`, `size`, `isInline`, `lastModifiedDateTime`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-post-attachments
+- Notes: Graph's alias of calendar.events.attachments.create on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.attachments.create.json`
+
+#### `calendar.calendars.events.attachments.create`
+
+**POST v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}/attachments`** — forms: me, users; success: 201; paging: none
+
+- Request body: `@odata.type`; `name`; `contentType?`; `contentBytes`
+- Client reads: `id`, `name`, `contentType`, `size`, `isInline`, `lastModifiedDateTime`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/event-post-attachments
+- Notes: Graph's alias of calendar.events.attachments.create on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.attachments.create.json`
+
+#### `calendar.default.events.attachments.delete`
+
+**DELETE v1.0 `{mailbox}/calendar/events/{eventId}/attachments/{attachmentId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-delete
+- Notes: Graph's alias of calendar.events.attachments.delete on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.attachments.delete.json`
+
+#### `calendar.calendars.events.attachments.delete`
+
+**DELETE v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}/attachments/{attachmentId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-delete
+- Notes: Graph's alias of calendar.events.attachments.delete on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.attachments.delete.json`
+
+#### `calendar.default.events.attachments.value`
+
+**GET v1.0 `{mailbox}/calendar/events/{eventId}/attachments/{attachmentId}/$value`** — forms: me, users; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-get
+- Notes: Graph's alias of calendar.events.attachments.value on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.attachments.value.json`
+
+#### `calendar.calendars.events.attachments.value`
+
+**GET v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}/attachments/{attachmentId}/$value`** — forms: me, users; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-get
+- Notes: Graph's alias of calendar.events.attachments.value on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.attachments.value.json`
+
+#### `calendar.default.events.attachments.create-upload-session`
+
+**POST v1.0 `{mailbox}/calendar/events/{eventId}/attachments/createUploadSession`** — forms: me, users; success: 201; paging: none
+
+- Request body: `AttachmentItem`
+- Client reads: `uploadUrl`, `expirationDateTime`, `nextExpectedRanges`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession
+- Notes: Graph's alias of calendar.events.attachments.create-upload-session on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.attachments.create-upload-session.json`
+
+#### `calendar.calendars.events.attachments.create-upload-session`
+
+**POST v1.0 `{mailbox}/calendars/{calendarId}/events/{eventId}/attachments/createUploadSession`** — forms: me, users; success: 201; paging: none
+
+- Request body: `AttachmentItem`
+- Client reads: `uploadUrl`, `expirationDateTime`, `nextExpectedRanges`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession
+- Notes: Graph's alias of calendar.events.attachments.create-upload-session on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.attachments.create-upload-session.json`
+
+#### `mail.folders.messages.get-mime`
+
+**GET v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/$value`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `<raw RFC 822 bytes>`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-get
+- Notes: Graph's alias of mail.messages.get-mime on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.get-mime.json`
+
+#### `mail.folders.messages.attachments.list`
+
+**GET v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments`** — forms: me, users; success: 200; paging: none
+
+- Query: `$select` (variant 1): `id,name,contentType`; `$select` (variant 2): `id,name,size`
+- Client reads: `value[].id`, `value[].name`, `value[].contentType`, `value[].size`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-list-attachments
+- Notes: Graph's alias of mail.attachments.list on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.attachments.list.json`
+
+#### `mail.folders.messages.attachments.get`
+
+**GET v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments/{attachmentId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `@odata.type`, `id`, `name`, `contentType`, `size`, `isInline`, `contentId`, `contentBytes`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-get
+- Notes: Graph's alias of mail.attachments.get on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.attachments.get.json`
+
+#### `mail.folders.messages.attachments.get-value`
+
+**GET v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments/{attachmentId}/$value`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `<raw bytes>`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-get
+- Notes: Graph's alias of mail.attachments.get-value on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.attachments.get-value.json`
+
+#### `mail.folders.messages.attachments.create`
+
+**POST v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments`** — forms: me, users; success: 201; paging: none
+
+- Request body: `@odata.type ('#microsoft.graph.fileAttachment')`; `name`; `contentType`; `contentBytes (base64)`; `isInline (only when true)`; `contentId (inline only)`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-post-attachments
+- Notes: Graph's alias of mail.attachments.create on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.attachments.create.json`
+
+#### `mail.folders.messages.attachments.delete`
+
+**DELETE v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments/{attachmentId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-delete
+- Notes: Graph's alias of mail.attachments.delete on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.attachments.delete.json`
+
+#### `mail.folders.messages.attachments.create-upload-session`
+
+**POST v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/attachments/createUploadSession`** — forms: me, users; success: 201; paging: none
+
+- Request body: `AttachmentItem.attachmentType`; `AttachmentItem.name`; `AttachmentItem.size`; `AttachmentItem.contentType?`; `AttachmentItem.isInline?`; `AttachmentItem.contentId?`
+- Client reads: `uploadUrl`, `expirationDateTime`, `nextExpectedRanges`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/attachment-createuploadsession
+- Notes: Graph's alias of mail.attachments.create-upload-session on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.attachments.create-upload-session.json`
+
+#### `mail.folders.messages.move`
+
+**POST v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/move`** — forms: me, users; success: 201; paging: none
+
+- Request body: `destinationId (folder id or well-known name: deleteditems, junkemail, inbox)`
+- Client reads: `id`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-move
+- Notes: Graph's alias of mail.messages.move on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.move.json`
+
+#### `mail.folders.messages.copy`
+
+**POST v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/copy`** — forms: me, users; success: 201; paging: none
+
+- Request body: `destinationId`
+- Client reads: `id`, `flag.flagStatus`, `flag.startDateTime?`, `flag.dueDateTime?`, `flag.completedDateTime?`, `categories`, `importance`, `parentFolderId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-copy
+- Notes: Graph's alias of mail.messages.copy on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.copy.json`
+
+#### `mail.folders.messages.permanent-delete`
+
+**POST v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/permanentDelete`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-permanentdelete
+- Notes: Graph's alias of mail.messages.permanent-delete on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.permanent-delete.json`
+
+#### `mail.folders.messages.send-draft`
+
+**POST v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/send`** — forms: me, users; success: 202; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-send
+- Notes: Graph's alias of mail.messages.send-draft on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.send-draft.json`
+
+#### `mail.folders.messages.reply`
+
+**POST v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/reply`** — forms: me, users; success: 202; paging: none
+
+- Request body: `message.subject (optional; Graph builds 'RE: …' when absent)`; `message.body.{contentType,content}`; `message.toRecipients / ccRecipients / bccRecipients (each only when non-empty)`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-reply
+- Notes: Graph's alias of mail.messages.reply on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.reply.json`
+
+#### `mail.folders.messages.reply-all`
+
+**POST v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/replyAll`** — forms: me, users; success: 202; paging: none
+
+- Request body: `message.subject (optional; Graph builds 'RE: …' when absent)`; `message.body.{contentType,content}`; `message.toRecipients / ccRecipients / bccRecipients (each only when non-empty)`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-replyall
+- Notes: Graph's alias of mail.messages.reply-all on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.reply-all.json`
+
+#### `mail.folders.messages.create-reply`
+
+**POST v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/createReply`** — forms: me, users; success: 201; paging: none
+
+- Request body: `message.subject?`; `message.body.{contentType,content}`; `message.{to,cc,bcc}Recipients?`
+- Client reads: `id`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-createreply
+- Notes: Graph's alias of mail.messages.create-reply on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.create-reply.json`
+
+#### `mail.folders.messages.create-reply-all`
+
+**POST v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/createReplyAll`** — forms: me, users; success: 201; paging: none
+
+- Request body: `message.subject?`; `message.body.{contentType,content}`; `message.{to,cc,bcc}Recipients?`
+- Client reads: `id`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-createreplyall
+- Notes: Graph's alias of mail.messages.create-reply-all on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.create-reply-all.json`
+
+#### `mail.folders.messages.forward`
+
+**POST v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/forward`** — forms: me, users; success: 202; paging: none
+
+- Request body: `message.subject?`; `message.body.{contentType,content}`; `message.ccRecipients?`; `message.bccRecipients?`; `toRecipients[].emailAddress.address (top level, not inside message)`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-forward
+- Notes: Graph's alias of mail.messages.forward on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.forward.json`
+
+#### `mail.folders.messages.create-forward`
+
+**POST v1.0 `{mailbox}/mailFolders/{folderId}/messages/{messageId}/createForward`** — forms: me, users; success: 201; paging: none
+
+- Request body: `message.subject?`; `message.body.{contentType,content}`; `message.ccRecipients?`; `message.bccRecipients?`; `toRecipients (top level)`
+- Client reads: `id`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/message-createforward
+- Notes: Graph's alias of mail.messages.create-forward on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.create-forward.json`
+
+#### `contacts.folders.contacts.photo-get`
+
+**GET v1.0 `{mailbox}/contactFolders/{folderId}/contacts/{contactId}/photo/$value`** — forms: me, users; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-get
+- Notes: Graph's alias of contacts.photo-get on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.contacts.photo-get.json`
+
+#### `contacts.folders.contacts.photo-put`
+
+**PUT v1.0 `{mailbox}/contactFolders/{folderId}/contacts/{contactId}/photo/$value`** — forms: me, users; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-update
+- Notes: Graph's alias of contacts.photo-put on the parent-scoped route: the same handling (the parent segment is not checked; item ids are unique in the mailbox).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.contacts.photo-put.json`
+
+#### `calendar.default.update`
+
+**PATCH v1.0 `{mailbox}/calendar`** — forms: me, users; success: 200; paging: none
+
+- Request body: `name?`; `color?`
+- Client reads: `id`, `name`, `color`, `hexColor`, `isDefaultCalendar`, `canEdit`, `isRemovable`, `owner`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/calendar-update
+- Notes: Graph's alias of calendar.calendars.update on the default calendar route: the same handling (the parent segment is not checked; item ids are unique in the mailbox). The default calendar is resolved first.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.update.json`
+
+#### `calendar.default.permissions.list`
+
+**GET v1.0 `{mailbox}/calendar/calendarPermissions`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].role`, `value[].emailAddress`, `value[].isRemovable`, `value[].isInsideOrganization`, `value[].allowedRoles`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/calendar-list-calendarpermissions
+- Notes: Graph's alias of calendar.permissions.list on the default calendar route: the same handling (the parent segment is not checked; item ids are unique in the mailbox). The default calendar is resolved first.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.permissions.list.json`
+
+#### `calendar.default.permissions.create`
+
+**POST v1.0 `{mailbox}/calendar/calendarPermissions`** — forms: me, users; success: 201; paging: none
+
+- Request body: `emailAddress`; `role`
+- Client reads: `id`, `role`, `emailAddress`, `isRemovable`, `isInsideOrganization`, `allowedRoles`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/calendar-post-calendarpermissions
+- Notes: Graph's alias of calendar.permissions.create on the default calendar route: the same handling (the parent segment is not checked; item ids are unique in the mailbox). The default calendar is resolved first.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.permissions.create.json`
+
+#### `calendar.default.permissions.update`
+
+**PATCH v1.0 `{mailbox}/calendar/calendarPermissions/{permissionId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `role`
+- Client reads: `id`, `role`, `emailAddress`, `isRemovable`, `isInsideOrganization`, `allowedRoles`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/calendarpermission-update
+- Notes: Graph's alias of calendar.permissions.update on the default calendar route: the same handling (the parent segment is not checked; item ids are unique in the mailbox). The default calendar is resolved first.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.permissions.update.json`
+
+#### `calendar.default.permissions.delete`
+
+**DELETE v1.0 `{mailbox}/calendar/calendarPermissions/{permissionId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/calendarpermission-delete
+- Notes: Graph's alias of calendar.permissions.delete on the default calendar route: the same handling (the parent segment is not checked; item ids are unique in the mailbox). The default calendar is resolved first.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.permissions.delete.json`
+
+#### `calendar.calendar-groups.get`
+
+**GET v1.0 `{mailbox}/calendarGroups/{groupId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `name`, `classId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/calendargroup-get
+- Notes: The one calendar group, "My Calendars" (calendargroup-default), which holds every calendar (Nextcloud has no groups). Any other id is 404.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendar-groups.get.json`
 
 <!-- END GENERATED -->

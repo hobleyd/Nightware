@@ -38,8 +38,13 @@
 | `/me/photo/$value`; `/me/photo` and `/users/{x}/photo` metadata; PUT, PATCH and DELETE of one's own photo | 1.51.0 |
 | MIME `POST messages` and `POST sendMail` | 1.53.0 |
 | Event attachment `$value` and upload sessions (chunked) | 1.54.0 |
+| Aliases: an event's actions and parts under `calendar/events/{id}` and `calendars/{id}/events/{id}`; a message's under `mailFolders/{id}/messages/{id}`; a contact's photo under `contactFolders/{id}/contacts/{id}`; `PATCH calendar`, `calendar/calendarPermissions`; `GET calendarGroups/{id}` | 1.55.0 |
 
 ## Decisions
+- Aliases map the base handler on every prefix in `ItemRoutes` (one table, so
+  a route added to the base reaches all its aliases). `calendarGroups/{groupId}/…`
+  event routes are not mapped: Nightware's one group isn't a path clients
+  build. The default calendar's routes resolve it first, as phase 18's did.
 - Event upload sessions stage chunks in Nextcloud's own chunked upload (v1),
   not in the façade, and read progress back from the staging folder, so the
   session stays stateless. Responses match the mail upload's (Outlook's

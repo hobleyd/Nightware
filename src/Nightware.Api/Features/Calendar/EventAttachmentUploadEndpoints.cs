@@ -57,8 +57,11 @@ internal static class EventAttachmentUploadEndpoints
     {
         foreach (var scope in graph.MapMailboxGroups())
         {
-            scope.MapGet("/events/{eventId}/attachments/{attachmentId}/$value", ContentAsync);
-            scope.MapPost("/events/{eventId}/attachments/createUploadSession", BeginAsync);
+            foreach (var events in ItemRoutes.Event)
+            {
+                scope.MapGet(events + "/attachments/{attachmentId}/$value", ContentAsync);
+                scope.MapPost(events + "/attachments/createUploadSession", BeginAsync);
+            }
         }
 
         // As for mail and To Do uploads: no bearer, only the sealed URL, which always names the mailbox by address.

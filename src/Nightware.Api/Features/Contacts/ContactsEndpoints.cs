@@ -34,8 +34,11 @@ public static class ContactsEndpoints
             scope.MapGet("/contactFolders/{folderId}/contacts/{contactId}", GetAsync);
             scope.MapPatch("/contactFolders/{folderId}/contacts/{contactId}", UpdateAsync);
             scope.MapDelete("/contactFolders/{folderId}/contacts/{contactId}", DeleteAsync);
-            scope.MapGet("/contacts/{contactId}/photo/$value", GetPhotoAsync);
-            scope.MapPut("/contacts/{contactId}/photo/$value", SetPhotoAsync);
+            foreach (var contacts in ItemRoutes.Contact)
+            {
+                scope.MapGet(contacts + "/photo/$value", GetPhotoAsync);
+                scope.MapPut(contacts + "/photo/$value", SetPhotoAsync);
+            }
 
             scope.MapGet("/contactFolders/delta", FoldersDeltaAsync);
 

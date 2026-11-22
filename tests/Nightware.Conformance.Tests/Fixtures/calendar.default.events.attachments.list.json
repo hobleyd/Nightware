@@ -1,0 +1,38 @@
+{
+  "operationId": "calendar.default.events.attachments.list",
+  "provenance": "calendar.events.attachments.list's fixture on the alias path (phase 19: same handling). Base: Captured from Microsoft Graph v1.0 (tenant capture 2026-11-20), scrubbed",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/calendar/events/AAMk-id-0010=/attachments",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('22222222-2222-2222-2222-222222222222')/events('AAMk-id-0010%3D')/attachments",
+      "value": [
+        {
+          "@odata.type": "#microsoft.graph.fileAttachment",
+          "@odata.mediaContentType": "text/plain",
+          "id": "AAMk-id-0011=",
+          "lastModifiedDateTime": "2026-11-20T22:38:46Z",
+          "name": "note.txt",
+          "contentType": "text/plain",
+          "size": 175,
+          "isInline": false,
+          "contentId": null,
+          "contentLocation": null,
+          "contentBytes": "TmlnaHR3YXJlIGNhcHR1cmU="
+        }
+      ]
+    }
+  }
+}

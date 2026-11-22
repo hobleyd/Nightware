@@ -468,6 +468,30 @@ EVENT_UPLOAD = [
     setup("DELETE", "/v1.0/me/events/${evId}", always=True),
 ]
 
+# Phase 19 aliases: a representative step per family. Every alias's fixture is its base operation's exchange on
+# the alias path (same handler), so these captures confirm Graph answers the alias as it does the base.
+ITEM_ALIASES = [
+    setup("GET", "/v1.0/me/calendar", query={"$select": "id,name"}, save={"calId": "id", "calName": "name"}),
+    step("calendar.default.update", "PATCH", "/v1.0/me/calendar", body={"name": "${calName}"}),
+    step("calendar.default.permissions.list", "GET", "/v1.0/me/calendar/calendarPermissions"),
+    setup("GET", "/v1.0/me/calendarGroups", query={"$top": "1"}, save={"groupId": "value[0].id"}),
+    step("calendar.calendar-groups.get", "GET", "/v1.0/me/calendarGroups/${groupId}"),
+    setup("POST", "/v1.0/me/events", headers=UTC, body=EVENT, save={"evId": "id"}),
+    step("calendar.calendars.events.attachments.create", "POST", "/v1.0/me/calendars/${calId}/events/${evId}/attachments",
+         body={"@odata.type": "#microsoft.graph.fileAttachment", "name": "notes.txt", "contentBytes": "aGVsbG8="}, save={"attId": "id"}),
+    step("calendar.default.events.attachments.list", "GET", "/v1.0/me/calendar/events/${evId}/attachments"),
+    step("calendar.default.events.attachments.value", "GET", "/v1.0/me/calendar/events/${evId}/attachments/${attId}/$value"),
+    step("calendar.calendars.events.attachments.delete", "DELETE", "/v1.0/me/calendars/${calId}/events/${evId}/attachments/${attId}"),
+    step("calendar.default.events.dismiss-reminder", "POST", "/v1.0/me/calendar/events/${evId}/dismissReminder"),
+    setup("DELETE", "/v1.0/me/events/${evId}", always=True),
+    SELF_MAIL, FIND_SELF_MAIL,
+    step("mail.folders.messages.get-mime", "GET", "/v1.0/me/mailFolders/inbox/messages/${msgId}/$value"),
+    step("mail.folders.messages.attachments.list", "GET", "/v1.0/me/mailFolders/inbox/messages/${msgId}/attachments"),
+    step("mail.folders.messages.move", "POST", "/v1.0/me/mailFolders/inbox/messages/${msgId}/move",
+         body={"destinationId": "deleteditems"}, save={"movedId": "id"}),
+    setup("DELETE", "/v1.0/me/messages/${movedId}", always=True),
+]
+
 PHOTOS = [
     step("directory.me.photo.get", "GET", "/v1.0/me/photo"),
     step("directory.me.photo.put", "PUT", "/v1.0/me/photo/$value", binary={"photo": True, "contentType": "image/jpeg"}),
@@ -506,5 +530,5 @@ PHASES = {
     15: [("todo", TODO)],
     16: [("notifications", NOTIFICATIONS)],
     18: [("settings", SETTINGS), ("aliases", ALIASES), ("todo items", TODO_ITEMS)],
-    19: [("folders", FOLDERS), ("counts", COUNTS), ("photos", PHOTOS), ("mime", MIME), ("event upload", EVENT_UPLOAD)],
+    19: [("folders", FOLDERS), ("counts", COUNTS), ("photos", PHOTOS), ("mime", MIME), ("event upload", EVENT_UPLOAD), ("item aliases", ITEM_ALIASES)],
 }

@@ -44,10 +44,13 @@ public static class MailReadEndpoints
             scope.MapGet("/messages/{messageId}", GetMessageAsync);
             // Graph's folder-scoped item route. Message ids are unique in the mailbox, so the folder is not checked.
             scope.MapGet("/mailFolders/{folderId}/messages/{messageId}", GetMessageAsync);
-            scope.MapGet("/messages/{messageId}/$value", GetMimeAsync);
-            scope.MapGet("/messages/{messageId}/attachments", ListAttachmentsAsync);
-            scope.MapGet("/messages/{messageId}/attachments/{attachmentId}", GetAttachmentAsync);
-            scope.MapGet("/messages/{messageId}/attachments/{attachmentId}/$value", GetAttachmentContentAsync);
+            foreach (var messages in ItemRoutes.Message)
+            {
+                scope.MapGet(messages + "/$value", GetMimeAsync);
+                scope.MapGet(messages + "/attachments", ListAttachmentsAsync);
+                scope.MapGet(messages + "/attachments/{attachmentId}", GetAttachmentAsync);
+                scope.MapGet(messages + "/attachments/{attachmentId}/$value", GetAttachmentContentAsync);
+            }
         }
         return graph;
     }

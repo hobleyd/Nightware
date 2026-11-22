@@ -1,0 +1,21 @@
+{
+  "operationId": "calendar.default.events.attachments.value",
+  "provenance": "calendar.events.attachments.value's fixture on the alias path (phase 19: same handling). Base: Graph v1.0 reference (https://learn.microsoft.com/graph/api/attachment-get: $value of an event's file attachment, its own content type); constructed, no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/calendar/events/AAMk-id-0005=/attachments/AAMk-ref-0004=/$value",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "text/plain"
+    },
+    "body": "Agenda: one item.\n"
+  }
+}

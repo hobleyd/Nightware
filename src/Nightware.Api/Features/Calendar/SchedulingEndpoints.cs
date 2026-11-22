@@ -16,14 +16,17 @@ internal static class SchedulingEndpoints
     {
         foreach (var scope in graph.MapMailboxGroups())
         {
-            scope.MapPost("/events/{eventId}/accept", (Mailbox mailbox, string eventId, RsvpBodyDto? body, RespondToEvent respond, CancellationToken ct) =>
-                RespondAsync(mailbox, eventId, RsvpResponse.Accept, body, respond, ct));
-            scope.MapPost("/events/{eventId}/tentativelyAccept", (Mailbox mailbox, string eventId, RsvpBodyDto? body, RespondToEvent respond, CancellationToken ct) =>
-                RespondAsync(mailbox, eventId, RsvpResponse.TentativelyAccept, body, respond, ct));
-            scope.MapPost("/events/{eventId}/decline", (Mailbox mailbox, string eventId, RsvpBodyDto? body, RespondToEvent respond, CancellationToken ct) =>
-                RespondAsync(mailbox, eventId, RsvpResponse.Decline, body, respond, ct));
-            scope.MapPost("/events/{eventId}/cancel", CancelAsync);
-            scope.MapPost("/events/{eventId}/forward", ForwardAsync);
+            foreach (var events in ItemRoutes.Event)
+            {
+                scope.MapPost(events + "/accept", (Mailbox mailbox, string eventId, RsvpBodyDto? body, RespondToEvent respond, CancellationToken ct) =>
+                    RespondAsync(mailbox, eventId, RsvpResponse.Accept, body, respond, ct));
+                scope.MapPost(events + "/tentativelyAccept", (Mailbox mailbox, string eventId, RsvpBodyDto? body, RespondToEvent respond, CancellationToken ct) =>
+                    RespondAsync(mailbox, eventId, RsvpResponse.TentativelyAccept, body, respond, ct));
+                scope.MapPost(events + "/decline", (Mailbox mailbox, string eventId, RsvpBodyDto? body, RespondToEvent respond, CancellationToken ct) =>
+                    RespondAsync(mailbox, eventId, RsvpResponse.Decline, body, respond, ct));
+                scope.MapPost(events + "/cancel", CancelAsync);
+                scope.MapPost(events + "/forward", ForwardAsync);
+            }
         }
     }
 

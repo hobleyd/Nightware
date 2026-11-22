@@ -1,0 +1,33 @@
+{
+  "operationId": "calendar.default.events.decline",
+  "provenance": "calendar.events.decline's fixture on the alias path (phase 19: same handling). Base: Shape after nightmail test/data/datasources/remote/graph_api_calendar_test.dart:650 'labels the proposed time with the zone it is actually in' (decline + proposedNewTime, 202); body constructed with example.com data",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/calendar/events/AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZiLTU1OGY5OTZhYmY4OABGAAAAAAAiQ8W967B7TKBjgx9rVEURBwAiIsqMbYjsT5e-T7KzowPTAAAAAAENAAAiIsqMbYjsT5e-T7KzowPTAAAYbwXuAAA=/decline",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "sendResponse": true,
+      "comment": "",
+      "proposedNewTime": {
+        "start": {
+          "dateTime": "2026-06-10T11:30:00",
+          "timeZone": "Australia/Sydney"
+        },
+        "end": {
+          "dateTime": "2026-06-10T12:30:00",
+          "timeZone": "Australia/Sydney"
+        }
+      }
+    }
+  },
+  "response": {
+    "status": 202,
+    "headers": {},
+    "body": null
+  }
+}
