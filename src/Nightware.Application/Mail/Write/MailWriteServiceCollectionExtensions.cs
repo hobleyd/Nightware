@@ -20,6 +20,8 @@ public static class MailWriteServiceCollectionExtensions
             .AddScoped<RemoveDraftAttachment>()
             .AddScoped<SendDraft>()
             .AddScoped<SendMail>()
+            .AddScoped<SendMime>()
+            .AddScoped<CreateDraftFromMime>()
             .AddScoped<ReplyToMessage>()
             .AddScoped<CreateReplyDraft>()
             .AddScoped<ForwardMessage>()

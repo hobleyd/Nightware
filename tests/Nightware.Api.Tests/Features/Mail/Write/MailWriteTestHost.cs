@@ -64,4 +64,8 @@ public abstract class MailWriteEndpointTestBase : IAsyncLifetime
 
         return _host.AuthorizedClient().SendAsync(request, Ct);
     }
+
+    /// <summary>A POST with a raw body of <paramref name="contentType"/> (the MIME forms).</summary>
+    protected Task<HttpResponseMessage> PostTextAsync(string url, string body, string contentType = "text/plain") =>
+        _host.AuthorizedClient().SendAsync(new HttpRequestMessage(HttpMethod.Post, url) { Content = new StringContent(body, Encoding.UTF8, contentType) }, Ct);
 }

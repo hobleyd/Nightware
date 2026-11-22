@@ -14205,12 +14205,12 @@
     },
     "/me/messages": {
       "post": {
-        "operationId": "mail.drafts.create",
+        "operationId": "mail",
         "tags": [
           "Mail"
         ],
-        "summary": "Mail drafts: create",
-        "description": "Behaves as Microsoft Graph's operation on the same route.",
+        "summary": "Mail",
+        "description": "Mail messages: create mime: MIME form (Content-Type: text/plain, the message base64-encoded; line breaks allowed): saves the message as written as a draft in Drafts. Its own endpoint, chosen by content type; the JSON form (mail.drafts.create) is untouched. The Message-ID is always minted (a draft's id is built from it); a message without From gets the mailbox's. Not base64: 400 ErrorMimeContentInvalidBase64String; over 4 MB: 413.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-post-messages",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -14254,7 +14254,9 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": {}
+                    "id": {},
+                    "subject": {},
+                    "isDraft": {}
                   }
                 }
               }
@@ -14456,12 +14458,12 @@
     },
     "/users/{userId}/messages": {
       "post": {
-        "operationId": "mail.drafts.create.users",
+        "operationId": "mail.users",
         "tags": [
           "Mail"
         ],
-        "summary": "Mail drafts: create",
-        "description": "Behaves as Microsoft Graph's operation on the same route.",
+        "summary": "Mail",
+        "description": "Mail messages: create mime: MIME form (Content-Type: text/plain, the message base64-encoded; line breaks allowed): saves the message as written as a draft in Drafts. Its own endpoint, chosen by content type; the JSON form (mail.drafts.create) is untouched. The Message-ID is always minted (a draft's id is built from it); a message without From gets the mailbox's. Not base64: 400 ErrorMimeContentInvalidBase64String; over 4 MB: 413.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-post-messages",
         "parameters": [
           {
             "name": "userId",
@@ -14514,7 +14516,9 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": {}
+                    "id": {},
+                    "subject": {},
+                    "isDraft": {}
                   }
                 }
               }
@@ -20846,6 +20850,192 @@
         }
       }
     },
+    "/me/sendMail": {
+      "post": {
+        "operationId": "mail.post",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail",
+        "description": "Mail messages: send mime: MIME form (Content-Type: text/plain, base64): sends the message as written and saves it to Sent Items. Bcc recipients get it, without the Bcc header. From must be an address the mailbox may send as (403 otherwise). Not base64: 400 ErrorMimeContentInvalidBase64String; over 4 MB: 413.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-sendmail",
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "text/plain"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "object",
+                    "properties": {
+                      "subject": {},
+                      "body": {
+                        "type": "object",
+                        "properties": {
+                          "contentType ('html'|'text')": {},
+                          "content": {}
+                        }
+                      },
+                      "toRecipients": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "emailAddress": {
+                              "type": "object",
+                              "properties": {
+                                "address": {}
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "ccRecipients (when non-empty)": {},
+                      "bccRecipients (when non-empty)": {},
+                      "attachments[] {@odata": {
+                        "type": "object",
+                        "properties": {
+                          "type fileAttachment, name, contentType, contentBytes, isInline?, contentId?}": {}
+                        }
+                      }
+                    }
+                  },
+                  "saveToSentItems (always true)": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/sendMail": {
+      "post": {
+        "operationId": "mail.users.post",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail",
+        "description": "Mail messages: send mime: MIME form (Content-Type: text/plain, base64): sends the message as written and saves it to Sent Items. Bcc recipients get it, without the Bcc header. From must be an address the mailbox may send as (403 otherwise). Not base64: 400 ErrorMimeContentInvalidBase64String; over 4 MB: 413.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-sendmail",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "text/plain"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "object",
+                    "properties": {
+                      "subject": {},
+                      "body": {
+                        "type": "object",
+                        "properties": {
+                          "contentType ('html'|'text')": {},
+                          "content": {}
+                        }
+                      },
+                      "toRecipients": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "emailAddress": {
+                              "type": "object",
+                              "properties": {
+                                "address": {}
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "ccRecipients (when non-empty)": {},
+                      "bccRecipients (when non-empty)": {},
+                      "attachments[] {@odata": {
+                        "type": "object",
+                        "properties": {
+                          "type fileAttachment, name, contentType, contentBytes, isInline?, contentId?}": {}
+                        }
+                      }
+                    }
+                  },
+                  "saveToSentItems (always true)": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me/mailFolders/inbox/messageRules": {
       "post": {
         "operationId": "mail.rules.create",
@@ -21453,173 +21643,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/Error"
-          },
-          "401": {
-            "$ref": "#/components/responses/Error"
-          },
-          "403": {
-            "$ref": "#/components/responses/Error"
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "429": {
-            "$ref": "#/components/responses/Throttled"
-          }
-        }
-      }
-    },
-    "/me/sendMail": {
-      "post": {
-        "operationId": "mail.send-mail",
-        "tags": [
-          "Mail"
-        ],
-        "summary": "Mail: send mail",
-        "description": "Behaves as Microsoft Graph's operation on the same route.",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "message": {
-                    "type": "object",
-                    "properties": {
-                      "subject": {},
-                      "body": {
-                        "type": "object",
-                        "properties": {
-                          "contentType ('html'|'text')": {},
-                          "content": {}
-                        }
-                      },
-                      "toRecipients": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "emailAddress": {
-                              "type": "object",
-                              "properties": {
-                                "address": {}
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "ccRecipients (when non-empty)": {},
-                      "bccRecipients (when non-empty)": {},
-                      "attachments[] {@odata": {
-                        "type": "object",
-                        "properties": {
-                          "type fileAttachment, name, contentType, contentBytes, isInline?, contentId?}": {}
-                        }
-                      }
-                    }
-                  },
-                  "saveToSentItems (always true)": {}
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "202": {
-            "description": "Success."
-          },
-          "400": {
-            "$ref": "#/components/responses/Error"
-          },
-          "401": {
-            "$ref": "#/components/responses/Error"
-          },
-          "403": {
-            "$ref": "#/components/responses/Error"
-          },
-          "404": {
-            "$ref": "#/components/responses/Error"
-          },
-          "429": {
-            "$ref": "#/components/responses/Throttled"
-          }
-        }
-      }
-    },
-    "/users/{userId}/sendMail": {
-      "post": {
-        "operationId": "mail.send-mail.users",
-        "tags": [
-          "Mail"
-        ],
-        "summary": "Mail: send mail",
-        "description": "Behaves as Microsoft Graph's operation on the same route.",
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "message": {
-                    "type": "object",
-                    "properties": {
-                      "subject": {},
-                      "body": {
-                        "type": "object",
-                        "properties": {
-                          "contentType ('html'|'text')": {},
-                          "content": {}
-                        }
-                      },
-                      "toRecipients": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "emailAddress": {
-                              "type": "object",
-                              "properties": {
-                                "address": {}
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "ccRecipients (when non-empty)": {},
-                      "bccRecipients (when non-empty)": {},
-                      "attachments[] {@odata": {
-                        "type": "object",
-                        "properties": {
-                          "type fileAttachment, name, contentType, contentBytes, isInline?, contentId?}": {}
-                        }
-                      }
-                    }
-                  },
-                  "saveToSentItems (always true)": {}
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "202": {
-            "description": "Success."
           },
           "400": {
             "$ref": "#/components/responses/Error"

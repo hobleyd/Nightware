@@ -32,8 +32,14 @@
 | `POST mailFolders` (top level), `POST mailFolders/{id}/copy` (verified live) | 1.49.0 |
 | `/$count` on the eight lists that take `$count=true` | 1.50.0 |
 | `/me/photo/$value`; `/me/photo` and `/users/{x}/photo` metadata; PUT, PATCH and DELETE of one's own photo | 1.51.0 |
+| MIME `POST messages` and `POST sendMail` | 1.53.0 |
 
 ## Decisions
+- MIME is its own endpoint per route, chosen by `Content-Type: text/plain`, so
+  the JSON forms can't change. The base64 may be wrapped. The Message-ID is
+  always minted (see `Adapters.Jmap/README.md`); 4 MB is the limit (413), as
+  Graph's reference gives for MIME payloads. Graph also takes MIME on reply,
+  forward and their create* forms; those were not asked for and stay JSON.
 - Photos: metadata is read from the image itself (JPEG frame header or PNG
   `IHDR`), with a hash of it as `@odata.mediaEtag`. A user without a photo gets
   Graph's documented 1×1 `image/gif` placeholder there; only `…/photo/$value` is

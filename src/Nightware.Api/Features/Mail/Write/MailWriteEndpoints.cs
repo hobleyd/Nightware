@@ -9,6 +9,7 @@ public static class MailWriteEndpoints
     {
         MessageWriteEndpoints.Map(graph);
         MessageSendEndpoints.Map(graph);
+        MimeEndpoints.Map(graph);
         FolderWriteEndpoints.Map(graph);
         Categories.MasterCategoryEndpoints.Map(graph);
         Rules.MessageRuleEndpoints.Map(graph);

@@ -329,8 +329,8 @@ operation:
 | Phase 15 — To Do (Graph parity) | 19 |
 | Phase 16 — Change notifications (Graph parity) | 10 |
 | Phase 18 — Settings, aliases, single items and $count (Graph parity) | 26 |
-| Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 19 |
-| **Total** | **216** |
+| Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 21 |
+| **Total** | **218** |
 
 ### Phase 2 — Mail, read side
 
@@ -2537,6 +2537,8 @@ operation:
 | [`directory.users.photo.patch`](#directoryusersphotopatch) | PATCH | v1.0 | `/users/{userIdOrUpn}/photo/$value` | none |
 | [`directory.me.photo.delete`](#directorymephotodelete) | DELETE | v1.0 | `/me/photo/$value` | none |
 | [`directory.users.photo.delete`](#directoryusersphotodelete) | DELETE | v1.0 | `/users/{userIdOrUpn}/photo/$value` | none |
+| [`mail.messages.create-mime`](#mailmessagescreate-mime) | POST | v1.0 | `{mailbox}/messages` | none |
+| [`mail.messages.send-mime`](#mailmessagessend-mime) | POST | v1.0 | `{mailbox}/sendMail` | none |
 
 #### `mail.folders.create`
 
@@ -2707,5 +2709,24 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-delete
 - Notes: As directory.me.photo.delete. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.users.photo.delete.json`
+
+#### `mail.messages.create-mime`
+
+**POST v1.0 `{mailbox}/messages`** — forms: me, users; success: 201; paging: none
+
+- Headers: `Content-Type: text/plain`
+- Client reads: `id`, `subject`, `isDraft`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-post-messages
+- Notes: MIME form (Content-Type: text/plain, the message base64-encoded; line breaks allowed): saves the message as written as a draft in Drafts. Its own endpoint, chosen by content type; the JSON form (mail.drafts.create) is untouched. The Message-ID is always minted (a draft's id is built from it); a message without From gets the mailbox's. Not base64: 400 ErrorMimeContentInvalidBase64String; over 4 MB: 413.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.messages.create-mime.json`
+
+#### `mail.messages.send-mime`
+
+**POST v1.0 `{mailbox}/sendMail`** — forms: me, users; success: 202; paging: none
+
+- Headers: `Content-Type: text/plain`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-sendmail
+- Notes: MIME form (Content-Type: text/plain, base64): sends the message as written and saves it to Sent Items. Bcc recipients get it, without the Bcc header. From must be an address the mailbox may send as (403 otherwise). Not base64: 400 ErrorMimeContentInvalidBase64String; over 4 MB: 413.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.messages.send-mime.json`
 
 <!-- END GENERATED -->

@@ -9,7 +9,7 @@ Each phase is a list of (name, steps). A step is a dict:
   record_path path written to the fixture instead of the URL's own ("{uploadUrl}")
   query       query options
   headers     extra request headers
-  body        JSON body;  binary: {"range": [first, last]} | {"photo": True}, contentType
+  body        JSON body;  mime: {to, subject, body?} sent in Graph's MIME form (base64, text/plain);  binary: {"range": [first, last]} | {"photo": True}, contentType
   save        {var: "json.path"} read from the response
   follow_to   walk @odata.nextLink and save the final @odata.deltaLink in this var
   poll        {"until": "json.path", "tries": n, "interval": s} repeat until present
@@ -441,6 +441,12 @@ FOLDERS = [
     setup("DELETE", "/v1.0/me/mailFolders/${folderId}", always=True),
 ]
 
+MIME = [
+    step("mail.messages.create-mime", "POST", "/v1.0/me/messages", mime={"to": "${me.mail}", "subject": "Nightware capture ${run} MIME draft"}, save={"mimeDraft": "id"}),
+    setup("DELETE", "/v1.0/me/messages/${mimeDraft}", always=True),
+    step("mail.messages.send-mime", "POST", "/v1.0/me/sendMail", mime={"to": "${me.mail}", "subject": "Nightware capture ${run} MIME sent"}),
+]
+
 PHOTOS = [
     step("directory.me.photo.get", "GET", "/v1.0/me/photo"),
     step("directory.me.photo.put", "PUT", "/v1.0/me/photo/$value", binary={"photo": True, "contentType": "image/jpeg"}),
@@ -479,5 +485,5 @@ PHASES = {
     15: [("todo", TODO)],
     16: [("notifications", NOTIFICATIONS)],
     18: [("settings", SETTINGS), ("aliases", ALIASES), ("todo items", TODO_ITEMS)],
-    19: [("folders", FOLDERS), ("counts", COUNTS), ("photos", PHOTOS)],
+    19: [("folders", FOLDERS), ("counts", COUNTS), ("photos", PHOTOS), ("mime", MIME)],
 }

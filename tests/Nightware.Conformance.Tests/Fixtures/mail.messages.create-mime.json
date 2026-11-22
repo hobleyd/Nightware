@@ -1,0 +1,27 @@
+{
+  "operationId": "mail.messages.create-mime",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/user-post-messages, MIME example: 201 with the message), trimmed to id, subject and isDraft; constructed, no tenant capture yet",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/messages",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "text/plain"
+    },
+    "body": "RnJvbTogTWUgPG1lQGV4YW1wbGUuY29tPg0KVG86IFNhbSA8c2FtQGV4YW1wbGUuY29tPg0KU3ViamVjdDogU2VudCBhcyBNSU1FDQpNSU1FLVZlcnNpb246IDEuMA0KQ29udGVudC1UeXBlOiB0ZXh0L3BsYWluOyBjaGFyc2V0PXV0Zi04DQoNCkhlbGxvIGZyb20gTUlNRS4NCg=="
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/messages/$entity",
+      "id": "d.bWltZS0wMDAxQGV4YW1wbGUuY29t",
+      "subject": "Sent as MIME",
+      "isDraft": true
+    }
+  }
+}

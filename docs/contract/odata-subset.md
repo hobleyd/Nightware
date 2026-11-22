@@ -226,6 +226,7 @@ wall-clock. Top-level timestamps (`receivedDateTime`, `sentDateTime`,
 | The aliases (`calendar.default.*`, `calendar.calendars.events.{get,update,delete}`, `mail.folders.messages.*`, `contacts.folders.contacts.*`) | exactly what their base operation accepts (same handler) |
 | `mail.folders.create`, `mail.folders.copy` | nothing (Graph's reference lists no options for either) |
 | `directory.*photo*` (phase 19) | nothing |
+| `mail.messages.create-mime`, `mail.messages.send-mime` | nothing |
 | `tasks.checklist-items.get`, `tasks.linked-resources.get` | nothing |
 
 ### `$count` (phase 18)

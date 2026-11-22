@@ -9043,5 +9043,77 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/profilephoto-delete",
     "notes": "As directory.me.photo.delete. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart)."
+  },
+  {
+    "id": "mail.messages.create-mime",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/messages",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {
+      "Content-Type": [
+        "text/plain"
+      ]
+    },
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "subject",
+      "isDraft"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-post-messages",
+    "notes": "MIME form (Content-Type: text/plain, the message base64-encoded; line breaks allowed): saves the message as written as a draft in Drafts. Its own endpoint, chosen by content type; the JSON form (mail.drafts.create) is untouched. The Message-ID is always minted (a draft's id is built from it); a message without From gets the mailbox's. Not base64: 400 ErrorMimeContentInvalidBase64String; over 4 MB: 413."
+  },
+  {
+    "id": "mail.messages.send-mime",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/sendMail",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {
+      "Content-Type": [
+        "text/plain"
+      ]
+    },
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-sendmail",
+    "notes": "MIME form (Content-Type: text/plain, base64): sends the message as written and saves it to Sent Items. Bcc recipients get it, without the Bcc header. From must be an address the mailbox may send as (403 otherwise). Not base64: 400 ErrorMimeContentInvalidBase64String; over 4 MB: 413."
   }
 ]

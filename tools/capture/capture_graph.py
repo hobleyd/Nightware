@@ -185,6 +185,14 @@ def run_step(step: dict, run: Run) -> None:
         sent_body = subst(step["body"], run)
         data = json.dumps(sent_body).encode()
         headers.setdefault("Content-Type", "application/json")
+    elif "mime" in step:
+        # Graph's MIME form: the message base64-encoded, sent as text/plain; built after substitution.
+        spec = subst(step["mime"], run)
+        message = (f"To: {spec['to']}\r\nSubject: {spec['subject']}\r\nMIME-Version: 1.0\r\n"
+                   f"Content-Type: text/plain; charset=utf-8\r\n\r\n{spec.get('body', 'Sent as MIME.')}\r\n")
+        sent_body = base64.b64encode(message.encode()).decode()
+        data = sent_body.encode()
+        headers.setdefault("Content-Type", "text/plain")
     elif "binary" in step:
         data = binary_payload(step["binary"], run)
         sent_body = {"$binary": {"length": len(data), "sha256": hashlib.sha256(data).hexdigest()}}

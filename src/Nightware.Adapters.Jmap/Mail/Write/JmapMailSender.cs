@@ -165,6 +165,80 @@ internal sealed partial class JmapMailSender(
         return outcome;
     }
 
+    /// <summary>
+    /// The MIME, as sent but with a minted Message-ID: imported into Drafts and submitted in one request (JMAP submits
+    /// Emails, not MIME), then filed in Sent Items by the server, as <see cref="SendAsync"/> does. The server derives the
+    /// envelope from the headers, Bcc included, and strips Bcc from what it delivers.
+    /// </summary>
+    public async Task<Result> SendMimeAsync(MailboxRef mailbox, ReadOnlyMemory<byte> mime, CancellationToken cancellationToken)
+    {
+        var prepared = MimeInput.Prepare(mime, mailbox, user);
+        if (!prepared.IsSuccess)
+        {
+            return prepared.Error;
+        }
+
+        var account = await jmap.ResolveAccountAsync(mailbox, cancellationToken).ConfigureAwait(false);
+        if (!account.IsSuccess)
+        {
+            return account.Error;
+        }
+
+        var accountId = account.Value.AccountId;
+        var request = new JmapRequestBuilder();
+        var context = AddContext(request, accountId);
+        var response = await jmap.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        var read = response.Bind(context.Read);
+        if (!read.IsSuccess)
+        {
+            return read.Error;
+        }
+
+        var identity = await IdentityAsync(account.Value, read.Value.Identities, mailbox, prepared.Value.From, cancellationToken).ConfigureAwait(false);
+        if (!identity.IsSuccess)
+        {
+            return identity.Error;
+        }
+
+        var home = WriteMailboxes.IdOfRole(read.Value.Mailboxes, MailboxRoles.Drafts) ?? WriteMailboxes.IdOfRole(read.Value.Mailboxes, MailboxRoles.Sent);
+        if (home is null)
+        {
+            return Error.NotFound("The mailbox has no Drafts or Sent Items folder.");
+        }
+
+        var blob = await MimeInput.UploadAsync(blobs, accountId, prepared.Value.Message, cancellationToken).ConfigureAwait(false);
+        if (!blob.IsSuccess)
+        {
+            return blob.Error;
+        }
+
+        var send = new JmapRequestBuilder().RequireSingleRequest();
+        var import = send.Add(JmapMethods.EmailImport, new EmailImportRequest(accountId, new Dictionary<string, EmailImport>(StringComparer.Ordinal)
+        {
+            [Message] = new(blob.Value, new Dictionary<string, bool>(StringComparer.Ordinal) { [home] = true }) { Keywords = OutgoingEmail.DraftKeywords },
+        }));
+        var submission = AddSubmission(send, accountId, "#" + Message, identity.Value, read.Value.Mailboxes, saveToSentItems: true);
+        var sent = await jmap.SendAsync(send, cancellationToken).ConfigureAwait(false);
+        if (!sent.IsSuccess)
+        {
+            return sent.Error;
+        }
+
+        var created = sent.Value.Get(import).Bind(r => r.Created(Message));
+        if (!created.IsSuccess)
+        {
+            return created.Error;
+        }
+
+        var outcome = Submitted(sent.Value, submission);
+        if (!outcome.IsSuccess && created.Value.Id is { } stored)
+        {
+            await DiscardAsync(accountId, stored, cancellationToken).ConfigureAwait(false);
+        }
+
+        return outcome;
+    }
+
     /// <summary>The identity sending as <paramref name="from"/>, created for the mailbox's own address when it has none.</summary>
     private async Task<Result<string>> IdentityAsync(JmapAccount account, IReadOnlyList<Identity> identities, MailboxRef mailbox, EmailAddress from, CancellationToken cancellationToken)
     {

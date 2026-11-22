@@ -13,7 +13,7 @@ public sealed class MailWriteServiceCollectionExtensionsTests
         typeof(UpdateMessage), typeof(CreateDraft), typeof(MoveMessage), typeof(CopyMessage), typeof(BeginDraftAttachmentUpload), typeof(UploadDraftAttachmentChunk), typeof(DeleteMessage), typeof(PermanentlyDeleteMessage),
         typeof(ImportMessage), typeof(AddDraftAttachment), typeof(RemoveDraftAttachment), typeof(SendDraft), typeof(SendMail),
         typeof(ReplyToMessage), typeof(CreateReplyDraft), typeof(ForwardMessage), typeof(CreateForwardDraft),
-        typeof(CreateChildFolder), typeof(RenameFolder), typeof(MoveFolder), typeof(CopyFolder), typeof(DeleteFolder),
+        typeof(CreateChildFolder), typeof(RenameFolder), typeof(MoveFolder), typeof(CopyFolder), typeof(DeleteFolder), typeof(SendMime), typeof(CreateDraftFromMime),
         typeof(ListMasterCategories), typeof(GetMasterCategory), typeof(CreateMasterCategory), typeof(UpdateMasterCategory), typeof(DeleteMasterCategory),
         typeof(ListMessageRules), typeof(GetMessageRule), typeof(CreateMessageRule), typeof(UpdateMessageRule), typeof(DeleteMessageRule),
     ];

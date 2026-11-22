@@ -71,6 +71,52 @@ internal sealed class JmapDraftStore(IJmapClient jmap, IJmapBlobService blobs, I
         return created.IsSuccess ? MailItemId.ForDraft(messageId).ToMessageId() : created.Error;
     }
 
+    /// <summary>The MIME, as sent but with a minted Message-ID, imported into Drafts as an unsent draft.</summary>
+    public async Task<Result<MessageId>> CreateFromMimeAsync(MailboxRef mailbox, ReadOnlyMemory<byte> mime, CancellationToken cancellationToken)
+    {
+        var prepared = MimeInput.Prepare(mime, mailbox, user);
+        if (!prepared.IsSuccess)
+        {
+            return prepared.Error;
+        }
+
+        var account = await jmap.ResolveAccountAsync(mailbox, cancellationToken).ConfigureAwait(false);
+        if (!account.IsSuccess)
+        {
+            return account.Error;
+        }
+
+        var accountId = account.Value.AccountId;
+        var mailboxes = await MailboxesAsync(accountId, cancellationToken).ConfigureAwait(false);
+        if (!mailboxes.IsSuccess)
+        {
+            return mailboxes.Error;
+        }
+
+        if (WriteMailboxes.IdOfRole(mailboxes.Value, MailboxRoles.Drafts) is not { } drafts)
+        {
+            return Error.NotFound("The mailbox has no Drafts folder.");
+        }
+
+        var blob = await MimeInput.UploadAsync(blobs, accountId, prepared.Value.Message, cancellationToken).ConfigureAwait(false);
+        if (!blob.IsSuccess)
+        {
+            return blob.Error;
+        }
+
+        var request = new JmapRequestBuilder();
+        var import = request.Add(JmapMethods.EmailImport, new EmailImportRequest(accountId, new Dictionary<string, EmailImport>(StringComparer.Ordinal)
+        {
+            [Draft] = new(blob.Value, new Dictionary<string, bool>(StringComparer.Ordinal) { [drafts] = true })
+            {
+                Keywords = OutgoingEmail.DraftKeywords,
+            },
+        }));
+        var response = await jmap.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        var created = response.Bind(r => r.Get(import)).Bind(r => r.Created(Draft));
+        return created.IsSuccess ? MailItemId.ForDraft(prepared.Value.MessageId).ToMessageId() : created.Error;
+    }
+
     public async Task<Result<MessageId>> ReplaceAsync(MailboxRef mailbox, MessageId draftId, DraftContent content, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(content);

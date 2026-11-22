@@ -210,6 +210,24 @@ shared `IJmapMessageLocator` are registered by `AddJmapMailRead`.
 - **Recent correspondents.** Recipients of the newest 200 Sent Items and senders of the newest 200
   Inbox messages, ranked by count, then recency.
 
+## MIME writes and folder copies (`Mail/Write`, phase 19)
+
+- **MIME** (`MimeInput`): Graph's `text/plain` base64 form of `POST messages`
+  and `sendMail`. The Api decodes the base64; the adapter parses the message
+  with MimeKit, adds the mailbox's `From` (and a `Date`) when missing, and
+  **always mints the Message-ID** (a draft's Graph id is `d.` + it, and a
+  client's own could name another message). The rest is stored as sent: the
+  message is uploaded as a blob and `Email/import`ed. A draft lands in Drafts
+  with `$draft`/`$seen`. A send imports into Drafts and submits in the same
+  request (`#message`), filed into Sent Items by `onSuccessUpdateEmail` like
+  any send; a failed submission destroys the stored copy. The From must be an
+  identity the account may use, checked before anything is stored.
+- **Folder copy** (`JmapMailFolderWriter.Copy.cs`): one `Mailbox/set` creates
+  the copied subtree (children's `parentId` are `#creationId` references), then
+  each folder's mail is read 50 at a time (`Email/query` + `Email/get`) and
+  `Email/import`ed by blob into the copy, metadata carried in one
+  `Email/set`. No transaction: a failure part-way leaves what was copied.
+
 ## Automatic replies (`MailboxSettings`, Phase 5B)
 
 `JmapAutoReplyStore` implements `IAutoReplyStore` on the `VacationResponse` singleton, resolving the

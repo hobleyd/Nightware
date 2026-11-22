@@ -47,6 +47,9 @@ public interface IDraftStore
 {
     Task<Result<MessageId>> CreateAsync(MailboxRef mailbox, DraftContent content, CancellationToken cancellationToken);
 
+    /// <summary>Graph <c>POST messages</c> with a MIME body: the message, as sent, saved as a draft in Drafts.</summary>
+    Task<Result<MessageId>> CreateFromMimeAsync(MailboxRef mailbox, ReadOnlyMemory<byte> mime, CancellationToken cancellationToken);
+
     Task<Result<MessageId>> ReplaceAsync(MailboxRef mailbox, MessageId draftId, DraftContent content, CancellationToken cancellationToken);
 
     Task<Result<MailAttachment>> AddAttachmentAsync(MailboxRef mailbox, MessageId draftId, NewAttachment attachment, CancellationToken cancellationToken);
@@ -59,6 +62,9 @@ public interface IMailSender
     Task<Result> SendDraftAsync(MailboxRef mailbox, MessageId draftId, CancellationToken cancellationToken);
 
     Task<Result> SendAsync(MailboxRef mailbox, DraftContent content, bool saveToSentItems, CancellationToken cancellationToken);
+
+    /// <summary>Graph <c>POST sendMail</c> with a MIME body: sends the message as written, saved to Sent Items.</summary>
+    Task<Result> SendMimeAsync(MailboxRef mailbox, ReadOnlyMemory<byte> mime, CancellationToken cancellationToken);
 }
 
 /// <summary>How an imported (migrated) message should land.</summary>
