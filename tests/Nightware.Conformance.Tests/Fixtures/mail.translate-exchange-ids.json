@@ -1,0 +1,41 @@
+{
+  "operationId": "mail.translate-exchange-ids",
+  "provenance": "Graph v1.0 reference example (https://learn.microsoft.com/graph/api/user-translateexchangeids: restId to restImmutableEntryId) with Nightware ids, which translate to themselves; constructed, no tenant capture yet",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/translateExchangeIds",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "inputIds": [
+        "e.qaaaaaf",
+        "d.ZHJhZnRAeA"
+      ],
+      "sourceIdType": "restId",
+      "targetIdType": "restImmutableEntryId"
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(microsoft.graph.convertIdResult)",
+      "value": [
+        {
+          "sourceId": "e.qaaaaaf",
+          "targetId": "e.qaaaaaf"
+        },
+        {
+          "sourceId": "d.ZHJhZnRAeA",
+          "targetId": "d.ZHJhZnRAeA"
+        }
+      ]
+    }
+  }
+}

@@ -7,6 +7,9 @@ public sealed record Room(string Id, string DisplayName, string EmailAddress)
 
     public string? Building { get; init; }
 
+    /// <summary>The building's street address, as the directory gives it (one line).</summary>
+    public string? BuildingAddress { get; init; }
+
     public string? FloorLabel { get; init; }
 
     /// <summary>The floor as a number (Graph <c>floorNumber</c>), when the label names one.</summary>

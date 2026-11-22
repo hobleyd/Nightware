@@ -10,6 +10,8 @@ public static class RoomsServiceCollectionExtensions
     {
         services.TryAddScoped<ListRooms>();
         services.TryAddScoped<FindRooms>();
+        services.TryAddScoped<ListRoomLists>();
+        services.TryAddScoped<ListRoomsInList>();
         return services;
     }
 }

@@ -30,6 +30,39 @@ public sealed record RoomDto
     public string BookingType { get; init; } = StandardBooking;
 }
 
+/// <summary>Graph <c>microsoft.graph.roomList</c> (phase 19): a building, as Nightware's room directory knows it.</summary>
+public sealed record RoomListDto
+{
+    public string? Id { get; init; }
+
+    public string? DisplayName { get; init; }
+
+    /// <summary>The directory keeps a building's address as one line, so it is all <c>street</c>.</summary>
+    public PhysicalAddressDto? Address { get; init; }
+
+    public object? GeoCoordinates { get; init; }
+
+    public string? Phone { get; init; }
+
+    public string? EmailAddress { get; init; }
+
+    public string? PlaceId { get; init; }
+}
+
+/// <summary>Graph <c>physicalAddress</c>.</summary>
+public sealed record PhysicalAddressDto
+{
+    public string? Street { get; init; }
+
+    public string? City { get; init; }
+
+    public string? State { get; init; }
+
+    public string? PostalCode { get; init; }
+
+    public string? CountryOrRegion { get; init; }
+}
+
 /// <summary>An entry of beta <c>findRooms</c> (Graph <c>emailAddress</c>).</summary>
 public sealed record RoomAddressDto
 {
@@ -54,6 +87,19 @@ public static class RoomDtoMapper
             FloorNumber = room.FloorNumber,
             FloorLabel = room.FloorLabel,
             IsWheelChairAccessible = room.IsWheelChairAccessible,
+        };
+    }
+
+    public static RoomListDto ToDto(RoomList list)
+    {
+        ArgumentNullException.ThrowIfNull(list);
+        return new RoomListDto
+        {
+            Id = list.Id,
+            DisplayName = list.DisplayName,
+            Address = list.Address is { } street ? new PhysicalAddressDto { Street = street } : null,
+            EmailAddress = list.EmailAddress,
+            PlaceId = list.Id,
         };
     }
 

@@ -229,6 +229,7 @@ wall-clock. Top-level timestamps (`receivedDateTime`, `sentDateTime`,
 | `mail.messages.create-mime`, `mail.messages.send-mime` | nothing |
 | `calendar.events.attachments.{value,create-upload-session,upload-session-put*}` | nothing |
 | Phase 19 aliases (`calendar.default.*`, `calendar.calendars.events.*`, `mail.folders.messages.*`, `contacts.folders.contacts.photo-*`) | exactly what their base operation accepts (same handler); `calendar.calendar-groups.get`: `$select` |
+| `rooms.room-lists.*`, `mail.translate-exchange-ids` | nothing |
 | `tasks.checklist-items.get`, `tasks.linked-resources.get` | nothing |
 
 ### `$count` (phase 18)

@@ -1,0 +1,35 @@
+{
+  "operationId": "rooms.room-lists.rooms",
+  "provenance": "Graph v1.0 reference example (https://learn.microsoft.com/graph/api/place-list, rooms in a room list), trimmed to the room fields Nightware has; constructed, no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/places/building-2@roomlists.invalid/microsoft.graph.roomlist/rooms",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#places('building-2%40roomlists.invalid')/microsoft.graph.roomList/rooms",
+      "value": [
+        {
+          "id": "cf200",
+          "emailAddress": "cf200@example.com",
+          "displayName": "Conf Room 200",
+          "capacity": 40,
+          "building": "Building 2",
+          "floorNumber": 2,
+          "isWheelChairAccessible": false,
+          "bookingType": "standard"
+        }
+      ]
+    }
+  }
+}

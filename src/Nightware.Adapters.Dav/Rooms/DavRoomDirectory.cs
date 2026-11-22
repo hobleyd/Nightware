@@ -87,6 +87,7 @@ internal sealed partial class DavRoomDirectory(IDavClient dav, DavPaths paths) :
         {
             Capacity = int.TryParse(response.Text(DavNames.RoomSeatingCapacity), NumberStyles.Integer, CultureInfo.InvariantCulture, out var capacity) ? capacity : null,
             Building = Blank(response.Text(RoomBuildingName)) ?? Blank(response.Text(DavNames.RoomBuildingAddress)),
+            BuildingAddress = Blank(response.Text(DavNames.RoomBuildingAddress)),
             FloorLabel = story,
             FloorNumber = story is not null && FloorNumberPattern().Match(story) is { Success: true } match
                 ? int.Parse(match.Value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture)

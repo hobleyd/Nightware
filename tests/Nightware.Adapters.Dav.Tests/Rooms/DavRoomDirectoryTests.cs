@@ -32,6 +32,7 @@ public sealed class DavRoomDirectoryTests : IDisposable
         boardroom.EmailAddress.ShouldBe("boardroom@nightware.localhost");
         boardroom.Capacity.ShouldBe(12);
         boardroom.Building.ShouldBe("Nightware HQ");
+        boardroom.BuildingAddress.ShouldBe("1 Example Street, Sydney NSW 2000");
         boardroom.FloorLabel.ShouldBe("Level 1");
         boardroom.FloorNumber.ShouldBe(1);
         boardroom.IsWheelChairAccessible.ShouldBeTrue();

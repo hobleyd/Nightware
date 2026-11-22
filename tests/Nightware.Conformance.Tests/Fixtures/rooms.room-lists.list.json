@@ -1,0 +1,49 @@
+{
+  "operationId": "rooms.room-lists.list",
+  "provenance": "Graph v1.0 reference example (https://learn.microsoft.com/graph/api/place-list, room lists) shaped as Nightware's buildings: one-line address in street, synthetic emailAddress; constructed, no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/places/microsoft.graph.roomList",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#places/microsoft.graph.roomList",
+      "value": [
+        {
+          "id": "roomlist-building-1",
+          "displayName": "Building 1",
+          "address": {
+            "street": "4567 Main Street, Buffalo NY 98052",
+            "city": null,
+            "state": null,
+            "postalCode": null,
+            "countryOrRegion": null
+          },
+          "geoCoordinates": null,
+          "phone": null,
+          "emailAddress": "building-1@roomlists.invalid",
+          "placeId": "roomlist-building-1"
+        },
+        {
+          "id": "roomlist-building-2",
+          "displayName": "Building 2",
+          "address": null,
+          "geoCoordinates": null,
+          "phone": null,
+          "emailAddress": "building-2@roomlists.invalid",
+          "placeId": "roomlist-building-2"
+        }
+      ]
+    }
+  }
+}

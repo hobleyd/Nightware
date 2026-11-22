@@ -29059,6 +29059,145 @@
         }
       }
     },
+    "/me/translateExchangeIds": {
+      "post": {
+        "operationId": "mail.translate-exchange-ids",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail: translate exchange ids",
+        "description": "Nightware's ids are already immutable (a message keeps its id across moves), so restId and restImmutableEntryId are the same string and each id translates to itself. entryId, immutableEntryId and ewsId are Exchange store ids with no counterpart: 400 notSupported. At most 1,000 ids. Prefer: IdType=\"ImmutableId\" is accepted everywhere and changes nothing, for the same reason (no Preference-Applied, as Graph documents none).\n\nGraph reference: https://learn.microsoft.com/graph/api/user-translateexchangeids",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "inputIds": {},
+                  "sourceIdType": {},
+                  "targetIdType": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sourceId": {},
+                          "targetId": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/translateExchangeIds": {
+      "post": {
+        "operationId": "mail.translate-exchange-ids.users",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail: translate exchange ids",
+        "description": "Nightware's ids are already immutable (a message keeps its id across moves), so restId and restImmutableEntryId are the same string and each id translates to itself. entryId, immutableEntryId and ewsId are Exchange store ids with no counterpart: 400 notSupported. At most 1,000 ids. Prefer: IdType=\"ImmutableId\" is accepted everywhere and changes nothing, for the same reason (no Preference-Applied, as Graph documents none).\n\nGraph reference: https://learn.microsoft.com/graph/api/user-translateexchangeids",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "inputIds": {},
+                  "sourceIdType": {},
+                  "targetIdType": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sourceId": {},
+                          "targetId": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me/mailboxSettings/automaticRepliesSetting": {
       "get": {
         "operationId": "mailbox-settings.automatic-replies.get",
@@ -30541,6 +30680,126 @@
                       }
                     },
                     "@odata.nextLink": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/places/microsoft.graph.roomList": {
+      "get": {
+        "operationId": "rooms.room-lists.list",
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Rooms room lists: list",
+        "description": "The buildings as room lists: Nextcloud has no room lists, only each room's building (room-building-name) and address. One list per building, its address as street (the directory keeps one line), and a stable emailAddress {slug}@roomlists.invalid (RFC 2606's reserved domain: it names the list in the next route and is never a mailbox). Rooms with no building are in no list.\n\nGraph reference: https://learn.microsoft.com/graph/api/place-list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {},
+                          "displayName": {},
+                          "address": {
+                            "type": "object",
+                            "properties": {
+                              "street": {}
+                            }
+                          },
+                          "emailAddress": {},
+                          "placeId": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/places/{roomListEmail}/microsoft.graph.roomList/rooms": {
+      "get": {
+        "operationId": "rooms.room-lists.rooms",
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Rooms room lists: rooms",
+        "description": "The rooms of one building, by the list's emailAddress from rooms.room-lists.list; any other address is 404.\n\nGraph reference: https://learn.microsoft.com/graph/api/place-list",
+        "parameters": [
+          {
+            "name": "roomListEmail",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {},
+                          "emailAddress": {},
+                          "displayName": {},
+                          "capacity": {},
+                          "building": {}
+                        }
+                      }
+                    }
                   }
                 }
               }

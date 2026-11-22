@@ -39,8 +39,18 @@
 | MIME `POST messages` and `POST sendMail` | 1.53.0 |
 | Event attachment `$value` and upload sessions (chunked) | 1.54.0 |
 | Aliases: an event's actions and parts under `calendar/events/{id}` and `calendars/{id}/events/{id}`; a message's under `mailFolders/{id}/messages/{id}`; a contact's photo under `contactFolders/{id}/contacts/{id}`; `PATCH calendar`, `calendar/calendarPermissions`; `GET calendarGroups/{id}` | 1.55.0 |
+| Room lists (`places/microsoft.graph.roomList` and a list's rooms) from the rooms' buildings; `translateExchangeIds`; `Prefer: IdType="ImmutableId"` confirmed harmless | 1.56.0 |
 
 ## Decisions
+- Room lists are the buildings (Nextcloud has none of its own): one per
+  `room-building-name`, its address in `street`, and the stable address
+  `{slug}@roomlists.invalid`, which names it in `…/rooms` and, in the reserved
+  `.invalid` domain, can't be taken for a mailbox.
+- `translateExchangeIds` translates REST ids to themselves (they're already
+  immutable); the Exchange store formats are 400 `notSupported` rather than ids
+  that would mean nothing to Exchange tooling. `Prefer: IdType="ImmutableId"`
+  needed no change: unknown preferences are ignored, and Graph documents no
+  `Preference-Applied` for it.
 - Aliases map the base handler on every prefix in `ItemRoutes` (one table, so
   a route added to the base reaches all its aliases). `calendarGroups/{groupId}/…`
   event routes are not mapped: Nightware's one group isn't a path clients

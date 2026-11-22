@@ -329,8 +329,8 @@ operation:
 | Phase 15 — To Do (Graph parity) | 19 |
 | Phase 16 — Change notifications (Graph parity) | 10 |
 | Phase 18 — Settings, aliases, single items and $count (Graph parity) | 26 |
-| Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 78 |
-| **Total** | **275** |
+| Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 81 |
+| **Total** | **278** |
 
 ### Phase 2 — Mail, read side
 
@@ -2596,6 +2596,9 @@ operation:
 | [`calendar.default.permissions.update`](#calendardefaultpermissionsupdate) | PATCH | v1.0 | `{mailbox}/calendar/calendarPermissions/{permissionId}` | none |
 | [`calendar.default.permissions.delete`](#calendardefaultpermissionsdelete) | DELETE | v1.0 | `{mailbox}/calendar/calendarPermissions/{permissionId}` | none |
 | [`calendar.calendar-groups.get`](#calendarcalendar-groupsget) | GET | v1.0 | `{mailbox}/calendarGroups/{groupId}` | none |
+| [`rooms.room-lists.list`](#roomsroom-listslist) | GET | v1.0 | `/places/microsoft.graph.roomList` | none |
+| [`rooms.room-lists.rooms`](#roomsroom-listsrooms) | GET | v1.0 | `/places/{roomListEmail}/microsoft.graph.roomList/rooms` | none |
+| [`mail.translate-exchange-ids`](#mailtranslate-exchange-ids) | POST | v1.0 | `{mailbox}/translateExchangeIds` | none |
 
 #### `mail.folders.create`
 
@@ -3301,5 +3304,33 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/calendargroup-get
 - Notes: The one calendar group, "My Calendars" (calendargroup-default), which holds every calendar (Nextcloud has no groups). Any other id is 404.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendar-groups.get.json`
+
+#### `rooms.room-lists.list`
+
+**GET v1.0 `/places/microsoft.graph.roomList`** — forms: root; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].displayName`, `value[].address.street`, `value[].emailAddress`, `value[].placeId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/place-list
+- Notes: The buildings as room lists: Nextcloud has no room lists, only each room's building (room-building-name) and address. One list per building, its address as street (the directory keeps one line), and a stable emailAddress {slug}@roomlists.invalid (RFC 2606's reserved domain: it names the list in the next route and is never a mailbox). Rooms with no building are in no list.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/rooms.room-lists.list.json`
+
+#### `rooms.room-lists.rooms`
+
+**GET v1.0 `/places/{roomListEmail}/microsoft.graph.roomList/rooms`** — forms: root; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].emailAddress`, `value[].displayName`, `value[].capacity`, `value[].building`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/place-list
+- Notes: The rooms of one building, by the list's emailAddress from rooms.room-lists.list; any other address is 404.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/rooms.room-lists.rooms.json`
+
+#### `mail.translate-exchange-ids`
+
+**POST v1.0 `{mailbox}/translateExchangeIds`** — forms: me, users; success: 200; paging: none
+
+- Request body: `inputIds`; `sourceIdType`; `targetIdType`
+- Client reads: `value[].sourceId`, `value[].targetId`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-translateexchangeids
+- Notes: Nightware's ids are already immutable (a message keeps its id across moves), so restId and restImmutableEntryId are the same string and each id translates to itself. entryId, immutableEntryId and ewsId are Exchange store ids with no counterpart: 400 notSupported. At most 1,000 ids. Prefer: IdType="ImmutableId" is accepted everywhere and changes nothing, for the same reason (no Preference-Applied, as Graph documents none).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.translate-exchange-ids.json`
 
 <!-- END GENERATED -->

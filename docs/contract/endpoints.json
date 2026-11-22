@@ -11150,5 +11150,114 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/calendargroup-get",
     "notes": "The one calendar group, \"My Calendars\" (calendargroup-default), which holds every calendar (Nextcloud has no groups). Any other id is 404."
+  },
+  {
+    "id": "rooms.room-lists.list",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/places/microsoft.graph.roomList",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].displayName",
+      "value[].address.street",
+      "value[].emailAddress",
+      "value[].placeId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/place-list",
+    "notes": "The buildings as room lists: Nextcloud has no room lists, only each room's building (room-building-name) and address. One list per building, its address as street (the directory keeps one line), and a stable emailAddress {slug}@roomlists.invalid (RFC 2606's reserved domain: it names the list in the next route and is never a mailbox). Rooms with no building are in no list."
+  },
+  {
+    "id": "rooms.room-lists.rooms",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/places/{roomListEmail}/microsoft.graph.roomList/rooms",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].emailAddress",
+      "value[].displayName",
+      "value[].capacity",
+      "value[].building"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/place-list",
+    "notes": "The rooms of one building, by the list's emailAddress from rooms.room-lists.list; any other address is 404."
+  },
+  {
+    "id": "mail.translate-exchange-ids",
+    "phase": 19,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/translateExchangeIds",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "inputIds",
+        "sourceIdType",
+        "targetIdType"
+      ]
+    },
+    "responseFields": [
+      "value[].sourceId",
+      "value[].targetId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-translateexchangeids",
+    "notes": "Nightware's ids are already immutable (a message keeps its id across moves), so restId and restImmutableEntryId are the same string and each id translates to itself. entryId, immutableEntryId and ewsId are Exchange store ids with no counterpart: 400 notSupported. At most 1,000 ids. Prefer: IdType=\"ImmutableId\" is accepted everywhere and changes nothing, for the same reason (no Preference-Applied, as Graph documents none)."
   }
 ]

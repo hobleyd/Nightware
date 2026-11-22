@@ -24,8 +24,19 @@ public static class RoomsEndpoints
     {
         graph.MapGet("/places/microsoft.graph.room", ListPlacesAsync);
         graph.MapGet("/me/findRooms", FindRoomsAsync);
+        graph.MapGet("/places/microsoft.graph.roomList", ListRoomListsAsync);
+        graph.MapGet("/places/{roomList}/microsoft.graph.roomList/rooms", ListRoomsInListAsync);
         return graph;
     }
+
+    /// <summary>Phase 19: the buildings as room lists (see <see cref="RoomLists"/>).</summary>
+    private static async Task<IResult> ListRoomListsAsync(ODataQuery odata, ListRoomLists useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(await useCase.ExecuteAsync(cancellationToken).ConfigureAwait(false),
+            lists => GraphResults.Collection(lists.Select(RoomDtoMapper.ToDto), "places/microsoft.graph.roomList", odata.Query));
+
+    private static async Task<IResult> ListRoomsInListAsync(string roomList, ODataQuery odata, ListRoomsInList useCase, CancellationToken cancellationToken) =>
+        GraphResults.Match(await useCase.ExecuteAsync(roomList, cancellationToken).ConfigureAwait(false),
+            rooms => GraphResults.Collection(rooms.Select(RoomDtoMapper.ToDto), $"places('{Uri.EscapeDataString(roomList)}')/microsoft.graph.roomList/rooms", odata.Query));
 
     private static async Task<IResult> ListPlacesAsync(ODataQuery odata, ListRooms rooms, CancellationToken cancellationToken)
     {

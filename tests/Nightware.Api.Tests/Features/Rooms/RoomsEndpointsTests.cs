@@ -63,4 +63,42 @@ public sealed class RoomsEndpointsTests : IAsyncLifetime
     [Fact]
     public async Task Find_rooms_has_no_users_form() =>
         (await _host.AuthorizedClient().GetAsync("/beta/users/x@example.com/findRooms", Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+
+    private void TwoBuildings() =>
+        _rooms.ListAsync(Arg.Any<ItemQuery>(), Arg.Any<CancellationToken>()).Returns(new Page<Room>(
+        [
+            Boardroom() with { BuildingAddress = "1 Example Street" },
+            new Room("focus", "Focus", "focus@example.com") { Building = "Annex" },
+            new Room("lone", "Lone", "lone@example.com"),
+        ]));
+
+    [Fact]
+    public async Task Room_lists_are_the_buildings_with_an_invalid_domain_address()
+    {
+        TwoBuildings();
+
+        var body = await (await _host.AuthorizedClient().GetAsync("/v1.0/places/microsoft.graph.roomList", Ct)).ReadObjectAsync();
+
+        var lists = body["value"]!.AsArray();
+        lists.Select(l => l!.Str("displayName")).ShouldBe(["Annex", "HQ"]);
+        var hq = lists[1]!;
+        hq.Str("emailAddress").ShouldBe("hq@roomlists.invalid");
+        hq.Str("id").ShouldBe("roomlist-hq");
+        hq["address"]!.Str("street").ShouldBe("1 Example Street");
+        lists[0]!["address"].ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task A_room_lists_rooms_are_its_buildings_and_an_unknown_list_is_404()
+    {
+        TwoBuildings();
+
+        var hq = await (await _host.AuthorizedClient().GetAsync("/v1.0/places/HQ@roomlists.invalid/microsoft.graph.roomlist/rooms", Ct)).ReadObjectAsync();
+        var missing = await _host.AuthorizedClient().GetAsync("/v1.0/places/nowhere@roomlists.invalid/microsoft.graph.roomlist/rooms", Ct);
+        var foreign = await _host.AuthorizedClient().GetAsync("/v1.0/places/bldg1@contoso.com/microsoft.graph.roomlist/rooms", Ct);
+
+        hq["value"]!.AsArray().Select(r => r!.Str("emailAddress")).ShouldBe(["boardroom@example.com"]);
+        missing.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        foreign.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
 }

@@ -10,6 +10,10 @@ public static class MailEndpoints
     /// Maps the Mail routes onto a Graph version group (<c>/v1.0</c> and <c>/beta</c>). Read routes are owned by
     /// Phase 2 and write routes by Phase 3, each in its own folder; see docs/api-plumbing.md.
     /// </summary>
-    public static RouteGroupBuilder MapMailEndpoints(this RouteGroupBuilder graph) =>
+    public static RouteGroupBuilder MapMailEndpoints(this RouteGroupBuilder graph)
+    {
         graph.MapMailReadEndpoints().MapMailWriteEndpoints();
+        IdTranslationEndpoints.Map(graph);
+        return graph;
+    }
 }

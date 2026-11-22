@@ -6,7 +6,7 @@ namespace Nightware.Application.Mail;
 
 public static class MailServiceCollectionExtensions
 {
-    /// <summary>Registers the Mail use cases: read side (Phase 2) and write side (Phase 3).</summary>
+    /// <summary>Registers the Mail use cases: read side (Phase 2), write side (Phase 3) and id translation (phase 19).</summary>
     public static IServiceCollection AddMailUseCases(this IServiceCollection services) =>
-        services.AddMailReadUseCases().AddMailWriteUseCases();
+        services.AddMailReadUseCases().AddMailWriteUseCases().AddScoped<TranslateExchangeIds>();
 }

@@ -85,7 +85,7 @@ map a catch-all under `messages/{id}/`; Phase 4 owns `…/event`.
 | Parameter type | What it gives you |
 |---|---|
 | `ODataQuery odata` | `odata.Query` is the parsed `ItemQuery`, covering `$select $filter $orderby $top $skip $skiptoken $search $expand`. A parse failure is answered `400 invalidRequest`, naming the construct, before your handler runs. |
-| `PreferHeader prefer` | `TimeZone` and `TimeZoneLabel` for `outlook.timezone`, `BodyContentType`, `MaxPageSize` and `ReturnMinimal`. When you honour a preference, call `prefer.MarkTimeZoneApplied(http.Response)` or `MarkBodyContentTypeApplied`. |
+| `PreferHeader prefer` | `TimeZone` and `TimeZoneLabel` for `outlook.timezone`, `BodyContentType`, `MaxPageSize` and `ReturnMinimal`. When you honour a preference, call `prefer.MarkTimeZoneApplied(http.Response)` or `MarkBodyContentTypeApplied`. Any other preference is ignored, which is right for `IdType="ImmutableId"`: Nightware's ids are already immutable, and Graph documents no `Preference-Applied` for it. |
 | A DTO or `JsonObject` body | Bound with `GraphJson.Options`: case-insensitive properties (`ToRecipients`) and case-insensitive enums (`"Html"`). For PATCH, bind `JsonObject` when you must tell an absent property from `null`. |
 
 Parser behaviour:

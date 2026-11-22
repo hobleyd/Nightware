@@ -492,6 +492,14 @@ ITEM_ALIASES = [
     setup("DELETE", "/v1.0/me/messages/${movedId}", always=True),
 ]
 
+SMALL = [
+    step("rooms.room-lists.list", "GET", "/v1.0/places/microsoft.graph.roomList", save={"listMail": "value[0].emailAddress"}),
+    step("rooms.room-lists.rooms", "GET", "/v1.0/places/${listMail}/microsoft.graph.roomlist/rooms"),
+    SELF_MAIL, FIND_SELF_MAIL,
+    step("mail.translate-exchange-ids", "POST", "/v1.0/me/translateExchangeIds",
+         body={"inputIds": ["${msgId}"], "sourceIdType": "restId", "targetIdType": "restImmutableEntryId"}),
+]
+
 PHOTOS = [
     step("directory.me.photo.get", "GET", "/v1.0/me/photo"),
     step("directory.me.photo.put", "PUT", "/v1.0/me/photo/$value", binary={"photo": True, "contentType": "image/jpeg"}),
@@ -530,5 +538,5 @@ PHASES = {
     15: [("todo", TODO)],
     16: [("notifications", NOTIFICATIONS)],
     18: [("settings", SETTINGS), ("aliases", ALIASES), ("todo items", TODO_ITEMS)],
-    19: [("folders", FOLDERS), ("counts", COUNTS), ("photos", PHOTOS), ("mime", MIME), ("event upload", EVENT_UPLOAD), ("item aliases", ITEM_ALIASES)],
+    19: [("folders", FOLDERS), ("counts", COUNTS), ("photos", PHOTOS), ("mime", MIME), ("event upload", EVENT_UPLOAD), ("item aliases", ITEM_ALIASES), ("small", SMALL)],
 }
