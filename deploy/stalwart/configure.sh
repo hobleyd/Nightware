@@ -15,6 +15,8 @@
 #   5. web admin sign-in through Keycloak: the web admin's client id pinned,
 #      its code built and patched here (stalwart/webui), Stalwart's Admin role
 #      for STALWART_ADMIN_ACCOUNTS
+#      Nextcloud's sending account (__calendar__) and its XOAUTH2 key, so
+#      invitations to other domains are relayed
 #   6. mail claiming our domains only signed-in or from the trusted network;
 #      who may send to each group's list: the system Sieve scripts
 #      nightware-lists(-unauthenticated), run at RCPT (the console writes them)
@@ -93,12 +95,12 @@ fi
 call "[[\"x:Authentication/set\",{\"update\":{\"singleton\":{\"directoryId\":\"${DIR_ID}\"}}},\"c\"]]" \
   | jq -e '.methodResponses[0][1].updated' >/dev/null
 
-# ------------------------------------------- 4. trusted compose network (iMIP)
-# Nextcloud cannot SMTP-AUTH (accounts live in Keycloak, no passwords), so it
-# delivers invitations unauthenticated to port 25 like any inbound MX. Mail to
-# local recipients is accepted that way, but the spam filter would file it as
-# Junk (no SPF/DKIM for *.localhost). Skip the spam filter for the stack's own
-# Docker subnet; everything else keeps the default rule.
+# ------------------------------------------------ 4. trusted compose network
+# Keycloak mails unauthenticated to port 25 like any inbound MX (Nextcloud did
+# too before 4e signed it in). Mail to local recipients is accepted that way,
+# but the spam filter would file it as Junk (no SPF/DKIM for *.localhost). Skip
+# the spam filter for the stack's own Docker subnet; everything else keeps the
+# default rule.
 SUBNET="${DOCKER_SUBNET:-172.31.250.0/24}"
 call "$(jq -cn --arg net "$SUBNET" '[["x:MtaStageData/set",{"update":{"singleton":{
   enableSpamFilter:{"else":("is_empty(authenticated_as) && !is_ip_in_cidr(remote_ip, \u0027" + $net + "\u0027)")}}}},"c"]]')" \
@@ -277,6 +279,67 @@ if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" ]]; then
       fi
     fi
   fi
+fi
+
+# ------------------------------------------- 4e. Nextcloud's sending account
+# Nextcloud mails meeting invitations (iMIP). Unauthenticated on port 25 it is
+# just another inbound MX client, and Stalwart rightly refuses to relay that to
+# other domains ("Relay not allowed"), so external attendees never got their
+# invitations. It signs in instead, as an internal account of its own
+# (NEXTCLOUD_MAIL_USER, default __calendar__, which the console reserves).
+# Verified on 1.1.0: such an account cannot hold a password while Keycloak is
+# the default directory, and SMTP PLAIN/LOGIN with an API key fail ("Unsupported
+# credentials type for OIDC backend", 454), but XOAUTH2 with the key as bearer
+# succeeds and Stalwart then relays. Nextcloud's mailer (Symfony) tries LOGIN
+# and PLAIN before XOAUTH2, and each failure counts toward Stalwart's auth ban,
+# so port 25 offers the stack's own network XOAUTH2/OAUTHBEARER only; everyone
+# else keeps the defaults (no AUTH on 25). The key is usable from that network
+# only, written to .env as NEXTCLOUD_SMTP_API_KEY(_ID) for nextcloud/configure.sh,
+# kept while it still exists on the account and re-minted otherwise.
+CAL_USER="${NEXTCLOUD_MAIL_USER:-__calendar__}"
+CAL_ID=$(call "$(jq -cn --arg n "$CAL_USER" --arg d "$DOMAIN_ID" '[["x:Account/query",{"filter":{"name":$n,"domainId":$d}},"q"]]')" | jq -r '.methodResponses[0][1].ids[0] // empty')
+if [[ -z "$CAL_ID" ]]; then
+  log "Stalwart: creating Nextcloud's sending account ${CAL_USER}@${MAIL_DOMAIN}"
+  CAL_ID=$(call "$(jq -cn --arg n "$CAL_USER" --arg d "$DOMAIN_ID" '[["x:Account/set",{"create":{"c":{"@type":"User",name:$n,domainId:$d,description:"Nextcloud meeting invitations (not a person)"}}},"c"]]')" \
+    | jq -r '.methodResponses[0][1].created.c.id // empty')
+fi
+if [[ -z "$CAL_ID" ]]; then
+  echo "Stalwart: WARNING could not create ${CAL_USER}@${MAIL_DOMAIN}; invitations to other domains will be refused" >&2
+else
+  keys=$(call "$(jq -cn --arg a "$CAL_ID" '[["x:ApiKey/query",{"accountId":$a},"q"],["x:ApiKey/get",{"accountId":$a,"#ids":{"resultOf":"q","name":"x:ApiKey/query","path":"/ids"},"properties":["allowedIps"]},"g"]]')" \
+    | jq -c '.methodResponses[1][1].list // []')
+  current=$(jq -r --arg id "${NEXTCLOUD_SMTP_API_KEY_ID:-}" --arg net "$SUBNET" '.[] | select(.id==$id and (.allowedIps | has($net))) | .id' <<<"$keys")
+  if [[ -n "${NEXTCLOUD_SMTP_API_KEY:-}" && -n "$current" ]]; then
+    log "Stalwart: Nextcloud's sending key (${current}) is in place, usable from ${SUBNET} only"
+  else
+    log "Stalwart: minting a sending key for ${CAL_USER}@${MAIL_DOMAIN}, usable from ${SUBNET} only -> .env"
+    created=$(call "$(jq -cn --arg a "$CAL_ID" --arg net "$SUBNET" '[["x:ApiKey/set",{"accountId":$a,"create":{"k":{description:"Nextcloud SMTP (XOAUTH2)",permissions:{"@type":"Inherit"},allowedIps:{($net):true}}}},"c"]]')" \
+      | jq -c '.methodResponses[0][1].created.k // empty')
+    if [[ -n "$created" ]]; then
+      NEXTCLOUD_SMTP_API_KEY=$(jq -r .secret <<<"$created")
+      NEXTCLOUD_SMTP_API_KEY_ID=$(jq -r .id <<<"$created")
+      env_put NEXTCLOUD_SMTP_API_KEY "$NEXTCLOUD_SMTP_API_KEY"
+      env_put NEXTCLOUD_SMTP_API_KEY_ID "$NEXTCLOUD_SMTP_API_KEY_ID"
+      stale=$(jq -c --arg id "$NEXTCLOUD_SMTP_API_KEY_ID" '[.[].id | select(. != $id)]' <<<"$keys")
+      if [[ "$stale" != "[]" ]]; then
+        log "Stalwart: destroying ${CAL_USER}'s older keys ${stale}"
+        call "$(jq -cn --arg a "$CAL_ID" --argjson ids "$stale" '[["x:ApiKey/set",{"accountId":$a,"destroy":$ids},"c"]]')" >/dev/null
+      fi
+      echo "Stalwart: run nextcloud/configure.sh so Nextcloud signs in with the new key" >&2
+    else
+      echo "Stalwart: WARNING could not mint a sending key for ${CAL_USER}@${MAIL_DOMAIN}" >&2
+    fi
+  fi
+fi
+SASL=$(jq -cn --arg net "$SUBNET" '{match:{
+  "0":{if:("local_port == 25 && is_tls && is_ip_in_cidr(remote_ip, \u0027" + $net + "\u0027)"),then:"[xoauth2, oauthbearer]"},
+  "1":{if:"local_port != 25 && is_tls",then:"[plain, login, oauthbearer, xoauth2]"}},else:"false"}')
+sasl_now=$(call '[["x:MtaStageAuth/get",{"ids":["singleton"],"properties":["saslMechanisms"]},"g"]]' | jq -c '.methodResponses[0][1].list[0].saslMechanisms')
+if [[ "$(jq -S . <<<"$sasl_now")" != "$(jq -S . <<<"$SASL")" ]]; then
+  log "Stalwart: port 25 offers ${SUBNET} XOAUTH2 sign-in (Nextcloud's invitations)"
+  call "$(jq -cn --argjson s "$SASL" '[["x:MtaStageAuth/set",{"update":{"singleton":{saslMechanisms:$s}}},"c"]]')" \
+    | jq -e '.methodResponses[0][1].updated | has("singleton")' >/dev/null \
+    || echo "Stalwart: WARNING could not offer XOAUTH2 on port 25; Nextcloud cannot sign in" >&2
 fi
 
 # ----------------------------------------- 5. web admin sign-in (Keycloak)

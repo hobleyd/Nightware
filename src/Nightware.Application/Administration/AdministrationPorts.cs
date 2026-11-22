@@ -546,10 +546,10 @@ public sealed class AdministrationOptions
 
     /// <summary>
     /// Local parts never given to a person, on any domain: the console's own mail principal, the realm's
-    /// sender, and the role addresses mail systems rely on.
+    /// sender, Nextcloud's invitation sender, and the role addresses mail systems rely on.
     /// </summary>
     public ISet<string> ReservedLocalParts { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
-        "nightware-admin", "noreply", "no-reply", "calendar", "postmaster", "abuse", "hostmaster", "webmaster", "mailer-daemon", "root",
+        "nightware-admin", "__calendar__", "noreply", "no-reply", "calendar", "postmaster", "abuse", "hostmaster", "webmaster", "mailer-daemon", "root",
     };
 }

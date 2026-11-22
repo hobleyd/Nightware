@@ -161,16 +161,31 @@ fi
 
 # ------------------------------------------------------------- outgoing mail
 # iMIP invitations go to Stalwart's SMTP listener (port 25) inside the Docker
-# network. Stalwart accepts unauthenticated mail for its own local recipients
-# (normal inbound MX behaviour); see README "iMIP".
-log "Nextcloud: mail -> stalwart:25"
+# network, signed in as Stalwart's NEXTCLOUD_MAIL_USER (default __calendar__)
+# with the API key stalwart/configure.sh mints into .env (NEXTCLOUD_SMTP_API_KEY).
+# Symfony's mailer sends it over XOAUTH2, the one mechanism port 25 offers this
+# network. Signed in, Stalwart relays to other domains; without the key only
+# local attendees get invitations. See README "iMIP".
+CAL_USER="${NEXTCLOUD_MAIL_USER:-__calendar__}"
 occ config:system:set mail_smtpmode --value=smtp >/dev/null
 occ config:system:set mail_smtphost --value=stalwart >/dev/null
 occ config:system:set mail_smtpport --value=25 --type=integer >/dev/null
 occ config:system:set mail_smtpsecure --value='' >/dev/null
-occ config:system:set mail_smtpauth --value=false --type=boolean >/dev/null
-occ config:system:set mail_from_address --value=calendar >/dev/null
 occ config:system:set mail_domain --value="${MAIL_DOMAIN}" >/dev/null
+if [[ -n "${NEXTCLOUD_SMTP_API_KEY:-}" ]]; then
+  log "Nextcloud: mail -> stalwart:25 as ${CAL_USER}@${MAIL_DOMAIN}"
+  occ config:system:set mail_smtpauth --value=true --type=boolean >/dev/null
+  occ config:system:set mail_smtpname --value="${CAL_USER}@${MAIL_DOMAIN}" >/dev/null
+  OC_SMTP_KEY="$NEXTCLOUD_SMTP_API_KEY" dc exec -T -u www-data -e OC_SMTP_KEY nextcloud \
+    sh -c 'php occ config:system:set mail_smtppassword --value="$OC_SMTP_KEY"' >/dev/null
+  occ config:system:set mail_from_address --value="${CAL_USER}" >/dev/null
+else
+  echo "Nextcloud: WARNING no NEXTCLOUD_SMTP_API_KEY (run stalwart/configure.sh first); invitations reach local attendees only" >&2
+  occ config:system:set mail_smtpauth --value=false --type=boolean >/dev/null
+  occ config:system:delete mail_smtpname >/dev/null
+  occ config:system:delete mail_smtppassword >/dev/null
+  occ config:system:set mail_from_address --value=calendar >/dev/null
+fi
 # Stalwart offers STARTTLS with a self-signed certificate.
 occ config:system:set mail_smtpstreamoptions ssl verify_peer --value=false --type=boolean >/dev/null
 occ config:system:set mail_smtpstreamoptions ssl verify_peer_name --value=false --type=boolean >/dev/null

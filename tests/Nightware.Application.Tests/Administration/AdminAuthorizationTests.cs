@@ -33,6 +33,17 @@ public sealed class AdminAuthorizationTests
         AdminAuthorization.RequireEntity(Global, "e2").IsSuccess.ShouldBeTrue();
     }
 
+    [Theory]
+    [InlineData("nightware-admin@example.com")]
+    [InlineData("__calendar__@example.com")]
+    [InlineData("Postmaster@example.org")]
+    public void System_addresses_are_reserved_on_any_domain(string address) =>
+        AdminAuthorization.RequireNotReserved(AdminTestBed.Address(address), new AdministrationOptions()).Error!.Kind.ShouldBe(ErrorKind.Validation);
+
+    [Fact]
+    public void A_persons_address_is_not_reserved() =>
+        AdminAuthorization.RequireNotReserved(AdminTestBed.Address("carol@example.com"), new AdministrationOptions()).IsSuccess.ShouldBeTrue();
+
     [Fact]
     public void A_global_admin_may_manage_any_user() =>
         AdminAuthorization.RequireMayManageUser(Global, [], new AdminScope(true, new HashSet<string>())).IsSuccess.ShouldBeTrue();

@@ -542,28 +542,38 @@ replaces Talk's default public STUN server with ours.
 
 ### iMIP (meeting invitations by mail)
 
-- **Nextcloud sends with Stalwart SMTP:** `mail_smtphost=stalwart`, port 25,
-  STARTTLS with Stalwart's self-signed certificate (peer verification off),
-  **no SMTP AUTH**. SMTP AUTH is not possible because every account lives in
-  Keycloak and has no password. The envelope and `From:` are
-  `calendar@nightware.localhost` ("Alice Anderson via Nextcloud"), and
-  `Reply-To:` is the organizer.
-- **Stalwart accepts this the way any MX accepts inbound mail:** port 25
-  takes unauthenticated mail **for local recipients only**, which is not open
-  relay. The compose network has a pinned subnet (`DOCKER_SUBNET`, default
-  `172.31.250.0/24`), and `stalwart/configure.sh` sets
-  `MtaStageData.enableSpamFilter` to
-  `is_empty(authenticated_as) && !is_ip_in_cidr(remote_ip, '<DOCKER_SUBNET>')`.
-  Without that rule, invitations were filed in **Junk** (no SPF or DKIM for
-  `*.localhost`). Mail from the trusted subnet now lands in the Inbox.
+- **Nextcloud sends with Stalwart SMTP, signed in:** `mail_smtphost=stalwart`,
+  port 25, STARTTLS with Stalwart's certificate (peer verification off), as
+  Stalwart's internal account `__calendar__@<MAIL_DOMAIN>`
+  (`NEXTCLOUD_MAIL_USER`; the console reserves the name). The envelope and
+  `From:` are that address ("Alice Anderson via Nextcloud"), and `Reply-To:` is
+  the organizer.
+- **Why XOAUTH2 with an API key:** with Keycloak as Stalwart's default
+  directory an internal account can't hold a password, and SMTP PLAIN/LOGIN
+  with an API key fail (`Unsupported credentials type for OIDC backend`). XOAUTH2
+  with the key as the bearer token succeeds. `stalwart/configure.sh` creates
+  the account, mints its key (usable from `DOCKER_SUBNET` only) into `.env` as
+  `NEXTCLOUD_SMTP_API_KEY`/`_ID` (kept while it exists, re-minted otherwise),
+  and makes port 25 offer `DOCKER_SUBNET` XOAUTH2/OAUTHBEARER **only**:
+  Nextcloud's mailer (Symfony) tries LOGIN and PLAIN first, and each failure
+  would count toward Stalwart's auth ban. Everyone else gets no AUTH on 25, as
+  before. `nextcloud/configure.sh` then sets `mail_smtpauth`, `mail_smtpname`
+  and `mail_smtppassword`.
+- **Signed in, Stalwart relays to other domains.** Unauthenticated (before
+  2026-11-23, or without the key) Nextcloud was just another inbound client:
+  local attendees got invitations, external ones were refused ("Relay not
+  allowed"). `MtaStageData.enableSpamFilter` still skips the stack's subnet
+  (`is_empty(authenticated_as) && !is_ip_in_cidr(remote_ip, '<DOCKER_SUBNET>')`),
+  for Keycloak's unauthenticated mail.
 - Nextcloud mails **every** attendee, Nextcloud users included. It also
   delivers iTIP into an attendee's Nextcloud scheduling inbox when that
   attendee is a Nextcloud user. Invitations arrive as `multipart/mixed` with
   a `text/calendar` part (`METHOD:REQUEST`).
 - `smoke.sh` tests this end to end. Alice PUTs an event inviting bob and the
   Boardroom, and the script polls bob's Inbox with JMAP for the invitation.
-- Mail to external domains would be relayed by Stalwart's normal outbound
-  queue. That is not configured or tested here (no outbound port 25).
+- Mail to external domains goes out through Stalwart's normal outbound queue
+  (live delivers on port 25; SPF for the mail domain must list the host's
+  public address).
 
 ## Service-account fallback
 
