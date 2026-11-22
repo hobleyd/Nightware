@@ -12,6 +12,9 @@ public sealed class CalendarCollectionUseCaseTests
     private static readonly EventCalendar Work = new(new CalendarId("c2"), "Work") { IsRemovable = true };
     private readonly ICalendarStore _store = Substitute.For<ICalendarStore>();
 
+    private static Nightware.Application.Calendar.OnlineMeetings.OnlineMeetingRooms NoRooms =>
+        new(Substitute.For<Nightware.Application.Calendar.OnlineMeetings.IOnlineMeetings>(), Substitute.For<Nightware.Application.Calendar.ICalendarReader>());
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     public CalendarCollectionUseCaseTests() =>
@@ -71,11 +74,11 @@ public sealed class CalendarCollectionUseCaseTests
         var events = Substitute.For<ICalendarEventsIn>();
         var start = DateTimeOffset.UnixEpoch;
 
-        (await new CalendarEventsIn(events).ViewAsync(Me, Work.Id, start, start.AddYears(11), ItemQuery.Default, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
-        (await new CalendarEventsIn(events).InstancesAsync(Me, new EventId("s"), start, start.AddYears(11), ItemQuery.Default, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
-        await new CalendarEventsIn(events).InstancesAsync(Me, new EventId("s"), start, start.AddDays(7), ItemQuery.Default, Ct);
+        (await new CalendarEventsIn(events, NoRooms).ViewAsync(Me, Work.Id, start, start.AddYears(11), ItemQuery.Default, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await new CalendarEventsIn(events, NoRooms).InstancesAsync(Me, new EventId("s"), start, start.AddYears(11), ItemQuery.Default, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        await new CalendarEventsIn(events, NoRooms).InstancesAsync(Me, new EventId("s"), start, start.AddDays(7), ItemQuery.Default, Ct);
         await events.Received(1).InstancesAsync(Me, new EventId("s"), start, start.AddDays(7), ItemQuery.Default, Ct);
-        await new CalendarEventsIn(events).ListAsync(Me, Work.Id, ItemQuery.Default, Ct);
+        await new CalendarEventsIn(events, NoRooms).ListAsync(Me, Work.Id, ItemQuery.Default, Ct);
         await events.Received(1).ListAsync(Me, Work.Id, ItemQuery.Default, Ct);
     }
 

@@ -123,5 +123,7 @@ internal sealed class DavCalendarWriter(
             IsReminderOn = newEvent.IsReminderOn,
             ReminderMinutesBeforeStart = newEvent.ReminderMinutesBeforeStart,
             Categories = newEvent.Categories,
+            IsOnlineMeeting = newEvent.OnlineMeetingUrl is not null,
+            OnlineMeetingUrl = newEvent.OnlineMeetingUrl,
         };
 }

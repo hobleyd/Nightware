@@ -55,6 +55,24 @@ public sealed class DavCalendarWriterTests : IDisposable
     }
 
     [Fact]
+    public async Task A_meeting_rooms_join_url_is_stored_as_the_events_url()
+    {
+        _h.Serve("PUT", "/remote.php/dav/calendars/alice/personal/*", 201);
+        await _h.Writer.CreateAsync(AliceMailbox, Meeting() with { IsOnlineMeeting = true, OnlineMeetingUrl = "https://cloud.example.com/cloud/call/pv8f59mw" }, Ct);
+
+        BodyOf(_h.Requests("PUT").ShouldHaveSingleItem()).ShouldContain("URL:https://cloud.example.com/cloud/call/pv8f59mw");
+    }
+
+    [Fact]
+    public async Task Asking_to_be_online_without_a_room_stores_no_url()
+    {
+        _h.Serve("PUT", "/remote.php/dav/calendars/alice/personal/*", 201);
+        await _h.Writer.CreateAsync(AliceMailbox, Meeting() with { IsOnlineMeeting = true }, Ct);
+
+        BodyOf(_h.Requests("PUT").ShouldHaveSingleItem()).ShouldNotContain("\r\nURL");
+    }
+
+    [Fact]
     public async Task An_appointment_without_attendees_has_no_organizer()
     {
         _h.Serve("PUT", "/remote.php/dav/calendars/alice/personal/*", 201);

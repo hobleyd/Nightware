@@ -30,7 +30,7 @@ public static class DavAdapterServiceCollectionExtensions
 
         // Each feature registers its ports from its own folder, so phases never edit this file.
         return services
-            .AddDavCalendar()
+            .AddDavCalendar(configuration)
             .AddDavRooms()
             .AddDavContacts()
             .AddDavDirectory()

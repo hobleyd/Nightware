@@ -110,10 +110,13 @@ public sealed record EventWriteDto
 
     public IReadOnlyList<string>? Categories { get; init; }
 
-    /// <summary>Accepted and ignored: the backend cannot create Teams meetings.</summary>
+    /// <summary>
+    /// <c>true</c> gives the event a meeting room (Nextcloud Talk) whose link becomes <c>onlineMeeting.joinUrl</c>;
+    /// <c>false</c> is ignored, as Graph ignores it once a meeting is online.
+    /// </summary>
     public bool? IsOnlineMeeting { get; init; }
 
-    /// <summary>Accepted and ignored (see <see cref="IsOnlineMeeting"/>).</summary>
+    /// <summary>Accepted and ignored: every online meeting is a Talk room, whatever provider is named.</summary>
     public string? OnlineMeetingProvider { get; init; }
 }
 

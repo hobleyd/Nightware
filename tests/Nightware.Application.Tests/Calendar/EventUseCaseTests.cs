@@ -1,5 +1,6 @@
 using Nightware.Application.Calendar;
 using Nightware.Application.Calendar.Events;
+using Nightware.Application.Calendar.OnlineMeetings;
 using Nightware.Application.Common.Query;
 using Nightware.Domain.Calendar;
 using Nightware.Domain.Kernel;
@@ -15,6 +16,9 @@ public sealed class EventUseCaseTests
 
     private readonly ICalendarReader _reader = Substitute.For<ICalendarReader>();
     private readonly ICalendarWriter _writer = Substitute.For<ICalendarWriter>();
+    private readonly IOnlineMeetings _meetings = Substitute.For<IOnlineMeetings>();
+
+    private OnlineMeetingRooms Rooms => new(_meetings, _reader);
 
     private static DateTimeTimeZone Sydney(int hour) => new(new DateTime(2026, 6, 10, hour, 0, 0), "Australia/Sydney");
 
@@ -79,7 +83,7 @@ public sealed class EventUseCaseTests
         var newEvent = new NewEvent("Review", Sydney(9), Sydney(10)) { Attendees = [new Attendee(new EmailAddress("bob@example.com"), AttendeeType.Required, new ResponseStatus(ResponseType.None))] };
         _writer.CreateAsync(Me, newEvent, Ct).Returns(Event());
 
-        (await new CreateEvent(_writer).ExecuteAsync(Me, newEvent, Ct)).Value.Id.ShouldBe(Id);
+        (await new CreateEvent(_writer, Rooms).ExecuteAsync(Me, newEvent, Ct)).Value.Id.ShouldBe(Id);
     }
 
     public static TheoryData<NewEvent> InvalidNewEvents() => new()
@@ -94,7 +98,7 @@ public sealed class EventUseCaseTests
     [MemberData(nameof(InvalidNewEvents))]
     public async Task Create_rejects_invalid_events_without_writing(NewEvent newEvent)
     {
-        (await new CreateEvent(_writer).ExecuteAsync(Me, newEvent, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await new CreateEvent(_writer, Rooms).ExecuteAsync(Me, newEvent, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
         await _writer.DidNotReceiveWithAnyArgs().CreateAsync(default, null!, Ct);
     }
 
@@ -104,13 +108,13 @@ public sealed class EventUseCaseTests
         // 09:00 Sydney is 23:00 UTC the day before: an end in UTC after it is fine.
         var newEvent = new NewEvent("x", Sydney(9), DateTimeTimeZone.Utc(new DateTimeOffset(2026, 6, 9, 23, 30, 0, TimeSpan.Zero)));
         _writer.CreateAsync(Me, newEvent, Ct).Returns(Event());
-        (await new CreateEvent(_writer).ExecuteAsync(Me, newEvent, Ct)).IsSuccess.ShouldBeTrue();
+        (await new CreateEvent(_writer, Rooms).ExecuteAsync(Me, newEvent, Ct)).IsSuccess.ShouldBeTrue();
     }
 
     [Fact]
     public async Task Update_validates_only_what_the_patch_carries()
     {
-        var update = new UpdateEvent(_writer);
+        var update = new UpdateEvent(_writer, Rooms);
         _writer.UpdateAsync(Me, Id, Arg.Any<EventPatch>(), Ct).Returns(Event());
 
         (await update.ExecuteAsync(Me, Id, new EventPatch { Start = Sydney(9) }, Ct)).IsSuccess.ShouldBeTrue();
@@ -126,6 +130,6 @@ public sealed class EventUseCaseTests
     public async Task Delete_passes_through()
     {
         _writer.DeleteAsync(Me, Id, Ct).Returns(Result.Success());
-        (await new DeleteEvent(_writer).ExecuteAsync(Me, Id, Ct)).IsSuccess.ShouldBeTrue();
+        (await new DeleteEvent(_writer, Rooms).ExecuteAsync(Me, Id, Ct)).IsSuccess.ShouldBeTrue();
     }
 }

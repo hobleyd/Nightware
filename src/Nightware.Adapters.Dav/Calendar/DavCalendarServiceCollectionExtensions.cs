@@ -1,13 +1,15 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Nightware.Adapters.Dav.Calendar.Talk;
 using Nightware.Application.Calendar;
 
 namespace Nightware.Adapters.Dav.Calendar;
 
 internal static class DavCalendarServiceCollectionExtensions
 {
-    /// <summary>Registers the calendar, scheduling and free/busy ports (scoped, like the DAV client they use).</summary>
-    public static IServiceCollection AddDavCalendar(this IServiceCollection services)
+    /// <summary>Registers the calendar, scheduling, free/busy and online-meeting ports (scoped, like the DAV client they use).</summary>
+    public static IServiceCollection AddDavCalendar(this IServiceCollection services, IConfiguration configuration)
     {
         services.TryAddScoped<DavCalendarScopes>();
         services.TryAddScoped<DavEventResources>();
@@ -29,6 +31,6 @@ internal static class DavCalendarServiceCollectionExtensions
         services.TryAddScoped<Application.Calendar.Calendars.ICalendarPermissionStore, DavCalendarPermissionStore>();
         services.TryAddScoped<ISchedulingActions, DavSchedulingActions>();
         services.TryAddScoped<IFreeBusyReader, DavFreeBusyReader>();
-        return services;
+        return services.AddDavTalk(configuration);
     }
 }

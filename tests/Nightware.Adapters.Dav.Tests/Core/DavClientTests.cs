@@ -476,6 +476,32 @@ public sealed class DavClientTests : IDisposable
     }
 
     [Fact]
+    public async Task Ocs_send_posts_a_form_and_takes_any_2xx_ocs_status()
+    {
+        Server.Given(Request.Create().WithPath("/ocs/v2.php/apps/spreed/api/v4/room").UsingPost())
+            .RespondWith(Response.Create().WithStatusCode(201).WithHeader("Content-Type", "application/json")
+                .WithBody("{\"ocs\":{\"meta\":{\"status\":\"ok\",\"statuscode\":201,\"message\":\"OK\"},\"data\":{\"token\":\"abcd1234\"}}}"));
+
+        var result = await _dav.Client.OcsSendAsync(HttpMethod.Post, "apps/spreed/api/v4/room", new Dictionary<string, string> { ["roomName"] = "Q3 review & plan" }, Ct);
+
+        result.Value.GetProperty("token").GetString().ShouldBe("abcd1234");
+        Header("OCS-APIRequest").ShouldBe("true");
+        Header("Content-Type").ShouldStartWith("application/x-www-form-urlencoded");
+        LastRequest.RequestMessage!.Body.ShouldBe("roomName=Q3+review+%26+plan");
+        LastRequest.RequestMessage.Query!["format"].ShouldBe(["json"]);
+    }
+
+    [Fact]
+    public async Task Ocs_send_maps_failures_and_refuses_paths_outside_the_root()
+    {
+        Server.Given(Request.Create().WithPath("/ocs/v2.php/apps/spreed/api/v4/room/gone1234").UsingDelete())
+            .RespondWith(Response.Create().WithStatusCode(404).WithBody("{\"ocs\":{\"meta\":{\"statuscode\":404}}}"));
+
+        (await _dav.Client.OcsSendAsync(HttpMethod.Delete, "apps/spreed/api/v4/room/gone1234", null, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        (await _dav.Client.OcsSendAsync(HttpMethod.Post, "../index.php", null, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+    }
+
+    [Fact]
     public async Task Ocs_errors_map()
     {
         Server.Given(Request.Create().WithPath("/ocs/v2.php/apps/x").UsingGet())

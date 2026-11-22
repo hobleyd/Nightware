@@ -2,7 +2,8 @@
 # Configure Nextcloud with occ (idempotent):
 #   - apps: calendar, contacts, tasks, calendar_resource_management, user_oidc,
 #     richdocuments (Nextcloud Office, on the collabora service), groupfolders
-#     (Team folders: the admin console makes one per group that asks for it)
+#     (Team folders: the admin console makes one per group that asks for it),
+#     spreed (Talk: the room behind an event's isOnlineMeeting, phase 22)
 #   - user_oidc provider "keycloak" with bearer-token validation, so
 #     CalDAV/CardDAV/WebDAV/OCS accept Keycloak access tokens whose aud
 #     contains "nextcloud" (the provider's client id)
@@ -16,7 +17,7 @@ wait_for "nextcloud installed" bash -c "docker compose -p '${COMPOSE_PROJECT_NAM
 
 # --------------------------------------------------------------------- apps
 # activity: the façade's drive delta reads its stream (ADR 0008 D5); a default install has it, but make sure.
-for app in calendar contacts tasks user_oidc calendar_resource_management richdocuments groupfolders activity; do
+for app in calendar contacts tasks user_oidc calendar_resource_management richdocuments groupfolders activity spreed; do
   if occ app:list --output=json | jq -e --arg a "$app" '.enabled | has($a)' >/dev/null; then
     log "Nextcloud: app ${app} enabled"
   else

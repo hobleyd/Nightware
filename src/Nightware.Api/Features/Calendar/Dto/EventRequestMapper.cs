@@ -47,6 +47,7 @@ public static class EventRequestMapper
             IsReminderOn = body.IsReminderOn ?? true,
             ReminderMinutesBeforeStart = body.ReminderMinutesBeforeStart ?? 15,
             Categories = body.Categories ?? [],
+            IsOnlineMeeting = body.IsOnlineMeeting == true,
         };
     }
 
@@ -87,6 +88,7 @@ public static class EventRequestMapper
             IsReminderOn = body.IsReminderOn,
             ReminderMinutesBeforeStart = body.ReminderMinutesBeforeStart,
             Categories = body.Categories,
+            IsOnlineMeeting = body.IsOnlineMeeting,
         };
     }
 

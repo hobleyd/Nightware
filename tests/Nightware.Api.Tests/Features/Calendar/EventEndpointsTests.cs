@@ -203,6 +203,8 @@ public sealed class EventEndpointsTests : IAsyncLifetime
         sent.Attendees.Select(a => a.Type).ShouldBe([AttendeeType.Required, AttendeeType.Resource]);
         sent.Recurrence!.Range.NumberOfOccurrences.ShouldBe(3);
         sent.Recurrence.Pattern.DaysOfWeek.ShouldBe([DayOfWeek.Wednesday]);
+        sent.IsOnlineMeeting.ShouldBeTrue();
+        sent.OnlineMeetingUrl.ShouldBeNull("no Talk is configured in the test host");
     }
 
     [Theory]
@@ -238,6 +240,20 @@ public sealed class EventEndpointsTests : IAsyncLifetime
         sent.Attendees.ShouldBeEmpty();
         sent.Recurrence.ShouldBeNull();
         sent.ClearRecurrence.ShouldBeFalse("an absent recurrence is left alone");
+        sent.IsOnlineMeeting.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Patch_passes_is_online_meeting_through()
+    {
+        EventPatch? sent = null;
+        _writer.UpdateAsync(new MailboxRef("me@example.com"), Id, Arg.Do<EventPatch>(p => sent = p), Arg.Any<CancellationToken>()).Returns(Review());
+
+        var response = await _host.AuthorizedClient().PatchAsync("/v1.0/me/events/ev-1",
+            new StringContent("""{"isOnlineMeeting":true,"onlineMeetingProvider":"teamsForBusiness"}""", Encoding.UTF8, "application/json"), Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        sent!.IsOnlineMeeting.ShouldBe(true);
     }
 
     [Fact]

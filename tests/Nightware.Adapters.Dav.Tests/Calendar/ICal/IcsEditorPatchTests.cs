@@ -48,6 +48,25 @@ public sealed class IcsEditorPatchTests
     }
 
     [Fact]
+    public void A_new_rooms_join_url_becomes_the_events_url_without_a_reschedule()
+    {
+        var edited = _editor.ApplyPatch(Weekly, new EventPatch { IsOnlineMeeting = true, OnlineMeetingUrl = "https://cloud.example.com/cloud/call/pv8f59mw" }, null, Alice).Value;
+
+        var master = Master(edited);
+        master.OnlineMeetingUrl.ShouldBe("https://cloud.example.com/cloud/call/pv8f59mw");
+        master.IsOnlineMeeting.ShouldBeTrue();
+        master.Sequence.ShouldBe(Master(Weekly).Sequence);
+    }
+
+    [Fact]
+    public void Asking_to_be_online_without_a_room_leaves_the_url_alone()
+    {
+        var edited = _editor.ApplyPatch(Weekly, new EventPatch { IsOnlineMeeting = true, OnlineMeetingUrl = "not a url" }, null, Alice).Value;
+
+        Master(edited).OnlineMeetingUrl.ShouldBe(Master(Weekly).OnlineMeetingUrl);
+    }
+
+    [Fact]
     public void Resending_the_stored_times_in_another_zone_changes_nothing()
     {
         // NightMail's full edit resends start/end in the device's zone: 09:30 Berlin is 19:30 Sydney.

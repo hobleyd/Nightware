@@ -44,7 +44,7 @@ public sealed class SchedulingUseCaseTests
     public async Task Cancel_passes_through_with_an_empty_comment_as_none()
     {
         _scheduling.CancelAsync(Me, Id, null, Ct).Returns(Result.Success());
-        (await new CancelEvent(_scheduling).ExecuteAsync(Me, Id, string.Empty, Ct)).IsSuccess.ShouldBeTrue();
+        (await new CancelEvent(_scheduling, new Nightware.Application.Calendar.OnlineMeetings.OnlineMeetingRooms(Substitute.For<Nightware.Application.Calendar.OnlineMeetings.IOnlineMeetings>(), Substitute.For<ICalendarReader>())).ExecuteAsync(Me, Id, string.Empty, Ct)).IsSuccess.ShouldBeTrue();
     }
 
     [Fact]

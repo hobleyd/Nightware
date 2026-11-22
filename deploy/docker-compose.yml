@@ -469,6 +469,9 @@ services:
       Discovery__FilesBaseUrls__0: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/cloud
       # Collabora's service root (net.service_root) applies internally too.
       Collabora__BaseUrl: http://collabora:9980/office/
+      # Phase 22: isOnlineMeeting opens a Nextcloud Talk room; its join URL is
+      # this public Nextcloud URL + call/{token}. Unset: no meeting rooms.
+      Talk__PublicBaseUrl: https://${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/cloud/
       # Caddy is the only proxy; trust X-Forwarded-* from this network alone.
       ForwardedHeaders__KnownNetworks__0: ${DOCKER_SUBNET:-172.31.250.0/24}
       # The NightMail web build calls discovery and Graph cross-origin.

@@ -267,6 +267,11 @@ public sealed partial class IcsEditor
         {
             vevent.Categories = categories.Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim()).Distinct(StringComparer.Ordinal).ToList();
         }
+
+        if (patch.OnlineMeetingUrl is { } url && Uri.TryCreate(url, UriKind.Absolute, out var meetingUri))
+        {
+            vevent.Url = meetingUri;
+        }
     }
 
     /// <summary>Graph has one reminder: it maps to the first VALARM; further alarms are left alone unless reminders are turned off.</summary>

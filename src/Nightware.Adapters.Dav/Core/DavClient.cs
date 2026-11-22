@@ -329,7 +329,7 @@ public sealed class DavClient : IDavClient
             }
 
             if (ocs.TryGetProperty("meta", out var meta) && meta.TryGetProperty("statuscode", out var statusCode)
-                && statusCode.TryGetInt32(out var code) && code is not (100 or 200))
+                && statusCode.TryGetInt32(out var code) && code is not (100 or (>= 200 and < 300)))
             {
                 // The request succeeded, so the credential is cached and its strategy known.
                 var credential = await GetCredentialAsync(cancellationToken).ConfigureAwait(false);

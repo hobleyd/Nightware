@@ -25,6 +25,9 @@ public sealed record NewEvent(string? Subject, DateTimeTimeZone Start, DateTimeT
 
     public bool IsOnlineMeeting { get; init; }
 
+    /// <summary>The meeting room's join URL, once one is opened for the event (iCalendar <c>URL</c>).</summary>
+    public string? OnlineMeetingUrl { get; init; }
+
     public IReadOnlyList<string> Categories { get; init; } = [];
 
     public string? TransactionId { get; init; }
@@ -64,6 +67,15 @@ public sealed record EventPatch
     public int? ReminderMinutesBeforeStart { get; init; }
 
     public IReadOnlyList<string>? Categories { get; init; }
+
+    /// <summary>
+    /// Graph <c>isOnlineMeeting</c>. Only <c>true</c> does anything: an event that has no meeting room gets one.
+    /// As in Graph, an online meeting stays online.
+    /// </summary>
+    public bool? IsOnlineMeeting { get; init; }
+
+    /// <summary>A join URL to store on the event (iCalendar <c>URL</c>): set when a room was opened for this change.</summary>
+    public string? OnlineMeetingUrl { get; init; }
 
     /// <summary>True when the change alters timing, so attendees must be re-invited (SEQUENCE bump).</summary>
     public bool ChangesSchedule => Start is not null || End is not null || IsAllDay is not null || Recurrence is not null || ClearRecurrence;

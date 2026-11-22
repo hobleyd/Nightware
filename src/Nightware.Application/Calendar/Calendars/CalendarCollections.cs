@@ -160,8 +160,11 @@ public sealed class ListGroupCalendars(ICalendarStore store)
             : Error.NotFound("The specified calendar group could not be found.");
 }
 
-/// <summary>Graph <c>GET calendars/{id}/events</c> and <c>calendarView</c>, and <c>POST calendars/{id}/events</c>.</summary>
-public sealed class CalendarEventsIn(ICalendarEventsIn events)
+/// <summary>
+/// Graph <c>GET calendars/{id}/events</c> and <c>calendarView</c>, and <c>POST calendars/{id}/events</c> (an online
+/// meeting gets its room first, as <see cref="Events.CreateEvent"/>'s does).
+/// </summary>
+public sealed class CalendarEventsIn(ICalendarEventsIn events, OnlineMeetings.OnlineMeetingRooms rooms)
 {
     public Task<Result<Page<CalendarEvent>>> ListAsync(MailboxRef mailbox, CalendarId calendar, ItemQuery query, CancellationToken cancellationToken) =>
         events.ListAsync(mailbox, calendar, query, cancellationToken);
@@ -171,8 +174,17 @@ public sealed class CalendarEventsIn(ICalendarEventsIn events)
             ? Task.FromResult<Result<Page<CalendarEvent>>>(tooLong)
             : events.CalendarViewAsync(mailbox, calendar, start, end, query, cancellationToken);
 
-    public Task<Result<CalendarEvent>> CreateAsync(MailboxRef mailbox, CalendarId calendar, NewEvent newEvent, CancellationToken cancellationToken) =>
-        events.CreateAsync(mailbox, calendar, newEvent, cancellationToken);
+    public async Task<Result<CalendarEvent>> CreateAsync(MailboxRef mailbox, CalendarId calendar, NewEvent newEvent, CancellationToken cancellationToken)
+    {
+        var online = await rooms.OpenForAsync(newEvent, cancellationToken).ConfigureAwait(false);
+        var created = await events.CreateAsync(mailbox, calendar, online, cancellationToken).ConfigureAwait(false);
+        if (!created.IsSuccess)
+        {
+            await rooms.DiscardAsync(newEvent, online, cancellationToken).ConfigureAwait(false);
+        }
+
+        return created;
+    }
 
     public Task<Result<Page<CalendarEvent>>> InstancesAsync(MailboxRef mailbox, EventId series, DateTimeOffset start, DateTimeOffset end, ItemQuery query, CancellationToken cancellationToken) =>
         CalendarViewLimits.Check(start, end) is { } tooLong

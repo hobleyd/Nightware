@@ -12,6 +12,7 @@ public static class CalendarServiceCollectionExtensions
     /// <summary>Registers the Calendar use cases.</summary>
     public static IServiceCollection AddCalendarUseCases(this IServiceCollection services)
     {
+        services.TryAddScoped<OnlineMeetings.OnlineMeetingRooms>();
         services.TryAddScoped<GetCalendarView>();
         services.TryAddScoped<GetEvent>();
         services.TryAddScoped<ListEvents>();
