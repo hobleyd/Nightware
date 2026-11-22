@@ -4,7 +4,7 @@
 #   - fills each secret whose line is absent or empty with a random value: the
 #     façade's root secret NIGHTWARE_DELTA_LINK_KEY, the admin and database
 #     passwords, the Keycloak client secrets, the admin console's own
-#     backend credentials, Grafana's, and the Talk backend's three secrets;
+#     backend credentials, Grafana's, and the Talk backend's four secrets;
 #   - adds PUBLIC_HOST and MAIL_DOMAIN from a pre-single-host BASE_DOMAIN.
 # A non-empty value is never replaced. A secret still holding a value this
 # repository once published only gets a warning: the backends stored it when
@@ -83,7 +83,7 @@ published() {
 for key in KEYCLOAK_ADMIN_PASSWORD KEYCLOAK_DB_PASSWORD NIGHTWARE_API_CLIENT_SECRET NIGHTWARE_DEV_CLIENT_SECRET \
            NEXTCLOUD_OIDC_CLIENT_SECRET STALWART_ADMIN_PASSWORD NEXTCLOUD_ADMIN_PASSWORD NEXTCLOUD_DB_PASSWORD \
            NIGHTWARE_ADMIN_CLIENT_SECRET NEXTCLOUD_PROVISIONING_PASSWORD NIGHTWARE_GRAFANA_CLIENT_SECRET GRAFANA_ADMIN_PASSWORD \
-           SUBSCRIPTIONS_DB_PASSWORD TALK_TURN_SECRET TALK_SIGNALING_SECRET TALK_INTERNAL_SECRET; do
+           SUBSCRIPTIONS_DB_PASSWORD TALK_TURN_SECRET TALK_SIGNALING_SECRET TALK_INTERNAL_SECRET TALK_RECORDING_SECRET; do
   value=$(value_of "$key")
   if [[ -z "$value" ]]; then
     put "$key" "$(openssl rand -hex 24)"

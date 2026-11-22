@@ -4,7 +4,8 @@
 #     richdocuments (Nextcloud Office, on the collabora service), groupfolders
 #     (Team folders: the admin console makes one per group that asks for it),
 #     spreed (Talk: the room behind an event's isOnlineMeeting, phase 22)
-#   - Talk's signaling server and TURN/STUN: the talk service
+#   - Talk's signaling server and TURN/STUN (the talk service), and its
+#     call recording server (talk-recording)
 #   - user_oidc provider "keycloak" with bearer-token validation, so
 #     CalDAV/CardDAV/WebDAV/OCS accept Keycloak access tokens whose aud
 #     contains "nextcloud" (the provider's client id)
@@ -124,6 +125,11 @@ occ talk:stun:list --output=json | jq -e --arg s "$TURN_HOST" 'index($s)' >/dev/
 occ talk:stun:list --output=json | jq -r --arg s "$TURN_HOST" '.[]? | select(. != $s)' | while IFS= read -r stun; do
   occ talk:stun:delete "$stun" </dev/null >/dev/null
 done
+# Call recording: the talk-recording service. Talk has no occ command for its
+# recording servers; the admin page stores this JSON, which is set whole.
+log "Nextcloud: Talk -> recording server http://talk-recording:1234"
+occ config:app:set spreed recording_servers --type=array --value="$(jq -cn --arg s "$TALK_RECORDING_SECRET" \
+  '{servers: [{server: "http://talk-recording:1234", verify: true}], secret: $s}')" >/dev/null
 
 # ------------------------------------------------------ brute-force allow-list
 # The façade reads public shares anonymously (/shares in Nightware), so every

@@ -43,6 +43,7 @@ volumes:
   nextcloud-data:
   admin-keys:
   grafana-data:
+  talk-recordings:
 
 services:
   caddy:
@@ -339,6 +340,42 @@ services:
       - /conf
       - /tmp
       - /opt/eturnal/run
+    healthcheck:
+      test: ["CMD", "/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks: [nightware]
+
+  # Call recording: Talk's recording server, Nextcloud AIO's bundle (same tag
+  # as talk). Nextcloud asks it to record at http://talk-recording:1234
+  # (nextcloud/configure.sh registers it); it opens the call in a headless
+  # Firefox as an internal client of the signaling server, captures screen and
+  # audio with ffmpeg into /tmp, and uploads the file back through Caddy to
+  # the starter's Talk/Recording/{token}/ folder. No port is published.
+  talk-recording:
+    <<: *restart
+    image: ghcr.io/nextcloud-releases/aio-talk-recording:20261119_161514
+    environment:
+      # Its one backend, matched exactly against the URL Talk sends with each
+      # request (Talk-Recording-Backend): Nextcloud's public URL, /cloud
+      # included. The recorder's Firefox opens calls under it.
+      NC_DOMAIN: ${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}/cloud
+      # The signaling server, as registered with Talk:
+      # https://${HPB_DOMAIN}/standalone-signaling/ (HPB_PATH, the default).
+      HPB_DOMAIN: ${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}
+      RECORDING_SECRET: ${TALK_RECORDING_SECRET:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
+      INTERNAL_SECRET: ${TALK_INTERNAL_SECRET:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
+      SKIP_VERIFY: ${TALK_SKIP_CERT_VERIFY:-false}
+    volumes:
+      # Recordings in progress (a long one is large; not tmpfs, so not in RAM).
+      # Emptied at every start; each file is removed once uploaded.
+      - talk-recordings:/tmp
+    tmpfs:
+      - /conf
+    # Firefox renders the call in shared memory.
+    shm_size: 2g
     healthcheck:
       test: ["CMD", "/healthcheck.sh"]
       interval: 30s

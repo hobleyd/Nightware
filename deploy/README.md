@@ -13,6 +13,7 @@ backend:
 | `/cloud/` | Nextcloud: CalDAV/CardDAV/WebDAV/OCS (+ Postgres, Redis, cron) | `nextcloud:35.0.3-apache`, `redis:8.6.8-alpine` |
 | `/office/` | Collabora Online (Nextcloud Office) | `collabora/code:26.04.5.2.1` |
 | `/standalone-signaling/`, and `${TALK_TURN_HOST}:3478` tcp+udp | Talk's High-Performance Backend (signaling, Janus, NATS) and TURN/STUN (eturnal) | `ghcr.io/nextcloud-releases/aio-talk:20261119_161514` |
+| (internal only, `talk-recording:1234`) | Talk's call recording server (headless Firefox + ffmpeg) | `ghcr.io/nextcloud-releases/aio-talk-recording:20261119_161514` |
 | `/graph/` and `/.well-known/nightware` | Nightware API (`api` profile) | built from `src/Nightware.Api/Dockerfile` |
 | `/console/` | Nightware admin console (`api` profile) | built from `src/Nightware.Admin/Dockerfile` |
 | (all of the above) | Caddy reverse proxy, TLS | `caddy:2.11.9-alpine` |
@@ -514,7 +515,8 @@ are involved, because `*.localhost` names do not work between containers:
 An event created with `isOnlineMeeting` gets a Nextcloud Talk room (phase 22,
 `docs/phases/phase-22-online-meetings.md`). Calls go through the `talk`
 service, Nextcloud AIO's bundle of Talk's High-Performance Backend and a TURN
-server; `nextcloud/configure.sh` registers both with Talk on every run, and
+server, and calls are recorded by the `talk-recording` service;
+`nextcloud/configure.sh` registers all three with Talk on every run, and
 replaces Talk's default public STUN server with ours.
 
 | Who | Calls | Configured by |
@@ -523,6 +525,8 @@ replaces Talk's default public STUN server with ours.
 | Nextcloud (room notifications, signed) | `https://${PUBLIC_HOST}/standalone-signaling/api/v1/room/…`, through Caddy's alias | the same; the shared `TALK_SIGNALING_SECRET` |
 | The signaling server (ticket checks) | the Nextcloud URL the client names, e.g. `https://${PUBLIC_HOST}/cloud/…` | `NC_DOMAIN`: its backend list |
 | Clients and Janus (media) | TURN at `${TALK_TURN_HOST}:3478` (Janus: `talk:3478`, its own container) | `talk:turn:add` / `talk:stun:add`; `TALK_TURN_SECRET` |
+| Nextcloud (start/stop a recording, signed) | `http://talk-recording:1234` | app config `spreed recording_servers` (Talk has no occ command for it); the shared `TALK_RECORDING_SECRET` |
+| The recording server (status, upload) and its Firefox (the call page) | `https://${PUBLIC_HOST}/cloud`, through Caddy's alias | its `NC_DOMAIN`; it joins the call on the signaling server as an internal client (`TALK_INTERNAL_SECRET`) |
 
 - Talk signs each room notification with the URL Nextcloud believes it has:
   the public one for requests through Caddy, `http://nextcloud/` for the
@@ -539,11 +543,36 @@ replaces Talk's default public STUN server with ours.
   attempt (seen live 2026-11-23).
 - Docker Desktop and colima on macOS don't forward UDP from the host reliably:
   on this stack TURN over TCP works from the Mac, UDP only from containers.
+- **`PUBLIC_HOST` must not end in `.localhost` for Talk.** curl resolves
+  `*.localhost` to loopback without asking DNS, so inside the containers
+  Nextcloud can't reach the signaling server: creating a room fails with a
+  500 (and the recorder, which calls back the same way, would fail too). Use another name (say
+  `nightware.test`) with `NIGHTWARE_CONNECT_ADDRESS=127.0.0.1` for the host's
+  scripts.
+- **Recording.** A call's moderators can start a recording. The recorder
+  opens `${PUBLIC_HOST}/cloud/index.php/call/{token}/recording`
+  in Firefox, captures it at 1920x1080 with ffmpeg (VP8/Opus `.webm`, CPU
+  encoding) into the `talk-recordings` volume, uploads it to the starter's
+  `Talk/Recording/{token}/` folder, and Talk notifies them ("Call recording
+  now available") to share it in the chat. It matches Talk's requests by
+  the exact backend URL, so `NC_DOMAIN` carries `/cloud`. Each concurrent
+  recording runs its own Firefox and ffmpeg encode, so size the host for
+  them (`shm_size: 2g` is Firefox's). Recording consent is not required
+  (Talk's default; app config `spreed recording_consent`).
 - Verified (2026-11-22, aio-talk 20261119_161514, signaling 2.2.0, Janus
   1.4.3, on arm64): Nextcloud's notifications accepted from both URLs; a
   signaling `hello` with alice's Talk ticket answered as alice (a forged ticket
   refused); a TURN Allocate with Talk's short-lived credentials relayed (a
   wrong password refused, 401). No browser call was placed.
+- Recording verified (2026-11-23, aio-talk-recording 20261119_161514,
+  recording server v0.3.1, `PUBLIC_HOST=nightware.test`): alice joined a
+  call over OCS and started a video recording. It reached "recording" (1),
+  and once stopped a 14 s 1920x1080 VP8/Opus webm of the call page was in
+  her `Talk/Recording/{token}/`, with the notification. Nobody in that call
+  sent audio or video, so media reaching the recorder is unverified. From
+  inside the network `PUBLIC_HOST` resolves to Caddy, not TURN, so the
+  recorder's Firefox can only reach Janus directly on its compose-network
+  address.
 
 ### iMIP (meeting invitations by mail)
 

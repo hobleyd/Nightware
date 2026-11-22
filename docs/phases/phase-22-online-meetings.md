@@ -29,6 +29,7 @@
 |---|---|
 | `isOnlineMeeting: true` on `POST events`, `POST calendars/{id}/events` and `PATCH events/{id}` opens a Talk room whose link is `onlineMeeting.joinUrl`; deleting or cancelling the meeting closes it (verified live on the local stack) | 1.59.0 |
 | Turning an existing meeting online sends the attendees the update ("Invitation updated", with the link); Talk's High-Performance Backend and a TURN server (the `talk` service), registered with Talk by `configure.sh` (both verified live on the local stack) | 1.60.0 |
+| Call recording: Talk's recording server (the `talk-recording` service), registered with Talk by `configure.sh`; a recording started over OCS was uploaded to the starter's files with its notification (verified on the local stack, no media in the call) | 1.61.0 |
 
 ## Decisions
 - **One public room per meeting**, named after the subject (255 characters at
@@ -81,7 +82,12 @@
 ## Known gaps
 - **No browser call has been placed** on either stack: the signaling login,
   Nextcloud's signed notifications and an authenticated TURN allocation were
-  verified, not audio/video between two people.
+  verified, not audio/video between two people. Likewise no recording has
+  captured a participant's audio or video; the recorder reaches Janus only
+  by its compose-network address (deploy/README.md "Online meetings").
+- **`PUBLIC_HOST=*.localhost` breaks Talk** inside the containers (curl
+  resolves it to loopback): rooms fail to open. Use another name
+  locally.
 - **Rooms of meetings deleted by other clients** (Thunderbird, the Nextcloud
   calendar) are not closed. A single meeting's room still expires by itself.
 - **A link added to one occurrence only** reaches attendees with the next
@@ -92,7 +98,8 @@
 ## Deploy
 - `deploy/nextcloud/configure.sh` installs `spreed` and registers the `talk`
   service's signaling server and TURN/STUN with Talk (`TALK_*` in `.env`;
-  `init-env.sh` generates the secrets).
+  `init-env.sh` generates the secrets), and the `talk-recording` service as
+  its recording server (`TALK_RECORDING_SECRET`).
 - The API needs `Talk__PublicBaseUrl` (Nextcloud's public URL with its
   `/cloud/` sub-path): in `deploy/docker-compose.yml`, and in the ansible
   compose file for the live stack.
@@ -102,3 +109,10 @@
   coredns gives the LAN 192.168.18.7). **fw must forward 3478 tcp and udp to
   the docker host** (192.168.18.7), as it does 25 and 443; it isn't managed
   by ansible.
+- Live recording (not yet applied): a service like `talk-recording` in
+  `deploy/docker-compose.yml`, which Nextcloud must reach as
+  `http://talk-recording:1234` (what `configure.sh` registers: the service
+  name or a network alias), with `NC_DOMAIN` the live public host plus
+  `/cloud` and `HPB_DOMAIN` the host the signaling server is registered
+  under; and `nightware_talk_recording_secret` in the vault
+  (`TALK_RECORDING_SECRET`). It needs no nginx route or firewall port.
