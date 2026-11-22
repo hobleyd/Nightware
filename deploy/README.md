@@ -603,6 +603,10 @@ replaces Talk's default public STUN server with ours.
   delivers iTIP into an attendee's Nextcloud scheduling inbox when that
   attendee is a Nextcloud user. Invitations arrive as `multipart/mixed` with
   a `text/calendar` part (`METHOD:REQUEST`).
+- **No Accept/Decline links in the mail** (`dav invitation_link_recipients=no`).
+  Nextcloud builds them from the requesting host, and the façade's writes
+  reach it as `http://nextcloud/`, so they pointed inside the Docker network.
+  Attendees answer from their mail client (an iTIP `REPLY` to the organizer).
 - `smoke.sh` tests this end to end. Alice PUTs an event inviting bob and the
   Boardroom, and the script polls bob's Inbox with JMAP for the invitation.
 - Mail to external domains goes out through Stalwart's normal outbound queue

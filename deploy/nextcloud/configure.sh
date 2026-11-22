@@ -198,6 +198,12 @@ occ config:system:set mail_smtpstreamoptions ssl verify_peer_name --value=false 
 occ config:system:set mail_smtpstreamoptions ssl allow_self_signed --value=true --type=boolean >/dev/null
 # Send invitations for internal attendees too? Nextcloud delivers iTIP to its
 # own users internally; mail is only sent to attendees without a NC account.
+# No Accept/Decline/More options links in invitations. Nextcloud builds them
+# from the address of the request that wrote the event, and the façade writes
+# through http://nextcloud/ (no public-URL overwrites, see overwritecondaddr
+# above), so every link pointed at a host no attendee can reach. Mail clients
+# answer with the iTIP REPLY instead, which reaches Nextcloud regardless.
+occ config:app:set dav invitation_link_recipients --value=no >/dev/null
 
 # --------------------------------------------------------------------- rooms
 if [[ "${NIGHTWARE_KC_SEED:-1}" == "0" ]]; then
