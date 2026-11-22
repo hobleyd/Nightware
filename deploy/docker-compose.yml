@@ -308,8 +308,11 @@ services:
   # Media enters and leaves only through TURN on TALK_PORT: Janus and the
   # clients all allocate relays on this eturnal, which forwards between them
   # inside the container, so no UDP port range is published. Janus allocates
-  # through 127.0.0.1 (TURN_DOMAIN), not the public name, so it needs no
-  # hairpin NAT. nextcloud/configure.sh points Talk at both.
+  # through the container's own name (TURN_DOMAIN), not the public name, so it
+  # needs no hairpin NAT. Not 127.0.0.1: Janus's sockets are bound to the
+  # container's address, and the kernel drops eturnal's loopback-sourced
+  # replies to it, so Janus would never get a relay (calls then connect only
+  # after a failed first attempt). nextcloud/configure.sh points Talk at both.
   talk:
     <<: *restart
     image: ghcr.io/nextcloud-releases/aio-talk:20261119_161514
@@ -323,7 +326,7 @@ services:
       # The TURN name, looked up for the address eturnal may relay to.
       TALK_HOST: ${TALK_TURN_HOST:-${PUBLIC_HOST:-nightware.localhost}}
       TALK_PORT: ${TALK_PORT:-3478}
-      TURN_DOMAIN: 127.0.0.1
+      TURN_DOMAIN: talk
       TURN_SECRET: ${TALK_TURN_SECRET:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
       SIGNALING_SECRET: ${TALK_SIGNALING_SECRET:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
       INTERNAL_SECRET: ${TALK_INTERNAL_SECRET:?is not set in deploy/.env - run deploy/scripts/init-env.sh}

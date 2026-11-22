@@ -522,7 +522,7 @@ replaces Talk's default public STUN server with ours.
 | Browsers and Talk apps (signaling WebSocket) | `wss://${PUBLIC_HOST}/standalone-signaling/spreed` | `talk:signaling:add`; Caddy strips the prefix |
 | Nextcloud (room notifications, signed) | `https://${PUBLIC_HOST}/standalone-signaling/api/v1/room/…`, through Caddy's alias | the same; the shared `TALK_SIGNALING_SECRET` |
 | The signaling server (ticket checks) | the Nextcloud URL the client names, e.g. `https://${PUBLIC_HOST}/cloud/…` | `NC_DOMAIN`: its backend list |
-| Clients and Janus (media) | TURN at `${TALK_TURN_HOST}:3478` (Janus: `127.0.0.1:3478`) | `talk:turn:add` / `talk:stun:add`; `TALK_TURN_SECRET` |
+| Clients and Janus (media) | TURN at `${TALK_TURN_HOST}:3478` (Janus: `talk:3478`, its own container) | `talk:turn:add` / `talk:stun:add`; `TALK_TURN_SECRET` |
 
 - Talk signs each room notification with the URL Nextcloud believes it has:
   the public one for requests through Caddy, `http://nextcloud/` for the
@@ -532,6 +532,11 @@ replaces Talk's default public STUN server with ours.
 - Media only ever uses TURN on 3478: the clients and Janus all allocate relays
   on the same eturnal, which forwards between them inside the container. So
   3478 tcp+udp is the one port to forward; no UDP range is published.
+- Janus reaches eturnal by the container's own name (`TURN_DOMAIN: talk`),
+  never 127.0.0.1: its sockets are bound to the container's address, and the
+  kernel drops eturnal's loopback-sourced replies to that address. With
+  127.0.0.1 Janus got no relay, and calls connected only after a failed first
+  attempt (seen live 2026-11-23).
 - Docker Desktop and colima on macOS don't forward UDP from the host reliably:
   on this stack TURN over TCP works from the Mac, UDP only from containers.
 - Verified (2026-11-22, aio-talk 20261119_161514, signaling 2.2.0, Janus

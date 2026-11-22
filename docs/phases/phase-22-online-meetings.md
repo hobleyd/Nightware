@@ -66,7 +66,10 @@
   eturnal as TURN and STUN. Talk's default public STUN server
   (`stun.nextcloud.com`) is removed: clients learn their address from ours.
   Everything rides on one port, 3478 tcp+udp: Janus and the clients all relay
-  through the same eturnal. The live stack reaches TURN by a name Cloudflare
+  through the same eturnal. Janus reaches it by its own container name, not
+  127.0.0.1, whose replies the kernel drops on the way to Janus's sockets
+  (calls then connected only after a failed first attempt, seen live
+  2026-11-23). The live stack reaches TURN by a name Cloudflare
   doesn't proxy (`TALK_TURN_HOST`), since Cloudflare carries only HTTP.
 - **A Talk failure never fails the event write.** The event is saved without a
   link (the client sees no `joinUrl`), and the adapter logs a warning. A room
