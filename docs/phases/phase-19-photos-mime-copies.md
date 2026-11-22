@@ -29,7 +29,7 @@
 ## Done
 | Gap | Version |
 |---|---|
-| `POST mailFolders` (top level), `POST mailFolders/{id}/copy` | 1.49.0 |
+| `POST mailFolders` (top level), `POST mailFolders/{id}/copy` (verified live) | 1.49.0 |
 
 ## Decisions
 - `POST mailFolders` with `isHidden: true` is 400 `notSupported`: the mail
