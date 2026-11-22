@@ -329,8 +329,8 @@ operation:
 | Phase 15 — To Do (Graph parity) | 19 |
 | Phase 16 — Change notifications (Graph parity) | 10 |
 | Phase 18 — Settings, aliases, single items and $count (Graph parity) | 26 |
-| Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 2 |
-| **Total** | **199** |
+| Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 10 |
+| **Total** | **207** |
 
 ### Phase 2 — Mail, read side
 
@@ -2520,6 +2520,14 @@ operation:
 |---|---|---|---|---|
 | [`mail.folders.create`](#mailfolderscreate) | POST | v1.0 | `{mailbox}/mailFolders` | none |
 | [`mail.folders.copy`](#mailfolderscopy) | POST | v1.0 | `{mailbox}/mailFolders/{folderId}/copy` | none |
+| [`mail.messages.count`](#mailmessagescount) | GET | v1.0 | `{mailbox}/messages/$count` | none |
+| [`mail.folders.messages.count`](#mailfoldersmessagescount) | GET | v1.0 | `{mailbox}/mailFolders/{folderIdOrWellKnownName}/messages/$count` | none |
+| [`calendar.events.count`](#calendareventscount) | GET | v1.0 | `{mailbox}/events/$count` | none |
+| [`calendar.default.events.count`](#calendardefaulteventscount) | GET | v1.0 | `{mailbox}/calendar/events/$count` | none |
+| [`calendar.calendars.events.count`](#calendarcalendarseventscount) | GET | v1.0 | `{mailbox}/calendars/{calendarId}/events/$count` | none |
+| [`contacts.count`](#contactscount) | GET | v1.0 | `{mailbox}/contacts/$count` | none |
+| [`contacts.folders.contacts.count`](#contactsfolderscontactscount) | GET | v1.0 | `{mailbox}/contactFolders/{folderId}/contacts/$count` | none |
+| [`tasks.tasks.count`](#taskstaskscount) | GET | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/$count` | none |
 
 #### `mail.folders.create`
 
@@ -2540,5 +2548,77 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/mailfolder-copy
 - Notes: Copies the folder, its subfolders and every message in them under the destination (each message a distinct copy, as messages/{id}/copy). 200 with the new folder, as Graph's reference. A name taken at the destination is 409 ErrorFolderExists; a destination inside the folder is 400. A well-known folder copies as a plain folder; a failure part-way leaves what was copied.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.copy.json`
+
+#### `mail.messages.count`
+
+**GET v1.0 `{mailbox}/messages/$count`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `(text/plain integer)`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/query-parameters#count-parameter
+- Notes: The /$count segment (OData; Graph's query-parameters page: "the integer total of the collection"; the message list reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as mail.messages.list.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.messages.count.json`
+
+#### `mail.folders.messages.count`
+
+**GET v1.0 `{mailbox}/mailFolders/{folderIdOrWellKnownName}/messages/$count`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `(text/plain integer)`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/query-parameters#count-parameter
+- Notes: The /$count segment (OData; Graph's query-parameters page: "the integer total of the collection"; the folder messages reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as mail.messages.list-in-folder.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.folders.messages.count.json`
+
+#### `calendar.events.count`
+
+**GET v1.0 `{mailbox}/events/$count`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `(text/plain integer)`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/query-parameters#count-parameter
+- Notes: The /$count segment (OData; Graph's query-parameters page: "the integer total of the collection"; the event list reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as calendar.events.list.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.events.count.json`
+
+#### `calendar.default.events.count`
+
+**GET v1.0 `{mailbox}/calendar/events/$count`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `(text/plain integer)`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/query-parameters#count-parameter
+- Notes: The /$count segment (OData; Graph's query-parameters page: "the integer total of the collection"; the calendar events reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as calendar.default.events.list.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.default.events.count.json`
+
+#### `calendar.calendars.events.count`
+
+**GET v1.0 `{mailbox}/calendars/{calendarId}/events/$count`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `(text/plain integer)`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/query-parameters#count-parameter
+- Notes: The /$count segment (OData; Graph's query-parameters page: "the integer total of the collection"; the calendar events reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as calendar.calendars.events.list.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calendar.calendars.events.count.json`
+
+#### `contacts.count`
+
+**GET v1.0 `{mailbox}/contacts/$count`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `(text/plain integer)`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/query-parameters#count-parameter
+- Notes: The /$count segment (OData; Graph's query-parameters page: "the integer total of the collection"; the contact list reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as contacts.list.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.count.json`
+
+#### `contacts.folders.contacts.count`
+
+**GET v1.0 `{mailbox}/contactFolders/{folderId}/contacts/$count`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `(text/plain integer)`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/query-parameters#count-parameter
+- Notes: The /$count segment (OData; Graph's query-parameters page: "the integer total of the collection"; the folder contacts reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as contacts.folders.contacts.list.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/contacts.folders.contacts.count.json`
+
+#### `tasks.tasks.count`
+
+**GET v1.0 `{mailbox}/todo/lists/{listId}/tasks/$count`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `(text/plain integer)`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/query-parameters#count-parameter
+- Notes: The /$count segment (OData; Graph's query-parameters page: "the integer total of the collection"; the task list reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as tasks.tasks.list.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.tasks.count.json`
 
 <!-- END GENERATED -->

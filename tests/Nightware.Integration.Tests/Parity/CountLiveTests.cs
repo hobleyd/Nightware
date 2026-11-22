@@ -24,6 +24,17 @@ public sealed class CountLiveTests
         status.ShouldBe(HttpStatusCode.OK, first.ToJsonString());
         var count = first["@odata.count"]!.GetValue<int>();
 
+        // Phase 19: the /$count segment answers the same total, as plain text.
+        var question = path.IndexOf('?', StringComparison.Ordinal);
+        var segment = question < 0 ? path + "/$count" : path[..question] + "/$count" + path[question..];
+        using (var counted = await client.GetAsync(segment, Ct))
+        {
+            var text = await counted.Content.ReadAsStringAsync(Ct);
+            counted.StatusCode.ShouldBe(HttpStatusCode.OK, text);
+            counted.Content.Headers.ContentType!.MediaType.ShouldBe("text/plain");
+            text.ShouldBe(count.ToString(System.Globalization.CultureInfo.InvariantCulture), segment);
+        }
+
         var seen = 0;
         string? next = path + (path.Contains('?', StringComparison.Ordinal) ? "&" : "?") + "$top=50&$select=id";
         while (next is not null)

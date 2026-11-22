@@ -79,7 +79,7 @@ public static class GraphResults
         ArgumentNullException.ThrowIfNull(items);
         ArgumentNullException.ThrowIfNull(query);
         var materialised = items.ToList();
-        return new GraphJsonResult(StatusCodes.Status200OK, http =>
+        var json = new GraphJsonResult(StatusCodes.Status200OK, http =>
         {
             var links = Links(http);
             var value = new JsonArray();
@@ -106,6 +106,9 @@ public static class GraphResults
 
             return body;
         });
+
+        // The /$count segment maps the list's own handler, so the total is exactly the one $count=true reports.
+        return new CountSegmentResult(json, query.Count ? count : null);
     }
 
     /// <summary>A <see cref="Page{T}"/> mapped to DTOs, with a nextLink when the adapter has more.</summary>
@@ -257,6 +260,31 @@ public sealed class GraphJsonResult(int statusCode, Func<HttpContext, JsonNode> 
 
         httpContext.Response.ContentType = "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8";
         await JsonSerializer.SerializeAsync(httpContext.Response.Body, body, GraphJson.Options, httpContext.RequestAborted).ConfigureAwait(false);
+    }
+}
+
+/// <summary>
+/// A collection, or on a <see cref="OData.CountSegment"/> route only its total as <c>text/plain</c> (OData's
+/// <c>/$count</c>: "the integer total of the collection").
+/// </summary>
+public sealed class CountSegmentResult(GraphJsonResult collection, int? count) : IResult, IStatusCodeHttpResult
+{
+    public int? StatusCode => StatusCodes.Status200OK;
+
+    public async Task ExecuteAsync(HttpContext httpContext)
+    {
+        ArgumentNullException.ThrowIfNull(httpContext);
+        if (httpContext.GetEndpoint()?.Metadata.GetMetadata<OData.CountSegment>() is null)
+        {
+            await collection.ExecuteAsync(httpContext).ConfigureAwait(false);
+            return;
+        }
+
+        // The segment binds $count=true, so a route without a total here is a wiring bug.
+        var total = count ?? throw new InvalidOperationException("The /$count route has no total.");
+        httpContext.Response.StatusCode = StatusCodes.Status200OK;
+        httpContext.Response.ContentType = "text/plain; charset=utf-8";
+        await httpContext.Response.WriteAsync(total.ToString(System.Globalization.CultureInfo.InvariantCulture), httpContext.RequestAborted).ConfigureAwait(false);
     }
 }
 

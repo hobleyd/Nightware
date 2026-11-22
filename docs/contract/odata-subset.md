@@ -241,4 +241,9 @@ wall-clock. Top-level timestamps (`receivedDateTime`, `sentDateTime`,
 | `todo/lists/{id}/tasks` | the tasks the filter matches |
 
 Anywhere else `$count` is still 400, rather than ignored. Delta routes never
-accept it. The `/$count` path segment is not offered.
+accept it.
+
+Each of these routes also has the `/$count` path segment (phase 19), e.g.
+`messages/$count`: the same handling with `$count=true`, answering only the
+integer as `text/plain`. Its query options are the list's, and they filter what
+is counted. No other route has the segment.

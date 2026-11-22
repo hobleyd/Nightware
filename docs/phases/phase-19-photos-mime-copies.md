@@ -30,8 +30,12 @@
 | Gap | Version |
 |---|---|
 | `POST mailFolders` (top level), `POST mailFolders/{id}/copy` (verified live) | 1.49.0 |
+| `/$count` on the eight lists that take `$count=true` | 1.50.0 |
 
 ## Decisions
+- `/$count` maps the list's own handler with `$count=true` bound, and the
+  collection result writes only the total (`text/plain`), so the segment and
+  `@odata.count` can't disagree.
 - `POST mailFolders` with `isHidden: true` is 400 `notSupported`: the mail
   store has no hidden folders, and Graph can't hide a folder after creation, so
   a silently visible folder would be wrong for good.

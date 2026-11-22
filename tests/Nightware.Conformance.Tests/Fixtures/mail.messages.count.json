@@ -1,0 +1,21 @@
+{
+  "operationId": "mail.messages.count",
+  "provenance": "OData /$count segment as Graph's query-parameters page describes it (https://learn.microsoft.com/graph/query-parameters#count-parameter: the integer total, as text/plain); constructed, no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/messages/$count",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "text/plain"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "text/plain"
+    },
+    "body": "41"
+  }
+}

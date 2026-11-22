@@ -210,9 +210,11 @@ internal static class CalendarCollectionEndpoints
             scope.MapPatch("/calendars/{calendarId}", UpdateAsync);
             scope.MapDelete("/calendars/{calendarId}", DeleteAsync);
             scope.MapGet("/calendars/{calendarId}/events", ListEventsAsync).WithCount();
+            scope.MapGet("/calendars/{calendarId}/events/$count", ListEventsAsync).AsCountSegment();
             scope.MapPost("/calendars/{calendarId}/events", CreateEventAsync);
             scope.MapGet("/calendars/{calendarId}/calendarView", CalendarViewAsync);
             scope.MapGet("/calendar/events", DefaultEventsAsync).WithCount();
+            scope.MapGet("/calendar/events/$count", DefaultEventsAsync).AsCountSegment();
             scope.MapPost("/calendar/events", DefaultCreateEventAsync);
             scope.MapGet("/calendar/calendarView", DefaultCalendarViewAsync);
             scope.MapGet("/events/{eventId}/instances", InstancesAsync);

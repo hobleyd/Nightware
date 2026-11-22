@@ -23,6 +23,7 @@ internal static class EventEndpoints
         {
             scope.MapGet("/calendarView", CalendarViewAsync);
             scope.MapGet("/events", ListAsync).WithCount();
+            scope.MapGet("/events/$count", ListAsync).AsCountSegment();
             scope.MapPost("/events", CreateAsync);
             scope.MapGet("/events/{eventId}", GetAsync);
             scope.MapPatch("/events/{eventId}", UpdateAsync);

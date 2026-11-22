@@ -1733,6 +1733,114 @@
         }
       }
     },
+    "/me/calendars/{calendarId}/events/$count": {
+      "get": {
+        "operationId": "calendar.calendars.events.count",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar calendars events: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the calendar events reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as calendar.calendars.events.list.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [
+          {
+            "name": "calendarId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/calendars/{calendarId}/events/$count": {
+      "get": {
+        "operationId": "calendar.calendars.events.count.users",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar calendars events: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the calendar events reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as calendar.calendars.events.list.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "calendarId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me/calendars/{calendarId}/events": {
       "post": {
         "operationId": "calendar.calendars.events.create",
@@ -2941,6 +3049,97 @@
                         }
                       }
                     }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/calendar/events/$count": {
+      "get": {
+        "operationId": "calendar.default.events.count",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar default events: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the calendar events reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as calendar.default.events.list.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/calendar/events/$count": {
+      "get": {
+        "operationId": "calendar.default.events.count.users",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar default events: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the calendar events reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as calendar.default.events.list.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
                   }
                 }
               }
@@ -4728,6 +4927,97 @@
         "responses": {
           "202": {
             "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/events/$count": {
+      "get": {
+        "operationId": "calendar.events.count",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar events: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the event list reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as calendar.events.list.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/events/$count": {
+      "get": {
+        "operationId": "calendar.events.count.users",
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Calendar events: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the event list reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as calendar.events.list.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
+                  }
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/Error"
@@ -8969,6 +9259,97 @@
         }
       }
     },
+    "/me/contacts/$count": {
+      "get": {
+        "operationId": "contacts.count",
+        "tags": [
+          "Contacts"
+        ],
+        "summary": "Contacts: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the contact list reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as contacts.list.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/contacts/$count": {
+      "get": {
+        "operationId": "contacts.count.users",
+        "tags": [
+          "Contacts"
+        ],
+        "summary": "Contacts: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the contact list reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as contacts.list.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me/contacts": {
       "post": {
         "operationId": "contacts.create",
@@ -10363,6 +10744,114 @@
                         "properties": {}
                       }
                     }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/contactFolders/{folderId}/contacts/$count": {
+      "get": {
+        "operationId": "contacts.folders.contacts.count",
+        "tags": [
+          "Contacts"
+        ],
+        "summary": "Contacts folders contacts: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the folder contacts reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as contacts.folders.contacts.list.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/contactFolders/{folderId}/contacts/$count": {
+      "get": {
+        "operationId": "contacts.folders.contacts.count.users",
+        "tags": [
+          "Contacts"
+        ],
+        "summary": "Contacts folders contacts: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the folder contacts reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as contacts.folders.contacts.list.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
                   }
                 }
               }
@@ -15209,6 +15698,114 @@
         }
       }
     },
+    "/me/mailFolders/{folderIdOrWellKnownName}/messages/$count": {
+      "get": {
+        "operationId": "mail.folders.messages.count",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail folders messages: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the folder messages reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as mail.messages.list-in-folder.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [
+          {
+            "name": "folderIdOrWellKnownName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/mailFolders/{folderIdOrWellKnownName}/messages/$count": {
+      "get": {
+        "operationId": "mail.folders.messages.count.users",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail folders messages: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the folder messages reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as mail.messages.list-in-folder.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "folderIdOrWellKnownName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me/mailFolders/{folderId}/messages/{messageId}": {
       "delete": {
         "operationId": "mail.folders.messages.delete",
@@ -16770,6 +17367,97 @@
                     "categories": {},
                     "importance": {},
                     "parentFolderId": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/messages/$count": {
+      "get": {
+        "operationId": "mail.messages.count",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail messages: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the message list reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as mail.messages.list.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/messages/$count": {
+      "get": {
+        "operationId": "mail.messages.count.users",
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Mail messages: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the message list reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as mail.messages.list.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
                   }
                 }
               }
@@ -25231,6 +25919,114 @@
                     },
                     "@odata.nextLink": {},
                     "@odata.deltaLink": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/todo/lists/{listId}/tasks/$count": {
+      "get": {
+        "operationId": "tasks.tasks.count",
+        "tags": [
+          "To Do"
+        ],
+        "summary": "Tasks tasks: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the task list reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as tasks.tasks.list.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/todo/lists/{listId}/tasks/$count": {
+      "get": {
+        "operationId": "tasks.tasks.count.users",
+        "tags": [
+          "To Do"
+        ],
+        "summary": "Tasks tasks: count",
+        "description": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the task list reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as tasks.tasks.list.\n\nGraph reference: https://learn.microsoft.com/graph/query-parameters#count-parameter",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "listId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "(text/plain integer)": {}
                   }
                 }
               }

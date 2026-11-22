@@ -441,6 +441,22 @@ FOLDERS = [
     setup("DELETE", "/v1.0/me/mailFolders/${folderId}", always=True),
 ]
 
+COUNTS = [
+    step("mail.messages.count", "GET", "/v1.0/me/messages/$count", headers={"Accept": "text/plain"}),
+    step("mail.folders.messages.count", "GET", "/v1.0/me/mailFolders/inbox/messages/$count",
+         headers={"Accept": "text/plain"}, query={"$filter": "isRead eq false"}),
+    step("calendar.events.count", "GET", "/v1.0/me/events/$count", headers={"Accept": "text/plain"}),
+    step("calendar.default.events.count", "GET", "/v1.0/me/calendar/events/$count", headers={"Accept": "text/plain"}),
+    setup("GET", "/v1.0/me/calendar", query={"$select": "id"}, save={"calId": "id"}),
+    step("calendar.calendars.events.count", "GET", "/v1.0/me/calendars/${calId}/events/$count", headers={"Accept": "text/plain"}),
+    step("contacts.count", "GET", "/v1.0/me/contacts/$count", headers={"Accept": "text/plain"}),
+    setup("GET", "/v1.0/me/contactFolders", query={"$top": "1"}, save={"cfId": "value[0].id"}),
+    step("contacts.folders.contacts.count", "GET", "/v1.0/me/contactFolders/${cfId}/contacts/$count", headers={"Accept": "text/plain"}),
+    setup("GET", "/v1.0/me/todo/lists", query={"$top": "1"}, save={"listId": "value[0].id"}),
+    step("tasks.tasks.count", "GET", "/v1.0/me/todo/lists/${listId}/tasks/$count",
+         headers={"Accept": "text/plain"}, query={"$filter": "status ne 'completed'"}),
+]
+
 PHASES = {
     11: [("batch", BATCH)],
     12: [("mail", MAIL)],
@@ -449,5 +465,5 @@ PHASES = {
     15: [("todo", TODO)],
     16: [("notifications", NOTIFICATIONS)],
     18: [("settings", SETTINGS), ("aliases", ALIASES), ("todo items", TODO_ITEMS)],
-    19: [("folders", FOLDERS)],
+    19: [("folders", FOLDERS), ("counts", COUNTS)],
 }

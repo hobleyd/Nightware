@@ -329,8 +329,25 @@ public sealed class CountSupported
     }
 }
 
+/// <summary>
+/// Endpoint metadata: the route is a list's <c>/$count</c> segment (phase 19). It runs the list's own handler with
+/// <c>$count=true</c> bound, and the collection result writes only the total, as <c>text/plain</c>.
+/// </summary>
+public sealed class CountSegment
+{
+    public static readonly CountSegment Instance = new();
+
+    private CountSegment()
+    {
+    }
+}
+
 public static class CountSupportedExtensions
 {
     /// <summary>Marks the route as answering <c>$count</c>.</summary>
     public static RouteHandlerBuilder WithCount(this RouteHandlerBuilder builder) => builder.WithMetadata(CountSupported.Instance);
+
+    /// <summary>Marks the route as a list's <c>/$count</c> segment (which counts, so it supports <c>$count</c> too).</summary>
+    public static RouteHandlerBuilder AsCountSegment(this RouteHandlerBuilder builder) =>
+        builder.WithMetadata(CountSupported.Instance, CountSegment.Instance);
 }
