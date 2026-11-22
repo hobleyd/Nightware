@@ -225,6 +225,7 @@ wall-clock. Top-level timestamps (`receivedDateTime`, `sentDateTime`,
 | `outlook.supported-time-zones`, `-standard`, `outlook.supported-languages` | nothing; `TimeZoneStandard` is a function argument, `Windows` or `Iana` (anything else 400) |
 | The aliases (`calendar.default.*`, `calendar.calendars.events.{get,update,delete}`, `mail.folders.messages.*`, `contacts.folders.contacts.*`) | exactly what their base operation accepts (same handler) |
 | `mail.folders.create`, `mail.folders.copy` | nothing (Graph's reference lists no options for either) |
+| `directory.*photo*` (phase 19) | nothing |
 | `tasks.checklist-items.get`, `tasks.linked-resources.get` | nothing |
 
 ### `$count` (phase 18)

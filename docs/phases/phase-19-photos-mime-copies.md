@@ -31,8 +31,16 @@
 |---|---|
 | `POST mailFolders` (top level), `POST mailFolders/{id}/copy` (verified live) | 1.49.0 |
 | `/$count` on the eight lists that take `$count=true` | 1.50.0 |
+| `/me/photo/$value`; `/me/photo` and `/users/{x}/photo` metadata; PUT, PATCH and DELETE of one's own photo | 1.51.0 |
 
 ## Decisions
+- Photos: metadata is read from the image itself (JPEG frame header or PNG
+  `IHDR`), with a hash of it as `@odata.mediaEtag`. A user without a photo gets
+  Graph's documented 1×1 `image/gif` placeholder there; only `…/photo/$value` is
+  404 (`ImageNotFound`, now also the code of that 404). A write is the caller's
+  own photo only: `/users/{x}` writes are 403 unless `x` is the caller. Uploads
+  must be a square JPEG or PNG of at most 4 MB (400 otherwise, 413 over the
+  limit; `docs/known-issues.md`); the image's bytes decide its type.
 - `/$count` maps the list's own handler with `$count=true` bound, and the
   collection result writes only the total (`text/plain`), so the segment and
   `@odata.count` can't disagree.

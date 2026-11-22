@@ -5,7 +5,7 @@ namespace Nightware.Conformance.Tests.Harness;
 
 /// <summary>
 /// One golden request/response pair (docs/contract/endpoints.md "Fixture format"):
-/// <c>{"operationId","provenance","request":{method,path,query,headers,body},"response":{status,headers,body|bodyBase64}}</c>.
+/// <c>{"operationId","provenance","request":{method,path,query,headers,body|bodyBase64},"response":{status,headers,body|bodyBase64}}</c>.
 /// </summary>
 public sealed record GraphFixture(
     string OperationId,
@@ -29,7 +29,10 @@ public sealed record GraphFixture(
                 request["path"]?.GetValue<string>() ?? throw new InvalidDataException($"{path} has no request.path."),
                 Strings(request["query"]),
                 Strings(request["headers"]),
-                request["body"]?.DeepClone()),
+                request["body"]?.DeepClone())
+            {
+                BodyBase64 = request["bodyBase64"]?.GetValue<string>(),
+            },
             new FixtureResponse(
                 response["status"]?.GetValue<int>() ?? throw new InvalidDataException($"{path} has no response.status."),
                 Strings(response["headers"]),
@@ -48,6 +51,9 @@ public sealed record GraphFixture(
 /// <param name="Query">Decoded option values, e.g. <c>{"$select": "id,displayName"}</c>.</param>
 public sealed record FixtureRequest(string Method, string Path, IReadOnlyDictionary<string, string> Query, IReadOnlyDictionary<string, string> Headers, JsonNode? Body)
 {
+    /// <summary>A binary request body (an image upload), sent as these bytes; <see cref="Body"/> is then null.</summary>
+    public string? BodyBase64 { get; init; }
+
     public string Url =>
         Query.Count == 0
             ? Path

@@ -1,0 +1,28 @@
+{
+  "operationId": "directory.users.photo.get",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/profilephoto-get); constructed with an 8x8 JPEG, no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/users/sam%40example.com/photo",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('sam%40example.com')/photo/$entity",
+      "@odata.mediaContentType": "image/jpeg",
+      "@odata.mediaEtag": "\"A2CAE4B4\"",
+      "id": "8x8",
+      "width": 8,
+      "height": 8
+    }
+  }
+}

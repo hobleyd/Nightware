@@ -35,6 +35,12 @@ what a fix needs. Ordered by impact within each section.
   per credential + calendar + window (+ the calendar's CTag) for a minute.
 - Online-meeting fields are accepted and ignored.
 
+### Directory
+- **A photo upload must be a square JPEG or PNG.** Nextcloud keeps nothing
+  else (its web UI crops in the browser) and the façade has no image library,
+  so any other image is a 400 saying why. Graph accepts any image. Fix: crop
+  in the façade, which needs an image library (a new package).
+
 ### Tasks and settings
 - **Automatic replies: `contactsOnly` means internal senders only.** Contacts
   live in Nextcloud, out of the mail filter's reach, so nobody outside the

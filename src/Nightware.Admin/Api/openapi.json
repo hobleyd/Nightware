@@ -12720,6 +12720,189 @@
         }
       }
     },
+    "/me/photo/$value": {
+      "get": {
+        "operationId": "directory.me.photo-value",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory me: photo value",
+        "description": "The signed-in user's photo, as /users/{x}/photo/$value; 404 ImageNotFound without one.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "directory.me.photo.delete",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory me photo: delete",
+        "description": "Removes the signed-in user's photo (Nextcloud then draws its letter avatar, which reads as no photo). 200.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-delete",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "directory.me.photo.patch",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory me photo: patch",
+        "description": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and Nightware has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "image/jpeg"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "put": {
+        "operationId": "directory.me.photo.put",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory me photo: put",
+        "description": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and Nightware has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
+        "parameters": [
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "image/jpeg"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/photo": {
+      "get": {
+        "operationId": "directory.me.photo.get",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory me photo: get",
+        "description": "The photo's metadata, read from the image (type, pixel size, a tag that changes with it). Without a photo it is Graph's documented 1x1 image/gif placeholder with an empty mediaEtag, not a 404.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "@odata.mediaContentType": {},
+                    "@odata.mediaEtag": {},
+                    "id": {},
+                    "width": {},
+                    "height": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/users/{userIdOrUpn}": {
       "get": {
         "operationId": "directory.users.get",
@@ -12894,6 +13077,192 @@
                   "type": "object",
                   "properties": {
                     "<image bytes>": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "directory.users.photo.delete",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory users photo: delete",
+        "description": "As directory.me.photo.delete. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart).\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-delete",
+        "parameters": [
+          {
+            "name": "userIdOrUpn",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "directory.users.photo.patch",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory users photo: patch",
+        "description": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and Nightware has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart).\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
+        "parameters": [
+          {
+            "name": "userIdOrUpn",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "image/jpeg"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "put": {
+        "operationId": "directory.users.photo.put",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory users photo: put",
+        "description": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and Nightware has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart).\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
+        "parameters": [
+          {
+            "name": "userIdOrUpn",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Content-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "image/jpeg"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userIdOrUpn}/photo": {
+      "get": {
+        "operationId": "directory.users.photo.get",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory users photo: get",
+        "description": "As directory.me.photo.get for another user (looked up as /users/{x}/photo/$value is). An unknown user is 404.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-get",
+        "parameters": [
+          {
+            "name": "userIdOrUpn",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "@odata.mediaContentType": {},
+                    "@odata.mediaEtag": {},
+                    "id": {},
+                    "width": {},
+                    "height": {}
                   }
                 }
               }

@@ -329,8 +329,8 @@ operation:
 | Phase 15 — To Do (Graph parity) | 19 |
 | Phase 16 — Change notifications (Graph parity) | 10 |
 | Phase 18 — Settings, aliases, single items and $count (Graph parity) | 26 |
-| Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 10 |
-| **Total** | **207** |
+| Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 19 |
+| **Total** | **216** |
 
 ### Phase 2 — Mail, read side
 
@@ -2528,6 +2528,15 @@ operation:
 | [`contacts.count`](#contactscount) | GET | v1.0 | `{mailbox}/contacts/$count` | none |
 | [`contacts.folders.contacts.count`](#contactsfolderscontactscount) | GET | v1.0 | `{mailbox}/contactFolders/{folderId}/contacts/$count` | none |
 | [`tasks.tasks.count`](#taskstaskscount) | GET | v1.0 | `{mailbox}/todo/lists/{listId}/tasks/$count` | none |
+| [`directory.me.photo-value`](#directorymephoto-value) | GET | v1.0 | `/me/photo/$value` | none |
+| [`directory.me.photo.get`](#directorymephotoget) | GET | v1.0 | `/me/photo` | none |
+| [`directory.users.photo.get`](#directoryusersphotoget) | GET | v1.0 | `/users/{userIdOrUpn}/photo` | none |
+| [`directory.me.photo.put`](#directorymephotoput) | PUT | v1.0 | `/me/photo/$value` | none |
+| [`directory.me.photo.patch`](#directorymephotopatch) | PATCH | v1.0 | `/me/photo/$value` | none |
+| [`directory.users.photo.put`](#directoryusersphotoput) | PUT | v1.0 | `/users/{userIdOrUpn}/photo/$value` | none |
+| [`directory.users.photo.patch`](#directoryusersphotopatch) | PATCH | v1.0 | `/users/{userIdOrUpn}/photo/$value` | none |
+| [`directory.me.photo.delete`](#directorymephotodelete) | DELETE | v1.0 | `/me/photo/$value` | none |
+| [`directory.users.photo.delete`](#directoryusersphotodelete) | DELETE | v1.0 | `/users/{userIdOrUpn}/photo/$value` | none |
 
 #### `mail.folders.create`
 
@@ -2620,5 +2629,83 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/query-parameters#count-parameter
 - Notes: The /$count segment (OData; Graph's query-parameters page: "the integer total of the collection"; the task list reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as tasks.tasks.list.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/tasks.tasks.count.json`
+
+#### `directory.me.photo-value`
+
+**GET v1.0 `/me/photo/$value`** — forms: root; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-get
+- Notes: The signed-in user's photo, as /users/{x}/photo/$value; 404 ImageNotFound without one.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.me.photo-value.json`
+
+#### `directory.me.photo.get`
+
+**GET v1.0 `/me/photo`** — forms: root; success: 200; paging: none
+
+- Client reads: `@odata.mediaContentType`, `@odata.mediaEtag`, `id`, `width`, `height`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-get
+- Notes: The photo's metadata, read from the image (type, pixel size, a tag that changes with it). Without a photo it is Graph's documented 1x1 image/gif placeholder with an empty mediaEtag, not a 404.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.me.photo.get.json`
+
+#### `directory.users.photo.get`
+
+**GET v1.0 `/users/{userIdOrUpn}/photo`** — forms: root; success: 200; paging: none
+
+- Client reads: `@odata.mediaContentType`, `@odata.mediaEtag`, `id`, `width`, `height`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-get
+- Notes: As directory.me.photo.get for another user (looked up as /users/{x}/photo/$value is). An unknown user is 404.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.users.photo.get.json`
+
+#### `directory.me.photo.put`
+
+**PUT v1.0 `/me/photo/$value`** — forms: root; success: 200; paging: none
+
+- Headers: `Content-Type: image/jpeg`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-update
+- Notes: Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.me.photo.put.json`
+
+#### `directory.me.photo.patch`
+
+**PATCH v1.0 `/me/photo/$value`** — forms: root; success: 200; paging: none
+
+- Headers: `Content-Type: image/jpeg`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-update
+- Notes: Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.me.photo.patch.json`
+
+#### `directory.users.photo.put`
+
+**PUT v1.0 `/users/{userIdOrUpn}/photo/$value`** — forms: root; success: 200; paging: none
+
+- Headers: `Content-Type: image/jpeg`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-update
+- Notes: Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.users.photo.put.json`
+
+#### `directory.users.photo.patch`
+
+**PATCH v1.0 `/users/{userIdOrUpn}/photo/$value`** — forms: root; success: 200; paging: none
+
+- Headers: `Content-Type: image/jpeg`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-update
+- Notes: Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.users.photo.patch.json`
+
+#### `directory.me.photo.delete`
+
+**DELETE v1.0 `/me/photo/$value`** — forms: root; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-delete
+- Notes: Removes the signed-in user's photo (Nextcloud then draws its letter avatar, which reads as no photo). 200.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.me.photo.delete.json`
+
+#### `directory.users.photo.delete`
+
+**DELETE v1.0 `/users/{userIdOrUpn}/photo/$value`** — forms: root; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-delete
+- Notes: As directory.me.photo.delete. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.users.photo.delete.json`
 
 <!-- END GENERATED -->

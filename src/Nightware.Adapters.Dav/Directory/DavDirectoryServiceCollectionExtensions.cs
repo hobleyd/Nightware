@@ -10,7 +10,7 @@ namespace Nightware.Adapters.Dav.Directory;
 internal static class DavDirectoryServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers <see cref="IUserPhotoReader"/> (Phase 5A) on Nextcloud's avatar endpoint.
+    /// Registers <see cref="IUserPhotoReader"/> (Phase 5A) and <see cref="IUserPhotoWriter"/> (phase 19) on Nextcloud's avatar endpoint.
     /// </summary>
     public static IServiceCollection AddDavDirectory(this IServiceCollection services)
     {
@@ -18,15 +18,20 @@ internal static class DavDirectoryServiceCollectionExtensions
         // primary handler is adjusted, not replaced, so host-wide settings (proxy, TLS trust) still apply:
         // no redirects (Nextcloud redirects an unauthenticated request to its login page, which must read
         // as a failure, not as an HTML "photo") and no cookies (see DavHandlers.DisableCookies).
-        var client = services.AddHttpClient<IUserPhotoReader, NextcloudAvatarReader>(static http => http.Timeout = Timeout.InfiniteTimeSpan)
-            .ConfigurePrimaryHttpMessageHandler(static (handler, _) =>
-            {
-                DavHandlers.DisableRedirects(handler);
-                DavHandlers.DisableCookies(handler);
-            });
+        Configure(services.AddHttpClient<IUserPhotoReader, NextcloudAvatarReader>(static http => http.Timeout = Timeout.InfiniteTimeSpan));
+        Configure(services.AddHttpClient<IUserPhotoWriter, NextcloudAvatarWriter>(static http => http.Timeout = Timeout.InfiniteTimeSpan));
+        return services;
+    }
+
+    private static void Configure(IHttpClientBuilder client)
+    {
+        client.ConfigurePrimaryHttpMessageHandler(static (handler, _) =>
+        {
+            DavHandlers.DisableRedirects(handler);
+            DavHandlers.DisableCookies(handler);
+        });
         client.AddResilienceHandler(DavResilience.PipelineName, static (builder, context) =>
             DavResilience.Configure(builder, context.ServiceProvider.GetRequiredService<IOptions<DavOptions>>().Value));
         client.AddHttpMessageHandler<DavAuthenticationHandler>();
-        return services;
     }
 }

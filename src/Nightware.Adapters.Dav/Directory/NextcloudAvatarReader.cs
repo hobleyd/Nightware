@@ -199,7 +199,7 @@ internal sealed partial class NextcloudAvatarReader(
         return delay is { } d ? (int)Math.Max(0, Math.Ceiling(d.TotalSeconds)) : null;
     }
 
-    private static Error NoPhoto() => Error.NotFound("The user has no photo.");
+    private static Error NoPhoto() => UserPhotos.None();
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Nextcloud avatar request failed: HTTP {Status} → {Kind}")]
     private static partial void LogFailed(ILogger logger, int status, ErrorKind kind);

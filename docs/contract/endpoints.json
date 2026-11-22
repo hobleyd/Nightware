@@ -8754,5 +8754,294 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/query-parameters#count-parameter",
     "notes": "The /$count segment (OData; Graph's query-parameters page: \"the integer total of the collection\"; the task list reference page doesn't mention it). Runs the list's own handling with $count=true, so it counts exactly what @odata.count would: every match of $filter/$search, not a page. Answers the integer as text/plain. Same query options as tasks.tasks.list."
+  },
+  {
+    "id": "directory.me.photo-value",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/me/photo/$value",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/profilephoto-get",
+    "notes": "The signed-in user's photo, as /users/{x}/photo/$value; 404 ImageNotFound without one."
+  },
+  {
+    "id": "directory.me.photo.get",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/me/photo",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "@odata.mediaContentType",
+      "@odata.mediaEtag",
+      "id",
+      "width",
+      "height"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/profilephoto-get",
+    "notes": "The photo's metadata, read from the image (type, pixel size, a tag that changes with it). Without a photo it is Graph's documented 1x1 image/gif placeholder with an empty mediaEtag, not a 404."
+  },
+  {
+    "id": "directory.users.photo.get",
+    "phase": 19,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/users/{userIdOrUpn}/photo",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "@odata.mediaContentType",
+      "@odata.mediaEtag",
+      "id",
+      "width",
+      "height"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/profilephoto-get",
+    "notes": "As directory.me.photo.get for another user (looked up as /users/{x}/photo/$value is). An unknown user is 404."
+  },
+  {
+    "id": "directory.me.photo.put",
+    "phase": 19,
+    "method": "PUT",
+    "version": "v1.0",
+    "path": "/me/photo/$value",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {
+      "Content-Type": [
+        "image/jpeg"
+      ]
+    },
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/profilephoto-update",
+    "notes": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body."
+  },
+  {
+    "id": "directory.me.photo.patch",
+    "phase": 19,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "/me/photo/$value",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {
+      "Content-Type": [
+        "image/jpeg"
+      ]
+    },
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/profilephoto-update",
+    "notes": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body."
+  },
+  {
+    "id": "directory.users.photo.put",
+    "phase": 19,
+    "method": "PUT",
+    "version": "v1.0",
+    "path": "/users/{userIdOrUpn}/photo/$value",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {
+      "Content-Type": [
+        "image/jpeg"
+      ]
+    },
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/profilephoto-update",
+    "notes": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart)."
+  },
+  {
+    "id": "directory.users.photo.patch",
+    "phase": 19,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "/users/{userIdOrUpn}/photo/$value",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {
+      "Content-Type": [
+        "image/jpeg"
+      ]
+    },
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/profilephoto-update",
+    "notes": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart)."
+  },
+  {
+    "id": "directory.me.photo.delete",
+    "phase": 19,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "/me/photo/$value",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/profilephoto-delete",
+    "notes": "Removes the signed-in user's photo (Nextcloud then draws its letter avatar, which reads as no photo). 200."
+  },
+  {
+    "id": "directory.users.photo.delete",
+    "phase": 19,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "/users/{userIdOrUpn}/photo/$value",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/profilephoto-delete",
+    "notes": "As directory.me.photo.delete. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart)."
   }
 ]

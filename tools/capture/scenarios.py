@@ -441,6 +441,20 @@ FOLDERS = [
     setup("DELETE", "/v1.0/me/mailFolders/${folderId}", always=True),
 ]
 
+PHOTOS = [
+    step("directory.me.photo.get", "GET", "/v1.0/me/photo"),
+    step("directory.me.photo.put", "PUT", "/v1.0/me/photo/$value", binary={"photo": True, "contentType": "image/jpeg"}),
+    step("directory.me.photo.patch", "PATCH", "/v1.0/me/photo/$value", binary={"photo": True, "contentType": "image/jpeg"}),
+    step("directory.me.photo-value", "GET", "/v1.0/me/photo/$value"),
+    setup("GET", "/v1.0/me", query={"$select": "userPrincipalName"}, save={"upn": "userPrincipalName"}),
+    step("directory.users.photo.get", "GET", "/v1.0/users/${upn}/photo"),
+    step("directory.users.photo.put", "PUT", "/v1.0/users/${upn}/photo/$value", binary={"photo": True, "contentType": "image/jpeg"}),
+    step("directory.users.photo.patch", "PATCH", "/v1.0/users/${upn}/photo/$value", binary={"photo": True, "contentType": "image/jpeg"}),
+    step("directory.users.photo.delete", "DELETE", "/v1.0/users/${upn}/photo/$value"),
+    setup("PUT", "/v1.0/me/photo/$value", binary={"photo": True, "contentType": "image/jpeg"}),
+    step("directory.me.photo.delete", "DELETE", "/v1.0/me/photo/$value", always=True),
+]
+
 COUNTS = [
     step("mail.messages.count", "GET", "/v1.0/me/messages/$count", headers={"Accept": "text/plain"}),
     step("mail.folders.messages.count", "GET", "/v1.0/me/mailFolders/inbox/messages/$count",
@@ -465,5 +479,5 @@ PHASES = {
     15: [("todo", TODO)],
     16: [("notifications", NOTIFICATIONS)],
     18: [("settings", SETTINGS), ("aliases", ALIASES), ("todo items", TODO_ITEMS)],
-    19: [("folders", FOLDERS), ("counts", COUNTS)],
+    19: [("folders", FOLDERS), ("counts", COUNTS), ("photos", PHOTOS)],
 }

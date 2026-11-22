@@ -111,7 +111,20 @@ public static class ConformanceRunner
             }
         }
 
-        if (fixture.Body is not null)
+        if (fixture.BodyBase64 is { } base64)
+        {
+            request.Content = new ByteArrayContent(Convert.FromBase64String(base64));
+            if (fixture.Headers.TryGetValue("Content-Type", out var binaryType))
+            {
+                request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(binaryType);
+            }
+
+            foreach (var (name, value) in contentHeaders)
+            {
+                request.Content.Headers.TryAddWithoutValidation(name, value);
+            }
+        }
+        else if (fixture.Body is not null)
         {
             var mediaType = fixture.Headers.TryGetValue("Content-Type", out var type) ? MediaTypeHeaderValue.Parse(type).MediaType! : "application/json";
             var text = fixture.Body is JsonValue raw && raw.TryGetValue<string>(out var s) ? s : fixture.Body.ToJsonString();

@@ -12,6 +12,10 @@ public static class DirectoryServiceCollectionExtensions
         services.TryAddScoped<GetUser>();
         services.TryAddScoped<ListUsers>();
         services.TryAddScoped<GetUserPhoto>();
+        services.TryAddScoped<GetSignedInUserPhoto>();
+        services.TryAddScoped<GetUserPhotoInfo>();
+        services.TryAddScoped<SetUserPhoto>();
+        services.TryAddScoped<DeleteUserPhoto>();
         return services;
     }
 }

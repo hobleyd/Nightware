@@ -302,6 +302,12 @@ Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf,
 - The image is buffered, capped at 4 MiB.
 - A backend 401 maps to `BackendUnavailable`, never to 401: on a best-effort call, a 401 would make the client refresh its token and could flag the account for re-authentication.
 
+**`NextcloudAvatarWriter` (`IUserPhotoWriter`, `Directory/`)** sets and removes the signed-in user's own photo (phase 19): `POST {BaseUrl}index.php/avatar/` with the image as multipart `files[]`, and `DELETE {BaseUrl}index.php/avatar/`, both with the caller's Groupware credential.
+
+- A bearer-token request passes Nextcloud's CSRF check only with `OCS-APIRequest: true` (verified on Nextcloud 35).
+- Nextcloud answers 200 whatever happened and says what in the body: `{"status":"success"}` stored it; `{"data":"notsquare"}` stored nothing (only a square JPEG or PNG is kept, and NC 35 has no crop route); `{"data":{"message"}}` refused it. Only the first is success; the others are 400 with the reason. The use case refuses a non-square image before it gets here.
+- No-photo reads now carry Graph's code `ImageNotFound` (`UserPhotos.None()`), so the metadata route can tell "no photo" (a placeholder) from "no such user" (404).
+
 ## Calendar and rooms (Phase 4)
 
 `Calendar/` implements `ICalendarReader`, `ICalendarWriter`, `ISchedulingActions` and `IFreeBusyReader`; `Rooms/` implements `IRoomDirectory`.

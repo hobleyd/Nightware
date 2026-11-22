@@ -60,6 +60,18 @@ public sealed class HarnessTests
     }
 
     [Fact]
+    public async Task A_base64_body_is_sent_as_its_bytes_with_the_fixtures_type()
+    {
+        var fixture = new FixtureRequest("PUT", "/v1.0/me/photo/$value", new Dictionary<string, string>(),
+            new Dictionary<string, string> { ["Content-Type"] = "image/jpeg" }, null) { BodyBase64 = Convert.ToBase64String([1, 2, 255]) };
+
+        using var request = ConformanceRunner.BuildRequest(fixture);
+
+        request.Content!.Headers.ContentType!.MediaType.ShouldBe("image/jpeg");
+        (await request.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken)).ShouldBe([1, 2, 255]);
+    }
+
+    [Fact]
     public void A_captured_token_placeholder_is_replaced_by_the_signed_token()
     {
         var fixture = new FixtureRequest("GET", "/v1.0/me/mailFolders/delta", new Dictionary<string, string> { ["$deltatoken"] = ConformanceRunner.TokenPlaceholder },
