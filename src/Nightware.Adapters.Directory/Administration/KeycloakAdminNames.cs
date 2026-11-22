@@ -35,6 +35,9 @@ internal static class KeycloakAdminNames
     /// <summary>Keycloak's own attribute behind the OIDC <c>phone_number</c> claim; Graph's <c>mobilePhone</c>.</summary>
     public const string PhoneNumberAttribute = "phoneNumber";
 
+    /// <summary>The manager's user id (phase 20); the directory's <c>manager</c> and <c>directReports</c>.</summary>
+    public const string ManagerAttribute = "nightware_manager";
+
     /// <summary>User attribute: when the console deleted the user's mail (ISO-8601 round-trip).</summary>
     public const string MailDeletedAtAttribute = "nightware_mail_deleted_at";
 

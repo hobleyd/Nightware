@@ -17,6 +17,11 @@ internal static class DirectoryUsersServiceCollectionExtensions
         // Scoped: it wraps the transient typed admin client and is consumed by the scoped MailboxResolver.
         services.TryAddScoped<IUserDirectory, KeycloakUserDirectory>();
         services.TryAddScoped<IDirectoryAddresses, KeycloakDirectoryAddresses>();
+
+        // Phase 20: groups, reporting lines and the organization.
+        services.TryAddScoped<IGroupDirectory, KeycloakGroupDirectory>();
+        services.TryAddScoped<IReportingLines, KeycloakReportingLines>();
+        services.TryAddScoped<IOrganizationDirectory, KeycloakOrganizationDirectory>();
         services.TryAddScoped<Nightware.Application.MailboxSettings.IInternalDomains, Nightware.Adapters.Directory.MailboxSettings.KeycloakInternalDomains>();
         return services;
     }

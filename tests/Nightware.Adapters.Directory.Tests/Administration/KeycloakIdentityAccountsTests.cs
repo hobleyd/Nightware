@@ -173,6 +173,29 @@ public sealed class KeycloakIdentityAccountsTests : IDisposable
     }
 
     [Fact]
+    public async Task The_manager_is_stored_by_id_and_removed_when_none()
+    {
+        _keycloak.GivenAdmin(UserPath, 200, """{"id":"5d2c6a4e-2f0b-4a8e-9f3c-1b7e2d9a6c11","attributes":{"locale":["en"]}}""");
+        _keycloak.GivenAdmin(UserPath, 204, method: "PUT");
+        await using AdapterHost host = Host();
+
+        (await host.Scoped<IIdentityAccounts>().SetManagerAsync(UserId, " u-sara ", Ct)).IsSuccess.ShouldBeTrue();
+        PutBody()["attributes"]!["nightware_manager"]!.AsArray().Single()!.GetValue<string>().ShouldBe("u-sara");
+    }
+
+    [Fact]
+    public async Task No_manager_removes_the_attribute_and_one_is_read_back()
+    {
+        _keycloak.GivenAdmin(UserPath, 200, """{"id":"5d2c6a4e-2f0b-4a8e-9f3c-1b7e2d9a6c11","username":"alice","email":"a@x.example","enabled":true,"attributes":{"nightware_manager":["u-sara"],"locale":["en"]}}""");
+        _keycloak.GivenAdmin(UserPath, 204, method: "PUT");
+        await using AdapterHost host = Host();
+
+        (await host.Scoped<IIdentityAccounts>().GetAsync(UserId, Ct)).Value.ManagerId.ShouldBe("u-sara");
+        (await host.Scoped<IIdentityAccounts>().SetManagerAsync(UserId, null, Ct)).IsSuccess.ShouldBeTrue();
+        PutBody()["attributes"]!.AsObject().Select(static kv => kv.Key).ShouldBe(["locale"]);
+    }
+
+    [Fact]
     public async Task No_aliases_removes_the_attribute()
     {
         _keycloak.GivenAdmin(UserPath, 200, """{"id":"5d2c6a4e-2f0b-4a8e-9f3c-1b7e2d9a6c11","attributes":{"nightware_aliases":["x@y.example"],"locale":["en"]}}""");

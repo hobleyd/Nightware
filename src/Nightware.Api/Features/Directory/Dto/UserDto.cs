@@ -8,7 +8,7 @@ namespace Nightware.Api.Features.Directory.Dto;
 /// <c>$select</c> without it, <c>id</c> are null and omitted — Graph returns directory objects with
 /// exactly the selected properties, which the golden fixtures pin.
 /// </summary>
-public sealed record UserDto
+public record UserDto
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Id { get; init; }

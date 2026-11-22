@@ -203,6 +203,27 @@ public sealed class UserPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task The_manager_form_shows_the_manager_and_saves_a_new_one()
+    {
+        _host.AddUser("u-sara", "sara", "sara@acme.example");
+        _host.AddUser("u-dan", "dan", "dan@acme.example");
+        _host.Identities.GetAsync("u-dan", Arg.Any<CancellationToken>()).Returns(new IdentityAccount("u-dan", "dan", "dan@acme.example", true) { ManagerId = "u-sara" });
+        _host.Identities.SetManagerAsync("u-dan", Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(Result.Success());
+        HttpClient client = _host.ClientAs(ConsoleHost.EntityAdmin);
+
+        string page = await client.GetStringAsync("/users/u-dan", Ct);
+        page.ShouldContain("handler=Manager");
+        page.ShouldContain("value=\"sara@acme.example\"");
+        using HttpResponseMessage done = await ConsoleHost.PostFormAsync(client, "/users/u-dan", "/users/u-dan?handler=Manager", new Dictionary<string, string>
+        {
+            ["manager"] = "",
+        });
+
+        done.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        await _host.Identities.Received(1).SetManagerAsync("u-dan", null, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Finding_one_user_opens_them_and_several_are_listed_with_their_entity()
     {
         _host.AddUser("u-dan", "dan", "dan@acme.example");

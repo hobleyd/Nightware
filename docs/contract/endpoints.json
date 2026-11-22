@@ -11259,5 +11259,514 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/user-translateexchangeids",
     "notes": "Nightware's ids are already immutable (a message keeps its id across moves), so restId and restImmutableEntryId are the same string and each id translates to itself. entryId, immutableEntryId and ewsId are Exchange store ids with no counterpart: 400 notSupported. At most 1,000 ids. Prefer: IdType=\"ImmutableId\" is accepted everywhere and changes nothing, for the same reason (no Preference-Applied, as Graph documents none)."
+  },
+  {
+    "id": "directory.me.manager.get",
+    "phase": 21,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/me/manager",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "@odata.type",
+      "id",
+      "displayName",
+      "mail",
+      "userPrincipalName",
+      "jobTitle",
+      "businessPhones[]"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-list-manager",
+    "notes": "The manager the console set (Keycloak attribute nightware_manager); 404 Request_ResourceNotFound when none, as Graph's. $select only."
+  },
+  {
+    "id": "directory.users.manager.get",
+    "phase": 21,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/users/{userIdOrUpn}/manager",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "@odata.type",
+      "id",
+      "displayName",
+      "mail",
+      "userPrincipalName",
+      "jobTitle",
+      "businessPhones[]"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-list-manager",
+    "notes": "The manager the console set (Keycloak attribute nightware_manager); 404 Request_ResourceNotFound when none, as Graph's. $select only. The user is looked up as GET /users/{x} is; an unknown user is 404."
+  },
+  {
+    "id": "directory.me.direct-reports.list",
+    "phase": 21,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/me/directReports",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].@odata.type",
+      "value[].id",
+      "value[].displayName",
+      "value[].mail",
+      "value[].userPrincipalName",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-list-directreports",
+    "notes": "Enabled people whose manager is the caller. $select, $top and $skiptoken."
+  },
+  {
+    "id": "directory.users.direct-reports.list",
+    "phase": 21,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/users/{userIdOrUpn}/directReports",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].@odata.type",
+      "value[].id",
+      "value[].displayName",
+      "value[].mail",
+      "value[].userPrincipalName",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-list-directreports",
+    "notes": "As directory.me.direct-reports.list for another user."
+  },
+  {
+    "id": "directory.me.member-of.list",
+    "phase": 21,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/me/memberOf",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].@odata.type",
+      "value[].id",
+      "value[].displayName",
+      "value[].mail",
+      "value[].mailEnabled",
+      "value[].securityEnabled",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-list-memberof",
+    "notes": "The caller's groups (ADR 0003) in their organizations, each led by @odata.type #microsoft.graph.group. $select, $top and $skiptoken."
+  },
+  {
+    "id": "directory.users.member-of.list",
+    "phase": 21,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/users/{userIdOrUpn}/memberOf",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].@odata.type",
+      "value[].id",
+      "value[].displayName",
+      "value[].mail",
+      "value[].mailEnabled",
+      "value[].securityEnabled",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-list-memberof",
+    "notes": "Another user's groups, in the organizations the caller shares with them."
+  },
+  {
+    "id": "directory.me.transitive-member-of.list",
+    "phase": 21,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/me/transitiveMemberOf",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].@odata.type",
+      "value[].id",
+      "value[].displayName",
+      "value[].mail",
+      "value[].mailEnabled",
+      "value[].securityEnabled",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-list-transitivememberof",
+    "notes": "Groups don't nest, so the same as directory.me.member-of.list."
+  },
+  {
+    "id": "directory.users.transitive-member-of.list",
+    "phase": 21,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/users/{userIdOrUpn}/transitiveMemberOf",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].@odata.type",
+      "value[].id",
+      "value[].displayName",
+      "value[].mail",
+      "value[].mailEnabled",
+      "value[].securityEnabled",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/user-list-transitivememberof",
+    "notes": "Groups don't nest, so the same as directory.users.member-of.list."
+  },
+  {
+    "id": "directory.groups.list",
+    "phase": 21,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/groups",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].displayName",
+      "value[].mail",
+      "value[].mailEnabled",
+      "value[].mailNickname",
+      "value[].securityEnabled",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/group-list",
+    "notes": "The groups of the caller's organizations: a list makes a group mail-enabled (a distribution group), a files facet security-enabled. $select, $top and $skiptoken."
+  },
+  {
+    "id": "directory.groups.get",
+    "phase": 21,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/groups/{groupId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "displayName",
+      "mail",
+      "mailEnabled",
+      "mailNickname",
+      "securityEnabled",
+      "groupTypes[]",
+      "proxyAddresses[]"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/group-get",
+    "notes": "A group of the caller's organizations; any other id is 404 Request_ResourceNotFound. $select."
+  },
+  {
+    "id": "directory.groups.members.list",
+    "phase": 21,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/groups/{groupId}/members",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].@odata.type",
+      "value[].id",
+      "value[].displayName",
+      "value[].mail",
+      "value[].userPrincipalName",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/group-list-members",
+    "notes": "The group's enabled members (people only). $select, $top and $skiptoken."
+  },
+  {
+    "id": "directory.groups.transitive-members.list",
+    "phase": 21,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/groups/{groupId}/transitiveMembers",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].@odata.type",
+      "value[].id",
+      "value[].displayName",
+      "value[].mail",
+      "value[].userPrincipalName",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/group-list-transitivemembers",
+    "notes": "Groups don't nest, so the same as directory.groups.members.list."
+  },
+  {
+    "id": "directory.organization.list",
+    "phase": 21,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/organization",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].displayName",
+      "value[].verifiedDomains[].name",
+      "value[].verifiedDomains[].isDefault"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/organization-list",
+    "notes": "The caller's organizations (entities), usually one: id, displayName and verifiedDomains (the mail domains, the first in name order the default); the rest null, as Graph gives a User.Read caller. $select."
+  },
+  {
+    "id": "directory.organization.get",
+    "phase": 21,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/organization/{organizationId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "displayName",
+      "verifiedDomains[].name",
+      "verifiedDomains[].isDefault"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/api/organization-get",
+    "notes": "One of the caller's organizations; any other id is 404 Request_ResourceNotFound."
   }
 ]

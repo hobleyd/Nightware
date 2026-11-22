@@ -24,4 +24,7 @@ internal static class KeycloakUserAttributes
 
     /// <summary>Multi-valued secondary SMTP addresses → <c>proxyAddresses</c> <c>smtp:</c> entries.</summary>
     public const string Aliases = "nightware_aliases";
+
+    /// <summary>The manager's Keycloak user id → <c>manager</c> and <c>directReports</c> (phase 20).</summary>
+    public const string Manager = "nightware_manager";
 }

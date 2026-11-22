@@ -5,7 +5,8 @@
 #     nightware_working_hours (JSON string), nightware_date_format,
 #     nightware_time_format; and the Graph user profile fields the console sets
 #     (nightware_job_title, _department, _company_name, _office_location,
-#     _business_phones (multivalued), phoneNumber → mobilePhone). Viewable by
+#     _business_phones (multivalued), phoneNumber → mobilePhone, and
+#     nightware_manager, the manager's user id → manager/directReports). Viewable by
 #     users, editable only by admins / the service accounts.
 #   - lock the identity attributes: `email` (the Stalwart account and the
 #     façade's /me mailbox) and `username` are editable by admins only, so a user
@@ -42,7 +43,8 @@ ATTRS='[
   {"name":"nightware_company_name","displayName":"Company","validations":{"length":{"max":255}}},
   {"name":"nightware_office_location","displayName":"Office","validations":{"length":{"max":255}}},
   {"name":"nightware_business_phones","displayName":"Work phones","multivalued":true,"validations":{"length":{"max":255}}},
-  {"name":"phoneNumber","displayName":"Mobile phone","validations":{"length":{"max":255}}}
+  {"name":"phoneNumber","displayName":"Mobile phone","validations":{"length":{"max":255}}},
+  {"name":"nightware_manager","displayName":"Manager (user id)","validations":{"length":{"max":64}}}
 ]'
 profile=$(ccurl -f -H "Authorization: Bearer ${ADMIN}" "${API}/users/profile")
 updated=$(jq --argjson want "$ATTRS" -f "$DEPLOY_DIR/keycloak/user-profile.jq" <<<"$profile")

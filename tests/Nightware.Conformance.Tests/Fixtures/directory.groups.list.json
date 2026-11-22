@@ -1,0 +1,117 @@
+{
+  "operationId": "directory.groups.list",
+  "provenance": "Graph v1.0 reference example (https://learn.microsoft.com/graph/api/group-list) shaped as Nightware's directory; constructed, no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/groups",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#groups",
+      "value": [
+        {
+          "id": "d7797254-3084-44d0-99c9-a3b5ab149538",
+          "deletedDateTime": null,
+          "classification": null,
+          "createdDateTime": null,
+          "description": null,
+          "displayName": "Golf Discussion",
+          "expirationDateTime": null,
+          "groupTypes": [],
+          "isAssignableToRole": null,
+          "mail": "golftalk@example.com",
+          "mailEnabled": true,
+          "mailNickname": "golftalk",
+          "membershipRule": null,
+          "membershipRuleProcessingState": null,
+          "onPremisesLastSyncDateTime": null,
+          "onPremisesSecurityIdentifier": null,
+          "onPremisesSyncEnabled": null,
+          "preferredDataLocation": null,
+          "preferredLanguage": null,
+          "proxyAddresses": [
+            "SMTP:golftalk@example.com",
+            "smtp:golf@example.com"
+          ],
+          "renewedDateTime": null,
+          "resourceBehaviorOptions": [],
+          "resourceProvisioningOptions": [],
+          "securityEnabled": false,
+          "theme": null,
+          "visibility": null,
+          "onPremisesProvisioningErrors": []
+        },
+        {
+          "id": "45b7d2e7-b882-4a80-ba97-10b7a63b8fa4",
+          "deletedDateTime": null,
+          "classification": null,
+          "createdDateTime": null,
+          "description": null,
+          "displayName": "Finance",
+          "expirationDateTime": null,
+          "groupTypes": [],
+          "isAssignableToRole": null,
+          "mail": "finance@example.com",
+          "mailEnabled": true,
+          "mailNickname": "finance",
+          "membershipRule": null,
+          "membershipRuleProcessingState": null,
+          "onPremisesLastSyncDateTime": null,
+          "onPremisesSecurityIdentifier": null,
+          "onPremisesSyncEnabled": null,
+          "preferredDataLocation": null,
+          "preferredLanguage": null,
+          "proxyAddresses": [
+            "SMTP:finance@example.com"
+          ],
+          "renewedDateTime": null,
+          "resourceBehaviorOptions": [],
+          "resourceProvisioningOptions": [],
+          "securityEnabled": true,
+          "theme": null,
+          "visibility": null,
+          "onPremisesProvisioningErrors": []
+        },
+        {
+          "id": "02bd9fd6-8f93-4758-87c3-1fb73740a315",
+          "deletedDateTime": null,
+          "classification": null,
+          "createdDateTime": null,
+          "description": null,
+          "displayName": "Board papers",
+          "expirationDateTime": null,
+          "groupTypes": [],
+          "isAssignableToRole": null,
+          "mail": null,
+          "mailEnabled": false,
+          "mailNickname": "board-papers",
+          "membershipRule": null,
+          "membershipRuleProcessingState": null,
+          "onPremisesLastSyncDateTime": null,
+          "onPremisesSecurityIdentifier": null,
+          "onPremisesSyncEnabled": null,
+          "preferredDataLocation": null,
+          "preferredLanguage": null,
+          "proxyAddresses": [],
+          "renewedDateTime": null,
+          "resourceBehaviorOptions": [],
+          "resourceProvisioningOptions": [],
+          "securityEnabled": true,
+          "theme": null,
+          "visibility": null,
+          "onPremisesProvisioningErrors": []
+        }
+      ]
+    }
+  }
+}

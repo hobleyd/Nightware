@@ -17,7 +17,8 @@ public static class DirectoryEndpoints
     /// <summary>
     /// Maps the Directory routes onto a Graph version group (<c>/v1.0</c> and <c>/beta</c>):
     /// <c>GET /me</c>, <c>GET /users/{id|upn}</c>, <c>GET /users</c>, <c>GET /users/{id|upn}/photo/$value</c>, and the phase 19
-    /// photo routes (<c>/me/photo/$value</c>, the <c>…/photo</c> metadata, and PUT/PATCH/DELETE of one's own photo).
+    /// photo routes (<c>/me/photo/$value</c>, the <c>…/photo</c> metadata, and PUT/PATCH/DELETE of one's own photo), and
+    /// phase 21's groups, reporting lines and organization (<see cref="DirectoryObjectEndpoints"/>).
     /// </summary>
     /// <remarks>
     /// <c>/users/{x}</c> is plain routing rather than a mailbox route: it is both the contact-card lookup and
@@ -42,6 +43,9 @@ public static class DirectoryEndpoints
         graph.MapPatch("/users/{user}/photo/$value", (string user, HttpRequest request, SetUserPhoto useCase, CancellationToken ct) => SetPhotoAsync(user, request, useCase, ct));
         graph.MapDelete("/me/photo/$value", (DeleteUserPhoto useCase, CancellationToken ct) => DeletePhotoAsync(null, useCase, ct));
         graph.MapDelete("/users/{user}/photo/$value", (string user, DeleteUserPhoto useCase, CancellationToken ct) => DeletePhotoAsync(user, useCase, ct));
+
+        // Phase 21: groups, reporting lines and the organization.
+        graph.MapDirectoryObjectEndpoints();
         return graph;
     }
 

@@ -19,6 +19,7 @@ public sealed class DetailModel(
     ResetUserCredential reset,
     SetUserAliases setAliases,
     SetUserProfile setProfile,
+    SetUserManager setManager,
     VerifyUserEmail verifyEmail,
     OffboardUser offboard,
     ReinstateUser reinstate,
@@ -104,6 +105,12 @@ public sealed class DetailModel(
                 },
                 cancellationToken),
             "Profile saved.",
+            cancellationToken);
+
+    public async Task<IActionResult> OnPostManagerAsync(string? manager, CancellationToken cancellationToken) =>
+        await AfterAsync(
+            await setManager.ExecuteAsync(Id, manager, cancellationToken),
+            string.IsNullOrWhiteSpace(manager) ? "Manager removed." : "Manager saved.",
             cancellationToken);
 
     public async Task<IActionResult> OnPostOffboardAsync(bool confirm, CancellationToken cancellationToken)

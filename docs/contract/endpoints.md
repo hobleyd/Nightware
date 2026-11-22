@@ -330,7 +330,8 @@ operation:
 | Phase 16 — Change notifications (Graph parity) | 10 |
 | Phase 18 — Settings, aliases, single items and $count (Graph parity) | 26 |
 | Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 81 |
-| **Total** | **278** |
+| Phase 21 — The directory: groups, manager, organization (Graph parity) | 14 |
+| **Total** | **292** |
 
 ### Phase 2 — Mail, read side
 
@@ -3332,5 +3333,150 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-translateexchangeids
 - Notes: Nightware's ids are already immutable (a message keeps its id across moves), so restId and restImmutableEntryId are the same string and each id translates to itself. entryId, immutableEntryId and ewsId are Exchange store ids with no counterpart: 400 notSupported. At most 1,000 ids. Prefer: IdType="ImmutableId" is accepted everywhere and changes nothing, for the same reason (no Preference-Applied, as Graph documents none).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.translate-exchange-ids.json`
+
+### Phase 21 — The directory: groups, manager, organization (Graph parity)
+
+| Id | Method | Ver | Path | Paging |
+|---|---|---|---|---|
+| [`directory.me.manager.get`](#directorymemanagerget) | GET | v1.0 | `/me/manager` | none |
+| [`directory.users.manager.get`](#directoryusersmanagerget) | GET | v1.0 | `/users/{userIdOrUpn}/manager` | none |
+| [`directory.me.direct-reports.list`](#directorymedirect-reportslist) | GET | v1.0 | `/me/directReports` | nextLink |
+| [`directory.users.direct-reports.list`](#directoryusersdirect-reportslist) | GET | v1.0 | `/users/{userIdOrUpn}/directReports` | nextLink |
+| [`directory.me.member-of.list`](#directorymemember-oflist) | GET | v1.0 | `/me/memberOf` | nextLink |
+| [`directory.users.member-of.list`](#directoryusersmember-oflist) | GET | v1.0 | `/users/{userIdOrUpn}/memberOf` | nextLink |
+| [`directory.me.transitive-member-of.list`](#directorymetransitive-member-oflist) | GET | v1.0 | `/me/transitiveMemberOf` | nextLink |
+| [`directory.users.transitive-member-of.list`](#directoryuserstransitive-member-oflist) | GET | v1.0 | `/users/{userIdOrUpn}/transitiveMemberOf` | nextLink |
+| [`directory.groups.list`](#directorygroupslist) | GET | v1.0 | `/groups` | nextLink |
+| [`directory.groups.get`](#directorygroupsget) | GET | v1.0 | `/groups/{groupId}` | none |
+| [`directory.groups.members.list`](#directorygroupsmemberslist) | GET | v1.0 | `/groups/{groupId}/members` | nextLink |
+| [`directory.groups.transitive-members.list`](#directorygroupstransitive-memberslist) | GET | v1.0 | `/groups/{groupId}/transitiveMembers` | nextLink |
+| [`directory.organization.list`](#directoryorganizationlist) | GET | v1.0 | `/organization` | none |
+| [`directory.organization.get`](#directoryorganizationget) | GET | v1.0 | `/organization/{organizationId}` | none |
+
+#### `directory.me.manager.get`
+
+**GET v1.0 `/me/manager`** — forms: root; success: 200; paging: none
+
+- Client reads: `@odata.type`, `id`, `displayName`, `mail`, `userPrincipalName`, `jobTitle`, `businessPhones[]`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-list-manager
+- Notes: The manager the console set (Keycloak attribute nightware_manager); 404 Request_ResourceNotFound when none, as Graph's. $select only.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.me.manager.get.json`
+
+#### `directory.users.manager.get`
+
+**GET v1.0 `/users/{userIdOrUpn}/manager`** — forms: root; success: 200; paging: none
+
+- Client reads: `@odata.type`, `id`, `displayName`, `mail`, `userPrincipalName`, `jobTitle`, `businessPhones[]`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-list-manager
+- Notes: The manager the console set (Keycloak attribute nightware_manager); 404 Request_ResourceNotFound when none, as Graph's. $select only. The user is looked up as GET /users/{x} is; an unknown user is 404.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.users.manager.get.json`
+
+#### `directory.me.direct-reports.list`
+
+**GET v1.0 `/me/directReports`** — forms: root; success: 200; paging: nextLink
+
+- Client reads: `value[].@odata.type`, `value[].id`, `value[].displayName`, `value[].mail`, `value[].userPrincipalName`, `@odata.nextLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-list-directreports
+- Notes: Enabled people whose manager is the caller. $select, $top and $skiptoken.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.me.direct-reports.list.json`
+
+#### `directory.users.direct-reports.list`
+
+**GET v1.0 `/users/{userIdOrUpn}/directReports`** — forms: root; success: 200; paging: nextLink
+
+- Client reads: `value[].@odata.type`, `value[].id`, `value[].displayName`, `value[].mail`, `value[].userPrincipalName`, `@odata.nextLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-list-directreports
+- Notes: As directory.me.direct-reports.list for another user.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.users.direct-reports.list.json`
+
+#### `directory.me.member-of.list`
+
+**GET v1.0 `/me/memberOf`** — forms: root; success: 200; paging: nextLink
+
+- Client reads: `value[].@odata.type`, `value[].id`, `value[].displayName`, `value[].mail`, `value[].mailEnabled`, `value[].securityEnabled`, `@odata.nextLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-list-memberof
+- Notes: The caller's groups (ADR 0003) in their organizations, each led by @odata.type #microsoft.graph.group. $select, $top and $skiptoken.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.me.member-of.list.json`
+
+#### `directory.users.member-of.list`
+
+**GET v1.0 `/users/{userIdOrUpn}/memberOf`** — forms: root; success: 200; paging: nextLink
+
+- Client reads: `value[].@odata.type`, `value[].id`, `value[].displayName`, `value[].mail`, `value[].mailEnabled`, `value[].securityEnabled`, `@odata.nextLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-list-memberof
+- Notes: Another user's groups, in the organizations the caller shares with them.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.users.member-of.list.json`
+
+#### `directory.me.transitive-member-of.list`
+
+**GET v1.0 `/me/transitiveMemberOf`** — forms: root; success: 200; paging: nextLink
+
+- Client reads: `value[].@odata.type`, `value[].id`, `value[].displayName`, `value[].mail`, `value[].mailEnabled`, `value[].securityEnabled`, `@odata.nextLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-list-transitivememberof
+- Notes: Groups don't nest, so the same as directory.me.member-of.list.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.me.transitive-member-of.list.json`
+
+#### `directory.users.transitive-member-of.list`
+
+**GET v1.0 `/users/{userIdOrUpn}/transitiveMemberOf`** — forms: root; success: 200; paging: nextLink
+
+- Client reads: `value[].@odata.type`, `value[].id`, `value[].displayName`, `value[].mail`, `value[].mailEnabled`, `value[].securityEnabled`, `@odata.nextLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-list-transitivememberof
+- Notes: Groups don't nest, so the same as directory.users.member-of.list.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.users.transitive-member-of.list.json`
+
+#### `directory.groups.list`
+
+**GET v1.0 `/groups`** — forms: root; success: 200; paging: nextLink
+
+- Client reads: `value[].id`, `value[].displayName`, `value[].mail`, `value[].mailEnabled`, `value[].mailNickname`, `value[].securityEnabled`, `@odata.nextLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/group-list
+- Notes: The groups of the caller's organizations: a list makes a group mail-enabled (a distribution group), a files facet security-enabled. $select, $top and $skiptoken.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.groups.list.json`
+
+#### `directory.groups.get`
+
+**GET v1.0 `/groups/{groupId}`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `displayName`, `mail`, `mailEnabled`, `mailNickname`, `securityEnabled`, `groupTypes[]`, `proxyAddresses[]`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/group-get
+- Notes: A group of the caller's organizations; any other id is 404 Request_ResourceNotFound. $select.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.groups.get.json`
+
+#### `directory.groups.members.list`
+
+**GET v1.0 `/groups/{groupId}/members`** — forms: root; success: 200; paging: nextLink
+
+- Client reads: `value[].@odata.type`, `value[].id`, `value[].displayName`, `value[].mail`, `value[].userPrincipalName`, `@odata.nextLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/group-list-members
+- Notes: The group's enabled members (people only). $select, $top and $skiptoken.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.groups.members.list.json`
+
+#### `directory.groups.transitive-members.list`
+
+**GET v1.0 `/groups/{groupId}/transitiveMembers`** — forms: root; success: 200; paging: nextLink
+
+- Client reads: `value[].@odata.type`, `value[].id`, `value[].displayName`, `value[].mail`, `value[].userPrincipalName`, `@odata.nextLink`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/group-list-transitivemembers
+- Notes: Groups don't nest, so the same as directory.groups.members.list.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.groups.transitive-members.list.json`
+
+#### `directory.organization.list`
+
+**GET v1.0 `/organization`** — forms: root; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].displayName`, `value[].verifiedDomains[].name`, `value[].verifiedDomains[].isDefault`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/organization-list
+- Notes: The caller's organizations (entities), usually one: id, displayName and verifiedDomains (the mail domains, the first in name order the default); the rest null, as Graph gives a User.Read caller. $select.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.organization.list.json`
+
+#### `directory.organization.get`
+
+**GET v1.0 `/organization/{organizationId}`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `displayName`, `verifiedDomains[].name`, `verifiedDomains[].isDefault`
+- Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/organization-get
+- Notes: One of the caller's organizations; any other id is 404 Request_ResourceNotFound.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.organization.get.json`
 
 <!-- END GENERATED -->

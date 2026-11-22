@@ -119,6 +119,111 @@ public sealed class SetUserProfile(IAdminActor actor, UserAccess users, IIdentit
     }
 }
 
+/// <summary>
+/// Sets or removes a user's manager (phase 21), the directory's <c>manager</c> and <c>directReports</c>. The manager is
+/// named by address or username and must be another member of the user's entity; a choice that would make a loop
+/// (the user managing their own manager, however far up) is refused.
+/// </summary>
+public sealed class SetUserManager(IAdminActor actor, UserAccess users, IIdentityAccounts identities, IEntityRegistry entities, IAuditLog audit)
+{
+    /// <summary>How far up the chain a loop is looked for; a deeper chain is refused rather than walked for ever.</summary>
+    internal const int MaxChain = 100;
+
+    /// <param name="manager">The manager's address or username; blank removes the manager.</param>
+    public async Task<Result<UserDetail>> ExecuteAsync(string userId, string? manager, CancellationToken cancellationToken)
+    {
+        Result<UserDetail> loaded = await users.LoadWithLinksAsync(userId, cancellationToken).ConfigureAwait(false);
+        if (!loaded.IsSuccess)
+        {
+            return loaded.Error;
+        }
+
+        ManagedUser user = loaded.Value.User;
+        string? managerId = null;
+        if (!string.IsNullOrWhiteSpace(manager))
+        {
+            Result<string> chosen = await ChooseAsync(user, manager.Trim(), cancellationToken).ConfigureAwait(false);
+            if (!chosen.IsSuccess)
+            {
+                return chosen.Error;
+            }
+
+            managerId = chosen.Value;
+        }
+
+        Result result = await identities.SetManagerAsync(userId, managerId, cancellationToken).ConfigureAwait(false);
+        audit.Record(new AuditEvent("user.manager.set", actor.Current.UserId, result.IsSuccess)
+        {
+            TargetUserId = userId,
+            EntityId = user.EntityId,
+        });
+        return result.IsSuccess ? await users.LoadWithLinksAsync(userId, cancellationToken).ConfigureAwait(false) : result.Error;
+    }
+
+    private async Task<Result<string>> ChooseAsync(ManagedUser user, string name, CancellationToken cancellationToken)
+    {
+        Result<IdentityAccount> found = name.Contains('@', StringComparison.Ordinal)
+            ? await identities.FindByEmailAsync(name, cancellationToken).ConfigureAwait(false)
+            : await identities.FindByUsernameAsync(name, cancellationToken).ConfigureAwait(false);
+        if (!found.IsSuccess)
+        {
+            return found.Error.Kind == ErrorKind.NotFound ? Error.Validation($"Nobody is called {name}.", "manager") : found.Error;
+        }
+
+        IdentityAccount candidate = found.Value;
+        if (string.Equals(candidate.Id, user.Identity.Id, StringComparison.Ordinal))
+        {
+            return Error.Validation("Nobody can be their own manager.", "manager");
+        }
+
+        if (user.EntityId is null)
+        {
+            return Error.Validation("The user belongs to no entity, so nobody can be their manager.", "manager");
+        }
+
+        Result<IReadOnlyList<string>> memberships = await entities.GetMembershipsAsync(candidate.Id, cancellationToken).ConfigureAwait(false);
+        if (!memberships.IsSuccess)
+        {
+            return memberships.Error;
+        }
+
+        if (!memberships.Value.Contains(user.EntityId, StringComparer.Ordinal))
+        {
+            return Error.Validation($"{name} isn't in the same entity.", "manager");
+        }
+
+        // Walk up from the candidate: meeting the user means they would manage their own manager.
+        string? next = candidate.ManagerId;
+        for (int step = 0; next is not null; step++)
+        {
+            if (string.Equals(next, user.Identity.Id, StringComparison.Ordinal))
+            {
+                return Error.Validation($"{user.Identity.DisplayName} already manages {name}, directly or further up, so that would make a loop.", "manager");
+            }
+
+            if (step == MaxChain)
+            {
+                return Error.Validation($"{name}'s chain of managers is too long to check.", "manager");
+            }
+
+            Result<IdentityAccount> above = await identities.GetAsync(next, cancellationToken).ConfigureAwait(false);
+            if (!above.IsSuccess)
+            {
+                if (above.Error.Kind == ErrorKind.NotFound)
+                {
+                    break;
+                }
+
+                return above.Error;
+            }
+
+            next = above.Value.ManagerId;
+        }
+
+        return candidate.Id;
+    }
+}
+
 /// <summary>Replaces a user's secondary addresses in Keycloak and on their mailbox.</summary>
 public sealed class SetUserAliases(IAdminActor actor, UserAccess users, IEntityRegistry entities, IIdentityAccounts identities, IMailAccounts mail, AdministrationOptions options, IAuditLog audit)
 {

@@ -108,6 +108,13 @@ internal sealed class KeycloakIdentityAccounts(IKeycloakAdminClient keycloak, IO
         return updated.ToResult();
     }
 
+    public Task<Result> SetManagerAsync(string userId, string? managerId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        IReadOnlyList<string>? value = Blank(managerId) is { } id ? [id] : null;
+        return SetAttributeAsync(userId, KeycloakAdminNames.ManagerAttribute, value, cancellationToken);
+    }
+
     public async Task<Result> SetEnabledAsync(string userId, bool enabled, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);

@@ -231,6 +231,8 @@ wall-clock. Top-level timestamps (`receivedDateTime`, `sentDateTime`,
 | Phase 19 aliases (`calendar.default.*`, `calendar.calendars.events.*`, `mail.folders.messages.*`, `contacts.folders.contacts.photo-*`) | exactly what their base operation accepts (same handler); `calendar.calendar-groups.get`: `$select` |
 | `rooms.room-lists.*`, `mail.translate-exchange-ids` | nothing |
 | `tasks.checklist-items.get`, `tasks.linked-resources.get` | nothing |
+| Phase 21 lists: `directory.*.direct-reports.list`, `directory.*.member-of.list`, `directory.*.transitive-member-of.list`, `directory.groups.list`, `directory.groups.*members.list` | `$select`, `$top` (default 100), `$skiptoken`. `$filter`, `$search`, `$orderby`, `$count` and `$expand` are 400: Graph needs `ConsistencyLevel: eventual` for most of them, and Keycloak can't evaluate them |
+| `directory.*.manager.get`, `directory.groups.get`, `directory.organization.*` | `$select` |
 
 ### `$count` (phase 18)
 

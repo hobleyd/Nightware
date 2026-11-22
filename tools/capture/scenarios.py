@@ -26,6 +26,8 @@ set by capture_graph.time_vars.
 SCOPES = {
     "User.Read", "Mail.ReadWrite", "Mail.Send", "MailboxSettings.ReadWrite",
     "Calendars.ReadWrite", "Contacts.ReadWrite", "Tasks.ReadWrite",
+    # Phase 21: other users' profiles and reporting lines, groups and their members.
+    "User.ReadBasic.All", "GroupMember.Read.All",
 }
 
 UTC = {"Prefer": 'outlook.timezone="UTC"'}
@@ -500,6 +502,28 @@ SMALL = [
          body={"inputIds": ["${msgId}"], "sourceIdType": "restId", "targetIdType": "restImmutableEntryId"}),
 ]
 
+# ---------------------------------------------------------------- phase 21
+# The test mailbox needs a manager, a direct report and a group in the tenant for these to record more than 404s.
+DIRECTORY = [
+    step("directory.me.manager.get", "GET", "/v1.0/me/manager", expect=[200, 404]),
+    step("directory.me.direct-reports.list", "GET", "/v1.0/me/directReports"),
+    step("directory.me.member-of.list", "GET", "/v1.0/me/memberOf"),
+    step("directory.me.transitive-member-of.list", "GET", "/v1.0/me/transitiveMemberOf"),
+    step("directory.users.manager.get", "GET", "/v1.0/users/${colleague}/manager", query={"$select": "id,displayName,mail"},
+         requires="colleague", expect=[200, 404]),
+    step("directory.users.direct-reports.list", "GET", "/v1.0/users/${colleague}/directReports", query={"$top": "1"}, requires="colleague"),
+    step("directory.users.member-of.list", "GET", "/v1.0/users/${colleague}/memberOf",
+         query={"$select": "displayName,mailEnabled,securityEnabled"}, requires="colleague"),
+    step("directory.users.transitive-member-of.list", "GET", "/v1.0/users/${colleague}/transitiveMemberOf",
+         query={"$select": "displayName,mailEnabled,securityEnabled"}, requires="colleague"),
+    step("directory.groups.list", "GET", "/v1.0/groups", save={"groupId": "value[0].id"}),
+    step("directory.groups.get", "GET", "/v1.0/groups/${groupId}"),
+    step("directory.groups.members.list", "GET", "/v1.0/groups/${groupId}/members", query={"$select": "id,mail"}),
+    step("directory.groups.transitive-members.list", "GET", "/v1.0/groups/${groupId}/transitiveMembers", query={"$select": "id,mail"}),
+    step("directory.organization.list", "GET", "/v1.0/organization", save={"orgId": "value[0].id"}),
+    step("directory.organization.get", "GET", "/v1.0/organization/${orgId}"),
+]
+
 PHOTOS = [
     step("directory.me.photo.get", "GET", "/v1.0/me/photo"),
     step("directory.me.photo.put", "PUT", "/v1.0/me/photo/$value", binary={"photo": True, "contentType": "image/jpeg"}),
@@ -539,4 +563,5 @@ PHASES = {
     16: [("notifications", NOTIFICATIONS)],
     18: [("settings", SETTINGS), ("aliases", ALIASES), ("todo items", TODO_ITEMS)],
     19: [("folders", FOLDERS), ("counts", COUNTS), ("photos", PHOTOS), ("mime", MIME), ("event upload", EVENT_UPLOAD), ("item aliases", ITEM_ALIASES), ("small", SMALL)],
+    21: [("directory", DIRECTORY)],
 }

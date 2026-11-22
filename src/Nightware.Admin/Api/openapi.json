@@ -17415,6 +17415,325 @@
         }
       }
     },
+    "/groups/{groupId}": {
+      "get": {
+        "operationId": "directory.groups.get",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory groups: get",
+        "description": "A group of the caller's organizations; any other id is 404 Request_ResourceNotFound. $select.\n\nGraph reference: https://learn.microsoft.com/graph/api/group-get",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "displayName": {},
+                    "mail": {},
+                    "mailEnabled": {},
+                    "mailNickname": {},
+                    "securityEnabled": {},
+                    "groupTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {}
+                      }
+                    },
+                    "proxyAddresses": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/groups": {
+      "get": {
+        "operationId": "directory.groups.list",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory groups: list",
+        "description": "The groups of the caller's organizations: a list makes a group mail-enabled (a distribution group), a files facet security-enabled. $select, $top and $skiptoken.\n\nGraph reference: https://learn.microsoft.com/graph/api/group-list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {},
+                          "displayName": {},
+                          "mail": {},
+                          "mailEnabled": {},
+                          "mailNickname": {},
+                          "securityEnabled": {}
+                        }
+                      }
+                    },
+                    "@odata.nextLink": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/groups/{groupId}/members": {
+      "get": {
+        "operationId": "directory.groups.members.list",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory groups members: list",
+        "description": "The group's enabled members (people only). $select, $top and $skiptoken.\n\nGraph reference: https://learn.microsoft.com/graph/api/group-list-members",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "@odata": {
+                            "type": "object",
+                            "properties": {
+                              "type": {}
+                            }
+                          },
+                          "id": {},
+                          "displayName": {},
+                          "mail": {},
+                          "userPrincipalName": {}
+                        }
+                      }
+                    },
+                    "@odata.nextLink": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/groups/{groupId}/transitiveMembers": {
+      "get": {
+        "operationId": "directory.groups.transitive-members.list",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory groups transitive members: list",
+        "description": "Groups don't nest, so the same as directory.groups.members.list.\n\nGraph reference: https://learn.microsoft.com/graph/api/group-list-transitivemembers",
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "@odata": {
+                            "type": "object",
+                            "properties": {
+                              "type": {}
+                            }
+                          },
+                          "id": {},
+                          "displayName": {},
+                          "mail": {},
+                          "userPrincipalName": {}
+                        }
+                      }
+                    },
+                    "@odata.nextLink": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/directReports": {
+      "get": {
+        "operationId": "directory.me.direct-reports.list",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory me direct reports: list",
+        "description": "Enabled people whose manager is the caller. $select, $top and $skiptoken.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-list-directreports",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "@odata": {
+                            "type": "object",
+                            "properties": {
+                              "type": {}
+                            }
+                          },
+                          "id": {},
+                          "displayName": {},
+                          "mail": {},
+                          "userPrincipalName": {}
+                        }
+                      }
+                    },
+                    "@odata.nextLink": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me": {
       "get": {
         "operationId": "directory.me.get",
@@ -17534,6 +17853,119 @@
                       }
                     },
                     "proxyAddresses[] ('SMTP:'/'smtp:' prefixed; only smtp entries used)": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/manager": {
+      "get": {
+        "operationId": "directory.me.manager.get",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory me manager: get",
+        "description": "The manager the console set (Keycloak attribute nightware_manager); 404 Request_ResourceNotFound when none, as Graph's. $select only.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-list-manager",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "@odata.type": {},
+                    "id": {},
+                    "displayName": {},
+                    "mail": {},
+                    "userPrincipalName": {},
+                    "jobTitle": {},
+                    "businessPhones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/memberOf": {
+      "get": {
+        "operationId": "directory.me.member-of.list",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory me member of: list",
+        "description": "The caller's groups in their organizations, each led by @odata.type #microsoft.graph.group. $select, $top and $skiptoken.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-list-memberof",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "@odata": {
+                            "type": "object",
+                            "properties": {
+                              "type": {}
+                            }
+                          },
+                          "id": {},
+                          "displayName": {},
+                          "mail": {},
+                          "mailEnabled": {},
+                          "securityEnabled": {}
+                        }
+                      }
+                    },
+                    "@odata.nextLink": {}
                   }
                 }
               }
@@ -17740,6 +18172,255 @@
         }
       }
     },
+    "/me/transitiveMemberOf": {
+      "get": {
+        "operationId": "directory.me.transitive-member-of.list",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory me transitive member of: list",
+        "description": "Groups don't nest, so the same as directory.me.member-of.list.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-list-transitivememberof",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "@odata": {
+                            "type": "object",
+                            "properties": {
+                              "type": {}
+                            }
+                          },
+                          "id": {},
+                          "displayName": {},
+                          "mail": {},
+                          "mailEnabled": {},
+                          "securityEnabled": {}
+                        }
+                      }
+                    },
+                    "@odata.nextLink": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/organization/{organizationId}": {
+      "get": {
+        "operationId": "directory.organization.get",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory organization: get",
+        "description": "One of the caller's organizations; any other id is 404 Request_ResourceNotFound.\n\nGraph reference: https://learn.microsoft.com/graph/api/organization-get",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "displayName": {},
+                    "verifiedDomains": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {},
+                          "isDefault": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/organization": {
+      "get": {
+        "operationId": "directory.organization.list",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory organization: list",
+        "description": "The caller's organizations (entities), usually one: id, displayName and verifiedDomains (the mail domains, the first in name order the default); the rest null, as Graph gives a User.Read caller. $select.\n\nGraph reference: https://learn.microsoft.com/graph/api/organization-list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {},
+                          "displayName": {},
+                          "verifiedDomains": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {},
+                                "isDefault": {}
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userIdOrUpn}/directReports": {
+      "get": {
+        "operationId": "directory.users.direct-reports.list",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory users direct reports: list",
+        "description": "As directory.me.direct-reports.list for another user.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-list-directreports",
+        "parameters": [
+          {
+            "name": "userIdOrUpn",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "@odata": {
+                            "type": "object",
+                            "properties": {
+                              "type": {}
+                            }
+                          },
+                          "id": {},
+                          "displayName": {},
+                          "mail": {},
+                          "userPrincipalName": {}
+                        }
+                      }
+                    },
+                    "@odata.nextLink": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/users/{userIdOrUpn}": {
       "get": {
         "operationId": "directory.users.get",
@@ -17860,6 +18541,137 @@
                           "displayName": {},
                           "mail": {},
                           "userPrincipalName": {}
+                        }
+                      }
+                    },
+                    "@odata.nextLink": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userIdOrUpn}/manager": {
+      "get": {
+        "operationId": "directory.users.manager.get",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory users manager: get",
+        "description": "The manager the console set (Keycloak attribute nightware_manager); 404 Request_ResourceNotFound when none, as Graph's. $select only. The user is looked up as GET /users/{x} is; an unknown user is 404.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-list-manager",
+        "parameters": [
+          {
+            "name": "userIdOrUpn",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "@odata.type": {},
+                    "id": {},
+                    "displayName": {},
+                    "mail": {},
+                    "userPrincipalName": {},
+                    "jobTitle": {},
+                    "businessPhones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userIdOrUpn}/memberOf": {
+      "get": {
+        "operationId": "directory.users.member-of.list",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory users member of: list",
+        "description": "Another user's groups, in the organizations the caller shares with them.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-list-memberof",
+        "parameters": [
+          {
+            "name": "userIdOrUpn",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "@odata": {
+                            "type": "object",
+                            "properties": {
+                              "type": {}
+                            }
+                          },
+                          "id": {},
+                          "displayName": {},
+                          "mail": {},
+                          "mailEnabled": {},
+                          "securityEnabled": {}
                         }
                       }
                     },
@@ -18100,6 +18912,75 @@
                     "id": {},
                     "width": {},
                     "height": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userIdOrUpn}/transitiveMemberOf": {
+      "get": {
+        "operationId": "directory.users.transitive-member-of.list",
+        "tags": [
+          "Directory"
+        ],
+        "summary": "Directory users transitive member of: list",
+        "description": "Groups don't nest, so the same as directory.users.member-of.list.\n\nGraph reference: https://learn.microsoft.com/graph/api/user-list-transitivememberof",
+        "parameters": [
+          {
+            "name": "userIdOrUpn",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "@odata": {
+                            "type": "object",
+                            "properties": {
+                              "type": {}
+                            }
+                          },
+                          "id": {},
+                          "displayName": {},
+                          "mail": {},
+                          "mailEnabled": {},
+                          "securityEnabled": {}
+                        }
+                      }
+                    },
+                    "@odata.nextLink": {}
                   }
                 }
               }

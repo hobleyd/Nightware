@@ -248,6 +248,10 @@
                         <label>Mobile phone <input name="mobilePhone" value="@p.MobilePhone" maxlength="255" autocomplete="off"></label>
                         <button type="submit" class="secondary">Save profile</button>
                     </form>
+                    <form method="post" asp-page-handler="Manager" class="row">
+                        <label>Manager <input name="manager" type="text" value="@Model.Subject.Manager?.Email" placeholder="their address" autocomplete="off"></label>
+                        <button type="submit" class="secondary">Save manager</button>
+                    </form>
                 </div>
             }
             @if (aliases)

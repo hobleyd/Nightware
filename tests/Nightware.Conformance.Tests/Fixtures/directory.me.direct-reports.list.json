@@ -1,0 +1,53 @@
+{
+  "operationId": "directory.me.direct-reports.list",
+  "provenance": "Graph v1.0 reference example (https://learn.microsoft.com/graph/api/user-list-directreports) shaped as Nightware's directory; constructed, no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/directReports",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#directoryObjects",
+      "value": [
+        {
+          "@odata.type": "#microsoft.graph.user",
+          "id": "6ea91a8d-e32e-41a1-b7bd-d2d185eed0e0",
+          "displayName": "Adele Adams",
+          "givenName": "Adele",
+          "surname": "Adams",
+          "mail": "adele@example.com",
+          "userPrincipalName": "adele@example.com",
+          "jobTitle": "Analyst",
+          "officeLocation": null,
+          "mobilePhone": null,
+          "businessPhones": []
+        },
+        {
+          "@odata.type": "#microsoft.graph.user",
+          "id": "11111111-2222-3333-4444-555555555555",
+          "displayName": "Lee Gu",
+          "givenName": "Lee",
+          "surname": "Gu",
+          "mail": "lee@example.com",
+          "userPrincipalName": "lee@example.com",
+          "jobTitle": null,
+          "officeLocation": null,
+          "mobilePhone": null,
+          "businessPhones": [
+            "+61 2 9000 0001"
+          ]
+        }
+      ]
+    }
+  }
+}

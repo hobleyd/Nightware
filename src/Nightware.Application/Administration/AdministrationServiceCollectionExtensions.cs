@@ -62,6 +62,7 @@ public static class AdministrationServiceCollectionExtensions
         services.TryAddScoped<RepairUser>();
         services.TryAddScoped<SetUserAliases>();
         services.TryAddScoped<SetUserProfile>();
+        services.TryAddScoped<SetUserManager>();
         services.TryAddScoped<VerifyUserEmail>();
         services.TryAddScoped<Subscriptions.ListUserSubscriptions>();
         services.TryAddScoped<Subscriptions.ListAllSubscriptions>();

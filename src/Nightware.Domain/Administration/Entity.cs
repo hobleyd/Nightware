@@ -69,6 +69,9 @@ public sealed record IdentityAccount(string Id, string Username, string Email, b
     /// <summary>The Graph profile fields (<c>jobTitle</c>, <c>department</c>, …) the façade's directory shows.</summary>
     public UserProfile Profile { get; init; } = UserProfile.Empty;
 
+    /// <summary>The id of the user's manager (Keycloak attribute <c>nightware_manager</c>), the directory's <c>manager</c>; null when none.</summary>
+    public string? ManagerId { get; init; }
+
     /// <summary>When the console deleted this user's mail (Keycloak attribute <c>nightware_mail_deleted_at</c>).</summary>
     public DateTimeOffset? MailDeletedAt { get; init; }
 

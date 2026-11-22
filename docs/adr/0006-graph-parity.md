@@ -14,7 +14,8 @@ notifications.
 
 Microsoft-only products stay out of scope: OneDrive/SharePoint, Teams, OneNote,
 Planner, presence and online meetings. The directory (groups, manager,
-organization) is also out of scope.
+organization) was out of scope too; phase 21 (2026-11-22) brought in reading it
+(see D11).
 
 ## Decisions
 
@@ -61,6 +62,7 @@ The work runs one phase at a time, each committed green before the next:
 | 14 | Contacts |
 | 15 | To Do |
 | 16 | Change notifications |
+| 21 | The directory, read-only (D11) |
 
 The §24 freeze was written for the parallel fan-out. It is lifted for additive
 wiring: a phase may add registrations to `Program.cs`/`Composition/`, new
@@ -220,6 +222,18 @@ Required:
   sends nothing. Each subscription keeps a set of hashed item ids it has seen, so
   `created` and `updated` are exact rather than guessed.
 - Rich notifications (`includeResourceData`) are `400 notSupported`.
+
+### D11 — The directory, read-only (phase 21, 2026-11-22)
+A user's `manager`, `directReports` and `memberOf`/`transitiveMemberOf`,
+`/groups` (one group, its `members`/`transitiveMembers`) and `/organization`.
+They read what the console records, so nothing new is stored: a group is a
+console group (ADR 0003), an organization is an entity, and a manager is the
+user attribute `nightware_manager`, set on the console's user page (another
+member of the same entity, no loops). Each user sees only their own
+organizations' groups. Writes (`manager/$ref`, group create and membership) stay
+out: in Graph they need administrator rights, and here the console holds them.
+Groups don't nest and hold only people, so the transitive forms are the same
+lists. Details: [`docs/phases/phase-21-directory.md`](../phases/phase-21-directory.md).
 
 ## Consequences
 - The contract roughly doubles. NightMail fixtures and behaviour are unchanged.

@@ -86,6 +86,9 @@ public interface IIdentityAccounts
     /// <summary>Replaces the user's Graph profile fields (blank values clear them).</summary>
     Task<Result> SetProfileAsync(string userId, UserProfile profile, CancellationToken cancellationToken);
 
+    /// <summary>Sets the user's manager to <paramref name="managerId"/>, or removes it when null.</summary>
+    Task<Result> SetManagerAsync(string userId, string? managerId, CancellationToken cancellationToken);
+
     Task<Result> SetEnabledAsync(string userId, bool enabled, CancellationToken cancellationToken);
 
     /// <summary>

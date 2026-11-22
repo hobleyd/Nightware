@@ -147,8 +147,19 @@ Graph profile properties that Keycloak has no field for come from user attribute
 | `nightware_office_location` | `officeLocation` |
 | `nightware_business_phones` (multi-valued) | `businessPhones` |
 | `nightware_aliases` (multi-valued) | `proxyAddresses` `smtp:` entries; `mail` is the `SMTP:` entry |
+| `nightware_manager` (the manager's Keycloak id, phase 21) | `manager`, `directReports` |
 
 Keycloak 24+ silently drops attributes its realm user profile does not declare. A deployment that wants these properties filled must declare them, admin-editable, the way `deploy/keycloak/configure.sh` declares the mailboxSettings attributes. The dev realm does not declare them, so there these properties are null and `proxyAddresses` is just `SMTP:<mail>`.
+
+## Groups, reporting lines and the organization (phase 21)
+
+All three read as the `nightware-api` service account and never write: the console is where groups and managers change.
+
+- **`KeycloakGroupDirectory` (`IGroupDirectory`).** Graph's groups are the console's groups (ADR 0003): the subgroups of each organization's `groups` group, for the organizations the signed-in user belongs to only. A subgroup whose name is no group key is skipped, as the console skips it, and `admins` or a shared mailbox is never a group, whatever id is asked for. Listings leave attributes out, so a page is cut from the brief listing and only its groups are read whole; the `$skiptoken` is the next offset. Members are the group's enabled people. `memberOf` is the user's groups in the organizations the caller shares with them (none for a user outside them). A group's list makes it mail-enabled, its files facet security-enabled.
+- **`KeycloakReportingLines` (`IReportingLines`).** The manager is the user `nightware_manager` names, found even when disabled (as a former colleague's card is); an id that no longer exists is no manager. Direct reports are an attribute search (`q=nightware_manager:<id>`, enabled users, `$top + 1` rows as for `/users`), re-checked for the exact id.
+- **`KeycloakOrganizationDirectory` (`IOrganizationDirectory`).** The caller's enabled organizations, their domains lower-cased in name order (the first is Graph's default domain).
+
+Lists accept `$select`, `$top` and `$skiptoken` only; anything else is a `Validation` error (400).
 
 ## Mailbox preferences (`IUserPreferencesStore`, phase 5B)
 

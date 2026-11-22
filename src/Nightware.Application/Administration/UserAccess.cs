@@ -12,6 +12,9 @@ public sealed record UserDetail(ManagedUser User, IReadOnlyList<BackendLink> Lin
     /// </summary>
     public string? OffLimits { get; init; }
 
+    /// <summary>The user's manager, when they have one that still exists (phase 21).</summary>
+    public IdentityAccount? Manager { get; init; }
+
     public BackendLink For(BackendKind backend) => Links.Single(l => l.Backend == backend);
 }
 
@@ -146,6 +149,7 @@ public sealed class UserAccess(
         IdentityAccount identity = user.Identity;
         Task<Result<MailAccount>> mailbox = mail.FindByAddressAsync(identity.Email, cancellationToken);
         Task<Result<GroupwareAccount>> cloud = groupware.FindAsync(identity.Username, cancellationToken);
+        Task<Result<IdentityAccount>>? manager = identity.ManagerId is { } managerId ? identities.GetAsync(managerId, cancellationToken) : null;
         await Task.WhenAll(mailbox, cloud).ConfigureAwait(false);
 
         BackendLink mailLink = LinkStateEvaluator.Mail(identity.Email, await mailbox.ConfigureAwait(false), options.GlobalAdminsAdministerServers && user.IsGlobalAdmin);
@@ -160,6 +164,13 @@ public sealed class UserAccess(
             cloudLink = cloudLink with { Detail = $"Nextcloud data deleted on {cloudDeleted:yyyy-MM-dd HH:mm} UTC." };
         }
 
-        return new UserDetail(user, [LinkStateEvaluator.Identity(identity), mailLink, cloudLink]);
+        // A manager that can't be read (deleted since) is shown as none; the next save replaces it.
+        IdentityAccount? managerAccount = null;
+        if (manager is not null && await manager.ConfigureAwait(false) is { IsSuccess: true } read)
+        {
+            managerAccount = read.Value;
+        }
+
+        return new UserDetail(user, [LinkStateEvaluator.Identity(identity), mailLink, cloudLink]) { Manager = managerAccount };
     }
 }

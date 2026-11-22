@@ -1,0 +1,33 @@
+{
+  "operationId": "directory.users.transitive-member-of.list",
+  "provenance": "Graph v1.0 reference example (https://learn.microsoft.com/graph/api/user-list-transitivememberof) shaped as Nightware's directory ($select drops @odata.type at the top level, ADR 0001 §14); constructed, no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/users/sam%40example.com/transitiveMemberOf",
+    "query": {
+      "$select": "displayName,mailEnabled,securityEnabled"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#directoryObjects(displayName,mailEnabled,securityEnabled)",
+      "value": [
+        {
+          "id": "02bd9fd6-8f93-4758-87c3-1fb73740a315",
+          "displayName": "Board papers",
+          "mailEnabled": false,
+          "securityEnabled": true
+        }
+      ]
+    }
+  }
+}

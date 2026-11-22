@@ -1,0 +1,67 @@
+{
+  "operationId": "directory.organization.list",
+  "provenance": "Graph v1.0 reference example (https://learn.microsoft.com/graph/api/organization-list) shaped as Nightware's directory; constructed, no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/organization",
+    "query": {},
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#organization",
+      "value": [
+        {
+          "id": "84841066-274d-4ec0-a5c1-276be684bdd3",
+          "deletedDateTime": null,
+          "businessPhones": [],
+          "city": null,
+          "country": null,
+          "countryLetterCode": null,
+          "createdDateTime": null,
+          "defaultUsageLocation": null,
+          "displayName": "Example Pty Ltd",
+          "isMultipleDataLocationsForServicesEnabled": null,
+          "marketingNotificationEmails": [],
+          "onPremisesLastSyncDateTime": null,
+          "onPremisesSyncEnabled": null,
+          "partnerTenantType": null,
+          "postalCode": null,
+          "preferredLanguage": null,
+          "securityComplianceNotificationMails": [],
+          "securityComplianceNotificationPhones": [],
+          "state": null,
+          "street": null,
+          "technicalNotificationMails": [],
+          "tenantType": "AAD",
+          "assignedPlans": [],
+          "provisionedPlans": [],
+          "verifiedDomains": [
+            {
+              "capabilities": "Email",
+              "isDefault": true,
+              "isInitial": true,
+              "name": "example.com",
+              "type": "Managed"
+            },
+            {
+              "capabilities": "Email",
+              "isDefault": false,
+              "isInitial": false,
+              "name": "example.net",
+              "type": "Managed"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

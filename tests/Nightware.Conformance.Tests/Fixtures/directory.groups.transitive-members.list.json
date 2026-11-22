@@ -1,0 +1,35 @@
+{
+  "operationId": "directory.groups.transitive-members.list",
+  "provenance": "Graph v1.0 reference example (https://learn.microsoft.com/graph/api/group-list-transitivemembers) shaped as Nightware's directory; constructed, no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/groups/45b7d2e7-b882-4a80-ba97-10b7a63b8fa4/transitiveMembers",
+    "query": {
+      "$select": "id,mail"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#directoryObjects(id,mail)",
+      "value": [
+        {
+          "id": "7d54cb02-aaa3-4016-9f9c-a4b49422dd9b",
+          "mail": "sara@example.com"
+        },
+        {
+          "id": "11111111-2222-3333-4444-555555555555",
+          "mail": "lee@example.com"
+        }
+      ]
+    }
+  }
+}

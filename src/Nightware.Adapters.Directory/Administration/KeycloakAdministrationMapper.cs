@@ -26,6 +26,7 @@ internal static class KeycloakAdministrationMapper
                 BusinessPhones = Values(user, KeycloakAdminNames.BusinessPhonesAttribute),
                 MobilePhone = Blank(user.Attribute(KeycloakAdminNames.PhoneNumberAttribute)),
             },
+            ManagerId = Blank(user.Attribute(KeycloakAdminNames.ManagerAttribute)),
             MailDeletedAt = Marker(user.Attribute(KeycloakAdminNames.MailDeletedAtAttribute)),
             GroupwareDeletedAt = Marker(user.Attribute(KeycloakAdminNames.GroupwareDeletedAtAttribute)),
             AccessHistory = History(Values(user, KeycloakAdminNames.AccessHistoryAttribute)),

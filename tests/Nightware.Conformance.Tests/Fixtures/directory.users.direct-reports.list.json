@@ -1,0 +1,41 @@
+{
+  "operationId": "directory.users.direct-reports.list",
+  "provenance": "Graph v1.0 reference example (https://learn.microsoft.com/graph/api/user-list-directreports) shaped as Nightware's directory; constructed, no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/users/sara%40example.com/directReports",
+    "query": {
+      "$top": "1"
+    },
+    "headers": {
+      "Authorization": "Bearer {token}",
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json; odata.metadata=minimal; odata.streaming=true; IEEE754Compatible=false; charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#directoryObjects",
+      "value": [
+        {
+          "@odata.type": "#microsoft.graph.user",
+          "id": "6ea91a8d-e32e-41a1-b7bd-d2d185eed0e0",
+          "displayName": "Adele Adams",
+          "givenName": "Adele",
+          "surname": "Adams",
+          "mail": "adele@example.com",
+          "userPrincipalName": "adele@example.com",
+          "jobTitle": "Analyst",
+          "officeLocation": null,
+          "mobilePhone": null,
+          "businessPhones": []
+        }
+      ],
+      "@odata.nextLink": "https://graph.microsoft.com/v1.0/users/sara%40example.com/directReports?%24top=1&%24skiptoken=1"
+    }
+  }
+}
