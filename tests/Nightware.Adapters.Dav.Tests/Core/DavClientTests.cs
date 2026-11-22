@@ -367,6 +367,54 @@ public sealed class DavClientTests : IDisposable
     }
 
     [Fact]
+    public async Task Copy_sends_destination_overwrite_and_infinite_depth()
+    {
+        Respond("COPY", "/remote.php/dav/files/alice/a.txt", 201);
+        (await _dav.Client.CopyAsync("files/alice/a.txt", "files/alice/b.txt", overwrite: true, Ct)).IsSuccess.ShouldBeTrue();
+        Header("Destination").ShouldBe(Server.Url + "/remote.php/dav/files/alice/b.txt");
+        Header("Overwrite").ShouldBe("T");
+        Header("Depth").ShouldBe("infinity");
+    }
+
+    [Fact]
+    public async Task Copy_without_overwrite_onto_an_existing_item_is_a_conflict_and_outside_the_root_is_refused()
+    {
+        Respond("COPY", "/remote.php/dav/files/alice/a.txt", 412);
+        (await _dav.Client.CopyAsync("files/alice/a.txt", "files/alice/b.txt", overwrite: false, Ct)).Error!.Kind.ShouldBe(ErrorKind.Conflict);
+        Server.Reset();
+        (await _dav.Client.CopyAsync("files/alice/a.txt", "/index.php", overwrite: false, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        Server.LogEntries.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Search_goes_to_the_dav_root()
+    {
+        Respond("SEARCH", "/remote.php/dav/", 207, "<d:multistatus xmlns:d=\"DAV:\"><d:response><d:href>/remote.php/dav/files/alice/a.txt</d:href><d:propstat><d:prop/><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>");
+
+        var result = await _dav.Client.SearchAsync(new XDocument(new XElement(DavNs.Dav + "searchrequest")), Ct);
+
+        result.Value.Responses.Single().Href.ShouldBe("/remote.php/dav/files/alice/a.txt");
+        LastBody.Root!.Name.ShouldBe(DavNs.Dav + "searchrequest");
+    }
+
+    [Fact]
+    public async Task Ocs_send_posts_a_form_and_maps_failures()
+    {
+        Server.Given(Request.Create().WithPath("/ocs/v2.php/apps/files_sharing/api/v1/shares").UsingPost())
+            .RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "application/json")
+                .WithBody("{\"ocs\":{\"meta\":{\"statuscode\":200},\"data\":{\"id\":\"9\"}}}"));
+        Server.Given(Request.Create().WithPath("/ocs/v2.php/apps/files_sharing/api/v1/shares/9").UsingDelete())
+            .RespondWith(Response.Create().WithStatusCode(200).WithBody("{\"ocs\":{\"meta\":{\"statuscode\":404}}}"));
+
+        var created = await _dav.Client.OcsSendAsync(HttpMethod.Post, "apps/files_sharing/api/v1/shares", new Dictionary<string, string> { ["path"] = "/a b.txt" }, Ct);
+
+        created.Value.GetProperty("id").GetString().ShouldBe("9");
+        Header("OCS-APIRequest").ShouldBe("true");
+        LastRequest.RequestMessage!.Body.ShouldBe("path=%2Fa+b.txt");
+        (await _dav.Client.OcsSendAsync(HttpMethod.Delete, "apps/files_sharing/api/v1/shares/9", null, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
     public async Task PropPatch_success_and_atomic_failure()
     {
         const string ok = "<d:multistatus xmlns:d=\"DAV:\"><d:response><d:href>/remote.php/dav/calendars/alice/personal/</d:href><d:propstat><d:prop><d:displayname/></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>";

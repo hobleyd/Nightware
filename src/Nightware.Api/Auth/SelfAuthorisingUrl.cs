@@ -18,7 +18,10 @@ namespace Nightware.Api.Auth;
 /// <see cref="SelfAuthorisingUrlSealer.Seal"/>; the method is always the first bound field.</para>
 /// </remarks>
 /// <param name="purpose">Names the kind for key derivation (e.g. <c>nightware/todo-upload-url/v1</c>); keys never cross purposes.</param>
-/// <param name="method">The one HTTP method the URL authorises.</param>
+/// <param name="method">
+/// The HTTP method the URL authorises, or several separated by commas (a drive upload URL takes PUT, GET and DELETE, as
+/// Graph's does). The whole string is sealed in, so a URL never authorises a method its kind does not list.
+/// </param>
 /// <param name="lifetime">The longest a URL of this kind lives; a ticket never outlives the access token inside it either.</param>
 /// <param name="bindingOf">The bound values a request names, or null when it names none (wrong shape, bad option).</param>
 /// <param name="urlOnly">
@@ -39,6 +42,10 @@ public sealed class SelfAuthorisingUrl(string purpose, string method, TimeSpan l
     public TimeSpan Lifetime { get; } = lifetime;
 
     public bool UrlOnly { get; } = urlOnly;
+
+    /// <summary>Whether a request with <paramref name="method"/> may use a URL of this kind.</summary>
+    public bool Allows(string method) =>
+        Method.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Any(m => HttpMethods.Equals(m, method));
 
     /// <summary>The bound values <paramref name="request"/> names, or null.</summary>
     public IReadOnlyList<string>? BindingOf(HttpRequest request)

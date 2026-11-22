@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Nightware.Api.Auth;
 using Nightware.Api.Discovery;
 using Nightware.Api.Features.Files.Download;
+using Nightware.Api.Features.Files.Drives;
 using Nightware.Api.Features.Files.Dto;
 using Nightware.Api.Graph;
 using Nightware.Api.Graph.Json;
@@ -40,6 +41,9 @@ public static class FilesEndpoints
         // Fetched without a bearer: SelfAuthorisingUrlMiddleware recovers the caller's token from the URL
         // (DownloadUrl.Kind) before authentication, so the route is authorised like any other.
         graph.MapGet(DownloadUrl.RoutePattern, DownloadAsync).AuthorisedBy(DownloadUrl.Kind);
+
+        // Phase 20: the caller's OneDrive (ADR 0008).
+        DriveEndpoints.Map(graph);
         return graph;
     }
 

@@ -115,11 +115,21 @@ def pick(body, path: str):
 
 # ---------------------------------------------------------------------- HTTP
 
-def send(method: str, url: str, headers: dict, data: bytes | None) -> tuple[int, dict, bytes]:
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Hands a redirect back as the answer (phase 20's …/content is recorded as its 302)."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: D102 (stdlib hook)
+        return None
+
+
+NO_REDIRECTS = urllib.request.build_opener(_NoRedirect)
+
+
+def send(method: str, url: str, headers: dict, data: bytes | None, follow_redirects: bool = True) -> tuple[int, dict, bytes]:
     for attempt in range(5):
         req = urllib.request.Request(url, data=data, method=method, headers=headers)
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with (urllib.request.urlopen if follow_redirects else NO_REDIRECTS.open)(req, timeout=120) as resp:
                 return resp.status, dict(resp.headers), resp.read()
         except urllib.error.HTTPError as err:
             if err.code in (429, 503, 504) and attempt < 4:
@@ -201,13 +211,13 @@ def run_step(step: dict, run: Run) -> None:
     label = step.get("op") or f"({method} {step.get('path') or step.get('url')})"
     if run.dry_run:
         print(f"    {label}: {method} {url}")
-        for var in [*step.get("save", {}), *([step["follow_to"]] if step.get("follow_to") else [])]:
+        for var in [*step.get("save", {}), *step.get("save_header", {}), *([step["follow_to"]] if step.get("follow_to") else [])]:
             run.vars[var] = f"<{var}>"
         return
 
     tries = step.get("poll", {}).get("tries", 1)
     for attempt in range(tries):
-        status, resp_headers, raw = send(method, url, headers, data)
+        status, resp_headers, raw = send(method, url, headers, data, step.get("redirect", True))
         body = decode_body(resp_headers, raw)
         if "poll" not in step or pick(body, step["poll"]["until"]) is not None:
             break
@@ -215,7 +225,7 @@ def run_step(step: dict, run: Run) -> None:
     else:
         raise StepFailed(f"{label}: '{step['poll']['until']}' never appeared")
 
-    expect = step.get("expect", [200, 201, 202, 204])
+    expect = step.get("expect", [200, 201, 202, 204] if step.get("redirect", True) else [302])
     print(f"    {label}: {status}")
     if status not in expect:
         raise StepFailed(f"{label}: HTTP {status} {raw[:500]!r}")
@@ -224,6 +234,12 @@ def run_step(step: dict, run: Run) -> None:
         value = pick(body, path)
         if value is None:
             raise StepFailed(f"{label}: no '{path}' in response to save as {var}")
+        run.vars[var] = value
+
+    for var, name in step.get("save_header", {}).items():
+        value = header(resp_headers, name)
+        if value is None:
+            raise StepFailed(f"{label}: no '{name}' header to save as {var}")
         run.vars[var] = value
 
     if step.get("follow_to"):
@@ -532,7 +548,7 @@ def main() -> int:
     ap.add_argument("--rescrub", action="store_true",
                     help="re-run the id/credential scrub over out/ (fixtures from an older version)")
     ap.add_argument("--phase", action="append",
-                    help="phase number (11-16, 18, 19, 21) or 'all'; repeatable")
+                    help="phase number (11-16, 18-21) or 'all'; repeatable")
     ap.add_argument("--dry-run", action="store_true", help="print the requests without sending them")
     ap.add_argument("--notification-url", help="public https URL tunnelled to --listen (phase 16)")
     ap.add_argument("--listen", type=int, default=8765, help="local port for notifications (default 8765)")

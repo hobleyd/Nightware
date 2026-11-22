@@ -28,6 +28,8 @@ SCOPES = {
     "Calendars.ReadWrite", "Contacts.ReadWrite", "Tasks.ReadWrite",
     # Phase 21: other users' profiles and reporting lines, groups and their members.
     "User.ReadBasic.All", "GroupMember.Read.All",
+    # Phase 20: the caller's OneDrive.
+    "Files.ReadWrite",
 }
 
 UTC = {"Prefer": 'outlook.timezone="UTC"'}
@@ -554,6 +556,46 @@ COUNTS = [
          headers={"Accept": "text/plain"}, query={"$filter": "status ne 'completed'"}),
 ]
 
+# Phase 20: the caller's OneDrive (ADR 0008), in a folder of its own that is deleted at the end.
+DRIVE = [
+    step("files.drive.get", "GET", "/v1.0/me/drive", save={"driveId": "id"}),
+    step("files.drives.list", "GET", "/v1.0/me/drives"),
+    step("files.drives.get", "GET", "/v1.0/drives/${driveId}"),
+    step("files.drive.special.get", "GET", "/v1.0/me/drive/special/documents"),
+    step("files.drive.root.get", "GET", "/v1.0/me/drive/root"),
+    step("files.drive.items.create-folder", "POST", "/v1.0/me/drive/root/children",
+         body={"name": "nw-capture-${run}", "folder": {}, "@microsoft.graph.conflictBehavior": "rename"}, save={"folderId": "id"}),
+    step("files.drive.items.upload", "PUT", "/v1.0/me/drive/items/${folderId}:/notes.txt:/content",
+         binary={"range": [0, 4]}, headers={"Content-Type": "text/plain"}, save={"fileId": "id"}),
+    step("files.drive.items.get", "GET", "/v1.0/me/drive/items/${fileId}"),
+    step("files.drive.items.get-by-path", "GET", "/v1.0/me/drive/root:/nw-capture-${run}/notes.txt:"),
+    step("files.drive.items.children", "GET", "/v1.0/me/drive/items/${folderId}/children", query={"$top": "1"}),
+    step("files.drive.items.replace-content", "PUT", "/v1.0/me/drive/items/${fileId}/content",
+         binary={"range": [0, 4]}, headers={"Content-Type": "text/plain"}),
+    step("files.drive.items.content", "GET", "/v1.0/me/drive/items/${fileId}/content", redirect=False, save_header={"downloadUrl": "Location"}),
+    step("files.drive.items.download", "GET", url="${downloadUrl}", record_path="{downloadUrl}", auth=False),
+    step("files.drive.items.thumbnails", "GET", "/v1.0/me/drive/items/${fileId}/thumbnails"),
+    step("files.drive.items.create-link", "POST", "/v1.0/me/drive/items/${fileId}/createLink",
+         body={"type": "view", "scope": "anonymous"}, save={"permId": "id"}),
+    step("files.drive.items.permissions", "GET", "/v1.0/me/drive/items/${fileId}/permissions"),
+    step("files.drive.items.permissions.delete", "DELETE", "/v1.0/me/drive/items/${fileId}/permissions/${permId}"),
+    step("files.drive.items.copy", "POST", "/v1.0/me/drive/items/${fileId}/copy",
+         body={"parentReference": {"id": "${folderId}"}, "name": "notes (copy).txt"}, save_header={"monitorUrl": "Location"}),
+    step("files.drive.copy-monitor", "GET", url="${monitorUrl}", record_path="{monitorUrl}", auth=False),
+    step("files.drive.items.update", "PATCH", "/v1.0/me/drive/items/${fileId}", body={"name": "renamed.txt"}),
+    step("files.drive.root.search", "GET", "/v1.0/me/drive/root/search(q='renamed')"),
+    step("files.drive.items.create-upload-session", "POST", "/v1.0/me/drive/items/${folderId}:/big.bin:/createUploadSession",
+         body={"item": {"@microsoft.graph.conflictBehavior": "rename"}}, save={"uploadUrl": "uploadUrl"}),
+    step("files.drive.upload-session-put", "PUT", url="${uploadUrl}", record_path="{uploadUrl}",
+         auth=False, binary={"range": [0, FIRST_CHUNK - 1]}, headers={"Content-Range": f"bytes 0-{FIRST_CHUNK - 1}/{UPLOAD_SIZE}"}),
+    step("files.drive.upload-session-get", "GET", url="${uploadUrl}", record_path="{uploadUrl}", auth=False),
+    step("files.drive.upload-session-put-final", "PUT", url="${uploadUrl}", record_path="{uploadUrl}",
+         auth=False, binary={"range": [FIRST_CHUNK, UPLOAD_SIZE - 1]}, headers={"Content-Range": f"bytes {FIRST_CHUNK}-{UPLOAD_SIZE - 1}/{UPLOAD_SIZE}"}),
+    step("files.drive.root.delta", "GET", "/v1.0/me/drive/root/delta", query={"token": "latest"}),
+    step("files.drive.items.delete", "DELETE", "/v1.0/me/drive/items/${fileId}"),
+    setup("DELETE", "/v1.0/me/drive/items/${folderId}", always=True),
+]
+
 PHASES = {
     11: [("batch", BATCH)],
     12: [("mail", MAIL)],
@@ -563,5 +605,6 @@ PHASES = {
     16: [("notifications", NOTIFICATIONS)],
     18: [("settings", SETTINGS), ("aliases", ALIASES), ("todo items", TODO_ITEMS)],
     19: [("folders", FOLDERS), ("counts", COUNTS), ("photos", PHOTOS), ("mime", MIME), ("event upload", EVENT_UPLOAD), ("item aliases", ITEM_ALIASES), ("small", SMALL)],
+    20: [("drive", DRIVE)],
     21: [("directory", DIRECTORY)],
 }

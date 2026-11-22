@@ -12,10 +12,11 @@ have to hit a 501 for the common personal-information operations. This adds
 the core PIM gaps and two cross-cutting features, `$batch` and change
 notifications.
 
-Microsoft-only products stay out of scope: OneDrive/SharePoint, Teams, OneNote,
-Planner, presence and online meetings. The directory (groups, manager,
-organization) was out of scope too; phase 21 (2026-11-22) brought in reading it
-(see D11).
+Microsoft-only products stay out of scope: SharePoint, Teams, OneNote,
+Planner, presence and online meetings. (OneDrive was here too; ADR 0008 brought
+the personal drive into scope over Nextcloud Files.) The directory (groups,
+manager, organization) was out of scope too; phase 21 (2026-11-22) brought in
+reading it (see D11).
 
 ## Decisions
 

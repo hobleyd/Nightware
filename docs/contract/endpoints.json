@@ -11768,5 +11768,1054 @@
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/organization-get",
     "notes": "One of the caller's organizations; any other id is 404 Request_ResourceNotFound."
+  },
+  {
+    "id": "files.drive.get",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drive",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "driveType",
+      "owner",
+      "quota"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "drive-get",
+    "notes": "The caller's Nextcloud home as a personal drive. /users/{x}/drive only for the caller (403 otherwise). Quota from Nextcloud; total and remaining are left out when unlimited."
+  },
+  {
+    "id": "files.drives.list",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drives",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "drive-list",
+    "notes": "The one drive the caller has."
+  },
+  {
+    "id": "files.drives.get",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/drives/{driveId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "drive-get",
+    "notes": "Only the caller's own drive id ('nc!' + base64url of the Nextcloud uid); another is 404 itemNotFound."
+  },
+  {
+    "id": "files.drive.special.get",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/special/{name}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "name",
+      "folder"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "drive-get-specialfolder",
+    "notes": "documents, photos, cameraroll (Photos/Camera Roll), music and approot (Apps/{OAuth client}); created on first use."
+  },
+  {
+    "id": "files.drive.root.get",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/root",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        "*"
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [
+        "children"
+      ],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "root",
+      "folder"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-get",
+    "notes": "The home folder, with the root facet. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.get",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{itemId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        "*"
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [
+        "children"
+      ],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "name",
+      "file",
+      "folder",
+      "parentReference"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-get",
+    "notes": "An item by its Nextcloud file id. $expand=children carries a folder's first 200 children; no @microsoft.graph.downloadUrl (…/content redirects to one). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.get-by-path",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/root:/{path}:",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "name"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-get",
+    "notes": "Path addressing, rewritten before routing; a segment that is empty, '.', '..', or holds a separator is 400. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.children",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{itemId}/children",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        "*"
+      ],
+      "filter": [],
+      "orderby": [
+        "name",
+        "lastModifiedDateTime",
+        "size"
+      ],
+      "top": [
+        "1-1000"
+      ],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-list-children",
+    "notes": "A folder's items; $top (default 200, at most 1000), $orderby name|lastModifiedDateTime|size, $select, $skiptoken. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.create-folder",
+    "phase": 20,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{itemId}/children",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "name",
+        "folder",
+        "@microsoft.graph.conflictBehavior"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "name",
+      "folder"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-post-children",
+    "notes": "MKCOL. conflictBehavior fail (default, 409 nameAlreadyExists), rename (name 1) or replace. A body without the folder facet is 400. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.content",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{itemId}/content",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 302,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-get-content",
+    "notes": "302 to a self-authorising download URL (five minutes, fetched without a bearer). A folder is 400 notSupported. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.download",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{downloadUrl}",
+    "forms": [
+      "external"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-get-content",
+    "notes": "The file's bytes with its own content type, streamed from Nextcloud."
+  },
+  {
+    "id": "files.drive.items.upload",
+    "phase": 20,
+    "method": "PUT",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{parentId}:/{fileName}:/content",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "(raw bytes)"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "name",
+      "size"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-put-content",
+    "notes": "Simple upload, streamed into WebDAV; conflictBehavior (query) replace by default, fail, rename. Bounded by Limits:MaxRequestBodyBytes (about 67 MB by default) as well as Graph's 250 MB. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.replace-content",
+    "phase": 20,
+    "method": "PUT",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{itemId}/content",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "(raw bytes)"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "size"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-put-content",
+    "notes": "New content for an existing file; If-Match honoured (412 when stale). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.update",
+    "phase": 20,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{itemId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "name",
+        "parentReference.id|path"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "name",
+      "parentReference"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-update",
+    "notes": "Rename and/or move in one WebDAV MOVE; the id survives. conflictBehavior fail by default; If-Match honoured. Other properties are ignored. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.delete",
+    "phase": 20,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{itemId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-delete",
+    "notes": "To Nextcloud's trash bin. The root can't be deleted (403). If-Match honoured. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.copy",
+    "phase": 20,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{itemId}/copy",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "parentReference",
+        "name"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-copy",
+    "notes": "WebDAV COPY (Depth infinity), done before answering; 202 with a self-authorising monitor Location as Graph's asynchronous copy. A copy beside itself with the same name is renamed. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.copy-monitor",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{monitorUrl}",
+    "forms": [
+      "external"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "status",
+      "resourceId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-copy",
+    "notes": "Always completed, with the copy's id."
+  },
+  {
+    "id": "files.drive.items.create-upload-session",
+    "phase": 20,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{parentId}:/{fileName}:/createUploadSession",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "item.@microsoft.graph.conflictBehavior",
+        "item.fileSize"
+      ]
+    },
+    "responseFields": [
+      "uploadUrl",
+      "expirationDateTime",
+      "nextExpectedRanges"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-createuploadsession",
+    "notes": "Up to 10 GB in chunks of under 60 MiB, staged in Nextcloud's chunked upload; the upload URL is self-authorising (PUT, GET, DELETE) for 24 hours. items/{id}/createUploadSession replaces an existing file. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.upload-session-put",
+    "phase": 20,
+    "method": "PUT",
+    "version": "v1.0",
+    "path": "{uploadUrl}",
+    "forms": [
+      "external"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "(raw bytes)"
+      ]
+    },
+    "responseFields": [
+      "nextExpectedRanges"
+    ],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-createuploadsession",
+    "notes": "One chunk, Content-Range required and starting at the next expected byte; 202 with the next range."
+  },
+  {
+    "id": "files.drive.upload-session-put-final",
+    "phase": 20,
+    "method": "PUT",
+    "version": "v1.0",
+    "path": "{uploadUrl}",
+    "forms": [
+      "external"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "(raw bytes)"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "name",
+      "size"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-createuploadsession",
+    "notes": "The last chunk: the joined file is moved into place and answered as a driveItem."
+  },
+  {
+    "id": "files.drive.upload-session-get",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{uploadUrl}",
+    "forms": [
+      "external"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "nextExpectedRanges"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-createuploadsession",
+    "notes": "The next range the session wants."
+  },
+  {
+    "id": "files.drive.upload-session-delete",
+    "phase": 20,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{uploadUrl}",
+    "forms": [
+      "external"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-createuploadsession",
+    "notes": "Drops the session and its staged chunks."
+  },
+  {
+    "id": "files.drive.root.delta",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/root/delta",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        "*"
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [
+        "1-1000"
+      ],
+      "search": [],
+      "expand": [],
+      "other": {
+        "token": "latest"
+      }
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value",
+      "@odata.nextLink",
+      "@odata.deltaLink"
+    ],
+    "successStatus": 200,
+    "paging": "deltaLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-delta",
+    "notes": "From Nextcloud's activity stream (ADR 0008 D5): the first sync lists every item (root first), later ones what changed, with {id, deleted} for what's gone. token=latest gives only a deltaLink. Without the activity app: 501 notSupported."
+  },
+  {
+    "id": "files.drive.root.search",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/root/search(q='{q}')",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        "*"
+      ],
+      "filter": [],
+      "orderby": [
+        "name",
+        "lastModifiedDateTime",
+        "size"
+      ],
+      "top": [
+        "1-1000"
+      ],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-search",
+    "notes": "Names containing q, anywhere in the drive (Nextcloud SEARCH); also drive/search(q=…)."
+  },
+  {
+    "id": "files.drive.items.thumbnails",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{itemId}/thumbnails",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-list-thumbnails",
+    "notes": "One set (small 96, medium 176, large 800) of self-authorising URLs to Nextcloud's preview; none for an item without a preview. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.thumbnail-content",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{itemId}/thumbnails/{thumbId}/{size}/content",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-list-thumbnails",
+    "notes": "The preview image; set 0 only. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.create-link",
+    "phase": 20,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{itemId}/createLink",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "type",
+        "scope",
+        "expirationDateTime",
+        "password"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "roles",
+      "link"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-createlink",
+    "notes": "A Nextcloud public share: view (read) or edit; scope anonymous only (organization and other types are 400 notSupported). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.invite",
+    "phase": 20,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{itemId}/invite",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "recipients[].email",
+        "roles",
+        "expirationDateTime"
+      ]
+    },
+    "responseFields": [
+      "value"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-invite",
+    "notes": "A Nextcloud user share per recipient (found by address); roles read or write. Nextcloud sends its own notification; sendInvitation and message are not used. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.permissions",
+    "phase": 20,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{itemId}/permissions",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-list-permissions",
+    "notes": "The item's shares and those inherited from folders above (inheritedFrom). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.permissions.delete",
+    "phase": 20,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{itemId}/permissions/{permId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "permission-delete",
+    "notes": "Removes one of the item's own shares; an inherited one is 403. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
   }
 ]

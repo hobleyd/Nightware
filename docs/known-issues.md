@@ -35,6 +35,23 @@ what a fix needs. Ordered by impact within each section.
   per credential + calendar + window (+ the calendar's CTag) for a minute.
 - Online-meeting fields are accepted and ignored.
 
+### OneDrive (phase 20)
+- **Simple upload is bounded by the request size limit**, `Limits:MaxRequestBodyBytes` (about 67 MB by default), not
+  Graph's 250 MB; larger files need an upload session (up to 10 GB, chunks under 60 MiB).
+- **Delta needs Nextcloud's activity app.** A default install enables it; without it `root/delta` is
+  `501 notSupported`. An item moved out of the caller's view (an unshare) is reported as deleted, which is what a client
+  should do with it anyway. The initial listing pages by offset over a name ordering: an item renamed during a long
+  first sync may be listed twice, never missed (the activity stream reports it again afterwards).
+- **Only the caller's own drive.** `/users/{x}/drive` for anyone else is 403, `/drives/{id}` for another drive 404: the
+  façade reads files as the caller and Nextcloud has no way to open another user's home.
+- **`createLink` and `invite`** create Nextcloud shares; Nextcloud sends its own notification for an invitation, and
+  Graph's `message`/`sendInvitation` aren't used. `organization` links, `embed`/`blocksDownload` links and roles other
+  than `read`/`write` are `400 notSupported`.
+- No `sharedWithMe`, `recent` (Microsoft is retiring both), versions, item activities, `preview` or
+  `checkin`/`checkout`; SharePoint (`/sites`) stays out of scope (ADR 0008 D7).
+- `driveItem`s carry no `@microsoft.graph.downloadUrl` or `file.hashes`: `…/content` redirects to a five-minute
+  self-authorising URL, and Nextcloud has no `quickXorHash`.
+
 ### Directory
 - **A photo upload must be a square JPEG or PNG.** Nextcloud keeps nothing
   else (its web UI crops in the browser) and the façade has no image library,

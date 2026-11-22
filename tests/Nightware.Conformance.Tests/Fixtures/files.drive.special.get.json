@@ -1,0 +1,43 @@
+{
+  "operationId": "files.drive.special.get",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/drive-get-specialfolder); constructed with example.com data and Nextcloud-shaped ids (ADR 0008 D2), no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/drive/special/documents",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/drive/special/$entity",
+      "id": "7",
+      "name": "Documents",
+      "size": 5,
+      "eTag": "\"e-7\"",
+      "createdDateTime": "2026-11-20T09:00:00Z",
+      "lastModifiedDateTime": "2026-11-21T10:30:00Z",
+      "webUrl": "https://cloud.example.com/f/7",
+      "parentReference": {
+        "driveId": "nc!bWU",
+        "driveType": "personal",
+        "id": "1",
+        "path": "/drive/root:"
+      },
+      "fileSystemInfo": {
+        "createdDateTime": "2026-11-20T09:00:00Z",
+        "lastModifiedDateTime": "2026-11-21T10:30:00Z"
+      },
+      "folder": {
+        "childCount": 1
+      }
+    }
+  }
+}

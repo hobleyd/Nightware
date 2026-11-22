@@ -1,0 +1,21 @@
+{
+  "operationId": "files.drive.items.content",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/driveitem-get-content); constructed with example.com data and Nextcloud-shaped ids (ADR 0008 D2), no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/drive/items/42/content",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 302,
+    "headers": {
+      "Location": "https://graph.microsoft.com/v1.0/me/drive/items/42/$value?authtoken=…"
+    },
+    "body": null
+  }
+}

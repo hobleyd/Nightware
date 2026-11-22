@@ -27,6 +27,8 @@ public sealed class DavClient : IDavClient
     private static readonly HttpMethod MkColMethod = new("MKCOL");
     private static readonly HttpMethod MkCalendarMethod = new("MKCALENDAR");
     private static readonly HttpMethod MoveMethod = new("MOVE");
+    private static readonly HttpMethod CopyMethod = new("COPY");
+    private static readonly HttpMethod SearchMethod = new("SEARCH");
     private static readonly HttpMethod PropPatchMethod = new("PROPPATCH");
 
     private readonly HttpClient _http;
@@ -255,7 +257,40 @@ public sealed class DavClient : IDavClient
         }
     }
 
-    public async Task<Result<JsonElement>> OcsGetAsync(string path, IReadOnlyDictionary<string, string>? query, CancellationToken cancellationToken)
+    public async Task<Result> CopyAsync(string sourceHref, string destinationHref, bool overwrite, CancellationToken cancellationToken)
+    {
+        var destination = _paths.ToRequestUri(destinationHref);
+        if (destination is null)
+        {
+            return OutsideRoot();
+        }
+
+        using var response = await SendAsync(CopyMethod, sourceHref, r =>
+        {
+            r.Headers.Add("Destination", destination.AbsoluteUri);
+            r.Headers.Add("Overwrite", overwrite ? "T" : "F");
+            r.Headers.Add("Depth", "infinity");
+        }, overwrite ? DavRequestIntent.Default : DavRequestIntent.CreateOnly, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
+        return response.ToResult();
+    }
+
+    public Task<Result<DavMultistatus>> SearchAsync(XDocument body, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        return SendMultistatusAsync(SearchMethod, _paths.RootPath, null, body, cancellationToken);
+    }
+
+    public Task<Result<JsonElement>> OcsGetAsync(string path, IReadOnlyDictionary<string, string>? query, CancellationToken cancellationToken) =>
+        OcsCoreAsync(HttpMethod.Get, path, query, null, cancellationToken);
+
+    public Task<Result<JsonElement>> OcsSendAsync(HttpMethod method, string path, IReadOnlyDictionary<string, string>? form, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(method);
+        return OcsCoreAsync(method, path, null, form ?? new Dictionary<string, string>(), cancellationToken);
+    }
+
+    private async Task<Result<JsonElement>> OcsCoreAsync(
+        HttpMethod method, string path, IReadOnlyDictionary<string, string>? query, IReadOnlyDictionary<string, string>? form, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (!DavHrefRules.IsSafeRelative(path))
@@ -270,10 +305,14 @@ public sealed class DavClient : IDavClient
         var queryString = string.Join('&', parameters.Select(p => $"{Uri.EscapeDataString(p.Key)}={Uri.EscapeDataString(p.Value)}"));
         var uri = new Uri(_paths.Origin, $"{_paths.OcsRootPath}{path}?{queryString}");
 
-        using var response = await SendToAsync(HttpMethod.Get, uri, r =>
+        using var response = await SendToAsync(method, uri, r =>
         {
             r.Headers.Add("OCS-APIRequest", "true");
             r.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            if (form is not null)
+            {
+                r.Content = new FormUrlEncodedContent(form);
+            }
         }, DavRequestIntent.Default, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccess)
         {

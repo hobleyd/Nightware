@@ -1,0 +1,43 @@
+{
+  "operationId": "files.drive.items.thumbnails",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/driveitem-list-thumbnails); constructed with example.com data and Nextcloud-shaped ids (ADR 0008 D2), no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/drive/items/42/thumbnails",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/drive/items/thumbnails",
+      "value": [
+        {
+          "id": "0",
+          "small": {
+            "height": 96,
+            "width": 96,
+            "url": "https://graph.microsoft.com/v1.0/me/drive/items/42/thumbnails/0/small/$value?authtoken=…"
+          },
+          "medium": {
+            "height": 176,
+            "width": 176,
+            "url": "https://graph.microsoft.com/v1.0/me/drive/items/42/thumbnails/0/medium/$value?authtoken=…"
+          },
+          "large": {
+            "height": 800,
+            "width": 800,
+            "url": "https://graph.microsoft.com/v1.0/me/drive/items/42/thumbnails/0/large/$value?authtoken=…"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "operationId": "files.drive.items.permissions.delete",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/permission-delete); constructed with example.com data and Nextcloud-shaped ids (ADR 0008 D2), no tenant capture yet",
+  "request": {
+    "method": "DELETE",
+    "path": "/v1.0/me/drive/items/42/permissions/41",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 204,
+    "headers": {},
+    "body": null
+  }
+}

@@ -330,8 +330,9 @@ operation:
 | Phase 16 — Change notifications (Graph parity) | 10 |
 | Phase 18 — Settings, aliases, single items and $count (Graph parity) | 26 |
 | Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 81 |
+| Phase 20 — OneDrive over Nextcloud Files (Graph parity, ADR 0008) | 30 |
 | Phase 21 — The directory: groups, manager, organization (Graph parity) | 14 |
-| **Total** | **292** |
+| **Total** | **322** |
 
 ### Phase 2 — Mail, read side
 
@@ -3333,6 +3334,319 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/user-translateexchangeids
 - Notes: Nightware's ids are already immutable (a message keeps its id across moves), so restId and restImmutableEntryId are the same string and each id translates to itself. entryId, immutableEntryId and ewsId are Exchange store ids with no counterpart: 400 notSupported. At most 1,000 ids. Prefer: IdType="ImmutableId" is accepted everywhere and changes nothing, for the same reason (no Preference-Applied, as Graph documents none).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/mail.translate-exchange-ids.json`
+
+### Phase 20 — OneDrive over Nextcloud Files (Graph parity, ADR 0008)
+
+| Id | Method | Ver | Path | Paging |
+|---|---|---|---|---|
+| [`files.drive.get`](#filesdriveget) | GET | v1.0 | `{mailbox}/drive` | none |
+| [`files.drives.list`](#filesdriveslist) | GET | v1.0 | `{mailbox}/drives` | none |
+| [`files.drives.get`](#filesdrivesget) | GET | v1.0 | `/drives/{driveId}` | none |
+| [`files.drive.special.get`](#filesdrivespecialget) | GET | v1.0 | `{mailbox}/drive/special/{name}` | none |
+| [`files.drive.root.get`](#filesdriverootget) | GET | v1.0 | `{mailbox}/drive/root` | none |
+| [`files.drive.items.get`](#filesdriveitemsget) | GET | v1.0 | `{mailbox}/drive/items/{itemId}` | none |
+| [`files.drive.items.get-by-path`](#filesdriveitemsget-by-path) | GET | v1.0 | `{mailbox}/drive/root:/{path}:` | none |
+| [`files.drive.items.children`](#filesdriveitemschildren) | GET | v1.0 | `{mailbox}/drive/items/{itemId}/children` | nextLink |
+| [`files.drive.items.create-folder`](#filesdriveitemscreate-folder) | POST | v1.0 | `{mailbox}/drive/items/{itemId}/children` | none |
+| [`files.drive.items.content`](#filesdriveitemscontent) | GET | v1.0 | `{mailbox}/drive/items/{itemId}/content` | none |
+| [`files.drive.items.download`](#filesdriveitemsdownload) | GET | v1.0 | `{downloadUrl}` | none |
+| [`files.drive.items.upload`](#filesdriveitemsupload) | PUT | v1.0 | `{mailbox}/drive/items/{parentId}:/{fileName}:/content` | none |
+| [`files.drive.items.replace-content`](#filesdriveitemsreplace-content) | PUT | v1.0 | `{mailbox}/drive/items/{itemId}/content` | none |
+| [`files.drive.items.update`](#filesdriveitemsupdate) | PATCH | v1.0 | `{mailbox}/drive/items/{itemId}` | none |
+| [`files.drive.items.delete`](#filesdriveitemsdelete) | DELETE | v1.0 | `{mailbox}/drive/items/{itemId}` | none |
+| [`files.drive.items.copy`](#filesdriveitemscopy) | POST | v1.0 | `{mailbox}/drive/items/{itemId}/copy` | none |
+| [`files.drive.copy-monitor`](#filesdrivecopy-monitor) | GET | v1.0 | `{monitorUrl}` | none |
+| [`files.drive.items.create-upload-session`](#filesdriveitemscreate-upload-session) | POST | v1.0 | `{mailbox}/drive/items/{parentId}:/{fileName}:/createUploadSession` | none |
+| [`files.drive.upload-session-put`](#filesdriveupload-session-put) | PUT | v1.0 | `{uploadUrl}` | none |
+| [`files.drive.upload-session-put-final`](#filesdriveupload-session-put-final) | PUT | v1.0 | `{uploadUrl}` | none |
+| [`files.drive.upload-session-get`](#filesdriveupload-session-get) | GET | v1.0 | `{uploadUrl}` | none |
+| [`files.drive.upload-session-delete`](#filesdriveupload-session-delete) | DELETE | v1.0 | `{uploadUrl}` | none |
+| [`files.drive.root.delta`](#filesdriverootdelta) | GET | v1.0 | `{mailbox}/drive/root/delta` | deltaLink |
+| [`files.drive.root.search`](#filesdriverootsearch) | GET | v1.0 | `{mailbox}/drive/root/search(q='{q}')` | nextLink |
+| [`files.drive.items.thumbnails`](#filesdriveitemsthumbnails) | GET | v1.0 | `{mailbox}/drive/items/{itemId}/thumbnails` | none |
+| [`files.drive.items.thumbnail-content`](#filesdriveitemsthumbnail-content) | GET | v1.0 | `{mailbox}/drive/items/{itemId}/thumbnails/{thumbId}/{size}/content` | none |
+| [`files.drive.items.create-link`](#filesdriveitemscreate-link) | POST | v1.0 | `{mailbox}/drive/items/{itemId}/createLink` | none |
+| [`files.drive.items.invite`](#filesdriveitemsinvite) | POST | v1.0 | `{mailbox}/drive/items/{itemId}/invite` | none |
+| [`files.drive.items.permissions`](#filesdriveitemspermissions) | GET | v1.0 | `{mailbox}/drive/items/{itemId}/permissions` | none |
+| [`files.drive.items.permissions.delete`](#filesdriveitemspermissionsdelete) | DELETE | v1.0 | `{mailbox}/drive/items/{itemId}/permissions/{permId}` | none |
+
+#### `files.drive.get`
+
+**GET v1.0 `{mailbox}/drive`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `driveType`, `owner`, `quota`
+- Graph parity (ADR 0006); reference: drive-get
+- Notes: The caller's Nextcloud home as a personal drive. /users/{x}/drive only for the caller (403 otherwise). Quota from Nextcloud; total and remaining are left out when unlimited.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.get.json`
+
+#### `files.drives.list`
+
+**GET v1.0 `{mailbox}/drives`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value`
+- Graph parity (ADR 0006); reference: drive-list
+- Notes: The one drive the caller has.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drives.list.json`
+
+#### `files.drives.get`
+
+**GET v1.0 `/drives/{driveId}`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`
+- Graph parity (ADR 0006); reference: drive-get
+- Notes: Only the caller's own drive id ('nc!' + base64url of the Nextcloud uid); another is 404 itemNotFound.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drives.get.json`
+
+#### `files.drive.special.get`
+
+**GET v1.0 `{mailbox}/drive/special/{name}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `name`, `folder`
+- Graph parity (ADR 0006); reference: drive-get-specialfolder
+- Notes: documents, photos, cameraroll (Photos/Camera Roll), music and approot (Apps/{OAuth client}); created on first use.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.special.get.json`
+
+#### `files.drive.root.get`
+
+**GET v1.0 `{mailbox}/drive/root`** — forms: me, users; success: 200; paging: none
+
+- Query: `$select` (always): `*`; `$expand`: `children`
+- Client reads: `id`, `root`, `folder`
+- Graph parity (ADR 0006); reference: driveitem-get
+- Notes: The home folder, with the root facet. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.root.get.json`
+
+#### `files.drive.items.get`
+
+**GET v1.0 `{mailbox}/drive/items/{itemId}`** — forms: me, users; success: 200; paging: none
+
+- Query: `$select` (always): `*`; `$expand`: `children`
+- Client reads: `id`, `name`, `file`, `folder`, `parentReference`
+- Graph parity (ADR 0006); reference: driveitem-get
+- Notes: An item by its Nextcloud file id. $expand=children carries a folder's first 200 children; no @microsoft.graph.downloadUrl (…/content redirects to one). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.get.json`
+
+#### `files.drive.items.get-by-path`
+
+**GET v1.0 `{mailbox}/drive/root:/{path}:`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `name`
+- Graph parity (ADR 0006); reference: driveitem-get
+- Notes: Path addressing, rewritten before routing; a segment that is empty, '.', '..', or holds a separator is 400. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.get-by-path.json`
+
+#### `files.drive.items.children`
+
+**GET v1.0 `{mailbox}/drive/items/{itemId}/children`** — forms: me, users; success: 200; paging: nextLink
+
+- Query: `$select` (always): `*`; `$orderby`: `name`; `$orderby`: `lastModifiedDateTime`; `$orderby`: `size`; `$top`: `1-1000`
+- Client reads: `value`, `@odata.nextLink`
+- Graph parity (ADR 0006); reference: driveitem-list-children
+- Notes: A folder's items; $top (default 200, at most 1000), $orderby name|lastModifiedDateTime|size, $select, $skiptoken. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.children.json`
+
+#### `files.drive.items.create-folder`
+
+**POST v1.0 `{mailbox}/drive/items/{itemId}/children`** — forms: me, users; success: 201; paging: none
+
+- Request body: `name`; `folder`; `@microsoft.graph.conflictBehavior`
+- Client reads: `id`, `name`, `folder`
+- Graph parity (ADR 0006); reference: driveitem-post-children
+- Notes: MKCOL. conflictBehavior fail (default, 409 nameAlreadyExists), rename (name 1) or replace. A body without the folder facet is 400. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.create-folder.json`
+
+#### `files.drive.items.content`
+
+**GET v1.0 `{mailbox}/drive/items/{itemId}/content`** — forms: me, users; success: 302; paging: none
+
+- Graph parity (ADR 0006); reference: driveitem-get-content
+- Notes: 302 to a self-authorising download URL (five minutes, fetched without a bearer). A folder is 400 notSupported. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.content.json`
+
+#### `files.drive.items.download`
+
+**GET v1.0 `{downloadUrl}`** — forms: external; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: driveitem-get-content
+- Notes: The file's bytes with its own content type, streamed from Nextcloud.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.download.json`
+
+#### `files.drive.items.upload`
+
+**PUT v1.0 `{mailbox}/drive/items/{parentId}:/{fileName}:/content`** — forms: me, users; success: 201; paging: none
+
+- Request body: `(raw bytes)`
+- Client reads: `id`, `name`, `size`
+- Graph parity (ADR 0006); reference: driveitem-put-content
+- Notes: Simple upload, streamed into WebDAV; conflictBehavior (query) replace by default, fail, rename. Bounded by Limits:MaxRequestBodyBytes (about 67 MB by default) as well as Graph's 250 MB. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.upload.json`
+
+#### `files.drive.items.replace-content`
+
+**PUT v1.0 `{mailbox}/drive/items/{itemId}/content`** — forms: me, users; success: 200; paging: none
+
+- Request body: `(raw bytes)`
+- Client reads: `id`, `size`
+- Graph parity (ADR 0006); reference: driveitem-put-content
+- Notes: New content for an existing file; If-Match honoured (412 when stale). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.replace-content.json`
+
+#### `files.drive.items.update`
+
+**PATCH v1.0 `{mailbox}/drive/items/{itemId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `name`; `parentReference.id|path`
+- Client reads: `id`, `name`, `parentReference`
+- Graph parity (ADR 0006); reference: driveitem-update
+- Notes: Rename and/or move in one WebDAV MOVE; the id survives. conflictBehavior fail by default; If-Match honoured. Other properties are ignored. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.update.json`
+
+#### `files.drive.items.delete`
+
+**DELETE v1.0 `{mailbox}/drive/items/{itemId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: driveitem-delete
+- Notes: To Nextcloud's trash bin. The root can't be deleted (403). If-Match honoured. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.delete.json`
+
+#### `files.drive.items.copy`
+
+**POST v1.0 `{mailbox}/drive/items/{itemId}/copy`** — forms: me, users; success: 202; paging: none
+
+- Request body: `parentReference`; `name`
+- Graph parity (ADR 0006); reference: driveitem-copy
+- Notes: WebDAV COPY (Depth infinity), done before answering; 202 with a self-authorising monitor Location as Graph's asynchronous copy. A copy beside itself with the same name is renamed. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.copy.json`
+
+#### `files.drive.copy-monitor`
+
+**GET v1.0 `{monitorUrl}`** — forms: external; success: 200; paging: none
+
+- Client reads: `status`, `resourceId`
+- Graph parity (ADR 0006); reference: driveitem-copy
+- Notes: Always completed, with the copy's id.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.copy-monitor.json`
+
+#### `files.drive.items.create-upload-session`
+
+**POST v1.0 `{mailbox}/drive/items/{parentId}:/{fileName}:/createUploadSession`** — forms: me, users; success: 200; paging: none
+
+- Request body: `item.@microsoft.graph.conflictBehavior`; `item.fileSize`
+- Client reads: `uploadUrl`, `expirationDateTime`, `nextExpectedRanges`
+- Graph parity (ADR 0006); reference: driveitem-createuploadsession
+- Notes: Up to 10 GB in chunks of under 60 MiB, staged in Nextcloud's chunked upload; the upload URL is self-authorising (PUT, GET, DELETE) for 24 hours. items/{id}/createUploadSession replaces an existing file. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.create-upload-session.json`
+
+#### `files.drive.upload-session-put`
+
+**PUT v1.0 `{uploadUrl}`** — forms: external; success: 202; paging: none
+
+- Request body: `(raw bytes)`
+- Client reads: `nextExpectedRanges`
+- Graph parity (ADR 0006); reference: driveitem-createuploadsession
+- Notes: One chunk, Content-Range required and starting at the next expected byte; 202 with the next range.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.upload-session-put.json`
+
+#### `files.drive.upload-session-put-final`
+
+**PUT v1.0 `{uploadUrl}`** — forms: external; success: 201; paging: none
+
+- Request body: `(raw bytes)`
+- Client reads: `id`, `name`, `size`
+- Graph parity (ADR 0006); reference: driveitem-createuploadsession
+- Notes: The last chunk: the joined file is moved into place and answered as a driveItem.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.upload-session-put-final.json`
+
+#### `files.drive.upload-session-get`
+
+**GET v1.0 `{uploadUrl}`** — forms: external; success: 200; paging: none
+
+- Client reads: `nextExpectedRanges`
+- Graph parity (ADR 0006); reference: driveitem-createuploadsession
+- Notes: The next range the session wants.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.upload-session-get.json`
+
+#### `files.drive.upload-session-delete`
+
+**DELETE v1.0 `{uploadUrl}`** — forms: external; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: driveitem-createuploadsession
+- Notes: Drops the session and its staged chunks.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.upload-session-delete.json`
+
+#### `files.drive.root.delta`
+
+**GET v1.0 `{mailbox}/drive/root/delta`** — forms: me, users; success: 200; paging: deltaLink
+
+- Query: `$select` (always): `*`; `$top`: `1-1000`; `token`: `l`, `a`, `t`, `e`, `s`, `t`
+- Client reads: `value`, `@odata.nextLink`, `@odata.deltaLink`
+- Graph parity (ADR 0006); reference: driveitem-delta
+- Notes: From Nextcloud's activity stream (ADR 0008 D5): the first sync lists every item (root first), later ones what changed, with {id, deleted} for what's gone. token=latest gives only a deltaLink. Without the activity app: 501 notSupported.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.root.delta.json`
+
+#### `files.drive.root.search`
+
+**GET v1.0 `{mailbox}/drive/root/search(q='{q}')`** — forms: me, users; success: 200; paging: nextLink
+
+- Query: `$select` (always): `*`; `$orderby`: `name`; `$orderby`: `lastModifiedDateTime`; `$orderby`: `size`; `$top`: `1-1000`
+- Client reads: `value`, `@odata.nextLink`
+- Graph parity (ADR 0006); reference: driveitem-search
+- Notes: Names containing q, anywhere in the drive (Nextcloud SEARCH); also drive/search(q=…).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.root.search.json`
+
+#### `files.drive.items.thumbnails`
+
+**GET v1.0 `{mailbox}/drive/items/{itemId}/thumbnails`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value`
+- Graph parity (ADR 0006); reference: driveitem-list-thumbnails
+- Notes: One set (small 96, medium 176, large 800) of self-authorising URLs to Nextcloud's preview; none for an item without a preview. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.thumbnails.json`
+
+#### `files.drive.items.thumbnail-content`
+
+**GET v1.0 `{mailbox}/drive/items/{itemId}/thumbnails/{thumbId}/{size}/content`** — forms: me, users; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: driveitem-list-thumbnails
+- Notes: The preview image; set 0 only. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.thumbnail-content.json`
+
+#### `files.drive.items.create-link`
+
+**POST v1.0 `{mailbox}/drive/items/{itemId}/createLink`** — forms: me, users; success: 201; paging: none
+
+- Request body: `type`; `scope`; `expirationDateTime`; `password`
+- Client reads: `id`, `roles`, `link`
+- Graph parity (ADR 0006); reference: driveitem-createlink
+- Notes: A Nextcloud public share: view (read) or edit; scope anonymous only (organization and other types are 400 notSupported). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.create-link.json`
+
+#### `files.drive.items.invite`
+
+**POST v1.0 `{mailbox}/drive/items/{itemId}/invite`** — forms: me, users; success: 200; paging: none
+
+- Request body: `recipients[].email`; `roles`; `expirationDateTime`
+- Client reads: `value`
+- Graph parity (ADR 0006); reference: driveitem-invite
+- Notes: A Nextcloud user share per recipient (found by address); roles read or write. Nextcloud sends its own notification; sendInvitation and message are not used. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.invite.json`
+
+#### `files.drive.items.permissions`
+
+**GET v1.0 `{mailbox}/drive/items/{itemId}/permissions`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value`
+- Graph parity (ADR 0006); reference: driveitem-list-permissions
+- Notes: The item's shares and those inherited from folders above (inheritedFrom). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.permissions.json`
+
+#### `files.drive.items.permissions.delete`
+
+**DELETE v1.0 `{mailbox}/drive/items/{itemId}/permissions/{permId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: permission-delete
+- Notes: Removes one of the item's own shares; an inherited one is 403. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.permissions.delete.json`
 
 ### Phase 21 — The directory: groups, manager, organization (Graph parity)
 

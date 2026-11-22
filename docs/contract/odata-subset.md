@@ -48,6 +48,7 @@ listed per operation in `endpoints.json`.
 | person (`people`) | `displayName scoredEmailAddresses` |
 | mailboxSettings | `automaticRepliesSetting timeZone` |
 | driveItem (`shares/{id}/driveItem`) | `id name size file folder` |
+| driveItem (phase 20 drive routes) | any of `id name size eTag cTag createdDateTime lastModifiedDateTime webUrl parentReference file folder root fileSystemInfo shared deleted children` |
 
 Semantics:
 - `$select` is a projection. Extra properties in the response are harmless, as
@@ -233,6 +234,11 @@ wall-clock. Top-level timestamps (`receivedDateTime`, `sentDateTime`,
 | `tasks.checklist-items.get`, `tasks.linked-resources.get` | nothing |
 | Phase 21 lists: `directory.*.direct-reports.list`, `directory.*.member-of.list`, `directory.*.transitive-member-of.list`, `directory.groups.list`, `directory.groups.*members.list` | `$select`, `$top` (default 100), `$skiptoken`. `$filter`, `$search`, `$orderby`, `$count` and `$expand` are 400: Graph needs `ConsistencyLevel: eventual` for most of them, and Keycloak can't evaluate them |
 | `directory.*.manager.get`, `directory.groups.get`, `directory.organization.*` | `$select` |
+| Phase 20 drive lists: `files.drive.items.children`, `files.drive.root.search` | `$select`, `$top` (default 200, at most 1000), `$skiptoken`, `$orderby` on one of `name`, `lastModifiedDateTime`, `size`. `$filter`, `$search`, `$skip` and `$count` are 400 |
+| `files.drive.root.delta` | `$select`, `$top` (page size), `token=latest`; the delta link carries the rest. Any other `token` is 400 |
+| `files.drive.items.get`, `files.drive.root.get`, `files.drive.items.get-by-path` | `$select`, `$expand=children` (a folder's first 200) |
+| `files.drive.items.{upload,replace-content,create-folder,update,copy,create-upload-session}` | `@microsoft.graph.conflictBehavior` (`fail`, `replace`, `rename`) in the query (or, for `children` and `createUploadSession`, the body) |
+| Every other `files.drive*` operation | `$select` on single resources and lists; nothing else |
 
 ### `$count` (phase 18)
 

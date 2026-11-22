@@ -1,0 +1,26 @@
+{
+  "operationId": "files.drive.copy-monitor",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/driveitem-copy); constructed with example.com data and Nextcloud-shaped ids (ADR 0008 D2), no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/drive/copyMonitors/45",
+    "query": {},
+    "headers": {
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#microsoft.graph.asyncJobStatus/$entity",
+      "operation": "itemCopy",
+      "percentageComplete": 100,
+      "resourceId": "45",
+      "status": "completed"
+    }
+  }
+}

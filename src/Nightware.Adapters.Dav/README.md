@@ -396,6 +396,35 @@ Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf,
 | `Timeout` | 90 s | Whole conversion, upload and download included |
 | `MaxSourceBytes` | 50 MB | Larger documents are `PayloadTooLarge` without a request |
 
+## The caller's OneDrive (phase 20, ADR 0008)
+
+`Files/Drive/` serves the Graph drive surface from the caller's Nextcloud home, `files/{uid}/`, always as the caller.
+
+| Class | Port | Over |
+|---|---|---|
+| `NextcloudDriveStore` | `IDriveStore` | WebDAV (`PROPFIND`, `PUT`, `MKCOL`, `MOVE`, `COPY`, `DELETE`), `SEARCH`, `index.php/core/preview` |
+| `NextcloudDriveDelta` | `IDriveDelta` | the activity stream, `ocs/v2.php/apps/activity/api/v2/activity/files` |
+| `NextcloudDriveUploads` | `IDriveUploads` | chunked upload v1 in `uploads/{uid}/nw-{uuid}/` |
+| `NextcloudDriveSharing` | `IDriveSharing` | OCS `apps/files_sharing/api/v1/shares` and `sharees` |
+
+- **Ids.** A `driveItem` id is the `oc:fileid`, found with a `SEARCH` (`eq`, `or` of several) scoped to `/files/{uid}`; the
+  home's own id, which `SEARCH` never returns, is checked with a `PROPFIND`. The drive id is `nc!` + base64url of the uid
+  (`DriveHome`). `DriveItemLocator` resolves anchors and paths, maps responses with their parents (each parent looked up
+  once per request, eight at a time) and picks OneDrive's free names (`name 1.ext`) for `rename` conflicts.
+- **Properties** come from the Files namespace `http://nextcloud.org/ns` (`creation_time`, `has-preview`,
+  `contained-*-count`), not the calendar's `http://nextcloud.com/ns` (`DriveItemMapping.FilesNs`).
+- **Conflicts.** `fail` is checked before writing (a listing of the folder, case-insensitively as Nextcloud compares) and
+  enforced again by `If-None-Match: *` or `Overwrite: F` (412 → `nameAlreadyExists`).
+- **Delta.** No `sync-collection` on Files, so the token is an activity id: the initial listing is `SEARCH displayname
+  LIKE '%'` ordered by name and paged by offset (the root first), with the activity id taken before it; a follow-up reads
+  the activities after the id (304 = nothing new), looks every named file id up, and reports the missing as deleted. A
+  404 from the activity route is `501 notSupported`.
+- **Thumbnails and the activity stream** lie outside the DAV root, so `NextcloudAppRequests` sends them on the DAV
+  client's pipeline (resilience, then the caller's credential; no cookies, no redirects).
+- **Sharing.** A link is `shareType=3` (`view` → 1, `edit` → 3 on a file, 15 on a folder), an invitation `shareType=0`
+  with the uid the sharee search finds for the address (exact matches only). Permissions are the item's shares
+  (`reshares=true`) plus `shares/inherited`; an inherited one can't be removed here.
+
 ## Known gaps
 
 - `CalendarDocument` and `CalendarEvent` have no slot for a resource href. The port's `Parse` therefore leaves `EventId` empty, and callers either use `CalendarParseOptions.Href` or fill the id with `with { Id = … }`.

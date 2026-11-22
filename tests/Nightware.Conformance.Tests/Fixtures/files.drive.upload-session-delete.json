@@ -1,0 +1,18 @@
+{
+  "operationId": "files.drive.upload-session-delete",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/driveitem-createuploadsession); constructed with example.com data and Nextcloud-shaped ids (ADR 0008 D2), no tenant capture yet",
+  "request": {
+    "method": "DELETE",
+    "path": "/v1.0/me/drive/uploadSessions/sess-0001",
+    "query": {},
+    "headers": {
+      "Accept": "application/json"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 204,
+    "headers": {},
+    "body": null
+  }
+}

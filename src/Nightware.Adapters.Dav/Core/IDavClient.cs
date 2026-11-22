@@ -50,6 +50,21 @@ public interface IDavClient
     /// <summary>RFC 6638 POST to a schedule outbox (free-busy VFREEBUSY request); one item per recipient.</summary>
     Task<Result<IReadOnlyList<DavScheduleResponseItem>>> PostToOutboxAsync(string outboxHref, string ics, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// WebDAV <c>COPY</c> of a resource (a collection with everything below it, <c>Depth: infinity</c>). Without
+    /// <paramref name="overwrite"/>, an existing destination is <see cref="ErrorKind.Conflict"/>.
+    /// </summary>
+    Task<Result> CopyAsync(string sourceHref, string destinationHref, bool overwrite, CancellationToken cancellationToken);
+
+    /// <summary>An RFC 5323 <c>SEARCH</c> on the DAV root (Nextcloud's file search); the body names its own scope.</summary>
+    Task<Result<DavMultistatus>> SearchAsync(XDocument body, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Sends <paramref name="method"/> (POST, PUT, DELETE) to an OCS endpoint with a form body; returns <c>ocs.data</c>.
+    /// An OCS failure status maps as <see cref="OcsGetAsync"/>'s does.
+    /// </summary>
+    Task<Result<JsonElement>> OcsSendAsync(HttpMethod method, string path, IReadOnlyDictionary<string, string>? form, CancellationToken cancellationToken);
+
     /// <summary>GET an OCS endpoint (path below the OCS root, e.g. <c>apps/files_sharing/api/v1/shares</c>); returns <c>ocs.data</c>.</summary>
     Task<Result<JsonElement>> OcsGetAsync(string path, IReadOnlyDictionary<string, string>? query, CancellationToken cancellationToken);
 }

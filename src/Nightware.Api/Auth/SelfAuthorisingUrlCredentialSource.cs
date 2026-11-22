@@ -20,7 +20,7 @@ internal sealed class SelfAuthorisingUrlCredentialSource(SelfAuthorisingUrlSeale
         ArgumentNullException.ThrowIfNull(request);
         ticket = null;
         return request.HttpContext.GetEndpoint()?.Metadata.GetMetadata<SelfAuthorisingUrl>() is { } kind
-               && HttpMethods.Equals(request.Method, kind.Method)
+               && kind.Allows(request.Method)
                && request.Query[SelfAuthorisingUrl.AuthTokenParameter] is [{ } sealedValue]
                && kind.BindingOf(request) is { } boundTo
                && sealer.TryOpen(kind, sealedValue, boundTo, out ticket);

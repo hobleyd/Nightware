@@ -1,0 +1,28 @@
+{
+  "operationId": "files.drive.items.copy",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/driveitem-copy); constructed with example.com data and Nextcloud-shaped ids (ADR 0008 D2), no tenant capture yet",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/drive/items/42/copy",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "parentReference": {
+        "driveId": "nc!bWU",
+        "id": "8"
+      },
+      "name": "notes (copy).txt"
+    }
+  },
+  "response": {
+    "status": 202,
+    "headers": {
+      "Location": "https://graph.microsoft.com/v1.0/me/drive/copyMonitors/45?authtoken=…"
+    },
+    "body": null
+  }
+}

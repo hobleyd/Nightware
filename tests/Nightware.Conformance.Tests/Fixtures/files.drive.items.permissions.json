@@ -1,0 +1,50 @@
+{
+  "operationId": "files.drive.items.permissions",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/driveitem-list-permissions); constructed with example.com data and Nextcloud-shaped ids (ADR 0008 D2), no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/drive/items/42/permissions",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/drive/items/permissions",
+      "value": [
+        {
+          "id": "41",
+          "roles": [
+            "read"
+          ],
+          "link": {
+            "type": "view",
+            "scope": "anonymous",
+            "webUrl": "https://cloud.example.com/s/AbCdEfGh"
+          },
+          "hasPassword": false
+        },
+        {
+          "id": "43",
+          "roles": [
+            "write"
+          ],
+          "grantedToV2": {
+            "user": {
+              "email": "bob@example.com",
+              "displayName": "Bob Brown"
+            }
+          },
+          "hasPassword": false
+        }
+      ]
+    }
+  }
+}

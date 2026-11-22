@@ -19,6 +19,7 @@ using Nightware.Api.Features.Calendar;
 using Nightware.Api.Features.Contacts;
 using Nightware.Api.Features.Directory;
 using Nightware.Api.Features.Files;
+using Nightware.Api.Features.Files.Drives;
 using Nightware.Api.Features.Mail;
 using Nightware.Api.Features.MailboxSettings;
 using Nightware.Api.Features.People;
@@ -127,6 +128,9 @@ public static class NightwareComposition
     private static void UseRequestPipeline(this IApplicationBuilder app)
     {
         app.UseMiddleware<CurrentRequestMiddleware>();
+
+        // Graph's drive path addressing (root:/a/b:) can't be routed; it is rewritten to an internal segment first.
+        app.UseMiddleware<DrivePathRewriteMiddleware>();
         app.UseRouting();
         app.UseCors();
         app.UseMiddleware<RequestBodyLimitMiddleware>();

@@ -1,0 +1,51 @@
+{
+  "operationId": "files.drive.items.invite",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/driveitem-invite); constructed with example.com data and Nextcloud-shaped ids (ADR 0008 D2), no tenant capture yet",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/drive/items/42/invite",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "recipients": [
+        {
+          "email": "bob@example.com"
+        }
+      ],
+      "message": "Here's the file",
+      "requireSignIn": true,
+      "sendInvitation": true,
+      "roles": [
+        "write"
+      ]
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(microsoft.graph.permission)",
+      "value": [
+        {
+          "id": "43",
+          "roles": [
+            "write"
+          ],
+          "grantedToV2": {
+            "user": {
+              "email": "bob@example.com",
+              "displayName": "Bob Brown"
+            }
+          },
+          "hasPassword": false
+        }
+      ]
+    }
+  }
+}

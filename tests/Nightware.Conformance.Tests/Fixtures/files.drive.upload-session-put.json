@@ -1,0 +1,32 @@
+{
+  "operationId": "files.drive.upload-session-put",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/driveitem-createuploadsession); constructed with example.com data and Nextcloud-shaped ids (ADR 0008 D2), no tenant capture yet",
+  "request": {
+    "method": "PUT",
+    "path": "/v1.0/me/drive/uploadSessions/sess-0001",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Content-Range": "bytes 0-1966079/3670016",
+      "Content-Type": "application/octet-stream"
+    },
+    "body": {
+      "$binary": {
+        "length": 1966080,
+        "sha256": "92fd45c62bf2641e0dd33eb05d215c9c15b5c5856aaa4a758bcde6d65ea16e4f"
+      }
+    }
+  },
+  "response": {
+    "status": 202,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "expirationDateTime": "2026-11-23T10:30:00Z",
+      "nextExpectedRanges": [
+        "1966080-"
+      ]
+    }
+  }
+}
