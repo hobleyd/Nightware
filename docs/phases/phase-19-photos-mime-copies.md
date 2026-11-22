@@ -1,11 +1,14 @@
 # Phase 19 — Photos, MIME, copies, `$count` segments and more aliases
 
-> **Status (2026-11-22): in progress, local only.** Asked for: the gaps listed
+> **Status (2026-11-22): done, local only.** Asked for: the gaps listed
 > after phase 18 — the signed-in user's photo (read, metadata, set), a
 > top-level `POST mailFolders`, `mailFolders/{id}/copy`, MIME create and send,
 > the `/$count` path segment, event attachment `$value` and upload sessions;
 > the remaining alias routes; and the smaller items (room lists,
-> `translateExchangeIds`, `Prefer: IdType="ImmutableId"`).
+> `translateExchangeIds`, `Prefer: IdType="ImmutableId"`). `unsubscribe` was
+> dropped (beta-only). No tenant captures were possible: every fixture is
+> constructed (or a base capture on an alias path) and says so; the capture
+> scenarios (`tools/capture`, phase 19) replace them.
 
 ## Step 0 findings (local stack, 2026-11-22)
 - **`message: unsubscribe` is beta-only** (its reference page is
