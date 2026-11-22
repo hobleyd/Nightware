@@ -12,6 +12,7 @@ backend:
 | `/.well-known/jmap`, `/jmap/` (and `/mail/` for the rest) | Stalwart: JMAP, WebDAV, management API | `stalwartlabs/stalwart:v1.1.0` |
 | `/cloud/` | Nextcloud: CalDAV/CardDAV/WebDAV/OCS (+ Postgres, Redis, cron) | `nextcloud:35.0.3-apache`, `redis:8.6.8-alpine` |
 | `/office/` | Collabora Online (Nextcloud Office) | `collabora/code:26.04.5.2.1` |
+| `/standalone-signaling/`, and `${TALK_TURN_HOST}:3478` tcp+udp | Talk's High-Performance Backend (signaling, Janus, NATS) and TURN/STUN (eturnal) | `ghcr.io/nextcloud-releases/aio-talk:20261119_161514` |
 | `/graph/` and `/.well-known/nightware` | Nightware API (`api` profile) | built from `src/Nightware.Api/Dockerfile` |
 | `/console/` | Nightware admin console (`api` profile) | built from `src/Nightware.Admin/Dockerfile` |
 | (all of the above) | Caddy reverse proxy, TLS | `caddy:2.11.9-alpine` |
@@ -507,6 +508,37 @@ are involved, because `*.localhost` names do not work between containers:
   `wss://nightware.localhost/office` (WOPI CheckFileInfo/GetFile as alice,
   `perm: edit`), was typed into and saved back (PutFile) — the file in
   Nextcloud changed size and contains the typed text.
+
+### Online meetings (Talk)
+
+An event created with `isOnlineMeeting` gets a Nextcloud Talk room (phase 22,
+`docs/phases/phase-22-online-meetings.md`). Calls go through the `talk`
+service, Nextcloud AIO's bundle of Talk's High-Performance Backend and a TURN
+server; `nextcloud/configure.sh` registers both with Talk on every run, and
+replaces Talk's default public STUN server with ours.
+
+| Who | Calls | Configured by |
+|---|---|---|
+| Browsers and Talk apps (signaling WebSocket) | `wss://${PUBLIC_HOST}/standalone-signaling/spreed` | `talk:signaling:add`; Caddy strips the prefix |
+| Nextcloud (room notifications, signed) | `https://${PUBLIC_HOST}/standalone-signaling/api/v1/room/…`, through Caddy's alias | the same; the shared `TALK_SIGNALING_SECRET` |
+| The signaling server (ticket checks) | the Nextcloud URL the client names, e.g. `https://${PUBLIC_HOST}/cloud/…` | `NC_DOMAIN`: its backend list |
+| Clients and Janus (media) | TURN at `${TALK_TURN_HOST}:3478` (Janus: `127.0.0.1:3478`) | `talk:turn:add` / `talk:stun:add`; `TALK_TURN_SECRET` |
+
+- Talk signs each room notification with the URL Nextcloud believes it has:
+  the public one for requests through Caddy, `http://nextcloud/` for the
+  façade's direct calls (`overwritecondaddr`). Both are in the signaling
+  server's backend list (`NC_DOMAIN: …, http://nextcloud`); without the second,
+  every room the façade opens fails with "Authentication check failed".
+- Media only ever uses TURN on 3478: the clients and Janus all allocate relays
+  on the same eturnal, which forwards between them inside the container. So
+  3478 tcp+udp is the one port to forward; no UDP range is published.
+- Docker Desktop and colima on macOS don't forward UDP from the host reliably:
+  on this stack TURN over TCP works from the Mac, UDP only from containers.
+- Verified (2026-11-22, aio-talk 20261119_161514, signaling 2.2.0, Janus
+  1.4.3, on arm64): Nextcloud's notifications accepted from both URLs; a
+  signaling `hello` with alice's Talk ticket answered as alice (a forged ticket
+  refused); a TURN Allocate with Talk's short-lived credentials relayed (a
+  wrong password refused, 401). No browser call was placed.
 
 ### iMIP (meeting invitations by mail)
 

@@ -299,6 +299,51 @@ services:
       - "${COLLABORA_BIND_ADDRESS:-127.0.0.1}:${COLLABORA_PORT:-9980}:9980"
     networks: [nightware]
 
+  # -------------------------------------------------------------------- Talk
+  # Online meetings (phase 22): Nextcloud Talk's High-Performance Backend and
+  # TURN server, Nextcloud AIO's bundle. One container runs the signaling
+  # server (Caddy proxies https://${PUBLIC_HOST}/standalone-signaling/ to its
+  # :8081), Janus (the SFU: one upstream per participant instead of a mesh),
+  # NATS, and eturnal (TURN/STUN) on TALK_PORT tcp+udp, published on the host.
+  # Media enters and leaves only through TURN on TALK_PORT: Janus and the
+  # clients all allocate relays on this eturnal, which forwards between them
+  # inside the container, so no UDP port range is published. Janus allocates
+  # through 127.0.0.1 (TURN_DOMAIN), not the public name, so it needs no
+  # hairpin NAT. nextcloud/configure.sh points Talk at both.
+  talk:
+    <<: *restart
+    image: ghcr.io/nextcloud-releases/aio-talk:20261119_161514
+    environment:
+      # Becomes the signaling server's backend list, "urls = https://${NC_DOMAIN}".
+      # Talk signs its notifications with the URL Nextcloud thinks it has: the
+      # public one for requests through Caddy, http://nextcloud/ for the
+      # façade's direct calls (overwritecondaddr). Both must be known backends,
+      # or every room the façade opens fails ("Authentication check failed").
+      NC_DOMAIN: ${PUBLIC_HOST:-nightware.localhost}${PUBLIC_PORT_SUFFIX:-}, http://nextcloud
+      # The TURN name, looked up for the address eturnal may relay to.
+      TALK_HOST: ${TALK_TURN_HOST:-${PUBLIC_HOST:-nightware.localhost}}
+      TALK_PORT: ${TALK_PORT:-3478}
+      TURN_DOMAIN: 127.0.0.1
+      TURN_SECRET: ${TALK_TURN_SECRET:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
+      SIGNALING_SECRET: ${TALK_SIGNALING_SECRET:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
+      INTERNAL_SECRET: ${TALK_INTERNAL_SECRET:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
+      SKIP_CERT_VERIFY: ${TALK_SKIP_CERT_VERIFY:-false}
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${TALK_PORT:-3478}:${TALK_PORT:-3478}/tcp"
+      - "${BIND_ADDRESS:-127.0.0.1}:${TALK_PORT:-3478}:${TALK_PORT:-3478}/udp"
+    read_only: true
+    tmpfs:
+      - /conf
+      - /tmp
+      - /opt/eturnal/run
+    healthcheck:
+      test: ["CMD", "/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks: [nightware]
+
   # ------------------------------------------------------------------ Grafana
   # Telemetry: Grafana's all-in-one OpenTelemetry image (an OTel Collector in
   # front of Prometheus, Tempo and Loki, with Grafana on top, all open source).

@@ -28,6 +28,7 @@
 | Gap | Version |
 |---|---|
 | `isOnlineMeeting: true` on `POST events`, `POST calendars/{id}/events` and `PATCH events/{id}` opens a Talk room whose link is `onlineMeeting.joinUrl`; deleting or cancelling the meeting closes it (verified live on the local stack) | 1.59.0 |
+| Turning an existing meeting online sends the attendees the update ("Invitation updated", with the link); Talk's High-Performance Backend and a TURN server (the `talk` service), registered with Talk by `configure.sh` (both verified live on the local stack) | 1.60.0 |
 
 ## Decisions
 - **One public room per meeting**, named after the subject (255 characters at
@@ -49,7 +50,24 @@
   attendee's copy, never does.
 - **Turning an event online later** (`PATCH` with `isOnlineMeeting: true`)
   works for the organizer's events that have no link yet. As in Graph, `false`
-  is ignored: an online meeting stays online.
+  is ignored: an online meeting stays online. The attendees are sent the
+  update: Nextcloud doesn't count `URL` as a significant change (its
+  `TipBroker` list is times, recurrence, status, summary, description,
+  location), so the editor bumps SEQUENCE and marks each person attendee on
+  the main component `SCHEDULE-FORCE-SEND=REQUEST` (RFC 6638). Sabre strips
+  the parameter from that component once it has sent, so it never sticks. Not
+  on the organizer's own line (it gets no message, so the parameter would
+  stay), on rooms and resources, or on one occurrence's component (Sabre
+  strips it from the main component only), so a link on one occurrence alone
+  reaches attendees with the next real change.
+- **Calls go through our own servers** (the `talk` service, Nextcloud AIO's
+  `aio-talk`): the signaling server (High-Performance Backend) with Janus as
+  SFU, so each participant sends one stream instead of one per peer, and
+  eturnal as TURN and STUN. Talk's default public STUN server
+  (`stun.nextcloud.com`) is removed: clients learn their address from ours.
+  Everything rides on one port, 3478 tcp+udp: Janus and the clients all relay
+  through the same eturnal. The live stack reaches TURN by a name Cloudflare
+  doesn't proxy (`TALK_TURN_HOST`), since Cloudflare carries only HTTP.
 - **A Talk failure never fails the event write.** The event is saved without a
   link (the client sees no `joinUrl`), and the adapter logs a warning. A room
   opened for a write that then fails is closed again.
@@ -58,22 +76,26 @@
   cannot stand in for the public URL.
 
 ## Known gaps
-- **Media relay.** Talk's built-in signalling uses Nextcloud itself with the
-  default public STUN server: fine for small meetings (about 4–6 people, peer
-  to peer). Bigger calls, or attendees behind strict NAT, need a TURN server
-  (coturn) and, for many participants, the High-Performance Backend
-  (signalling + Janus). Neither is deployed yet.
-- **Adding a room to an existing meeting doesn't re-invite anyone.** Sabre
-  sends an update only for a significant change (times, recurrence, status),
-  so attendees see the new link in their own copies (internal) or the next
-  update (external).
+- **No browser call has been placed** on either stack: the signaling login,
+  Nextcloud's signed notifications and an authenticated TURN allocation were
+  verified, not audio/video between two people.
 - **Rooms of meetings deleted by other clients** (Thunderbird, the Nextcloud
   calendar) are not closed. A single meeting's room still expires by itself.
+- **A link added to one occurrence only** reaches attendees with the next
+  significant change (see Decisions).
 - `allowedOnlineMeetingProviders` on calendars stays `[]` (NightMail doesn't
   read it).
 
 ## Deploy
-- `deploy/nextcloud/configure.sh` installs `spreed`.
+- `deploy/nextcloud/configure.sh` installs `spreed` and registers the `talk`
+  service's signaling server and TURN/STUN with Talk (`TALK_*` in `.env`;
+  `init-env.sh` generates the secrets).
 - The API needs `Talk__PublicBaseUrl` (Nextcloud's public URL with its
   `/cloud/` sub-path): in `deploy/docker-compose.yml`, and in the ansible
   compose file for the live stack.
+- Live (ansible): `nightware-talk` in `compose/nightware.yml`, its secrets in
+  the vault (`nightware_talk_*`, into `talk.env` and `deploy/.env`), nginx's
+  `/standalone-signaling/`, and `turn.sharpblue.com.au` (Cloudflare, DNS only;
+  coredns gives the LAN 192.168.18.7). **fw must forward 3478 tcp and udp to
+  the docker host** (192.168.18.7), as it does 25 and 443; it isn't managed
+  by ansible.

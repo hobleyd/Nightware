@@ -4,6 +4,7 @@
 #     richdocuments (Nextcloud Office, on the collabora service), groupfolders
 #     (Team folders: the admin console makes one per group that asks for it),
 #     spreed (Talk: the room behind an event's isOnlineMeeting, phase 22)
+#   - Talk's signaling server and TURN/STUN: the talk service
 #   - user_oidc provider "keycloak" with bearer-token validation, so
 #     CalDAV/CardDAV/WebDAV/OCS accept Keycloak access tokens whose aud
 #     contains "nextcloud" (the provider's client id)
@@ -96,6 +97,33 @@ log "Nextcloud: richdocuments -> collabora:9980/office (browser: ${PUBLIC_URL}/o
 wait_for "collabora discovery" dc exec -T nextcloud curl -fsS -o /dev/null http://collabora:9980/office/hosting/discovery
 occ richdocuments:setup --wopi-url=http://collabora:9980/office --callback-url=http://nextcloud >/dev/null
 occ config:app:set richdocuments wopi_allowlist --value="${DOCKER_SUBNET:-172.31.250.0/24}" >/dev/null
+
+# --------------------------------------------------------------------- Talk
+# Online meetings (phase 22): the talk service is Talk's signaling server
+# (High-Performance Backend, behind Caddy at /standalone-signaling/) and its
+# TURN/STUN server on ${TALK_TURN_HOST:-$PUBLIC_HOST}:${TALK_PORT}. Converged on every run: the
+# lists are replaced, since Talk never shows a stored secret to compare. The
+# default public STUN server (stun.nextcloud.com) goes: clients learn their
+# address from ours instead of telling a third party about every call.
+TALK_PORT="${TALK_PORT:-3478}"
+SIGNALING_URL="${PUBLIC_URL}/standalone-signaling/"
+TURN_HOST="${TALK_TURN_HOST:-$PUBLIC_HOST}:${TALK_PORT}"
+log "Nextcloud: Talk -> signaling ${SIGNALING_URL}, TURN/STUN ${TURN_HOST}"
+# Each occ inside a loop reads /dev/null: occ (docker compose exec) would
+# otherwise swallow the rest of the list from the loop's stdin.
+occ talk:signaling:list --output=json | jq -r '.servers?[]?.server // empty' | while IFS= read -r server; do
+  occ talk:signaling:delete "$server" </dev/null >/dev/null
+done
+occ talk:signaling:add "$SIGNALING_URL" "$TALK_SIGNALING_SECRET" --verify >/dev/null
+occ talk:turn:list --output=json | jq -r '.[]? | "\(.schemes)\t\(.server)\t\(.protocols)"' | while IFS=$'\t' read -r schemes server protocols; do
+  occ talk:turn:delete "$schemes" "$server" "$protocols" </dev/null >/dev/null
+done
+occ talk:turn:add turn "$TURN_HOST" udp,tcp --secret="$TALK_TURN_SECRET" >/dev/null
+# Ours first: Talk puts its default back whenever the STUN list is empty.
+occ talk:stun:list --output=json | jq -e --arg s "$TURN_HOST" 'index($s)' >/dev/null || occ talk:stun:add "$TURN_HOST" >/dev/null
+occ talk:stun:list --output=json | jq -r --arg s "$TURN_HOST" '.[]? | select(. != $s)' | while IFS= read -r stun; do
+  occ talk:stun:delete "$stun" </dev/null >/dev/null
+done
 
 # ------------------------------------------------------ brute-force allow-list
 # The façade reads public shares anonymously (/shares in Nightware), so every

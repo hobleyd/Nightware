@@ -18,6 +18,7 @@ public sealed partial class IcsEditor
 {
     private const string AltDescription = "X-ALT-DESC";
     private const string BusyStatus = "X-MICROSOFT-CDO-BUSYSTATUS";
+    private const string ScheduleForceSend = "SCHEDULE-FORCE-SEND";
 
     /// <summary>
     /// Applies a Graph PATCH to the series (or, for <paramref name="occurrence"/>, to that occurrence only,
@@ -29,6 +30,10 @@ public sealed partial class IcsEditor
     /// <item>When <paramref name="organizerAddress"/> organizes the meeting and the schedule really changes
     /// (NightMail resends start and end on every edit), SEQUENCE is bumped so Sabre re-sends the REQUEST
     /// (ADR 0001 §4).</item>
+    /// <item>When the patch gives the organizer's meeting its first join URL (phase 22), the attendees are sent the
+    /// update: SEQUENCE is bumped and, on the main component, each person attendee gets RFC 6638
+    /// <c>SCHEDULE-FORCE-SEND=REQUEST</c> (Nextcloud does not count <c>URL</c> as a significant change, and strips
+    /// the parameter from that component once it has sent).</item>
     /// </list>
     /// </summary>
     /// <param name="organizerAddress">The mailbox making the change; it becomes the ORGANIZER of an event that gains its first attendees.</param>
@@ -61,7 +66,9 @@ public sealed partial class IcsEditor
                 rescheduled |= ClearRecurrence(calendar, vevent);
             }
 
+            var urlBefore = vevent.Url;
             ApplyDetails(vevent, patch);
+            var linked = vevent.Url is not null && vevent.Url != urlBefore;
             if (patch.Attendees is { } attendees)
             {
                 // The attendee list is the meeting's: a series edit also reaches the modified occurrences,
@@ -69,6 +76,15 @@ public sealed partial class IcsEditor
                 foreach (var component in occurrence is null ? calendar.Events.ToList() : [vevent])
                 {
                     MergeAttendees(component, attendees, patch.Location, patch.Locations, organizerAddress);
+                }
+            }
+
+            if (linked && IsOrganizedBy(vevent, organizerAddress))
+            {
+                rescheduled = true;
+                if (ReferenceEquals(vevent, calendar.Events.FirstOrDefault()))
+                {
+                    ForceSend(vevent, organizerAddress);
                 }
             }
 
@@ -392,6 +408,18 @@ public sealed partial class IcsEditor
         AttendeeType.Resource => (ParticipationRole.NonParticipant, isRoom ? "ROOM" : "RESOURCE"),
         _ => (ParticipationRole.RequiredParticipant, "INDIVIDUAL"),
     };
+
+    /// <summary>Asks the server to send every person attendee the update, significant or not (RFC 6638 §7.3).</summary>
+    /// <remarks>The organizer's own line is left alone: it gets no message, so the parameter would stay stored.</remarks>
+    private static void ForceSend(IcalEvent vevent, string organizerAddress)
+    {
+        foreach (var attendee in vevent.Attendees.Where(a => a.Type?.ToUpperInvariant() is not ("ROOM" or "RESOURCE")
+                                                             && !string.Equals(IcalNetCalendarCodec.AddressOf(a.Value), organizerAddress.Trim(), StringComparison.OrdinalIgnoreCase)))
+        {
+            attendee.Parameters.Remove(ScheduleForceSend);
+            attendee.Parameters.Add(ScheduleForceSend, "REQUEST");
+        }
+    }
 
     private static bool IsOrganizedBy(IcalEvent vevent, string address) =>
         vevent.Attendees.Count > 0

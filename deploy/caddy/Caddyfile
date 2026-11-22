@@ -89,6 +89,15 @@
 		}
 	}
 
+	# Talk's signaling server (the talk service, phase 22): its WebSocket
+	# (/spreed) for browsers and Talk clients, and the backend API Nextcloud
+	# calls. The prefix is stripped: the server serves at its root.
+	handle_path /standalone-signaling/* {
+		reverse_proxy talk:8081 {
+			flush_interval -1
+		}
+	}
+
 	# Only answers when the `api` compose profile is up; 502 otherwise. The
 	# façade builds its links on Discovery:GraphBaseUrl (.../graph/v1.0); the
 	# prefix header covers anything built from the request instead.

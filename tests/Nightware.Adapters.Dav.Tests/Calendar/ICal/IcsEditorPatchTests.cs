@@ -48,14 +48,45 @@ public sealed class IcsEditorPatchTests
     }
 
     [Fact]
-    public void A_new_rooms_join_url_becomes_the_events_url_without_a_reschedule()
+    public void The_organizer_adding_a_join_url_sends_the_person_attendees_the_update()
     {
-        var edited = _editor.ApplyPatch(Weekly, new EventPatch { IsOnlineMeeting = true, OnlineMeetingUrl = "https://cloud.example.com/cloud/call/pv8f59mw" }, null, Alice).Value;
+        var edited = Unfolded(_editor.ApplyPatch(Weekly, new EventPatch { IsOnlineMeeting = true, OnlineMeetingUrl = "https://cloud.example.com/cloud/call/pv8f59mw" }, null, Alice).Value);
 
         var master = Master(edited);
         master.OnlineMeetingUrl.ShouldBe("https://cloud.example.com/cloud/call/pv8f59mw");
         master.IsOnlineMeeting.ShouldBeTrue();
-        master.Sequence.ShouldBe(Master(Weekly).Sequence);
+        master.Sequence.ShouldBe(3);
+        Parse(edited).Single(e => e.Subject == "Team standup (moved)").Sequence.ShouldBe(4);
+        var lines = edited.Split("\r\n");
+        lines.Count(l => l.StartsWith("ATTENDEE", StringComparison.Ordinal) && l.Contains("SCHEDULE-FORCE-SEND=REQUEST", StringComparison.Ordinal)).ShouldBe(2);
+        lines.Single(l => l.Contains("mailto:bob@example.com", StringComparison.Ordinal) && l.Contains("SCHEDULE-FORCE-SEND", StringComparison.Ordinal)).ShouldContain("PARTSTAT=TENTATIVE");
+        lines.Single(l => l.StartsWith("ATTENDEE", StringComparison.Ordinal) && l.Contains("mailto:alice@example.com", StringComparison.Ordinal)).ShouldNotContain("SCHEDULE-FORCE-SEND");
+    }
+
+    [Fact]
+    public void An_attendee_or_an_unchanged_url_forces_nothing()
+    {
+        var url = new EventPatch { IsOnlineMeeting = true, OnlineMeetingUrl = "https://cloud.example.com/cloud/call/pv8f59mw" };
+
+        var asBob = _editor.ApplyPatch(Weekly, url, null, "bob@example.com").Value;
+        asBob.ShouldNotContain("SCHEDULE-FORCE-SEND");
+        Master(asBob).Sequence.ShouldBe(2);
+
+        // As the server stores it after sending: the parameter gone.
+        var linked = Unfolded(_editor.ApplyPatch(Weekly, url, null, Alice).Value).Replace(";SCHEDULE-FORCE-SEND=REQUEST", string.Empty, StringComparison.Ordinal);
+        linked.ShouldNotContain("SCHEDULE-FORCE-SEND");
+        var again = _editor.ApplyPatch(linked, url, null, Alice).Value;
+        again.ShouldNotContain("SCHEDULE-FORCE-SEND");
+        Master(again).Sequence.ShouldBe(3);
+    }
+
+    [Fact]
+    public void A_join_url_on_one_occurrence_bumps_it_but_forces_nothing_the_server_would_keep()
+    {
+        var edited = _editor.ApplyPatch(Weekly, new EventPatch { OnlineMeetingUrl = "https://cloud.example.com/cloud/call/pv8f59mw" }, UnmodifiedMonday, Alice).Value;
+
+        edited.ShouldNotContain("SCHEDULE-FORCE-SEND");
+        Master(edited).Sequence.ShouldBe(2);
     }
 
     [Fact]
