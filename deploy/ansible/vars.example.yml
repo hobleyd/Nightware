@@ -11,6 +11,10 @@ nightware_mail_domain: example.com
 nightware_tls: ops@example.com
 # Narrow to your management network or VPN.
 nightware_admin_allowed_cidrs: "0.0.0.0/0 ::/0"
+# Transcripts of Talk's call recordings (optional; defaults leave them off),
+# e.g. a Whisper server such as speaches:
+# nightware_ai_transcription_url: http://whisper.example.com:8000/v1
+# nightware_ai_transcription_model: Systran/faster-whisper-small
 
 nightware_users:
   - { username: jbloggs, email: jo@example.com, first_name: Jo, last_name: Bloggs, admin: true }

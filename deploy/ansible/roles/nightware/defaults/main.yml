@@ -42,6 +42,17 @@ nightware_users: []
 # another OTLP gRPC endpoint to export elsewhere, or "" to turn export off.
 nightware_otlp_endpoint: http://grafana:4317
 
+# Transcripts (and summaries) of Talk's call recordings, through
+# OpenAI-compatible servers: deploy/.env.example's NEXTCLOUD_AI_*. Empty URLs
+# leave them off. The transcription server must take webm and Ogg (OpenAI, a
+# Whisper server such as speaches; not Ollama's audio models).
+nightware_ai_url: ""
+nightware_ai_api_key: ""
+nightware_ai_transcription_url: ""
+nightware_ai_transcription_api_key: ""
+nightware_ai_transcription_model: ""
+nightware_ai_summary_model: ""
+
 # Secrets, all required (openssl rand -hex 24; hex only, see
 # deploy/scripts/init-env.sh). nightware_delta_link_key needs 32+ bytes
 # (openssl rand -hex 32) and must never change casually: rotating it
