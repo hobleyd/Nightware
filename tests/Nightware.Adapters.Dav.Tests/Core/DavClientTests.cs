@@ -556,6 +556,19 @@ public sealed class DavClientTests : IDisposable
     }
 
     [Fact]
+    public async Task Ocs_exchange_reads_a_bodiless_304_as_success_without_data()
+    {
+        Server.Given(Request.Create().WithPath("/ocs/v2.php/apps/spreed/api/v1/chat/abcd1234").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(304).WithHeader("X-Chat-Last-Given", "7"));
+
+        var result = await _dav.Client.OcsExchangeAsync(OcsRequest.Get("apps/spreed/api/v1/chat/abcd1234"), Ct);
+
+        result.Value.Status.ShouldBe(304);
+        result.Value.Data.ValueKind.ShouldBe(System.Text.Json.JsonValueKind.Undefined);
+        result.Value.Header("X-Chat-Last-Given").ShouldBe("7");
+    }
+
+    [Fact]
     public async Task Ocs_exchange_refuses_a_success_without_ocs_json()
     {
         Server.Given(Request.Create().WithPath("/ocs/v2.php/apps/y").UsingGet())

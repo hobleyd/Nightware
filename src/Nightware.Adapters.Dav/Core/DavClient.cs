@@ -336,6 +336,18 @@ public sealed class DavClient : IDavClient
         }
 
         var message = response.Message;
+        var headers = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var header in message.Headers.Concat(message.Content.Headers))
+        {
+            headers[header.Key] = header.Value.ToList();
+        }
+
+        // Talk answers "nothing (more)" with a bodiless 304 (chat history, polls): a success with no data.
+        if (message.StatusCode == HttpStatusCode.NotModified)
+        {
+            return new OcsResponse(default, (int)HttpStatusCode.NotModified, headers);
+        }
+
         var text = await ReadErrorBodyAsync(message, cancellationToken).ConfigureAwait(false) ?? string.Empty;
         JsonElement ocs = default;
         var parsed = false;
@@ -374,12 +386,6 @@ public sealed class DavClient : IDavClient
         if (!parsed)
         {
             return DavErrors.Unavailable("The groupware server returned an unexpected OCS response.");
-        }
-
-        var headers = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var header in message.Headers.Concat(message.Content.Headers))
-        {
-            headers[header.Key] = header.Value.ToList();
         }
 
         return new OcsResponse(ocs.TryGetProperty("data", out var data) ? data : default, status, headers);

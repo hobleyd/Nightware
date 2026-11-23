@@ -151,9 +151,9 @@ made over Graph gets its topic and owners.
   is the id of the last message given (Talk's `X-Chat-Last-Given` when a page
   ends on a Talk page), read as `lastKnownMessageId`. A long run of bookkeeping gives a short page
   with a link. The chat list is one Talk call, paged by offset.
-- **Talk's 304** reaches the adapter as an unknown error (the frozen OCS
-  client has no bodiless success); `TalkChatClient.IsNotModified` reads it as
-  "nothing more".
+- **Talk's 304** ("nothing more") is a success without data from
+  `OcsExchangeAsync` (changed at merge; it first reached the adapter as an
+  unknown error), so it reads as an empty page.
 - **Times Talk doesn't keep.** `createdDateTime` of a chat is `null`.
   `viewpoint.lastMessageReadDateTime` is the newest message's time when the
   read marker is on it, otherwise `null`. A deleted message's

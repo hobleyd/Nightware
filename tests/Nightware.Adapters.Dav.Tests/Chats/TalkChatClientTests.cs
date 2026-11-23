@@ -296,12 +296,4 @@ public sealed class TalkChatClientTests : IDisposable
         (await _talk.Client.ParticipantsAsync(Token, Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
         (await _talk.Client.PostAsync(Token, new TalkPost("x"), Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
     }
-
-    [Fact]
-    public void Only_a_304_reads_as_not_modified()
-    {
-        TalkChatClient.IsNotModified(new Error(ErrorKind.Unknown, "backendError", "Unexpected groupware response (304).")).ShouldBeTrue();
-        TalkChatClient.IsNotModified(Error.NotFound("(304)")).ShouldBeFalse();
-        TalkChatClient.IsNotModified(new Error(ErrorKind.Unknown, "backendError", "Unexpected groupware response (302).")).ShouldBeFalse();
-    }
 }

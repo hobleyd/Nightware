@@ -170,7 +170,7 @@ internal sealed class TalkChatClient(IDavClient dav)
         var read = await dav.OcsExchangeAsync(OcsRequest.Get($"{ChatPath}/{token}", query), cancellationToken).ConfigureAwait(false);
         if (!read.IsSuccess)
         {
-            return IsNotModified(read.Error) ? new TalkHistoryPage([], null) : NotFoundAs(read.Error, NoConversation());
+            return NotFoundAs(read.Error, NoConversation());
         }
 
         var messages = TalkMessage.ParseMany(read.Value.Data);
@@ -192,7 +192,7 @@ internal sealed class TalkChatClient(IDavClient dav)
             new Dictionary<string, string>(StringComparer.Ordinal) { ["limit"] = "0" }), cancellationToken).ConfigureAwait(false);
         if (!read.IsSuccess)
         {
-            return IsNotModified(read.Error) ? NoMessage() : NotFoundAs(read.Error, NoMessage());
+            return NotFoundAs(read.Error, NoMessage());
         }
 
         return TalkMessage.ParseMany(read.Value.Data).FirstOrDefault(m => m.Id == messageId) is { } message ? message : NoMessage();
@@ -318,7 +318,7 @@ internal sealed class TalkChatClient(IDavClient dav)
             new Dictionary<string, string>(StringComparer.Ordinal) { ["objectType"] = "pinned", ["limit"] = TalkIds.Decimal(MaxHistoryPage) }), cancellationToken).ConfigureAwait(false);
         if (!read.IsSuccess)
         {
-            return IsNotModified(read.Error) ? Array.Empty<TalkMessage>() : NotFoundAs(read.Error, NoConversation());
+            return NotFoundAs(read.Error, NoConversation());
         }
 
         return TalkMessage.ParseMany(read.Value.Data).OrderByDescending(m => m.PinnedAt).ThenByDescending(m => m.Id).ToList();
@@ -329,13 +329,6 @@ internal sealed class TalkChatClient(IDavClient dav)
 
     public Task<Result> UnpinAsync(string token, long messageId, CancellationToken cancellationToken) =>
         SendAsync(HttpMethod.Delete, token, $"{ChatPath}/{token}/{TalkIds.Decimal(messageId)}/pin", null, cancellationToken, NoMessage());
-
-    /// <summary>
-    /// Talk answers "nothing (more)" with 304 Not Modified, which the OCS client reports as an unexpected response
-    /// (its frozen core has no notion of a bodiless success).
-    /// </summary>
-    internal static bool IsNotModified(Error error) =>
-        error.Kind == ErrorKind.Unknown && error.Message.Contains("(304)", StringComparison.Ordinal);
 
     internal static Error NoConversation() => Error.NotFound("The chat was not found, or you are not a member of it.");
 

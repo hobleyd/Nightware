@@ -432,7 +432,7 @@ adds web links). `Chats/Talk/` is conversation-generic, for channels (phase 24) 
 
 | Class | What |
 |---|---|
-| `TalkChatClient` | Every Talk call (`apps/spreed/api/v4/room`, `api/v1/chat`, `api/v1/reaction`), token and id checked first. Reads pass `setReadMarker=0`, `markNotificationsAsRead=0`, `noStatusUpdate=1`. `PostAsync` takes `TalkPost` (`ReplyTo`, `ThreadId`, `ThreadTitle`); `HistoryAsync` an optional `threadId`. Talk's 304 (end of history) reaches it as an unknown error: `IsNotModified` reads it. |
+| `TalkChatClient` | Every Talk call (`apps/spreed/api/v4/room`, `api/v1/chat`, `api/v1/reaction`), token and id checked first. Reads pass `setReadMarker=0`, `markNotificationsAsRead=0`, `noStatusUpdate=1`. `PostAsync` takes `TalkPost` (`ReplyTo`, `ThreadId`, `ThreadTitle`); `HistoryAsync` an optional `threadId`. Talk's 304 (end of history) is a success without data (`OcsExchangeAsync`), so it reads as an empty page. |
 | `TalkWire.cs` | `TalkRoom`, `TalkMessage` (with `ThreadId`, `IsThread`, `ThreadTitle`, `Parent`), `TalkParticipant`, `TalkParameter`, `TalkActor`, `TalkReaction`; `TalkIds` (token, message id, `m.{attendeeId}`). PHP's empty map `[]` parses as empty. |
 | `TalkMessageCodec` | Pure. `IsListed`, `AccountsIn` (uids to resolve), `ToChatMessage(message, TalkConversation, identify, deletedAt)`, `DeletionTimes`, `ToTalkText(body, mentions)`, `MentionOf(uid)`, `MentionAll`. |
 | `TalkMarkdown`, `TalkHtml` | Talk Markdown → Graph html (text encoded first; http/https/mailto links only) and back. |
