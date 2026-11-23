@@ -1,0 +1,193 @@
+{
+  "ocs": {
+    "meta": {
+      "status": "ok",
+      "statuscode": 200,
+      "message": "OK"
+    },
+    "data": [
+      {
+        "id": "LZ3QVwCD7nuUSNFdJYckPyiZN8OnTjH",
+        "circleId": "6LOrxifQ5p4vRt2I3iplImWqdpjlADT",
+        "singleId": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+        "userId": "alice",
+        "userType": 1,
+        "instance": "cloud.example.com",
+        "local": true,
+        "level": 9,
+        "status": "Member",
+        "displayName": "Alice Anderson",
+        "displayUpdate": 1795430844,
+        "notes": {
+          "invitedBy": {
+            "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+            "userId": "alice",
+            "userType": 1,
+            "displayName": "Alice Anderson",
+            "instance": "cloud.example.com",
+            "basedOn": {
+              "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+              "name": "user:alice:AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+              "displayName": "Alice Anderson",
+              "sanitizedName": "",
+              "source": 1,
+              "population": 0,
+              "populationInherited": 0,
+              "config": 1,
+              "description": "",
+              "url": "https://cloud.example.com/cloud/apps/circles/teams/team/AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+              "creation": 0,
+              "initiator": null
+            }
+          }
+        },
+        "contactId": "",
+        "contactMeta": "",
+        "joined": 1795429771,
+        "invitedBy": {
+          "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+          "userId": "alice",
+          "userType": 1,
+          "displayName": "Alice Anderson",
+          "instance": "cloud.example.com",
+          "basedOn": {
+            "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+            "name": "user:alice:AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+            "displayName": "Alice Anderson",
+            "sanitizedName": "",
+            "source": 1,
+            "population": 0,
+            "populationInherited": 0,
+            "config": 1,
+            "description": "",
+            "url": "https://cloud.example.com/cloud/apps/circles/teams/team/AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+            "creation": 0,
+            "initiator": null
+          }
+        },
+        "basedOn": {
+          "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+          "name": "user:alice:AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+          "displayName": "Alice Anderson",
+          "sanitizedName": "",
+          "source": 1,
+          "population": 0,
+          "populationInherited": 0,
+          "config": 1,
+          "description": "",
+          "url": "https://cloud.example.com/cloud/apps/circles/teams/team/AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+          "creation": 1795387927,
+          "initiator": null,
+          "owner": {
+            "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+            "circleId": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+            "singleId": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+            "userId": "alice",
+            "userType": 1,
+            "instance": "cloud.example.com",
+            "local": true,
+            "level": 9,
+            "status": "Member",
+            "displayName": "Alice Anderson",
+            "displayUpdate": 1795430844,
+            "notes": [],
+            "contactId": "",
+            "contactMeta": "",
+            "joined": 1795387927
+          }
+        }
+      },
+      {
+        "id": "zjioHBheH4iNehqhIX2yQrHrn6RVDCd",
+        "circleId": "6LOrxifQ5p4vRt2I3iplImWqdpjlADT",
+        "singleId": "jtHGuDA88TbNvEODcfyrdwoiHS2fBFt",
+        "userId": "bob",
+        "userType": 1,
+        "instance": "cloud.example.com",
+        "local": true,
+        "level": 1,
+        "status": "Member",
+        "displayName": "Bob Brown",
+        "displayUpdate": 1795430844,
+        "notes": {
+          "invitedBy": {
+            "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+            "userId": "alice",
+            "userType": 1,
+            "displayName": "Alice Anderson",
+            "instance": "cloud.example.com",
+            "basedOn": {
+              "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+              "name": "user:alice:AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+              "displayName": "Alice Anderson",
+              "sanitizedName": "",
+              "source": 1,
+              "population": 0,
+              "populationInherited": 0,
+              "config": 1,
+              "description": "",
+              "url": "https://cloud.example.com/cloud/apps/circles/teams/team/AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+              "creation": 0,
+              "initiator": null
+            }
+          }
+        },
+        "contactId": "",
+        "contactMeta": "",
+        "joined": 1795429788,
+        "invitedBy": {
+          "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+          "userId": "alice",
+          "userType": 1,
+          "displayName": "Alice Anderson",
+          "instance": "cloud.example.com",
+          "basedOn": {
+            "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+            "name": "user:alice:AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+            "displayName": "Alice Anderson",
+            "sanitizedName": "",
+            "source": 1,
+            "population": 0,
+            "populationInherited": 0,
+            "config": 1,
+            "description": "",
+            "url": "https://cloud.example.com/cloud/apps/circles/teams/team/AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+            "creation": 0,
+            "initiator": null
+          }
+        },
+        "basedOn": {
+          "id": "jtHGuDA88TbNvEODcfyrdwoiHS2fBFt",
+          "name": "user:bob:jtHGuDA88TbNvEODcfyrdwoiHS2fBFt",
+          "displayName": "Bob Brown",
+          "sanitizedName": "",
+          "source": 1,
+          "population": 0,
+          "populationInherited": 0,
+          "config": 1,
+          "description": "",
+          "url": "https://cloud.example.com/cloud/apps/circles/teams/team/jtHGuDA88TbNvEODcfyrdwoiHS2fBFt",
+          "creation": 1795387929,
+          "initiator": null,
+          "owner": {
+            "id": "jtHGuDA88TbNvEODcfyrdwoiHS2fBFt",
+            "circleId": "jtHGuDA88TbNvEODcfyrdwoiHS2fBFt",
+            "singleId": "jtHGuDA88TbNvEODcfyrdwoiHS2fBFt",
+            "userId": "bob",
+            "userType": 1,
+            "instance": "cloud.example.com",
+            "local": true,
+            "level": 9,
+            "status": "Member",
+            "displayName": "Bob Brown",
+            "displayUpdate": 1795430844,
+            "notes": [],
+            "contactId": "",
+            "contactMeta": "",
+            "joined": 1795387929
+          }
+        }
+      }
+    ]
+  }
+}

@@ -14121,7 +14121,9 @@
                     "createdDateTime": {},
                     "webUrl": {},
                     "email": {},
-                    "isArchived": {}
+                    "isArchived": {},
+                    "isFavoriteByDefault": {},
+                    "layoutType": {}
                   }
                 }
               }
@@ -14176,7 +14178,9 @@
                     "createdDateTime": {},
                     "webUrl": {},
                     "email": {},
-                    "isArchived": {}
+                    "isArchived": {},
+                    "isFavoriteByDefault": {},
+                    "layoutType": {}
                   }
                 }
               }
@@ -14287,7 +14291,9 @@
                     "createdDateTime": {},
                     "webUrl": {},
                     "email": {},
-                    "isArchived": {}
+                    "isArchived": {},
+                    "isFavoriteByDefault": {},
+                    "layoutType": {}
                   }
                 }
               }
@@ -14503,7 +14509,7 @@
           "Channels"
         ],
         "summary": "Channels messages: delta",
-        "description": "Talk chat after the token's last message id; edits and deletes re-read their parent.\n\nGraph reference: chatmessage-delta",
+        "description": "First sync: the channel's posts, newest first. Then Talk's chat after the token's last message id: new posts and replies, and the message an edit, delete, rename or reaction is about, re-read.\n\nGraph reference: chatmessage-delta",
         "parameters": [
           {
             "name": "teamId",
@@ -15118,7 +15124,9 @@
                     "createdDateTime": {},
                     "webUrl": {},
                     "email": {},
-                    "isArchived": {}
+                    "isArchived": {},
+                    "isFavoriteByDefault": {},
+                    "layoutType": {}
                   }
                 }
               }
@@ -40104,7 +40112,7 @@
           "Teams"
         ],
         "summary": "Teams: create",
-        "description": "Circle, members and the General channel; Location names a succeeded teamsAsyncOperation.\n\nGraph reference: team-post",
+        "description": "Circle, members and the General channel; 202 with Location naming a succeeded teamsAsyncOperation (/teams('{id}')/operations('{opId}'), also routed) and Content-Location the team, no body.\n\nGraph reference: team-post",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -40223,7 +40231,10 @@
                     "createdDateTime": {},
                     "webUrl": {},
                     "isArchived": {},
-                    "tenantId": {}
+                    "internalId": {},
+                    "classification": {},
+                    "specialization": {},
+                    "isMembershipLimitedToOwners": {}
                   }
                 }
               }
@@ -40307,7 +40318,7 @@
           "Teams"
         ],
         "summary": "Teams: joined",
-        "description": "The caller's Nextcloud teams (circles); /users/{x} only for the caller.\n\nGraph reference: user-list-joinedteams",
+        "description": "The caller's Nextcloud teams (circles); /users/{x} only for the caller. tenantId and the settings objects are not emitted (no tenant, no counterpart).\n\nGraph reference: user-list-joinedteams",
         "parameters": [],
         "responses": {
           "200": {
@@ -40324,7 +40335,10 @@
                     "createdDateTime": {},
                     "webUrl": {},
                     "isArchived": {},
-                    "tenantId": {}
+                    "internalId": {},
+                    "classification": {},
+                    "specialization": {},
+                    "isMembershipLimitedToOwners": {}
                   }
                 }
               }
@@ -40355,7 +40369,7 @@
           "Teams"
         ],
         "summary": "Teams: joined",
-        "description": "The caller's Nextcloud teams (circles); /users/{x} only for the caller.\n\nGraph reference: user-list-joinedteams",
+        "description": "The caller's Nextcloud teams (circles); /users/{x} only for the caller. tenantId and the settings objects are not emitted (no tenant, no counterpart).\n\nGraph reference: user-list-joinedteams",
         "parameters": [
           {
             "name": "userId",
@@ -40381,7 +40395,10 @@
                     "createdDateTime": {},
                     "webUrl": {},
                     "isArchived": {},
-                    "tenantId": {}
+                    "internalId": {},
+                    "classification": {},
+                    "specialization": {},
+                    "isMembershipLimitedToOwners": {}
                   }
                 }
               }
@@ -40757,7 +40774,9 @@
                     "targetResourceId": {},
                     "targetResourceLocation": {},
                     "createdDateTime": {},
-                    "lastActionDateTime": {}
+                    "lastActionDateTime": {},
+                    "attemptsCount": {},
+                    "error": {}
                   }
                 }
               }

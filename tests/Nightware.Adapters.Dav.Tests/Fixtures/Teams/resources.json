@@ -1,0 +1,52 @@
+{
+  "ocs": {
+    "meta": {
+      "status": "ok",
+      "statuscode": 200,
+      "message": "OK"
+    },
+    "data": {
+      "resources": [
+        {
+          "id": "2",
+          "label": "P24 Probe 1",
+          "url": "https://cloud.example.com/cloud/apps/circles/teams/team/6LOrxifQ5p4vRt2I3iplImWqdpjlADT",
+          "iconSvg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8z\"/></svg>",
+          "iconURL": null,
+          "iconEmoji": null,
+          "provider": {
+            "id": "groupfolders",
+            "name": "Team spaces",
+            "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path d=\"M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8z\"/></svg>"
+          }
+        },
+        {
+          "id": "xtugjbpy",
+          "label": "General",
+          "url": "https://cloud.example.com/cloud/call/xtugjbpy",
+          "iconSvg": null,
+          "iconURL": "https://cloud.example.com/cloud/ocs/v2.php/apps/spreed/api/v1/room/xtugjbpy/avatar?v=814471ef",
+          "iconEmoji": null,
+          "provider": {
+            "id": "talk",
+            "name": "Talk conversations",
+            "icon": "<svg width=\"16\" height=\"16\" version=\"1.1\" viewBox=\"0 0 16 16\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"m7.9992 0.999a6.9993 6.9994 0 0 0-6.9992 6.9996 6.9993 6.9994 0 0 0 6.9992 6.9994 6.9993 6.9994 0 0 0 3.6308-1.024c0.86024 0.34184 2.7871 1.356 3.2457 0.91794 0.47922-0.45765-0.56261-2.6116-0.81238-3.412a6.9993 6.9994 0 0 0 0.935-3.4814 6.9993 6.9994 0 0 0-6.9991-6.9993zm8e-4 2.6611a4.34 4.3401 0 0 1 4.34 4.3401 4.34 4.3401 0 0 1-4.34 4.3398 4.34 4.3401 0 0 1-4.34-4.3398 4.34 4.3401 0 0 1 4.34-4.3401z\" stroke-width=\".14\"/></svg>"
+          }
+        },
+        {
+          "id": "hktd6xvp",
+          "label": "Design",
+          "url": "https://cloud.example.com/cloud/call/hktd6xvp",
+          "iconSvg": null,
+          "iconURL": "https://cloud.example.com/cloud/ocs/v2.php/apps/spreed/api/v1/room/hktd6xvp/avatar?v=814471ef",
+          "iconEmoji": null,
+          "provider": {
+            "id": "talk",
+            "name": "Talk conversations",
+            "icon": "<svg width=\"16\" height=\"16\" version=\"1.1\" viewBox=\"0 0 16 16\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"m7.9992 0.999a6.9993 6.9994 0 0 0-6.9992 6.9996 6.9993 6.9994 0 0 0 6.9992 6.9994 6.9993 6.9994 0 0 0 3.6308-1.024c0.86024 0.34184 2.7871 1.356 3.2457 0.91794 0.47922-0.45765-0.56261-2.6116-0.81238-3.412a6.9993 6.9994 0 0 0 0.935-3.4814 6.9993 6.9994 0 0 0-6.9991-6.9993zm8e-4 2.6611a4.34 4.3401 0 0 1 4.34 4.3401 4.34 4.3401 0 0 1-4.34 4.3398 4.34 4.3401 0 0 1-4.34-4.3398 4.34 4.3401 0 0 1 4.34-4.3401z\" stroke-width=\".14\"/></svg>"
+          }
+        }
+      ]
+    }
+  }
+}

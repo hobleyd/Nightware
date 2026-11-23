@@ -1,0 +1,26 @@
+{
+  "operationId": "channels.messages.update",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/chatmessage-update); constructed with example.com data and Nextcloud/Talk-shaped ids (ADR 0009 D2), no tenant capture yet",
+  "request": {
+    "method": "PATCH",
+    "path": "/v1.0/teams/Pq7Xk2LmN9vRt4WzYc8BdHf3JsQa6Ue/channels/hktd6xvp/messages/100",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "subject": "Kick-off (moved)",
+      "body": {
+        "contentType": "html",
+        "content": "Agenda <b>moved</b>"
+      }
+    }
+  },
+  "response": {
+    "status": 204,
+    "headers": {},
+    "body": null
+  }
+}

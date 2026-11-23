@@ -26,7 +26,15 @@ internal sealed class TalkMessageFeed(TalkChatClient talk, TalkIdentities identi
     /// read on from: the last message the previous page gave, or Talk's <c>X-Chat-Last-Given</c> when a page came back
     /// short, so a page can end anywhere in Talk's history.
     /// </summary>
-    public async Task<Result<Page<ChatMessage>>> PageAsync(TalkConversation conversation, int top, string? skipToken, long? threadId, CancellationToken cancellationToken)
+    public Task<Result<Page<ChatMessage>>> PageAsync(TalkConversation conversation, int top, string? skipToken, long? threadId, CancellationToken cancellationToken) =>
+        PageAsync(conversation, top, skipToken, threadId, null, cancellationToken);
+
+    /// <summary>
+    /// As the other <c>PageAsync</c>, listing only the messages <paramref name="include"/> keeps (a channel's posts, a
+    /// thread's replies, phase 24).
+    /// </summary>
+    public async Task<Result<Page<ChatMessage>>> PageAsync(
+        TalkConversation conversation, int top, string? skipToken, long? threadId, Func<TalkMessage, bool>? include, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(conversation);
         long? cursor = null;
@@ -61,7 +69,7 @@ internal sealed class TalkMessageFeed(TalkChatClient talk, TalkIdentities identi
                     break;
                 }
 
-                if (TalkMessageCodec.IsListed(message))
+                if (TalkMessageCodec.IsListed(message) && (include is null || include(message)))
                 {
                     listed.Add(message);
                 }

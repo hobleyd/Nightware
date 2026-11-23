@@ -81,6 +81,42 @@ internal sealed class TalkChatClient(IDavClient dav)
         return created.IsSuccess ? Room(created.Value.Data) : created.Error;
     }
 
+    /// <summary>
+    /// Creates a team's channel room (phase 24): a group room whose participants include the team, so Talk adds and
+    /// removes people as the team changes (ADR 0009 D5).
+    /// </summary>
+    public async Task<Result<TalkRoom>> CreateTeamRoomAsync(string name, string? description, string teamId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(teamId);
+        var body = new JsonObject
+        {
+            ["roomType"] = TalkRoomType.Group,
+            ["roomName"] = name,
+            ["participants"] = new JsonObject { ["teams"] = new JsonArray(teamId) },
+        };
+        if (!string.IsNullOrEmpty(description))
+        {
+            body["description"] = description;
+        }
+
+        var created = await dav.OcsExchangeAsync(new OcsRequest(HttpMethod.Post, RoomsPath) { Json = body }, cancellationToken).ConfigureAwait(false);
+        return created.IsSuccess ? Room(created.Value.Data) : created.Error;
+    }
+
+    /// <summary>Deletes the room for everyone (a moderator's action).</summary>
+    public Task<Result> DeleteRoomAsync(string token, CancellationToken cancellationToken) =>
+        SendAsync(HttpMethod.Delete, token, $"{RoomsPath}/{token}", null, cancellationToken);
+
+    public Task<Result> SetDescriptionAsync(string token, string description, CancellationToken cancellationToken) =>
+        SendAsync(HttpMethod.Put, token, $"{RoomsPath}/{token}/description",
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["description"] = description }, cancellationToken);
+
+    /// <summary>Renames a thread (Talk answers with the thread; a <c>thread_renamed</c> event goes into the chat).</summary>
+    public Task<Result> RenameThreadAsync(string token, long threadId, string title, CancellationToken cancellationToken) =>
+        SendAsync(HttpMethod.Put, token, $"{ChatPath}/{token}/threads/{TalkIds.Decimal(threadId)}",
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["threadTitle"] = title }, cancellationToken, NoMessage());
+
     public Task<Result> RenameRoomAsync(string token, string name, CancellationToken cancellationToken) =>
         SendAsync(HttpMethod.Put, token, $"{RoomsPath}/{token}", new Dictionary<string, string>(StringComparer.Ordinal) { ["roomName"] = name }, cancellationToken);
 
@@ -177,6 +213,40 @@ internal sealed class TalkChatClient(IDavClient dav)
         var lastGiven = long.TryParse(read.Value.Header("X-Chat-Last-Given"), NumberStyles.None, CultureInfo.InvariantCulture, out var given) && given > 0
             ? given
             : messages.Count > 0 ? messages.Min(m => m.Id) : (long?)null;
+        return new TalkHistoryPage(messages, messages.Count == 0 ? null : lastGiven);
+    }
+
+    /// <summary>
+    /// Messages newer than <paramref name="after"/>, oldest first, without waiting for more (<c>lookIntoFuture=1</c>,
+    /// <c>timeout=0</c>); <see cref="TalkHistoryPage.LastGiven"/> is the id to read on from, null when nothing is newer.
+    /// </summary>
+    public async Task<Result<TalkHistoryPage>> FutureAsync(string token, long after, int limit, CancellationToken cancellationToken)
+    {
+        if (!TalkIds.IsToken(token))
+        {
+            return NoConversation();
+        }
+
+        var query = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["lookIntoFuture"] = "1",
+            ["timeout"] = "0",
+            ["lastKnownMessageId"] = TalkIds.Decimal(Math.Max(0, after)),
+            ["limit"] = Math.Clamp(limit, 1, MaxHistoryPage).ToString(CultureInfo.InvariantCulture),
+            ["setReadMarker"] = "0",
+            ["markNotificationsAsRead"] = "0",
+            ["noStatusUpdate"] = "1",
+        };
+        var read = await dav.OcsExchangeAsync(OcsRequest.Get($"{ChatPath}/{token}", query), cancellationToken).ConfigureAwait(false);
+        if (!read.IsSuccess)
+        {
+            return NotFoundAs(read.Error, NoConversation());
+        }
+
+        var messages = TalkMessage.ParseMany(read.Value.Data).OrderBy(m => m.Id).ToList();
+        var lastGiven = long.TryParse(read.Value.Header("X-Chat-Last-Given"), NumberStyles.None, CultureInfo.InvariantCulture, out var given) && given > 0
+            ? given
+            : messages.Count > 0 ? messages.Max(m => m.Id) : (long?)null;
         return new TalkHistoryPage(messages, messages.Count == 0 ? null : lastGiven);
     }
 

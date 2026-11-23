@@ -1,0 +1,14 @@
+{
+  "ocs": {
+    "meta": {
+      "status": "ok",
+      "statuscode": 200,
+      "message": "OK"
+    },
+    "data": {
+      "id": 2,
+      "quota": null,
+      "mountPoint": "P24 Probe 1"
+    }
+  }
+}

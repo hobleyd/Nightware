@@ -1,0 +1,24 @@
+{
+  "operationId": "teams.update",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/team-update); constructed with example.com data and Nextcloud/Talk-shaped ids (ADR 0009 D2), no tenant capture yet",
+  "request": {
+    "method": "PATCH",
+    "path": "/v1.0/teams/Pq7Xk2LmN9vRt4WzYc8BdHf3JsQa6Ue",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "displayName": "Project Phoenix (2027)",
+      "description": "Planning the launch",
+      "visibility": "public"
+    }
+  },
+  "response": {
+    "status": 204,
+    "headers": {},
+    "body": null
+  }
+}

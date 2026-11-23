@@ -165,6 +165,15 @@ rule 2):
   id. New posts and replies are upserts. Edits and deletes arrive as system
   messages naming their parent, which is re-read and reported. The first page
   lists recent posts, as Graph's does.
+- *Amended (phase 24):* Talk keeps a team's rooms when its circle is deleted,
+  and a team member can make a channel room the owner doesn't moderate, so
+  deleting a team needs its owner moderating every channel and is `403`
+  before anything is deleted otherwise. Talk refuses a thread reply to a
+  top-level message that didn't start a thread, so replying to such a post is
+  `400`. A subject defaulted from the body is recognised on reading by
+  comparing the title with the body's first line (mentions left out), and a
+  deleted post reports none. The team folder keeps the team's first name, so
+  `filesFolder` is in the folder's mount point, not one named after the team.
 
 ### D6 — Presence is user status
 | User status | `availability` | `activity` |
