@@ -125,6 +125,33 @@ public sealed class PresenceLiveTests
     }
 
     [Fact]
+    public async Task Bobs_automatic_replies_are_his_out_of_office_settings()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
+        await using var stack = LiveStack.Start();
+        using var alice = await stack.GraphClientAsync("alice", Ct);
+        using var bob = await stack.GraphClientAsync("bob", Ct);
+        var bobId = Text(await SendAsync(bob, HttpMethod.Get, "/v1.0/me"), "id");
+        var before = (await SendAsync(bob, HttpMethod.Get, "/v1.0/me/mailboxSettings?$select=automaticRepliesSetting"))["automaticRepliesSetting"]!.DeepClone();
+        var reply = "nw-presence away " + Guid.NewGuid().ToString("N")[..8];
+        try
+        {
+            await SendAsync(bob, HttpMethod.Patch, "/v1.0/me/mailboxSettings", new { automaticRepliesSetting = new { status = "alwaysEnabled", internalReplyMessage = reply } });
+
+            var own = (await SendAsync(bob, HttpMethod.Get, "/v1.0/me/presence"))["outOfOfficeSettings"]!;
+            own["isOutOfOffice"]!.GetValue<bool>().ShouldBeTrue();
+            own["message"]!.GetValue<string>().ShouldContain(reply);
+
+            // Bob's mailbox is not alice's to read: she sees him in the office (ADR 0009 D6, amended).
+            (await SendAsync(alice, HttpMethod.Get, $"/v1.0/users/{bobId}/presence"))["outOfOfficeSettings"]!["isOutOfOffice"]!.GetValue<bool>().ShouldBeFalse();
+        }
+        finally
+        {
+            await SendAsync(bob, HttpMethod.Patch, "/v1.0/me/mailboxSettings", new JsonObject { ["automaticRepliesSetting"] = before });
+        }
+    }
+
+    [Fact]
     public async Task In_a_talk_call_bob_reads_busy_in_a_call_until_he_leaves()
     {
         Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");

@@ -14,9 +14,11 @@ token through OCS and a read of `apps/user_status` and Talk's `lib/Status`:
   `clearAt`, never `invisible` (it reads `offline`), and no `messageId`. A
   predefined message reaches another user as text in the reader's language
   plus its icon: 💬 call, 📅 meeting, ⏳ be right back.
-- **No status.** A user without a row (never set, or deleted on expiry) gets
-  404 from both reads ("No status for the requested userId"). An unknown uid is
-  the same 404.
+- **No status.** An unknown uid gets 404 from `statuses/{uid}` ("No status
+  for the requested userId"). A real user with no row (never set) takes the same
+  path in the controller and is read as 404 too; that is from the code, as no
+  never-signed-in user was available to probe. The façade reads either as no
+  status (Offline).
 - **"In a call".** Talk sets `busy` + `call` (or keeps `dnd`, and never
   overrides `invisible`) when a participant's in-call flag goes up, backing up
   the previous status (`_uid` row); it restores the backup the moment the
@@ -40,7 +42,9 @@ token through OCS and a read of `apps/user_status` and Talk's `lib/Status`:
   no expiry (the predefined list's default periods are the client's to apply).
   When `clearAt` passes, Nextcloud clears the message **and the status**: bob's
   `dnd` with an expiring custom message read `offline` with no message right
-  after it (the read applies it; the 60-second job deletes the row).
+  after it. The first read after expiry rewrites the row (offline, no message,
+  no `clearAt`); the 60-second job deletes rows only if nothing read them first,
+  and in two probes something always had, so the row stayed as `offline`.
 - Set responses carry the raw row (`message: null` for a predefined message),
   so the façade re-reads rather than parsing them.
 
@@ -74,7 +78,11 @@ presence is 403; bob's `Busy`/`InAMeeting` reads as such to alice (by the
 icon); clearing reads Available with no message. In a Talk call bob started
 (room created, session joined, `POST call`), alice reads bob Busy/InACall with
 no status message, and not InACall once he leaves. bob is reset to online with
-no message in `finally`.
+no message in `finally`. Bob's always-on automatic replies read
+`isOutOfOffice: true` with the internal message on his own presence and
+`false` to alice; his previous auto-reply setting is restored in `finally`.
+Run with `NIGHTWARE_INTEGRATION=1 NIGHTWARE_DEPLOY_DIR=<main checkout>/deploy
+NIGHTWARE_CONNECT_ADDRESS=127.0.0.1` (the host name does not resolve).
 
 ## Decisions
 See ADR 0009 D6. Beyond it:
@@ -125,6 +133,10 @@ See ADR 0009 D6. Beyond it:
   user reads Offline, not their previous status.
 - A bare status can't expire (no message to carry `clearAt`), so
   `expirationDuration` is accepted and not applied then.
+- Graph's default expiry (5 minutes for `setPresence`, a day or a week for the
+  preferred presence) is not applied: without `expirationDuration` a status, and
+  an activity message such as `InACall`, stays until it is changed or cleared
+  (no Talk event reverts a façade-set "In a call").
 - Another user's out-of-office state isn't reported.
 - `sequenceNumber`, `workLocation` and `statusMessage.publishedDateTime` are
   not emitted.
