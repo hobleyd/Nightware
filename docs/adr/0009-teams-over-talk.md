@@ -201,10 +201,16 @@ rule 2):
 - `GET /me/onlineMeetings?$filter=JoinWebUrl eq '…'` finds a meeting by its
   link, including those made for calendar events.
 - `PATCH` renames the room. A changed span unbinds it, as phase 22 does.
+  *Amended (phase 26):* Talk refuses to rename a room bound to its span too, so
+  a rename unbinds it first; an unbound meeting reports no span.
 - `DELETE` closes the room.
 - **Recordings and transcripts** are the files Talk's recording server and
   transcription upload to the meeting's folder in the organiser's files.
   `content` streams them through the drive's download path.
+  *Amended (phase 26):* the files go to whoever started the recording
+  (`{attachment folder}/Recording/{token}/`), so the caller's own folder is
+  read; `content` answers 200 with the bytes (Graph's shape) rather than the
+  drive's 302, streamed as the drive streams.
 - **Calls** (`POST /communications/calls`) are delegated. Graph requires an
   application permission for them; Nightware accepts the caller's own token,
   because there is no bot.
@@ -217,12 +223,17 @@ rule 2):
     caller's client to open.
   - The call id seals the room token and the Talk session (cookie and session
     id, AES-GCM under `Calls:SealingKey`), so `GET` and `DELETE` work without
-    stored state.
+    stored state. *Amended (phase 26):* only the session's two cookies (never
+    Nextcloud's `nc_token` login) and a hash of the session id are sealed, bound
+    to the caller's id; the call starts silently and only the targets are rung.
   - `GET` reports `establishing` while only the façade's session is in the
     call, `established` once anyone else has joined, and `terminated` after it
     ends.
   - `DELETE` leaves the call and ends it for everyone when the caller moderates
     the room. A session nobody hangs up is dropped by Talk.
+    *Amended (phase 26):* Talk drops it when anything lists the room's
+    participants more than 100 s after the join, ending a call nobody answered,
+    so reading a call never lists them (phase 26 Step 0).
 
 ### D8 — The OCS client grows
 `IDavClient` (frozen `Core/`) gains `OcsExchangeAsync(OcsRequest)`. It takes a

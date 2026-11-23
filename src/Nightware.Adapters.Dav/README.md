@@ -425,6 +425,29 @@ Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf,
   with the uid the sharee search finds for the address (exact matches only). Permissions are the item's shares
   (`reshares=true`) plus `shares/inherited`; an inherited one can't be removed here.
 
+## Online meetings and calls over Talk (phase 26, ADR 0009 D7)
+
+`Talk/` holds what every Talk user shares: `TalkOptions` (moved from phase 22's `Calendar/Talk/`), `TalkRooms` (OCS routes,
+the token rule, `{Talk:PublicBaseUrl}call/{token}` links, room names, the `event` object that binds a room to a span),
+`TalkJson` (lenient reads of `ocs.data`) and `TalkPeople` (uid ↔ directory id through `IUserAccountNames`, a guest is a
+name without an id).
+
+| Class | Port | Over |
+|---|---|---|
+| `NextcloudOnlineMeetings` | `IOnlineMeetingStore` | `apps/spreed/api/v4/room` (JSON create with `participants`), its participants, the first chat message for the creation time |
+| `TalkMeetingArtifacts` | `IMeetingArtifacts` | `PROPFIND` of `files/{uid}{attachment folder}/Recording/{token}/`, `GET` of a file (streamed with `ResponseStream`) |
+| `TalkCalls` | `ICallService` | `room` (one-to-one or group), `room/{token}/participants/active` (the session), `call/{token}` (start, peers, leave), `call/{token}/ring/{attendeeId}` |
+
+- **Ids.** A meeting is `t.{token}`; a recording or transcript is its file id, looked up in the room's folder only. A
+  call id is `CallIdSealer`'s AES-GCM seal of the call (token, session cookie pair, session-id hash, start time,
+  targets) bound to the caller's id.
+- **Cookies.** The DAV client keeps none, so the Talk session's cookie pair is sent as an explicit `Cookie` header
+  (`OcsRequest.Headers`). Nextcloud's `nc_*` login cookies from the same answer are never kept.
+- **Never list a call room's participants after placing the call.** Doing so reaps the façade's idle session after
+  100 s and ends a ringing call (phase 26 Step 0); call state comes from `GET room` and `GET call` only.
+- **Off-switches.** `UnconfiguredOnlineMeetingStore` without `Talk:PublicBaseUrl`, `UnconfiguredCalls` without
+  `Calls:SealingKey` (validated at start: empty, or at least 32 bytes of hex).
+
 ## Known gaps
 
 - `CalendarDocument` and `CalendarEvent` have no slot for a resource href. The port's `Parse` therefore leaves `EventId` empty, and callers either use `CalendarParseOptions.Href` or fill the id with `with { Id = … }`.
