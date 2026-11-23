@@ -1,0 +1,196 @@
+{
+    "ocs": {
+        "meta": {
+            "status": "ok",
+            "statuscode": 200,
+            "message": "OK"
+        },
+        "data": [
+            {
+                "id": "Hpj1aAWPsDDAZh4UF1EwHuz86oXYdxv",
+                "name": "Probe Team",
+                "displayName": "Probe Team",
+                "sanitizedName": "Probe Team",
+                "source": 16,
+                "population": 2,
+                "populationInherited": 2,
+                "config": 0,
+                "description": "",
+                "url": "https://cloud.example.com/cloud/apps/circles/teams/team/Hpj1aAWPsDDAZh4UF1EwHuz86oXYdxv",
+                "creation": 1795417596,
+                "initiator": {
+                    "id": "Xilnaj74ID84dHdDGZuMPThyE1iiQLb",
+                    "circleId": "Hpj1aAWPsDDAZh4UF1EwHuz86oXYdxv",
+                    "singleId": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                    "userId": "alice",
+                    "userType": 1,
+                    "instance": "cloud.example.com",
+                    "local": true,
+                    "level": 9,
+                    "status": "Member",
+                    "displayName": "Alice Anderson",
+                    "displayUpdate": 1795426737,
+                    "notes": {
+                        "invitedBy": {
+                            "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                            "userId": "alice",
+                            "userType": 1,
+                            "displayName": "Alice Anderson",
+                            "instance": "cloud.example.com",
+                            "basedOn": {
+                                "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                                "name": "user:alice:AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                                "displayName": "Alice Anderson",
+                                "sanitizedName": "",
+                                "source": 1,
+                                "population": 0,
+                                "populationInherited": 0,
+                                "config": 1,
+                                "description": "",
+                                "url": "https://cloud.example.com/cloud/apps/circles/teams/team/AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                                "creation": 0,
+                                "initiator": null
+                            }
+                        }
+                    },
+                    "contactId": "",
+                    "contactMeta": "",
+                    "joined": 1795417596,
+                    "invitedBy": {
+                        "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                        "userId": "alice",
+                        "userType": 1,
+                        "displayName": "Alice Anderson",
+                        "instance": "cloud.example.com",
+                        "basedOn": {
+                            "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                            "name": "user:alice:AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                            "displayName": "Alice Anderson",
+                            "sanitizedName": "",
+                            "source": 1,
+                            "population": 0,
+                            "populationInherited": 0,
+                            "config": 1,
+                            "description": "",
+                            "url": "https://cloud.example.com/cloud/apps/circles/teams/team/AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                            "creation": 0,
+                            "initiator": null
+                        }
+                    },
+                    "basedOn": {
+                        "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                        "name": "user:alice:AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                        "displayName": "Alice Anderson",
+                        "sanitizedName": "",
+                        "source": 1,
+                        "population": 0,
+                        "populationInherited": 0,
+                        "config": 1,
+                        "description": "",
+                        "url": "https://cloud.example.com/cloud/apps/circles/teams/team/AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                        "creation": 1795387927,
+                        "initiator": null
+                    },
+                    "inheritedBy": {
+                        "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                        "userId": "alice",
+                        "userType": 1,
+                        "displayName": "Alice Anderson",
+                        "instance": "cloud.example.com",
+                        "inheritance": {
+                            "singleId": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                            "circleId": "Hpj1aAWPsDDAZh4UF1EwHuz86oXYdxv",
+                            "circleConfig": 0,
+                            "level": 9,
+                            "inheritanceFirst": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                            "inheritanceLast": "Hpj1aAWPsDDAZh4UF1EwHuz86oXYdxv",
+                            "inheritancePath": [
+                                "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb"
+                            ],
+                            "inheritanceDepth": 1
+                        }
+                    }
+                },
+                "owner": {
+                    "id": "Xilnaj74ID84dHdDGZuMPThyE1iiQLb",
+                    "circleId": "Hpj1aAWPsDDAZh4UF1EwHuz86oXYdxv",
+                    "singleId": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                    "userId": "alice",
+                    "userType": 1,
+                    "instance": "cloud.example.com",
+                    "local": true,
+                    "level": 9,
+                    "status": "Member",
+                    "displayName": "Alice Anderson",
+                    "displayUpdate": 1795426737,
+                    "notes": {
+                        "invitedBy": {
+                            "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                            "userId": "alice",
+                            "userType": 1,
+                            "displayName": "Alice Anderson",
+                            "instance": "cloud.example.com",
+                            "basedOn": {
+                                "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                                "name": "user:alice:AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                                "displayName": "Alice Anderson",
+                                "sanitizedName": "",
+                                "source": 1,
+                                "population": 0,
+                                "populationInherited": 0,
+                                "config": 1,
+                                "description": "",
+                                "url": "https://cloud.example.com/cloud/apps/circles/teams/team/AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                                "creation": 0,
+                                "initiator": null
+                            }
+                        }
+                    },
+                    "contactId": "",
+                    "contactMeta": "",
+                    "joined": 1795417596,
+                    "invitedBy": {
+                        "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                        "userId": "alice",
+                        "userType": 1,
+                        "displayName": "Alice Anderson",
+                        "instance": "cloud.example.com",
+                        "basedOn": {
+                            "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                            "name": "user:alice:AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                            "displayName": "Alice Anderson",
+                            "sanitizedName": "",
+                            "source": 1,
+                            "population": 0,
+                            "populationInherited": 0,
+                            "config": 1,
+                            "description": "",
+                            "url": "https://cloud.example.com/cloud/apps/circles/teams/team/AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                            "creation": 0,
+                            "initiator": null
+                        }
+                    },
+                    "basedOn": {
+                        "id": "AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                        "name": "user:alice:AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                        "displayName": "Alice Anderson",
+                        "sanitizedName": "",
+                        "source": 1,
+                        "population": 0,
+                        "populationInherited": 0,
+                        "config": 1,
+                        "description": "",
+                        "url": "https://cloud.example.com/cloud/apps/circles/teams/team/AcW9e9UHoAxxWUfbT5E33bdsDfpUhpb",
+                        "creation": 1795387927,
+                        "initiator": null
+                    }
+                },
+                "settings": {
+                    "population": 2,
+                    "populationInherited": 2
+                },
+                "invitationCode": null
+            }
+        ]
+    }
+}

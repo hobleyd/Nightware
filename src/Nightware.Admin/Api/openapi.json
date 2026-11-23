@@ -15757,7 +15757,8 @@
                     "lastUpdatedDateTime": {},
                     "webUrl": {},
                     "viewpoint": {},
-                    "onlineMeetingInfo": {}
+                    "onlineMeetingInfo": {},
+                    "isHiddenForAllMembers": {}
                   }
                 }
               }
@@ -15814,7 +15815,8 @@
                     "lastUpdatedDateTime": {},
                     "webUrl": {},
                     "viewpoint": {},
-                    "onlineMeetingInfo": {}
+                    "onlineMeetingInfo": {},
+                    "isHiddenForAllMembers": {}
                   }
                 }
               }
@@ -15843,7 +15845,7 @@
           "Chats"
         ],
         "summary": "Chats: update",
-        "description": "Renames a group conversation. A one-to-one chat has no topic (400).\n\nGraph reference: chat-patch",
+        "description": "Renames a group conversation. A one-to-one chat has no topic (400). Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chat-patch",
         "parameters": [
           {
             "name": "chatId",
@@ -15882,7 +15884,8 @@
                     "lastUpdatedDateTime": {},
                     "webUrl": {},
                     "viewpoint": {},
-                    "onlineMeetingInfo": {}
+                    "onlineMeetingInfo": {},
+                    "isHiddenForAllMembers": {}
                   }
                 }
               }
@@ -15913,7 +15916,7 @@
           "Chats"
         ],
         "summary": "Chats: hide",
-        "description": "Talk archive.\n\nGraph reference: chat-hideforuser",
+        "description": "Talk archive. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chat-hideforuser",
         "parameters": [
           {
             "name": "chatId",
@@ -15966,7 +15969,7 @@
           "Chats"
         ],
         "summary": "Chats: list",
-        "description": "The caller's Talk conversations: one-to-one, group, meeting. Note to self, changelog, sample and channel rooms left out. /users/{x} only for the caller. $top up to 50; $expand=members and lastMessagePreview.\n\nGraph reference: chat-list",
+        "description": "The caller's Talk conversations: one-to-one, group, meeting. Note to self, changelog, sample and channel rooms left out. /users/{x} only for the caller. $top up to 50; $expand=members and lastMessagePreview. Also served as GET /chats.\n\nGraph reference: chat-list",
         "parameters": [],
         "responses": {
           "200": {
@@ -15983,7 +15986,8 @@
                     "lastUpdatedDateTime": {},
                     "webUrl": {},
                     "viewpoint": {},
-                    "onlineMeetingInfo": {}
+                    "onlineMeetingInfo": {},
+                    "isHiddenForAllMembers": {}
                   }
                 }
               }
@@ -16014,7 +16018,7 @@
           "Chats"
         ],
         "summary": "Chats: list",
-        "description": "The caller's Talk conversations: one-to-one, group, meeting. Note to self, changelog, sample and channel rooms left out. /users/{x} only for the caller. $top up to 50; $expand=members and lastMessagePreview.\n\nGraph reference: chat-list",
+        "description": "The caller's Talk conversations: one-to-one, group, meeting. Note to self, changelog, sample and channel rooms left out. /users/{x} only for the caller. $top up to 50; $expand=members and lastMessagePreview. Also served as GET /chats.\n\nGraph reference: chat-list",
         "parameters": [
           {
             "name": "userId",
@@ -16040,7 +16044,8 @@
                     "lastUpdatedDateTime": {},
                     "webUrl": {},
                     "viewpoint": {},
-                    "onlineMeetingInfo": {}
+                    "onlineMeetingInfo": {},
+                    "isHiddenForAllMembers": {}
                   }
                 }
               }
@@ -16071,7 +16076,7 @@
           "Chats"
         ],
         "summary": "Chats: mark read",
-        "description": "Read marker to the newest message.\n\nGraph reference: chat-markchatreadforuser",
+        "description": "Read marker to the newest message. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chat-markchatreadforuser",
         "parameters": [
           {
             "name": "chatId",
@@ -16124,7 +16129,7 @@
           "Chats"
         ],
         "summary": "Chats: mark unread",
-        "description": "Talk's mark-unread; lastMessageReadDateTime is ignored.\n\nGraph reference: chat-markchatunreadforuser",
+        "description": "Talk's mark-unread; lastMessageReadDateTime is ignored. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chat-markchatunreadforuser",
         "parameters": [
           {
             "name": "chatId",
@@ -16178,7 +16183,7 @@
           "Chats"
         ],
         "summary": "Chats members: add",
-        "description": "Talk add participant; history is always visible.\n\nGraph reference: chat-post-members",
+        "description": "Talk add participant; history is always visible. 201 with Location and no body, as Graph's. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chat-post-members",
         "parameters": [
           {
             "name": "chatId",
@@ -16212,22 +16217,7 @@
         },
         "responses": {
           "201": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {},
-                    "roles": {},
-                    "displayName": {},
-                    "userId": {},
-                    "email": {},
-                    "visibleHistoryStartDateTime": {}
-                  }
-                }
-              }
-            }
+            "description": "Success."
           },
           "400": {
             "$ref": "#/components/responses/Error"
@@ -16252,7 +16242,7 @@
           "Chats"
         ],
         "summary": "Chats members: list",
-        "description": "Room participants of type users; owners and moderators carry roles [owner].\n\nGraph reference: chat-list-members",
+        "description": "Room participants of type users; owners and moderators carry roles [owner]. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chat-list-members",
         "parameters": [
           {
             "name": "chatId",
@@ -16307,7 +16297,7 @@
           "Chats"
         ],
         "summary": "Chats members: get",
-        "description": "Membership id m.<attendeeId>.\n\nGraph reference: chat-get-members",
+        "description": "Membership id m.<attendeeId>. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chat-get-members",
         "parameters": [
           {
             "name": "chatId",
@@ -16368,7 +16358,7 @@
           "Chats"
         ],
         "summary": "Chats members: remove",
-        "description": "Talk remove attendee, or leaving when it is the caller.\n\nGraph reference: chat-delete-members",
+        "description": "Talk remove attendee, or leaving when it is the caller. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chat-delete-members",
         "parameters": [
           {
             "name": "chatId",
@@ -16416,7 +16406,7 @@
           "Chats"
         ],
         "summary": "Chats messages: get",
-        "description": "One message (Talk chat context of the id).\n\nGraph reference: chatmessage-get",
+        "description": "One message (Talk chat context of the id). Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chatmessage-get",
         "parameters": [
           {
             "name": "chatId",
@@ -16490,7 +16480,7 @@
           "Chats"
         ],
         "summary": "Chats messages: update",
-        "description": "Talk edit; the sender only.\n\nGraph reference: chatmessage-update",
+        "description": "Talk edit; the sender only. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chatmessage-update",
         "parameters": [
           {
             "name": "chatId",
@@ -16552,7 +16542,7 @@
           "Chats"
         ],
         "summary": "Chats messages: list",
-        "description": "Newest first; $top up to 50; $skiptoken is Talk's X-Chat-Last-Given. Never moves the read marker.\n\nGraph reference: chat-list-messages",
+        "description": "Newest first; $top up to 50; $skiptoken is Talk's X-Chat-Last-Given. Never moves the read marker. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chat-list-messages",
         "parameters": [
           {
             "name": "chatId",
@@ -16618,7 +16608,7 @@
           "Chats"
         ],
         "summary": "Chats messages: send",
-        "description": "Markdown to Talk; <at id> mentions become @\"uid\".\n\nGraph reference: chat-post-messages",
+        "description": "Markdown to Talk; <at id> mentions become @\"uid\". Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chat-post-messages",
         "parameters": [
           {
             "name": "chatId",
@@ -16702,7 +16692,7 @@
           "Chats"
         ],
         "summary": "Chats messages: set reaction",
-        "description": "Talk reaction (an emoji).\n\nGraph reference: chatmessage-setreaction",
+        "description": "Talk reaction (an emoji). Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chatmessage-setreaction",
         "parameters": [
           {
             "name": "chatId",
@@ -16763,7 +16753,7 @@
           "Chats"
         ],
         "summary": "Chats messages: soft delete",
-        "description": "Talk delete; the message stays with deletedDateTime.\n\nGraph reference: chatmessage-softdelete",
+        "description": "Talk delete; the message stays with deletedDateTime. Also served as /chats/{chatId}/messages/{messageId}/softDelete.\n\nGraph reference: chatmessage-softdelete",
         "parameters": [
           {
             "name": "chatId",
@@ -16811,7 +16801,7 @@
           "Chats"
         ],
         "summary": "Chats messages: soft delete",
-        "description": "Talk delete; the message stays with deletedDateTime.\n\nGraph reference: chatmessage-softdelete",
+        "description": "Talk delete; the message stays with deletedDateTime. Also served as /chats/{chatId}/messages/{messageId}/softDelete.\n\nGraph reference: chatmessage-softdelete",
         "parameters": [
           {
             "name": "userId",
@@ -16867,7 +16857,7 @@
           "Chats"
         ],
         "summary": "Chats messages: unset reaction",
-        "description": "Removes the caller's reaction.\n\nGraph reference: chatmessage-unsetreaction",
+        "description": "Removes the caller's reaction. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chatmessage-unsetreaction",
         "parameters": [
           {
             "name": "chatId",
@@ -16928,7 +16918,7 @@
           "Chats"
         ],
         "summary": "Chats pinned: add",
-        "description": "Talk pin (moderators); pinned id is the message id.\n\nGraph reference: chat-post-pinnedmessages",
+        "description": "Talk pin (moderators); pinned id is the message id. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chat-post-pinnedmessages",
         "parameters": [
           {
             "name": "chatId",
@@ -16994,7 +16984,7 @@
           "Chats"
         ],
         "summary": "Chats pinned: list",
-        "description": "Talk pinned messages; $expand=message.\n\nGraph reference: chat-list-pinnedmessages",
+        "description": "Talk pinned messages; $expand=message. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chat-list-pinnedmessages",
         "parameters": [
           {
             "name": "chatId",
@@ -17045,7 +17035,7 @@
           "Chats"
         ],
         "summary": "Chats pinned: remove",
-        "description": "Talk unpin.\n\nGraph reference: chat-delete-pinnedmessages",
+        "description": "Talk unpin. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chat-delete-pinnedmessages",
         "parameters": [
           {
             "name": "chatId",
@@ -17093,7 +17083,7 @@
           "Chats"
         ],
         "summary": "Chats: unhide",
-        "description": "Talk unarchive.\n\nGraph reference: chat-unhideforuser",
+        "description": "Talk unarchive. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).\n\nGraph reference: chat-unhideforuser",
         "parameters": [
           {
             "name": "chatId",

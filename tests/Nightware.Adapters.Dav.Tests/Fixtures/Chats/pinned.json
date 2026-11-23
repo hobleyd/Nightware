@@ -1,0 +1,72 @@
+{
+    "ocs": {
+        "meta": {
+            "status": "ok",
+            "statuscode": 200,
+            "message": "OK"
+        },
+        "data": {
+            "66": {
+                "id": 66,
+                "token": "5opkrcg6",
+                "actorType": "users",
+                "actorId": "bob",
+                "actorDisplayName": "Bob Brown",
+                "timestamp": 1795426351,
+                "message": "a reply",
+                "messageParameters": [],
+                "systemMessage": "",
+                "messageType": "comment",
+                "isReplyable": true,
+                "referenceId": "",
+                "reactions": {},
+                "expirationTimestamp": 0,
+                "markdown": true,
+                "threadId": 59,
+                "metaData": {
+                    "pinnedActorType": "users",
+                    "pinnedActorId": "alice",
+                    "pinnedActorDisplayName": "Alice Anderson",
+                    "pinnedAt": 1795426405
+                }
+            },
+            "59": {
+                "id": 59,
+                "token": "5opkrcg6",
+                "actorType": "users",
+                "actorId": "alice",
+                "actorDisplayName": "Alice Anderson",
+                "timestamp": 1795426346,
+                "message": "Edited **text** {mention-user1}",
+                "messageParameters": {
+                    "mention-user1": {
+                        "type": "user",
+                        "id": "bob",
+                        "name": "Bob Brown",
+                        "mention-id": "bob"
+                    }
+                },
+                "systemMessage": "",
+                "messageType": "comment",
+                "isReplyable": true,
+                "referenceId": "bbe1016213d32540a72a8dca3e0cc684d8268a7f676d2f905a3b2cdf1f32d04a",
+                "reactions": {
+                    "👍": 1
+                },
+                "expirationTimestamp": 0,
+                "markdown": true,
+                "threadId": 59,
+                "lastEditActorType": "users",
+                "lastEditActorId": "alice",
+                "lastEditActorDisplayName": "Alice Anderson",
+                "lastEditTimestamp": 1795426359,
+                "metaData": {
+                    "pinnedActorType": "users",
+                    "pinnedActorId": "alice",
+                    "pinnedActorDisplayName": "Alice Anderson",
+                    "pinnedAt": 1795426405
+                }
+            }
+        }
+    }
+}

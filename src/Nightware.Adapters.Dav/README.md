@@ -425,6 +425,25 @@ Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf,
   with the uid the sharee search finds for the address (exact matches only). Permissions are the item's shares
   (`reshares=true`) plus `shares/inherited`; an inherited one can't be removed here.
 
+## Chats over Talk (phase 23, ADR 0009)
+
+`Chats/` serves Graph's chats from the caller's Talk conversations, always as the caller (OCS only; `Talk:PublicBaseUrl`
+adds web links). `Chats/Talk/` is conversation-generic, for channels (phase 24) too:
+
+| Class | What |
+|---|---|
+| `TalkChatClient` | Every Talk call (`apps/spreed/api/v4/room`, `api/v1/chat`, `api/v1/reaction`), token and id checked first. Reads pass `setReadMarker=0`, `markNotificationsAsRead=0`, `noStatusUpdate=1`. `PostAsync` takes `TalkPost` (`ReplyTo`, `ThreadId`, `ThreadTitle`); `HistoryAsync` an optional `threadId`. Talk's 304 (end of history) reaches it as an unknown error: `IsNotModified` reads it. |
+| `TalkWire.cs` | `TalkRoom`, `TalkMessage` (with `ThreadId`, `IsThread`, `ThreadTitle`, `Parent`), `TalkParticipant`, `TalkParameter`, `TalkActor`, `TalkReaction`; `TalkIds` (token, message id, `m.{attendeeId}`). PHP's empty map `[]` parses as empty. |
+| `TalkMessageCodec` | Pure. `IsListed`, `AccountsIn` (uids to resolve), `ToChatMessage(message, TalkConversation, identify, deletedAt)`, `DeletionTimes`, `ToTalkText(body, mentions)`, `MentionOf(uid)`, `MentionAll`. |
+| `TalkMarkdown`, `TalkHtml` | Talk Markdown → Graph html (text encoded first; http/https/mailto links only) and back. |
+| `TalkMessageFeed` | `PageAsync(conversation, top, skipToken, threadId)` (fills a page past Talk's bookkeeping, five rounds at most), `GetAsync`, `DecodeOneAsync`, `DecodeAsync` (reads who reacted, resolves people in one batch), `EncodeAsync(draft)`. |
+| `TalkIdentities` | uid ↔ directory identity per request over `IUserAccountNames`; `NoDirectory` when the Directory adapter isn't composed. |
+| `TalkConversation` | A token, its name (for `@all`), its `WebUrl`, and for a channel its `ChannelIdentity` (messages then carry `channelIdentity`, `replyToId` = the thread, `subject` = the thread title). |
+| `TalkLinks`, `TalkChannelRooms` | `{Talk:PublicBaseUrl}call/{token}`; the caller's channel tokens (their teams' `talk` resources). |
+
+The chat ports are `TalkChatStore` (`IChatStore`), `TalkChatMembers`, `TalkChatMessages` and `TalkChatPins`;
+`TalkChatRooms` says which rooms are chats. Talk's behaviour behind them is in `docs/phases/phase-23-chats.md`.
+
 ## Presence (phase 25, ADR 0009 D6)
 
 `Presence/NextcloudUserStatusStore` implements `IUserStatusStore` over OCS `apps/user_status/api/v1`, as the caller:

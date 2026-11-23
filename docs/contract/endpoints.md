@@ -3828,16 +3828,16 @@ operation:
 
 **GET v1.0 `{mailbox}/chats`** — forms: me, users; success: 200; paging: nextLink
 
-- Client reads: `id`, `topic`, `chatType`, `createdDateTime`, `lastUpdatedDateTime`, `webUrl`, `viewpoint`, `onlineMeetingInfo`
+- Client reads: `id`, `topic`, `chatType`, `createdDateTime`, `lastUpdatedDateTime`, `webUrl`, `viewpoint`, `onlineMeetingInfo`, `isHiddenForAllMembers`
 - Graph parity (ADR 0006); reference: chat-list
-- Notes: The caller's Talk conversations (ADR 0009 D3): one-to-one, group, meeting. Note to self, changelog, sample and channel rooms left out. /users/{x} only for the caller. $top up to 50; $expand=members and lastMessagePreview.
+- Notes: The caller's Talk conversations (ADR 0009 D3): one-to-one, group, meeting. Note to self, changelog, sample and channel rooms left out. /users/{x} only for the caller. $top up to 50; $expand=members and lastMessagePreview. Also served as GET /chats.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.list.json`
 
 #### `chats.get`
 
 **GET v1.0 `/chats/{chatId}`** — forms: root; success: 200; paging: none
 
-- Client reads: `id`, `topic`, `chatType`, `createdDateTime`, `lastUpdatedDateTime`, `webUrl`, `viewpoint`, `onlineMeetingInfo`
+- Client reads: `id`, `topic`, `chatType`, `createdDateTime`, `lastUpdatedDateTime`, `webUrl`, `viewpoint`, `onlineMeetingInfo`, `isHiddenForAllMembers`
 - Graph parity (ADR 0006); reference: chat-get
 - Notes: One Talk conversation by token. Also served as {mailbox}/chats/{chatId}.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.get.json`
@@ -3847,7 +3847,7 @@ operation:
 **POST v1.0 `/chats`** — forms: root; success: 201; paging: none
 
 - Request body: `chatType`; `topic?`; `members[] {@odata.type, roles, user@odata.bind}`
-- Client reads: `id`, `topic`, `chatType`, `createdDateTime`, `lastUpdatedDateTime`, `webUrl`, `viewpoint`, `onlineMeetingInfo`
+- Client reads: `id`, `topic`, `chatType`, `createdDateTime`, `lastUpdatedDateTime`, `webUrl`, `viewpoint`, `onlineMeetingInfo`, `isHiddenForAllMembers`
 - Graph parity (ADR 0006); reference: chat-post
 - Notes: oneOnOne returns Talk's existing room, as Graph does; group creates a group room named topic.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.create.json`
@@ -3857,9 +3857,9 @@ operation:
 **PATCH v1.0 `/chats/{chatId}`** — forms: root; success: 200; paging: none
 
 - Request body: `topic`
-- Client reads: `id`, `topic`, `chatType`, `createdDateTime`, `lastUpdatedDateTime`, `webUrl`, `viewpoint`, `onlineMeetingInfo`
+- Client reads: `id`, `topic`, `chatType`, `createdDateTime`, `lastUpdatedDateTime`, `webUrl`, `viewpoint`, `onlineMeetingInfo`, `isHiddenForAllMembers`
 - Graph parity (ADR 0006); reference: chat-patch
-- Notes: Renames a group conversation. A one-to-one chat has no topic (400).
+- Notes: Renames a group conversation. A one-to-one chat has no topic (400). Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.update.json`
 
 #### `chats.hide`
@@ -3868,7 +3868,7 @@ operation:
 
 - Request body: `user {id}`
 - Graph parity (ADR 0006); reference: chat-hideforuser
-- Notes: Talk archive.
+- Notes: Talk archive. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.hide.json`
 
 #### `chats.unhide`
@@ -3877,7 +3877,7 @@ operation:
 
 - Request body: `user {id}`
 - Graph parity (ADR 0006); reference: chat-unhideforuser
-- Notes: Talk unarchive.
+- Notes: Talk unarchive. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.unhide.json`
 
 #### `chats.mark-read`
@@ -3886,7 +3886,7 @@ operation:
 
 - Request body: `user {id}`
 - Graph parity (ADR 0006); reference: chat-markchatreadforuser
-- Notes: Read marker to the newest message.
+- Notes: Read marker to the newest message. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.mark-read.json`
 
 #### `chats.mark-unread`
@@ -3895,7 +3895,7 @@ operation:
 
 - Request body: `user {id}`; `lastMessageReadDateTime?`
 - Graph parity (ADR 0006); reference: chat-markchatunreadforuser
-- Notes: Talk's mark-unread; lastMessageReadDateTime is ignored.
+- Notes: Talk's mark-unread; lastMessageReadDateTime is ignored. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.mark-unread.json`
 
 #### `chats.members.list`
@@ -3904,7 +3904,7 @@ operation:
 
 - Client reads: `id`, `roles`, `displayName`, `userId`, `email`, `visibleHistoryStartDateTime`
 - Graph parity (ADR 0006); reference: chat-list-members
-- Notes: Room participants of type users; owners and moderators carry roles [owner].
+- Notes: Room participants of type users; owners and moderators carry roles [owner]. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.members.list.json`
 
 #### `chats.members.get`
@@ -3913,7 +3913,7 @@ operation:
 
 - Client reads: `id`, `roles`, `displayName`, `userId`, `email`, `visibleHistoryStartDateTime`
 - Graph parity (ADR 0006); reference: chat-get-members
-- Notes: Membership id m.<attendeeId> (ADR 0009 D2).
+- Notes: Membership id m.<attendeeId> (ADR 0009 D2). Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.members.get.json`
 
 #### `chats.members.add`
@@ -3921,9 +3921,8 @@ operation:
 **POST v1.0 `/chats/{chatId}/members`** — forms: root; success: 201; paging: none
 
 - Request body: `@odata.type`; `user@odata.bind`; `roles`; `visibleHistoryStartDateTime?`
-- Client reads: `id`, `roles`, `displayName`, `userId`, `email`, `visibleHistoryStartDateTime`
 - Graph parity (ADR 0006); reference: chat-post-members
-- Notes: Talk add participant; history is always visible.
+- Notes: Talk add participant; history is always visible. 201 with Location and no body, as Graph's. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.members.add.json`
 
 #### `chats.members.remove`
@@ -3931,7 +3930,7 @@ operation:
 **DELETE v1.0 `/chats/{chatId}/members/{membershipId}`** — forms: root; success: 204; paging: none
 
 - Graph parity (ADR 0006); reference: chat-delete-members
-- Notes: Talk remove attendee, or leaving when it is the caller.
+- Notes: Talk remove attendee, or leaving when it is the caller. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.members.remove.json`
 
 #### `chats.messages.list`
@@ -3940,7 +3939,7 @@ operation:
 
 - Client reads: `id`, `replyToId`, `etag`, `messageType`, `createdDateTime`, `lastModifiedDateTime`, `lastEditedDateTime`, `deletedDateTime`, `subject`, `chatId`, `channelIdentity`, `from`, `body`, `attachments`, `mentions`, `reactions`, `importance`, `eventDetail`, `webUrl`
 - Graph parity (ADR 0006); reference: chat-list-messages
-- Notes: Newest first; $top up to 50; $skiptoken is Talk's X-Chat-Last-Given (ADR 0009 D4). Never moves the read marker.
+- Notes: Newest first; $top up to 50; $skiptoken is Talk's X-Chat-Last-Given (ADR 0009 D4). Never moves the read marker. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.messages.list.json`
 
 #### `chats.messages.get`
@@ -3949,7 +3948,7 @@ operation:
 
 - Client reads: `id`, `replyToId`, `etag`, `messageType`, `createdDateTime`, `lastModifiedDateTime`, `lastEditedDateTime`, `deletedDateTime`, `subject`, `chatId`, `channelIdentity`, `from`, `body`, `attachments`, `mentions`, `reactions`, `importance`, `eventDetail`, `webUrl`
 - Graph parity (ADR 0006); reference: chatmessage-get
-- Notes: One message (Talk chat context of the id).
+- Notes: One message (Talk chat context of the id). Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.messages.get.json`
 
 #### `chats.messages.send`
@@ -3959,7 +3958,7 @@ operation:
 - Request body: `body {contentType, content}`; `mentions[]?`; `importance?`; `subject?`
 - Client reads: `id`, `replyToId`, `etag`, `messageType`, `createdDateTime`, `lastModifiedDateTime`, `lastEditedDateTime`, `deletedDateTime`, `subject`, `chatId`, `channelIdentity`, `from`, `body`, `attachments`, `mentions`, `reactions`, `importance`, `eventDetail`, `webUrl`
 - Graph parity (ADR 0006); reference: chat-post-messages
-- Notes: Markdown to Talk; <at id> mentions become @"uid" (ADR 0009 D4).
+- Notes: Markdown to Talk; <at id> mentions become @"uid" (ADR 0009 D4). Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.messages.send.json`
 
 #### `chats.messages.update`
@@ -3968,7 +3967,7 @@ operation:
 
 - Request body: `body`; `mentions[]?`
 - Graph parity (ADR 0006); reference: chatmessage-update
-- Notes: Talk edit; the sender only.
+- Notes: Talk edit; the sender only. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.messages.update.json`
 
 #### `chats.messages.soft-delete`
@@ -3976,7 +3975,7 @@ operation:
 **POST v1.0 `{mailbox}/chats/{chatId}/messages/{messageId}/softDelete`** — forms: me, users; success: 204; paging: none
 
 - Graph parity (ADR 0006); reference: chatmessage-softdelete
-- Notes: Talk delete; the message stays with deletedDateTime.
+- Notes: Talk delete; the message stays with deletedDateTime. Also served as /chats/{chatId}/messages/{messageId}/softDelete.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.messages.soft-delete.json`
 
 #### `chats.messages.set-reaction`
@@ -3985,7 +3984,7 @@ operation:
 
 - Request body: `reactionType`
 - Graph parity (ADR 0006); reference: chatmessage-setreaction
-- Notes: Talk reaction (an emoji).
+- Notes: Talk reaction (an emoji). Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.messages.set-reaction.json`
 
 #### `chats.messages.unset-reaction`
@@ -3994,7 +3993,7 @@ operation:
 
 - Request body: `reactionType`
 - Graph parity (ADR 0006); reference: chatmessage-unsetreaction
-- Notes: Removes the caller's reaction.
+- Notes: Removes the caller's reaction. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.messages.unset-reaction.json`
 
 #### `chats.pinned.list`
@@ -4003,7 +4002,7 @@ operation:
 
 - Client reads: `id`, `message`
 - Graph parity (ADR 0006); reference: chat-list-pinnedmessages
-- Notes: Talk pinned messages; $expand=message.
+- Notes: Talk pinned messages; $expand=message. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.pinned.list.json`
 
 #### `chats.pinned.add`
@@ -4013,7 +4012,7 @@ operation:
 - Request body: `message@odata.bind`
 - Client reads: `id`
 - Graph parity (ADR 0006); reference: chat-post-pinnedmessages
-- Notes: Talk pin (moderators); pinned id is the message id.
+- Notes: Talk pin (moderators); pinned id is the message id. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.pinned.add.json`
 
 #### `chats.pinned.remove`
@@ -4021,7 +4020,7 @@ operation:
 **DELETE v1.0 `/chats/{chatId}/pinnedMessages/{pinnedMessageId}`** — forms: root; success: 204; paging: none
 
 - Graph parity (ADR 0006); reference: chat-delete-pinnedmessages
-- Notes: Talk unpin.
+- Notes: Talk unpin. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.pinned.remove.json`
 
 ### Phase 24 — Teams and channels over Nextcloud Teams and Talk (Graph parity, ADR 0009)

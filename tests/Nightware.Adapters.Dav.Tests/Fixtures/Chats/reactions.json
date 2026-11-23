@@ -1,0 +1,19 @@
+{
+    "ocs": {
+        "meta": {
+            "status": "ok",
+            "statuscode": 200,
+            "message": "OK"
+        },
+        "data": {
+            "👍": [
+                {
+                    "actorType": "users",
+                    "actorId": "bob",
+                    "actorDisplayName": "Bob Brown",
+                    "timestamp": 1795426351
+                }
+            ]
+        }
+    }
+}

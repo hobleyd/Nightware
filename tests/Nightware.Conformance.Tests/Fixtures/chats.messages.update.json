@@ -1,0 +1,25 @@
+{
+  "operationId": "chats.messages.update",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/chatmessage-update); constructed with example.com data and Talk-shaped ids (ADR 0009 D2), no tenant capture yet",
+  "request": {
+    "method": "PATCH",
+    "path": "/v1.0/chats/5opkrcg6/messages/59",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "body": {
+        "contentType": "html",
+        "content": "<p>Updated <b>text</b></p>"
+      }
+    }
+  },
+  "response": {
+    "status": 204,
+    "headers": {},
+    "body": null
+  }
+}
