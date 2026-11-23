@@ -3,12 +3,16 @@ using System.Text.Json;
 
 namespace Nightware.Adapters.Dav.Talk;
 
-/// <summary>Reads Talk's OCS data leniently: a missing or differently typed member is null, never an exception.</summary>
+/// <summary>
+/// Reads Talk's OCS data leniently: a missing or differently typed member is null, never an exception. The one
+/// helper for every Talk reader (chats, teams, meetings, calls).
+/// </summary>
 internal static class TalkJson
 {
-    public static string? Str(JsonElement element, string name) =>
+    public static string? String(JsonElement element, string name) =>
         Member(element, name) is { ValueKind: JsonValueKind.String } value ? value.GetString() : null;
 
+    /// <summary>A number, or a number Talk sent as a string (some ids and timestamps arrive either way).</summary>
     public static long? Long(JsonElement element, string name) =>
         Member(element, name) switch
         {
@@ -24,6 +28,9 @@ internal static class TalkJson
     /// <summary>The elements of an array (an empty sequence for anything else).</summary>
     public static IEnumerable<JsonElement> Items(JsonElement element) =>
         element.ValueKind == JsonValueKind.Array ? element.EnumerateArray() : [];
+
+    /// <summary>Talk's timestamps are Unix seconds.</summary>
+    public static DateTimeOffset Instant(long unixSeconds) => DateTimeOffset.FromUnixTimeSeconds(unixSeconds);
 
     private static JsonElement? Member(JsonElement element, string name) =>
         element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out var value) ? value : null;

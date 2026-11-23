@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 
 using Nightware.Adapters.Dav.Core;
 using Nightware.Domain.Kernel;
+using Nightware.Adapters.Dav.Talk;
 
 namespace Nightware.Adapters.Dav.Chats.Talk;
 

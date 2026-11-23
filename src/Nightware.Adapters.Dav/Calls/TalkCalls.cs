@@ -165,7 +165,7 @@ internal sealed partial class TalkCalls(
             return room.Error;
         }
 
-        return Str(room.Value.Data, "token") is { } token && TalkRooms.IsToken(token)
+        return String(room.Value.Data, "token") is { } token && TalkRooms.IsToken(token)
             ? (token, uids.Count > 1 || room.Value.Status == 201)
             : Error.BackendUnavailable("Nextcloud Talk returned no room token.");
     }
@@ -213,7 +213,7 @@ internal sealed partial class TalkCalls(
 
         foreach (var uid in uids)
         {
-            var attendee = Items(participants.Value).FirstOrDefault(p => Str(p, "actorType") == "users" && Str(p, "actorId") == uid);
+            var attendee = Items(participants.Value).FirstOrDefault(p => String(p, "actorType") == "users" && String(p, "actorId") == uid);
             if (Long(attendee, "attendeeId") is not { } attendeeId)
             {
                 return Error.BackendUnavailable($"Nextcloud Talk did not list '{uid}' in the call's room.");
@@ -261,10 +261,10 @@ internal sealed partial class TalkCalls(
 
         // Someone else has joined: a peer that is neither the façade's session nor the caller (whose own Talk client
         // joining for media is not the call being answered).
-        var callerType = Str(room.Value, "actorType");
-        var callerId = Str(room.Value, "actorId");
-        return Items(peers.Value).Any(p => Str(p, "sessionId") is { } session && SessionHash(session) != ticket.SessionHash
-                && !(Str(p, "actorType") == callerType && Str(p, "actorId") == callerId))
+        var callerType = String(room.Value, "actorType");
+        var callerId = String(room.Value, "actorId");
+        return Items(peers.Value).Any(p => String(p, "sessionId") is { } session && SessionHash(session) != ticket.SessionHash
+                && !(String(p, "actorType") == callerType && String(p, "actorId") == callerId))
             ? CallState.Established
             : CallState.Establishing;
     }
@@ -304,7 +304,7 @@ internal sealed partial class TalkCalls(
             return joined.Error;
         }
 
-        return Str(joined.Value.Data, "sessionId") is { Length: > 0 } sessionId && SessionCookie(joined.Value.SetCookies) is { } cookie
+        return String(joined.Value.Data, "sessionId") is { Length: > 0 } sessionId && SessionCookie(joined.Value.SetCookies) is { } cookie
             ? new TalkSession(sessionId, cookie)
             : Error.BackendUnavailable("Nextcloud Talk opened no session for the call.");
     }

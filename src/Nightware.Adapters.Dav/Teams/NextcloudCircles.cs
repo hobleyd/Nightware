@@ -5,6 +5,7 @@ using Nightware.Adapters.Dav.Chats.Talk;
 using Nightware.Adapters.Dav.Core;
 using Nightware.Domain.Kernel;
 using Nightware.Domain.Teams;
+using Nightware.Adapters.Dav.Talk;
 
 namespace Nightware.Adapters.Dav.Teams;
 

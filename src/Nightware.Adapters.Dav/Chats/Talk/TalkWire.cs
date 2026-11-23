@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Nightware.Adapters.Dav.Talk;
 
 namespace Nightware.Adapters.Dav.Chats.Talk;
 
@@ -226,20 +227,6 @@ internal sealed record TalkMessage(long Id, string Token, TalkActor Actor, DateT
         JsonValueKind.Object => data.EnumerateObject().Where(e => e.Value.ValueKind == JsonValueKind.Object).Select(e => Parse(e.Value)).ToList(),
         _ => [],
     };
-}
-
-/// <summary>Reads Talk's JSON, where a missing or mistyped member is simply absent.</summary>
-internal static class TalkJson
-{
-    public static string? String(JsonElement element, string name) =>
-        element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
-
-    public static long? Long(JsonElement element, string name) =>
-        element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var number)
-            ? number
-            : null;
-
-    public static DateTimeOffset Instant(long unixSeconds) => DateTimeOffset.FromUnixTimeSeconds(unixSeconds);
 }
 
 /// <summary>A Talk conversation (<c>Room</c> in Talk's OpenAPI document), as seen by the caller.</summary>

@@ -2,7 +2,7 @@ using System.Text.Json;
 
 using Microsoft.Extensions.Options;
 
-using TalkOptions = Nightware.Adapters.Dav.Talk.TalkOptions;
+using Nightware.Adapters.Dav.Talk;
 using Nightware.Adapters.Dav.Chats;
 using Nightware.Adapters.Dav.Chats.Talk;
 using Nightware.Application.Directory;

@@ -52,8 +52,8 @@ public sealed class TalkRoomsTests
     {
         var data = JsonElement.Parse("""{"s":"x","n":5,"t":"7","b":true,"a":[1,2],"big":99999999999}""");
 
-        TalkJson.Str(data, "s").ShouldBe("x");
-        TalkJson.Str(data, "n").ShouldBeNull();
+        TalkJson.String(data, "s").ShouldBe("x");
+        TalkJson.String(data, "n").ShouldBeNull();
         TalkJson.Long(data, "n").ShouldBe(5);
         TalkJson.Long(data, "t").ShouldBe(7);
         TalkJson.Long(data, "s").ShouldBeNull();
@@ -62,7 +62,8 @@ public sealed class TalkRoomsTests
         TalkJson.Bool(data, "s").ShouldBeFalse();
         TalkJson.Items(data.GetProperty("a")).Count().ShouldBe(2);
         TalkJson.Items(data).ShouldBeEmpty();
-        TalkJson.Str(data.GetProperty("a"), "s").ShouldBeNull();
+        TalkJson.String(data.GetProperty("a"), "s").ShouldBeNull();
+        TalkJson.Instant(1795417561).ShouldBe(new DateTimeOffset(2026, 11, 23, 7, 6, 1, TimeSpan.Zero));
     }
 
     [Fact]

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 
-using TalkOptions = Nightware.Adapters.Dav.Talk.TalkOptions;
+using Nightware.Adapters.Dav.Talk;
 
 namespace Nightware.Adapters.Dav.Chats.Talk;
 

@@ -225,8 +225,8 @@ internal sealed partial class TalkMeetingArtifacts(IDavClient dav, DriveHomeLoca
                         && parameters.ValueKind == JsonValueKind.Object
                         && parameters.TryGetProperty("file", out var file)
                         && file.ValueKind == JsonValueKind.Object
-                        && TalkJson.Str(file, "id") is { Length: > 0 } id
-                        && TalkJson.Str(file, "path") is { Length: > 0 } path
+                        && TalkJson.String(file, "id") is { Length: > 0 } id
+                        && TalkJson.String(file, "path") is { Length: > 0 } path
                         && StartOf(StemOf(DriveItemMapping.LastSegment(path))) is not null
                         && !known.Contains(id)
                         && candidates.TrueForAll(c => c.Id != id))
@@ -305,7 +305,7 @@ internal sealed partial class TalkMeetingArtifacts(IDavClient dav, DriveHomeLoca
             && spreed.TryGetProperty("config", out var config)
             && config.ValueKind == JsonValueKind.Object
             && config.TryGetProperty("attachments", out var attachments)
-            && TalkJson.Str(attachments, "folder") is { Length: > 0 } configured)
+            && TalkJson.String(attachments, "folder") is { Length: > 0 } configured)
         {
             folder = configured;
         }

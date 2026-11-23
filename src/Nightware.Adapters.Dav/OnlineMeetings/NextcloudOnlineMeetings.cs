@@ -77,7 +77,7 @@ internal sealed class NextcloudOnlineMeetings(IDavClient dav, TalkPeople people,
             return created.Error;
         }
 
-        if (Str(created.Value.Data, "token") is not { } token || !TalkRooms.IsToken(token))
+        if (String(created.Value.Data, "token") is not { } token || !TalkRooms.IsToken(token))
         {
             return Error.BackendUnavailable("Nextcloud Talk returned no room token.");
         }
@@ -124,8 +124,8 @@ internal sealed class NextcloudOnlineMeetings(IDavClient dav, TalkPeople people,
         }
 
         var name = TalkRooms.RoomName(options.Value, change.Subject);
-        var rename = change.ChangesSubject && name != Str(room.Value, "name");
-        if (TalkRooms.SpanOf(Str(room.Value, "objectType"), Str(room.Value, "objectId")) is { } span)
+        var rename = change.ChangesSubject && name != String(room.Value, "name");
+        if (TalkRooms.SpanOf(String(room.Value, "objectType"), String(room.Value, "objectId")) is { } span)
         {
             (DateTimeOffset Start, DateTimeOffset End)? moved = change is { Start: { } start, End: { } end } && (span.Start != Seconds(start) || span.End != Seconds(end))
                 ? (start, end)
@@ -215,7 +215,7 @@ internal sealed class NextcloudOnlineMeetings(IDavClient dav, TalkPeople people,
         }
 
         var (start, end) = span ?? current;
-        return await events.CreateAsync(token, subject ?? Str(room, "name") ?? TalkRooms.RoomName(options.Value, null), start, end, cancellationToken)
+        return await events.CreateAsync(token, subject ?? String(room, "name") ?? TalkRooms.RoomName(options.Value, null), start, end, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -283,10 +283,10 @@ internal sealed class NextcloudOnlineMeetings(IDavClient dav, TalkPeople people,
             }
         }
 
-        var span = TalkRooms.SpanOf(Str(room.Value, "objectType"), Str(room.Value, "objectId"));
+        var span = TalkRooms.SpanOf(String(room.Value, "objectType"), String(room.Value, "objectId"));
         return new OnlineMeeting(IdPrefix + token, TalkRooms.JoinUrl(options.Value, token), token)
         {
-            Subject = Str(room.Value, "name"),
+            Subject = String(room.Value, "name"),
             Start = span?.Start,
             End = span?.End,
             Created = await CreatedAsync(token, cancellationToken).ConfigureAwait(false),
@@ -301,10 +301,10 @@ internal sealed class NextcloudOnlineMeetings(IDavClient dav, TalkPeople people,
     private async Task<Result<MeetingParticipant?>> PersonAsync(JsonElement participant, CancellationToken cancellationToken)
     {
         var role = Int(participant, "participantType") is Moderator or GuestModerator ? MeetingRole.CoOrganizer : MeetingRole.Attendee;
-        var name = Str(participant, "displayName");
-        switch (Str(participant, "actorType"))
+        var name = String(participant, "displayName");
+        switch (String(participant, "actorType"))
         {
-            case "users" when Str(participant, "actorId") is { Length: > 0 } uid:
+            case "users" when String(participant, "actorId") is { Length: > 0 } uid:
                 var user = await people.UserOfAsync(uid, cancellationToken).ConfigureAwait(false);
                 if (!user.IsSuccess)
                 {
@@ -339,7 +339,7 @@ internal sealed class NextcloudOnlineMeetings(IDavClient dav, TalkPeople people,
         }
 
         var message = first.Value[0];
-        return Str(message, "systemMessage") == "conversation_created" && TalkJson.Long(message, "timestamp") is { } seconds
+        return String(message, "systemMessage") == "conversation_created" && TalkJson.Long(message, "timestamp") is { } seconds
             ? DateTimeOffset.FromUnixTimeSeconds(seconds)
             : null;
     }

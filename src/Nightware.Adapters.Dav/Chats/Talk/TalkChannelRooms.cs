@@ -2,6 +2,7 @@ using System.Text.Json;
 
 using Nightware.Adapters.Dav.Core;
 using Nightware.Domain.Kernel;
+using Nightware.Adapters.Dav.Talk;
 
 namespace Nightware.Adapters.Dav.Chats.Talk;
 
