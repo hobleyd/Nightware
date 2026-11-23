@@ -560,6 +560,38 @@ replaces Talk's default public STUN server with ours.
   recording runs its own Firefox and ffmpeg encode, so size the host for
   them (`shm_size: 2g` is Firefox's). Recording consent is not required
   (Talk's default; app config `spreed recording_consent`).
+- **Recordings belong to the conversation (`nightware_talk`).** Talk leaves
+  a recording, its transcript and summary in the recorder's files and only
+  offers "Share to chat" in the recorder's notification. Nightware's own
+  Nextcloud app, `nextcloud/apps/nightware_talk`, makes that share itself: when
+  a recording (`.ogg`, `.webm`, any format Talk accepts), a transcript (`.md`)
+  or a summary (`… - summary.md`) lands directly in a user's
+  `{recording folder}/{token}/` (Talk's own setting, `Talk/Recording` by
+  default) and the user takes part in that conversation, it creates a
+  read-only room share of the file with the conversation, once. Talk posts it
+  into the chat as the recorder (audio under "Audio", video under "Media",
+  transcripts under "Files" in the conversation's shared items), and every
+  participant has it at `Talk/{name}`, as with any file shared there.
+  It reacts to Nextcloud's file events (created, written, renamed), which
+  cover the recording server's chunked upload (through a temporary public
+  link), its direct upload and the transcription's background job; the share
+  is posted as the owner even there (no one is signed in), through the active
+  user and Talk's session override for its system messages. A failure is
+  logged (app `nightware_talk`), never raised into the upload.
+  `docker-compose.yml` mounts the app read-only into `custom_apps` of both
+  `nextcloud` and `nextcloud-cron` (transcripts are written by cron), and
+  `configure.sh` enables it. Its path rules are tested with plain PHP:
+  `nextcloud/apps/nightware_talk/tests/run.sh` (runs them in the
+  `nextcloud:35.0.3-apache` image; `NIGHTWARE_TALK_PHP=local` uses the host's
+  `php`). The recorder's notification still offers "Share to chat"; once the
+  app has shared the file, Talk answers it with an error ("Already shared")
+  and nothing else happens: dismiss it.
+- Verified (2026-11-23, Talk 25.0.8, recording server v0.3.1): a real audio
+  recording by alice (chunked upload through the public link: created and
+  written events, both with the full file) and a transcript and summary
+  written from the CLI as the transcription writes them were each shared
+  once, posted as alice, and bob read them at `Talk/Recording … .ogg`, with
+  the same file ids as alice's.
 - **Audio-only recordings.** `TALK_RECORDING_AUDIO_ONLY=true` makes every
   recording an Opus `.ogg` (at most ~45 MB an hour, libopus's default 96 kbit/s stereo, against ~400 MB of
   video), which is all a transcript needs. Talk's API can ask for audio only

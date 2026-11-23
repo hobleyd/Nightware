@@ -3,7 +3,8 @@
 #   - apps: calendar, contacts, tasks, calendar_resource_management, user_oidc,
 #     richdocuments (Nextcloud Office, on the collabora service), groupfolders
 #     (Team folders: the admin console makes one per group that asks for it),
-#     spreed (Talk: the room behind an event's isOnlineMeeting, phase 22)
+#     spreed (Talk: the room behind an event's isOnlineMeeting, phase 22),
+#     nightware_talk (ours: recordings and transcripts shared with their conversation)
 #   - Talk's signaling server and TURN/STUN (the talk service), and its
 #     call recording server (talk-recording)
 #   - recording transcripts and summaries: integration_openai on
@@ -20,6 +21,9 @@ log "Nextcloud: waiting for installation"
 wait_for "nextcloud installed" bash -c "docker compose -p '${COMPOSE_PROJECT_NAME}' exec -T -u www-data nextcloud php occ status --output=json | grep -q '\"installed\":true'"
 
 # --------------------------------------------------------------------- apps
+# docker-compose.yml mounts nightware_talk into custom_apps, so on a fresh volume Docker makes custom_apps (root's)
+# before the image copies Nextcloud in, and the image leaves it so: give it back to www-data, or app:install fails.
+dc exec -T nextcloud chown www-data:www-data /var/www/html/custom_apps
 # activity: the façade's drive delta reads its stream (ADR 0008 D5); circles, user_status and notifications back
 # teams, presence and call rings (ADR 0009 D9). A default install has these, but make sure.
 for app in calendar contacts tasks user_oidc calendar_resource_management richdocuments groupfolders activity spreed circles user_status notifications; do
@@ -30,6 +34,15 @@ for app in calendar contacts tasks user_oidc calendar_resource_management richdo
     occ app:install "$app" >/dev/null 2>&1 || occ app:enable "$app"
   fi
 done
+
+# nightware_talk (deploy/nextcloud/apps, mounted into custom_apps by docker-compose.yml): shares each Talk
+# call recording, transcript and summary with its conversation, so every participant has it (ADR 0009 D7).
+if occ app:list --output=json | jq -e '.enabled | has("nightware_talk")' >/dev/null; then
+  log "Nextcloud: app nightware_talk enabled"
+else
+  log "Nextcloud: enabling nightware_talk"
+  occ app:enable nightware_talk >/dev/null
+fi
 
 # ------------------------------------------------------------ system config
 log "Nextcloud: system config"

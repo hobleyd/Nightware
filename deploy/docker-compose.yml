@@ -249,6 +249,10 @@ services:
       - nextcloud-data:/var/www/html/data
       # More idle Apache workers than the image's 5-10 (see the file).
       - ./nextcloud/mpm_prefork.conf:/etc/apache2/mods-available/mpm_prefork.conf:ro
+      # Nightware's own Nextcloud app: shares Talk recordings and transcripts with
+      # their conversation (nextcloud/configure.sh enables it). nextcloud-cron
+      # mounts it too: transcripts are written by background jobs.
+      - ./nextcloud/apps/nightware_talk:/var/www/html/custom_apps/nightware_talk:ro
     networks: [nightware]
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/status.php | grep -q '\"installed\":true'"]
@@ -265,6 +269,7 @@ services:
     volumes:
       - nextcloud-html:/var/www/html
       - nextcloud-data:/var/www/html/data
+      - ./nextcloud/apps/nightware_talk:/var/www/html/custom_apps/nightware_talk:ro
     networks: [nightware]
 
   # ------------------------------------------------- Collabora Online (CODE)

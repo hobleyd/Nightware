@@ -23,8 +23,9 @@ public interface IOnlineMeetingStore
 }
 
 /// <summary>
-/// A meeting's recordings and transcripts: the files the backend's recording server and transcription left in the
-/// caller's files for the meeting.
+/// A meeting's recordings and transcripts: the files the backend's recording server and transcription made for the
+/// meeting, as shared with its conversation (every participant's), plus any of the caller's own not shared yet
+/// (ADR 0009 D7).
 /// </summary>
 public interface IMeetingArtifacts
 {
