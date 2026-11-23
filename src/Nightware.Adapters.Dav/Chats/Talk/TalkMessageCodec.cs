@@ -49,6 +49,44 @@ internal static partial class TalkMessageCodec
         return message.IsSystem ? ReportedSystemMessages.Contains(message.SystemMessage) : message.Id > 0;
     }
 
+    /// <summary>The longest title <see cref="DefaultThreadTitle"/> gives.</summary>
+    public const int DefaultTitleLength = 100;
+
+    /// <summary>A message in a thread other than its first: a channel reply (ADR 0009 D5).</summary>
+    public static bool IsThreadReply(TalkMessage message)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        return message.IsThread && message.ThreadId > 0 && message.ThreadId != message.Id;
+    }
+
+    /// <summary>
+    /// A channel post: a thread's first message, or a top-level message sent outside threads (Talk's own clients), which
+    /// is a post without replies.
+    /// </summary>
+    public static bool IsPost(TalkMessage message) => !IsThreadReply(message);
+
+    /// <summary>
+    /// The title a post gets when Graph's request has no subject (Talk needs one to start a thread): the body's first
+    /// line with text, at most <see cref="DefaultTitleLength"/> characters, and <see cref="UntitledThread"/> when there is
+    /// none. Mentions are left out (<c>@"uid"</c> and <c>@all</c> as sent, <c>{mention-…}</c> as Talk keeps them), so
+    /// the title taken from a sent text and from the stored one are the same. Such a post reports no subject.
+    /// </summary>
+    public static string DefaultThreadTitle(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        var line = MentionsInText().Replace(text, " ").Split('\n')
+            .Select(l => WhiteSpace().Replace(l, " ").Trim())
+            .FirstOrDefault(l => l.Length > 0) ?? UntitledThread;
+        return line.Length > DefaultTitleLength ? line[..DefaultTitleLength].TrimEnd() : line;
+    }
+
+    /// <summary>The title of a post whose body has no line of text besides mentions.</summary>
+    public const string UntitledThread = "Post";
+
+    /// <summary>A post's subject: its thread's title, unless that is only the default taken from the body, or the post is deleted.</summary>
+    private static string? SubjectOf(TalkMessage message) =>
+        message.ThreadTitle is { Length: > 0 } title && !message.IsDeleted && title != DefaultThreadTitle(message.Text) ? title : null;
+
     /// <summary>The Talk user ids (Nextcloud uids) a set of messages names, to resolve before decoding.</summary>
     public static IEnumerable<string> AccountsIn(IEnumerable<TalkMessage> messages)
     {
@@ -100,9 +138,10 @@ internal static partial class TalkMessageCodec
             ChannelIdentity = conversation.Channel,
             WebUrl = conversation.WebUrl is { } url ? $"{url}#message_{id}" : null,
 
-            // In a channel a reply names its post (the thread's first message, ADR 0009 D5); a chat has no replies.
-            ReplyToId = conversation.IsChannel && message.ThreadId > 0 && message.ThreadId != message.Id ? TalkIds.Decimal(message.ThreadId) : null,
-            Subject = conversation.IsChannel && message.IsThread ? message.ThreadTitle : null,
+            // In a channel a reply names its post (the thread's first message, ADR 0009 D5); a chat has no replies. Only a
+            // message in a thread is a reply: Talk's replyTo outside threads also gives the parent's id as threadId.
+            ReplyToId = conversation.IsChannel && IsThreadReply(message) ? TalkIds.Decimal(message.ThreadId) : null,
+            Subject = conversation.IsChannel && message.IsThread && !IsThreadReply(message) ? SubjectOf(message) : null,
         };
 
         if (message.IsSystem)
@@ -280,6 +319,13 @@ internal static partial class TalkMessageCodec
     /// <summary>Talk's "… renamed the conversation from "old" to "new"".</summary>
     [GeneratedRegex("\"[^\"]*\" to \"(.*)\"\\s*$", RegexOptions.CultureInvariant)]
     private static partial Regex RenamedTo();
+
+    /// <summary>Mentions in Talk's text: <c>@"uid"</c>, <c>@all</c> or <c>@uid</c> as sent, <c>{mention-…}</c> placeholders as stored.</summary>
+    [GeneratedRegex(@"@""[^""]*""|@[A-Za-z0-9_.\-]+|\{mention-[a-z]+\d*\}", RegexOptions.CultureInvariant)]
+    private static partial Regex MentionsInText();
+
+    [GeneratedRegex(@"[ \t\r]+", RegexOptions.CultureInvariant)]
+    private static partial Regex WhiteSpace();
 
     [GeneratedRegex(@"\((?:[^()]*\s)?(\d{1,4}(?::\d{2}){1,2})\)\s*$", RegexOptions.CultureInvariant)]
     private static partial Regex DurationPattern();
