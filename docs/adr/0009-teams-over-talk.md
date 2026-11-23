@@ -230,6 +230,40 @@ rule 2):
   (`{attachment folder}/Recording/{token}/`), so the caller's own folder is
   read; `content` answers 200 with the bytes (Graph's shape) rather than the
   drive's 302, streamed as the drive streams.
+- *Amended (2026-11-23, asked for: rename and re-time a meeting and keep it
+  in Talk): **a meeting's room is driven by a calendar event.*** Talk's own
+  calendar integration (`CalDavEventListener`) renames a room bound to an
+  event and moves its span whenever the **owner's** calendar event whose
+  `LOCATION` holds the room's `/call/{token}` link changes (verified live);
+  that is why Talk refuses direct renames. So:
+  - Every Talk meeting has such an event in the organiser's calendar. A
+    calendar event made online (phase 22) gets the link in `LOCATION`, after
+    any physical location (`Boardroom, {link}`: Talk takes the token from the
+    last path segment); reading strips it again, so Graph's `location` is
+    unchanged. `URL` keeps the link as before (`onlineMeeting.joinUrl`, iMIP).
+  - `POST /me/onlineMeetings` with a span creates the room bound to it and an
+    event in the organiser's default calendar (subject, span, attendees not
+    invited: the event is the meeting's record, not an invitation). Without a
+    span the room is unbound and there is no event, as before.
+  - `PATCH` (subject, span) updates the event; Talk renames and re-times the
+    room itself. The façade never unbinds a room for a rename or a move. A
+    series still unbinds (Talk's rule for `RRULE`).
+  - `DELETE` deletes the event and closes the room. Deleting the event in
+    any client leaves the room (Talk makes it read-only); Nightware closes it
+    only when the deletion comes through Nightware, as before.
+  - A meeting's span and subject are read from the room (`objectId`, name),
+    which Talk keeps in step with the event.
+- *Amended (2026-11-23, asked for: recordings available to everyone):*
+  **recordings and transcripts belong to the conversation.** Talk keeps them in
+  the files of whoever recorded and offers "Share to chat", a room share
+  (`IShare::TYPE_ROOM`) every participant can open, only as a button in the
+  recorder's notification; it raises no event and has no setting. A small
+  Nextcloud app shipped with the stack (`deploy/nextcloud/apps/nightware_talk`)
+  makes that share as soon as a recording or transcript lands in a
+  `{attachment folder}/Recording/{token}/` folder, read-only, once per file.
+  The recordings and transcripts routes list the conversation's shared items
+  (any participant's view), so every participant gets them, whoever recorded;
+  `content` streams the share as the participant sees it.
 - **Calls** (`POST /communications/calls`) are delegated. Graph requires an
   application permission for them; Nightware accepts the caller's own token,
   because there is no bot.

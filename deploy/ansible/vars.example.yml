@@ -1,7 +1,7 @@
 ---
 # Copy to vars.yml, fill in, and encrypt it: ansible-vault encrypt vars.yml
 # Generate each secret with `openssl rand -hex 24` (hex only), the delta-link
-# key with `openssl rand -hex 32`. Every default is in
+# and calls keys with `openssl rand -hex 32`. Every default is in
 # roles/nightware/defaults/main.yml.
 
 nightware_public_host: nightware.example.com
@@ -29,6 +29,7 @@ nightware_stalwart_admin_password: CHANGE-ME
 nightware_nextcloud_admin_password: CHANGE-ME
 nightware_nextcloud_db_password: CHANGE-ME
 nightware_delta_link_key: CHANGE-ME-64-HEX-CHARACTERS
+nightware_calls_key: CHANGE-ME-64-HEX-CHARACTERS
 nightware_admin_client_secret: CHANGE-ME
 nightware_nextcloud_provisioning_password: CHANGE-ME
 nightware_grafana_client_secret: CHANGE-ME
