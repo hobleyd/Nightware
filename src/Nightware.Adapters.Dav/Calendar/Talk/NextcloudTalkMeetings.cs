@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nightware.Adapters.Dav.Core;
+using Nightware.Adapters.Dav.Talk;
 using Nightware.Application.Calendar.OnlineMeetings;
 using Nightware.Domain.Calendar;
 using Nightware.Domain.Kernel;
@@ -24,9 +24,7 @@ namespace Nightware.Adapters.Dav.Calendar.Talk;
 /// </summary>
 internal sealed partial class NextcloudTalkMeetings(IDavClient dav, IOptions<TalkOptions> options, ILogger<NextcloudTalkMeetings> logger) : IOnlineMeetings
 {
-    internal const string RoomsPath = "apps/spreed/api/v4/room";
-    private const int PublicRoom = 3;
-    private const int MaxRoomName = 255;
+    internal const string RoomsPath = TalkRooms.RoomsPath;
 
     public bool IsEnabled => true;
 
@@ -35,13 +33,13 @@ internal sealed partial class NextcloudTalkMeetings(IDavClient dav, IOptions<Tal
         ArgumentNullException.ThrowIfNull(request);
         var form = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["roomType"] = PublicRoom.ToString(CultureInfo.InvariantCulture),
-            ["roomName"] = RoomName(request.Subject),
+            ["roomType"] = TalkRooms.PublicRoom.ToString(CultureInfo.InvariantCulture),
+            ["roomName"] = TalkRooms.RoomName(options.Value, request.Subject),
         };
         if (request.End is { } end)
         {
-            form["objectType"] = "event";
-            form["objectId"] = string.Create(CultureInfo.InvariantCulture, $"{request.Start.ToUnixTimeSeconds()}#{Math.Max(end.ToUnixTimeSeconds(), request.Start.ToUnixTimeSeconds())}");
+            form["objectType"] = TalkRooms.EventObject;
+            form["objectId"] = TalkRooms.SpanObjectId(request.Start, end);
         }
 
         var created = await dav.OcsSendAsync(HttpMethod.Post, RoomsPath, form, cancellationToken).ConfigureAwait(false);
@@ -54,13 +52,13 @@ internal sealed partial class NextcloudTalkMeetings(IDavClient dav, IOptions<Tal
         if (created.Value.ValueKind != JsonValueKind.Object
             || !created.Value.TryGetProperty("token", out var tokenProperty)
             || tokenProperty.GetString() is not { } token
-            || !TokenPattern().IsMatch(token))
+            || !TalkRooms.IsToken(token))
         {
             LogFailed(logger, "open", ErrorKind.BackendUnavailable, "Talk returned no room token.");
             return Error.BackendUnavailable("Nextcloud Talk returned no room token.");
         }
 
-        return JoinUrl(token);
+        return TalkRooms.JoinUrl(options.Value, token);
     }
 
     public async Task<Result> KeepAsync(string joinUrl, CancellationToken cancellationToken)
@@ -100,35 +98,7 @@ internal sealed partial class NextcloudTalkMeetings(IDavClient dav, IOptions<Tal
     }
 
     /// <summary>The room token of a join URL this server issued (<c>{PublicBaseUrl}call/{token}</c>); null for any other URL.</summary>
-    internal string? TokenOf(string? joinUrl)
-    {
-        var prefix = CallPrefix();
-        if (joinUrl is null || !joinUrl.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        var token = joinUrl[prefix.Length..].TrimEnd('/');
-        return TokenPattern().IsMatch(token) ? token : null;
-    }
-
-    private string JoinUrl(string token) => CallPrefix() + token;
-
-    private string CallPrefix()
-    {
-        var root = options.Value.PublicBaseUrl!.AbsoluteUri;
-        return (root.EndsWith('/') ? root : root + "/") + "call/";
-    }
-
-    private string RoomName(string? subject)
-    {
-        var name = string.IsNullOrWhiteSpace(subject) ? options.Value.UntitledRoomName : subject.Trim();
-        return name.Length <= MaxRoomName ? name : name[..MaxRoomName];
-    }
-
-    // Talk's own route requirement for a token.
-    [GeneratedRegex("^[a-z0-9]{4,30}$", RegexOptions.CultureInvariant)]
-    private static partial Regex TokenPattern();
+    internal string? TokenOf(string? joinUrl) => TalkRooms.TokenOf(options.Value, joinUrl);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Talk could not {Action} a meeting room: {Kind} {Reason}")]
     private static partial void LogFailed(ILogger logger, string action, ErrorKind kind, string reason);

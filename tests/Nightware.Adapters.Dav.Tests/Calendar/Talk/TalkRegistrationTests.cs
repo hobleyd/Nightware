@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Nightware.Adapters.Dav.Calendar.Talk;
+using Nightware.Adapters.Dav.Talk;
 using Nightware.Application.Calendar.OnlineMeetings;
 using Nightware.Application.Common.Identity;
 using Nightware.Domain.Calendar;

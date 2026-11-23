@@ -1,0 +1,61 @@
+{
+  "operationId": "calls.get",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/call-get); constructed with example.com data and Talk-shaped ids (ADR 0009 D7), no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/communications/calls/AQIDBHNlYWxlZC1jYWxsLWlkLWV4YW1wbGU",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#communications/calls/$entity",
+      "@odata.type": "#microsoft.graph.call",
+      "id": "AQIDBHNlYWxlZC1jYWxsLWlkLWV4YW1wbGU",
+      "state": "established",
+      "direction": "outgoing",
+      "callbackUri": "https://bot.example.com/callback",
+      "source": {
+        "@odata.type": "#microsoft.graph.participantInfo",
+        "identity": {
+          "@odata.type": "#microsoft.graph.identitySet",
+          "user": {
+            "@odata.type": "#microsoft.graph.identity",
+            "displayName": "Me Example",
+            "id": "me-id"
+          }
+        }
+      },
+      "targets": [
+        {
+          "@odata.type": "#microsoft.graph.invitationParticipantInfo",
+          "identity": {
+            "@odata.type": "#microsoft.graph.identitySet",
+            "user": {
+              "@odata.type": "#microsoft.graph.identity",
+              "displayName": "Bob Brown",
+              "id": "bob-id"
+            }
+          }
+        }
+      ],
+      "requestedModalities": [
+        "audio"
+      ],
+      "chatInfo": {
+        "threadId": "nge9dkks",
+        "messageId": "0",
+        "replyChainMessageId": null
+      },
+      "@nightware.joinWebUrl": "https://cloud.example.com/cloud/call/nge9dkks"
+    }
+  }
+}

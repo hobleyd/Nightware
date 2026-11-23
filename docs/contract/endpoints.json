@@ -15393,7 +15393,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "onlinemeeting-update",
-    "notes": "Renames; a changed span unbinds the room (phase 22)."
+    "notes": "Renames and re-spans. Talk can neither rename nor re-time a room bound to its span, so either change unbinds it, and the meeting then reports no span (ADR 0009 D7)."
   },
   {
     "id": "online-meetings.delete",
@@ -15439,7 +15439,9 @@
       "select": [],
       "filter": [],
       "orderby": [],
-      "top": [],
+      "top": [
+        "1..1000"
+      ],
       "search": [],
       "expand": [],
       "other": {}
@@ -15461,7 +15463,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "onlinemeeting-list-recordings",
-    "notes": "Recordings Talk uploaded to the organiser's files for this room."
+    "notes": "Recordings Talk's recording server uploaded to the caller's files for this room ({Talk folder}/Recording/{token}/)."
   },
   {
     "id": "online-meetings.recordings.get",
@@ -15545,7 +15547,9 @@
       "select": [],
       "filter": [],
       "orderby": [],
-      "top": [],
+      "top": [
+        "1..1000"
+      ],
       "search": [],
       "expand": [],
       "other": {}
@@ -15624,7 +15628,11 @@
       "top": [],
       "search": [],
       "expand": [],
-      "other": {}
+      "other": {
+        "$format": [
+          "text/vtt"
+        ]
+      }
     },
     "headers": {},
     "requestBody": null,
@@ -15658,11 +15666,12 @@
     "headers": {},
     "requestBody": {
       "fields": [
-        "callbackUri",
+        "callbackUri?",
         "targets[] {identity {user {id}}}",
-        "requestedModalities",
+        "requestedModalities?",
         "mediaConfig?",
-        "source?"
+        "source?",
+        "subject?"
       ]
     },
     "responseFields": [

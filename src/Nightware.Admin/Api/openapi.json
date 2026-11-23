@@ -13528,11 +13528,12 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "callbackUri": {},
+                  "callbackUri?": {},
                   "targets[] {identity {user {id}}}": {},
-                  "requestedModalities": {},
+                  "requestedModalities?": {},
                   "mediaConfig?": {},
-                  "source?": {}
+                  "source?": {},
+                  "subject?": {}
                 }
               }
             }
@@ -37558,7 +37559,7 @@
           "Online-meetings"
         ],
         "summary": "Online meetings: update",
-        "description": "Renames; a changed span unbinds the room (phase 22).\n\nGraph reference: onlinemeeting-update",
+        "description": "Renames and re-spans. Talk can neither rename nor re-time a room bound to its span, so either change unbinds it, and the meeting then reports no span.\n\nGraph reference: onlinemeeting-update",
         "parameters": [
           {
             "name": "meetingId",
@@ -37741,7 +37742,7 @@
           "Online-meetings"
         ],
         "summary": "Online meetings: update",
-        "description": "Renames; a changed span unbinds the room (phase 22).\n\nGraph reference: onlinemeeting-update",
+        "description": "Renames and re-spans. Talk can neither rename nor re-time a room bound to its span, so either change unbinds it, and the meeting then reports no span.\n\nGraph reference: onlinemeeting-update",
         "parameters": [
           {
             "name": "userId",
@@ -38062,7 +38063,7 @@
           "Online-meetings"
         ],
         "summary": "Online meetings recordings: list",
-        "description": "Recordings Talk uploaded to the organiser's files for this room.\n\nGraph reference: onlinemeeting-list-recordings",
+        "description": "Recordings Talk's recording server uploaded to the caller's files for this room ({Talk folder}/Recording/{token}/).\n\nGraph reference: onlinemeeting-list-recordings",
         "parameters": [
           {
             "name": "meetingId",
@@ -38071,6 +38072,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "required": false,
+            "description": "Page size.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": "1..1000"
           }
         ],
         "responses": {
@@ -38118,7 +38129,7 @@
           "Online-meetings"
         ],
         "summary": "Online meetings recordings: list",
-        "description": "Recordings Talk uploaded to the organiser's files for this room.\n\nGraph reference: onlinemeeting-list-recordings",
+        "description": "Recordings Talk's recording server uploaded to the caller's files for this room ({Talk folder}/Recording/{token}/).\n\nGraph reference: onlinemeeting-list-recordings",
         "parameters": [
           {
             "name": "userId",
@@ -38135,6 +38146,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "required": false,
+            "description": "Page size.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": "1..1000"
           }
         ],
         "responses": {
@@ -38199,6 +38220,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "text/vtt"
           }
         ],
         "responses": {
@@ -38255,6 +38285,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "text/vtt"
           }
         ],
         "responses": {
@@ -38431,6 +38470,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "required": false,
+            "description": "Page size.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": "1..1000"
           }
         ],
         "responses": {
@@ -38495,6 +38544,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "required": false,
+            "description": "Page size.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": "1..1000"
           }
         ],
         "responses": {

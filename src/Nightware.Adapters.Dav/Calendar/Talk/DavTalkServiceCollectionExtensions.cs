@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Nightware.Adapters.Dav.Talk;
 using Nightware.Application.Calendar.OnlineMeetings;
 
 namespace Nightware.Adapters.Dav.Calendar.Talk;
@@ -14,8 +15,7 @@ internal static class DavTalkServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddDavTalk(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddOptions<TalkOptions>().Bind(configuration.GetSection(TalkOptions.SectionName)).ValidateOnStart();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<TalkOptions>, TalkOptionsValidator>());
+        services.AddTalkOptions(configuration);
         services.TryAddScoped<NextcloudTalkMeetings>();
         services.TryAddScoped<IOnlineMeetings>(static sp =>
             sp.GetRequiredService<IOptions<TalkOptions>>().Value.PublicBaseUrl is null

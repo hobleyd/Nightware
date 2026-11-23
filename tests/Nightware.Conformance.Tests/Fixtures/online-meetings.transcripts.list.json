@@ -1,0 +1,42 @@
+{
+  "operationId": "online-meetings.transcripts.list",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/onlinemeeting-list-transcripts); constructed with example.com data and Talk-shaped ids (ADR 0009 D7), no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/onlineMeetings/t.abcd1234/transcripts",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/onlineMeetings('t.abcd1234')/transcripts",
+      "value": [
+        {
+          "id": "446",
+          "meetingId": "t.abcd1234",
+          "createdDateTime": "2026-12-01T09:00:43Z",
+          "endDateTime": "2026-12-01T09:30:02Z",
+          "contentCorrelationId": "445",
+          "transcriptContentUrl": "https://graph.microsoft.com/v1.0/me/onlineMeetings/t.abcd1234/transcripts/446/content",
+          "meetingOrganizer": {
+            "application": null,
+            "device": null,
+            "user": {
+              "id": "me-id",
+              "displayName": "Me Example",
+              "userIdentityType": "aadUser"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

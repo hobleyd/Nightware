@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-using Nightware.Adapters.Dav.Calendar.Talk;
+using TalkOptions = Nightware.Adapters.Dav.Talk.TalkOptions;
 using Nightware.Adapters.Dav.Chats.Talk;
 using Nightware.Application.Chats;
 using Nightware.Application.Common.Identity;

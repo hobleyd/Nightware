@@ -1,0 +1,19 @@
+{
+  "operationId": "online-meetings.delete",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/onlinemeeting-delete); constructed with example.com data and Talk-shaped ids (ADR 0009 D7), no tenant capture yet",
+  "request": {
+    "method": "DELETE",
+    "path": "/v1.0/me/onlineMeetings/t.abcd1234",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 204,
+    "headers": {},
+    "body": null
+  }
+}

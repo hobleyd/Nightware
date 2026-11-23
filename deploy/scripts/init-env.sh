@@ -101,6 +101,14 @@ if [[ -z "$(value_of NIGHTWARE_SUBSCRIPTION_KEY)" ]]; then
   echo "init-env: generated NIGHTWARE_SUBSCRIPTION_KEY in .env"
 fi
 
+# ------------------------------------------------------ NIGHTWARE_CALLS_KEY
+# Seals a call's Talk session into its id (32 bytes, hex; phase 26). Generated
+# once; replacing it orphans calls in progress (Talk ends them itself).
+if [[ -z "$(value_of NIGHTWARE_CALLS_KEY)" ]]; then
+  put NIGHTWARE_CALLS_KEY "$(openssl rand -hex 32)"
+  echo "init-env: generated NIGHTWARE_CALLS_KEY in .env"
+fi
+
 # ------------------------------------------------- NIGHTWARE_DELTA_LINK_KEY
 value=$(value_of NIGHTWARE_DELTA_LINK_KEY)
 if [[ -n "$value" ]]; then

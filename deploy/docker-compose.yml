@@ -580,6 +580,8 @@ services:
       # Change notifications (phase 16): off while either is empty (then /subscriptions is 501).
       Subscriptions__ConnectionString: Host=subscriptions-db;Database=subscriptions;Username=subscriptions;Password=${SUBSCRIPTIONS_DB_PASSWORD:-}
       Subscriptions__SealingKey: ${NIGHTWARE_SUBSCRIPTION_KEY:-}
+      # Delegated calls over Talk (phase 26): off (501) while empty.
+      Calls__SealingKey: ${NIGHTWARE_CALLS_KEY:-}
     volumes:
       - ./.certs:/certs:ro
     depends_on:

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 
-using Nightware.Adapters.Dav.Calendar.Talk;
+using TalkOptions = Nightware.Adapters.Dav.Talk.TalkOptions;
 
 namespace Nightware.Adapters.Dav.Chats.Talk;
 

@@ -4507,7 +4507,7 @@ operation:
 - Request body: `subject?`; `startDateTime?`; `endDateTime?`
 - Client reads: `id`, `subject`, `startDateTime`, `endDateTime`, `creationDateTime`, `joinWebUrl`, `chatInfo`, `participants`, `joinMeetingIdSettings`
 - Graph parity (ADR 0006); reference: onlinemeeting-update
-- Notes: Renames; a changed span unbinds the room (phase 22).
+- Notes: Renames and re-spans. Talk can neither rename nor re-time a room bound to its span, so either change unbinds it, and the meeting then reports no span (ADR 0009 D7).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.update.json`
 
 #### `online-meetings.delete`
@@ -4522,9 +4522,10 @@ operation:
 
 **GET v1.0 `{mailbox}/onlineMeetings/{meetingId}/recordings`** — forms: me, users; success: 200; paging: none
 
+- Query: `$top`: `1..1000`
 - Client reads: `id`, `meetingId`, `createdDateTime`, `endDateTime`, `recordingContentUrl`, `contentCorrelationId`, `meetingOrganizer`
 - Graph parity (ADR 0006); reference: onlinemeeting-list-recordings
-- Notes: Recordings Talk uploaded to the organiser's files for this room.
+- Notes: Recordings Talk's recording server uploaded to the caller's files for this room ({Talk folder}/Recording/{token}/).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.recordings.list.json`
 
 #### `online-meetings.recordings.get`
@@ -4548,6 +4549,7 @@ operation:
 
 **GET v1.0 `{mailbox}/onlineMeetings/{meetingId}/transcripts`** — forms: me, users; success: 200; paging: none
 
+- Query: `$top`: `1..1000`
 - Client reads: `id`, `meetingId`, `createdDateTime`, `endDateTime`, `transcriptContentUrl`, `contentCorrelationId`, `meetingOrganizer`
 - Graph parity (ADR 0006); reference: onlinemeeting-list-transcripts
 - Notes: Transcripts Talk's transcription wrote next to the recordings.
@@ -4566,6 +4568,7 @@ operation:
 
 **GET v1.0 `{mailbox}/onlineMeetings/{meetingId}/transcripts/{transcriptId}/content`** — forms: me, users; success: 200; paging: none
 
+- Query: `$format`: `text/vtt`
 - Graph parity (ADR 0006); reference: calltranscript-get
 - Notes: text/vtt built from Talk's Markdown transcript (no cue times: one cue per paragraph spanning the recording).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.transcripts.content.json`
@@ -4574,7 +4577,7 @@ operation:
 
 **POST v1.0 `/communications/calls`** — forms: root; success: 201; paging: none
 
-- Request body: `callbackUri`; `targets[] {identity {user {id}}}`; `requestedModalities`; `mediaConfig?`; `source?`
+- Request body: `callbackUri?`; `targets[] {identity {user {id}}}`; `requestedModalities?`; `mediaConfig?`; `source?`; `subject?`
 - Client reads: `id`, `state`, `direction`, `callbackUri`, `source`, `targets`, `requestedModalities`, `chatInfo`, `@nightware.joinWebUrl`
 - Graph parity (ADR 0006); reference: application-post-calls
 - Notes: Delegated (ADR 0009 D7): starts a Talk call as the caller and rings the targets; callbackUri is never called; media in Talk clients.
