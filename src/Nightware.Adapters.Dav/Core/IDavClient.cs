@@ -67,4 +67,11 @@ public interface IDavClient
 
     /// <summary>GET an OCS endpoint (path below the OCS root, e.g. <c>apps/files_sharing/api/v1/shares</c>); returns <c>ocs.data</c>.</summary>
     Task<Result<JsonElement>> OcsGetAsync(string path, IReadOnlyDictionary<string, string>? query, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Any OCS request (ADR 0009 D8): JSON or form body, extra headers; returns <c>ocs.data</c> with the HTTP status
+    /// and response headers (Talk's <c>X-Chat-Last-Given</c>, its session's <c>Set-Cookie</c>). A failure maps as
+    /// <see cref="OcsGetAsync"/>'s does, and its message carries the reason the server put in <c>ocs.data</c>.
+    /// </summary>
+    Task<Result<OcsResponse>> OcsExchangeAsync(OcsRequest request, CancellationToken cancellationToken);
 }

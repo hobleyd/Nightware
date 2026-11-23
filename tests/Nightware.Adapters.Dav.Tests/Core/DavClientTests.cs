@@ -502,6 +502,69 @@ public sealed class DavClientTests : IDisposable
     }
 
     [Fact]
+    public async Task Ocs_exchange_sends_json_and_headers_and_returns_status_and_response_headers()
+    {
+        Server.Given(Request.Create().WithPath("/ocs/v2.php/apps/spreed/api/v4/room").UsingPost())
+            .RespondWith(Response.Create().WithStatusCode(201).WithHeader("Content-Type", "application/json")
+                .WithHeader("Set-Cookie", "oc_session=abc; path=/; secure")
+                .WithHeader("X-Chat-Last-Given", "42")
+                .WithBody("{\"ocs\":{\"meta\":{\"status\":\"ok\",\"statuscode\":201,\"message\":\"OK\"},\"data\":{\"token\":\"abcd1234\"}}}"));
+
+        var result = await _dav.Client.OcsExchangeAsync(
+            new OcsRequest(HttpMethod.Post, "apps/spreed/api/v4/room")
+            {
+                Json = new System.Text.Json.Nodes.JsonObject { ["roomType"] = 2, ["participants"] = new System.Text.Json.Nodes.JsonObject { ["teams"] = new System.Text.Json.Nodes.JsonArray("t1") } },
+                Query = new Dictionary<string, string> { ["x"] = "1" },
+                Headers = new Dictionary<string, string> { ["Cookie"] = "oc_session=prev" },
+            },
+            Ct);
+
+        result.Value.Status.ShouldBe(201);
+        result.Value.Data.GetProperty("token").GetString().ShouldBe("abcd1234");
+        result.Value.Header("x-chat-last-given").ShouldBe("42");
+        result.Value.SetCookies.ShouldBe(["oc_session=abc; path=/; secure"]);
+        Header("Content-Type").ShouldStartWith("application/json");
+        Header("Cookie").ShouldBe("oc_session=prev");
+        Header("OCS-APIRequest").ShouldBe("true");
+        LastRequest.RequestMessage!.Body.ShouldBe("{\"roomType\":2,\"participants\":{\"teams\":[\"t1\"]}}");
+        LastRequest.RequestMessage.Query!["x"].ShouldBe(["1"]);
+        LastRequest.RequestMessage.Query["format"].ShouldBe(["json"]);
+    }
+
+    [Fact]
+    public async Task Ocs_exchange_keeps_the_reason_talk_gives_for_a_failure()
+    {
+        Server.Given(Request.Create().WithPath("/ocs/v2.php/apps/spreed/api/v4/room").UsingPost())
+            .RespondWith(Response.Create().WithStatusCode(400).WithHeader("Content-Type", "application/json")
+                .WithBody("{\"ocs\":{\"meta\":{\"status\":\"failure\",\"statuscode\":400,\"message\":\"\"},\"data\":{\"error\":\"object-type\"}}}"));
+        Server.Given(Request.Create().WithPath("/ocs/v2.php/apps/spreed/api/v4/room/abcd1234").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "application/json")
+                .WithBody("{\"ocs\":{\"meta\":{\"status\":\"failure\",\"statuscode\":403,\"message\":\"Not a moderator\"},\"data\":[]}}"));
+        Server.Given(Request.Create().WithPath("/ocs/v2.php/apps/spreed/api/v4/room/plain123").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(502).WithBody("<html>bad gateway</html>"));
+
+        var refused = await _dav.Client.OcsExchangeAsync(new OcsRequest(HttpMethod.Post, "apps/spreed/api/v4/room"), Ct);
+        var forbidden = await _dav.Client.OcsExchangeAsync(OcsRequest.Get("apps/spreed/api/v4/room/abcd1234"), Ct);
+        var gateway = await _dav.Client.OcsExchangeAsync(OcsRequest.Get("apps/spreed/api/v4/room/plain123"), Ct);
+
+        refused.Error!.Kind.ShouldBe(ErrorKind.Validation);
+        refused.Error.Message.ShouldEndWith("(object-type)");
+        forbidden.Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+        forbidden.Error.Message.ShouldEndWith("(Not a moderator)");
+        gateway.Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+        (await _dav.Client.OcsExchangeAsync(OcsRequest.Get("../x"), Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+    }
+
+    [Fact]
+    public async Task Ocs_exchange_refuses_a_success_without_ocs_json()
+    {
+        Server.Given(Request.Create().WithPath("/ocs/v2.php/apps/y").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(200).WithBody("<html>login</html>"));
+
+        (await _dav.Client.OcsExchangeAsync(OcsRequest.Get("apps/y"), Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+    }
+
+    [Fact]
     public async Task Ocs_errors_map()
     {
         Server.Given(Request.Create().WithPath("/ocs/v2.php/apps/x").UsingGet())

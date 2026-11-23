@@ -4,6 +4,11 @@ using Nightware.Adapters.Dav.Contacts;
 using Nightware.Adapters.Dav.Files;
 using Nightware.Adapters.Dav.Rooms;
 using Nightware.Adapters.Dav.Tasks;
+using Nightware.Adapters.Dav.Chats;
+using Nightware.Adapters.Dav.Teams;
+using Nightware.Adapters.Dav.Presence;
+using Nightware.Adapters.Dav.OnlineMeetings;
+using Nightware.Adapters.Dav.Calls;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -35,7 +40,12 @@ public static class DavAdapterServiceCollectionExtensions
             .AddDavContacts()
             .AddDavDirectory()
             .AddDavTasks()
-            .AddDavFiles(configuration);
+            .AddDavFiles(configuration)
+            .AddDavChats(configuration)
+            .AddDavTeams(configuration)
+            .AddDavPresence(configuration)
+            .AddDavOnlineMeetings(configuration)
+            .AddDavCalls(configuration);
     }
 
     private static void AddDavCore(IServiceCollection services, IConfiguration configuration)

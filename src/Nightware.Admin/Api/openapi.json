@@ -24,7 +24,16 @@
       "name": "Calendar"
     },
     {
+      "name": "Calls"
+    },
+    {
       "name": "Change notifications"
+    },
+    {
+      "name": "Channels"
+    },
+    {
+      "name": "Chats"
     },
     {
       "name": "Contacts"
@@ -42,16 +51,25 @@
       "name": "Mailbox settings"
     },
     {
+      "name": "Online-meetings"
+    },
+    {
       "name": "Outlook"
     },
     {
       "name": "People"
     },
     {
+      "name": "Presence"
+    },
+    {
       "name": "Rooms"
     },
     {
       "name": "Security"
+    },
+    {
+      "name": "Teams"
     },
     {
       "name": "To Do"
@@ -13494,6 +13512,168 @@
         }
       }
     },
+    "/communications/calls": {
+      "post": {
+        "operationId": "calls.create",
+        "tags": [
+          "Calls"
+        ],
+        "summary": "Calls: create",
+        "description": "Delegated: starts a Talk call as the caller and rings the targets; callbackUri is never called; media in Talk clients.\n\nGraph reference: application-post-calls",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "callbackUri": {},
+                  "targets[] {identity {user {id}}}": {},
+                  "requestedModalities": {},
+                  "mediaConfig?": {},
+                  "source?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "state": {},
+                    "direction": {},
+                    "callbackUri": {},
+                    "source": {},
+                    "targets": {},
+                    "requestedModalities": {},
+                    "chatInfo": {},
+                    "@nightware.joinWebUrl": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/communications/calls/{callId}": {
+      "delete": {
+        "operationId": "calls.delete",
+        "tags": [
+          "Calls"
+        ],
+        "summary": "Calls: delete",
+        "description": "Leaves the call; ends it for everyone when the caller moderates.\n\nGraph reference: call-delete",
+        "parameters": [
+          {
+            "name": "callId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "calls.get",
+        "tags": [
+          "Calls"
+        ],
+        "summary": "Calls: get",
+        "description": "establishing / established / terminated from the room's call state.\n\nGraph reference: call-get",
+        "parameters": [
+          {
+            "name": "callId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "state": {},
+                    "direction": {},
+                    "callbackUri": {},
+                    "source": {},
+                    "targets": {},
+                    "requestedModalities": {},
+                    "chatInfo": {},
+                    "@nightware.joinWebUrl": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/subscriptions": {
       "post": {
         "operationId": "subscriptions.create",
@@ -13872,6 +14052,3073 @@
         ],
         "responses": {
           "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/channels": {
+      "post": {
+        "operationId": "channels.create",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels: create",
+        "description": "Group room with the team as participant; private and shared are 400.\n\nGraph reference: channel-post",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {},
+                  "description?": {},
+                  "membershipType? (standard)": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "displayName": {},
+                    "description": {},
+                    "membershipType": {},
+                    "createdDateTime": {},
+                    "webUrl": {},
+                    "email": {},
+                    "isArchived": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "channels.list",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels: list",
+        "description": "The team's Talk resources (teams/{id}/resources); all standard.\n\nGraph reference: channel-list",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "displayName": {},
+                    "description": {},
+                    "membershipType": {},
+                    "createdDateTime": {},
+                    "webUrl": {},
+                    "email": {},
+                    "isArchived": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/channels/{channelId}": {
+      "delete": {
+        "operationId": "channels.delete",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels: delete",
+        "description": "Deletes the room; the primary channel can't be deleted (400).\n\nGraph reference: channel-delete",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "channels.get",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels: get",
+        "description": "A team room by token.\n\nGraph reference: channel-get",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "displayName": {},
+                    "description": {},
+                    "membershipType": {},
+                    "createdDateTime": {},
+                    "webUrl": {},
+                    "email": {},
+                    "isArchived": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "channels.update",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels: update",
+        "description": "Room name and description; General can't be renamed (400).\n\nGraph reference: channel-patch",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName?": {},
+                  "description?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/channels/{channelId}/filesFolder": {
+      "get": {
+        "operationId": "channels.files-folder",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels: files folder",
+        "description": "The channel's folder in the team folder, created on first use; a drive item.\n\nGraph reference: channel-get-filesfolder",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "name": {},
+                    "webUrl": {},
+                    "folder": {},
+                    "parentReference": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/channels/{channelId}/members": {
+      "get": {
+        "operationId": "channels.members.list",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels members: list",
+        "description": "Standard channel: the team's members.\n\nGraph reference: channel-list-members",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "roles": {},
+                    "displayName": {},
+                    "userId": {},
+                    "email": {},
+                    "visibleHistoryStartDateTime": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/channels/{channelId}/messages/delta": {
+      "get": {
+        "operationId": "channels.messages.delta",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels messages: delta",
+        "description": "Talk chat after the token's last message id; edits and deletes re-read their parent.\n\nGraph reference: chatmessage-delta",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "replyToId": {},
+                    "etag": {},
+                    "messageType": {},
+                    "createdDateTime": {},
+                    "lastModifiedDateTime": {},
+                    "lastEditedDateTime": {},
+                    "deletedDateTime": {},
+                    "subject": {},
+                    "chatId": {},
+                    "channelIdentity": {},
+                    "from": {},
+                    "body": {},
+                    "attachments": {},
+                    "mentions": {},
+                    "reactions": {},
+                    "importance": {},
+                    "eventDetail": {},
+                    "webUrl": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/channels/{channelId}/messages/{messageId}": {
+      "get": {
+        "operationId": "channels.messages.get",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels messages: get",
+        "description": "One post.\n\nGraph reference: chatmessage-get",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "replyToId": {},
+                    "etag": {},
+                    "messageType": {},
+                    "createdDateTime": {},
+                    "lastModifiedDateTime": {},
+                    "lastEditedDateTime": {},
+                    "deletedDateTime": {},
+                    "subject": {},
+                    "chatId": {},
+                    "channelIdentity": {},
+                    "from": {},
+                    "body": {},
+                    "attachments": {},
+                    "mentions": {},
+                    "reactions": {},
+                    "importance": {},
+                    "eventDetail": {},
+                    "webUrl": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "channels.messages.update",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels messages: update",
+        "description": "Talk edit; subject renames the thread.\n\nGraph reference: chatmessage-update",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {},
+                  "subject?": {},
+                  "mentions[]?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/channels/{channelId}/messages": {
+      "get": {
+        "operationId": "channels.messages.list",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels messages: list",
+        "description": "Posts (thread roots and plain top-level messages), newest first; $top up to 50; $expand=replies.\n\nGraph reference: channel-list-messages",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "replyToId": {},
+                    "etag": {},
+                    "messageType": {},
+                    "createdDateTime": {},
+                    "lastModifiedDateTime": {},
+                    "lastEditedDateTime": {},
+                    "deletedDateTime": {},
+                    "subject": {},
+                    "chatId": {},
+                    "channelIdentity": {},
+                    "from": {},
+                    "body": {},
+                    "attachments": {},
+                    "mentions": {},
+                    "reactions": {},
+                    "importance": {},
+                    "eventDetail": {},
+                    "webUrl": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "post": {
+        "operationId": "channels.messages.send",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels messages: send",
+        "description": "A Talk thread; subject is its title (first body line when absent, reported null).\n\nGraph reference: channel-post-messages",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {},
+                  "subject?": {},
+                  "mentions[]?": {},
+                  "importance?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "replyToId": {},
+                    "etag": {},
+                    "messageType": {},
+                    "createdDateTime": {},
+                    "lastModifiedDateTime": {},
+                    "lastEditedDateTime": {},
+                    "deletedDateTime": {},
+                    "subject": {},
+                    "chatId": {},
+                    "channelIdentity": {},
+                    "from": {},
+                    "body": {},
+                    "attachments": {},
+                    "mentions": {},
+                    "reactions": {},
+                    "importance": {},
+                    "eventDetail": {},
+                    "webUrl": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/channels/{channelId}/messages/{messageId}/setReaction": {
+      "post": {
+        "operationId": "channels.messages.set-reaction",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels messages: set reaction",
+        "description": "Talk reaction.\n\nGraph reference: chatmessage-setreaction",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reactionType": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/channels/{channelId}/messages/{messageId}/softDelete": {
+      "post": {
+        "operationId": "channels.messages.soft-delete",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels messages: soft delete",
+        "description": "Talk delete.\n\nGraph reference: chatmessage-softdelete",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/channels/{channelId}/messages/{messageId}/unsetReaction": {
+      "post": {
+        "operationId": "channels.messages.unset-reaction",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels messages: unset reaction",
+        "description": "Removes the caller's reaction.\n\nGraph reference: chatmessage-unsetreaction",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reactionType": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/primaryChannel": {
+      "get": {
+        "operationId": "channels.primary",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels: primary",
+        "description": "The team's room with the lowest Talk room id.\n\nGraph reference: team-get-primarychannel",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "displayName": {},
+                    "description": {},
+                    "membershipType": {},
+                    "createdDateTime": {},
+                    "webUrl": {},
+                    "email": {},
+                    "isArchived": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}": {
+      "get": {
+        "operationId": "channels.replies.get",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels replies: get",
+        "description": "One reply.\n\nGraph reference: chatmessage-get",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "replyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "replyToId": {},
+                    "etag": {},
+                    "messageType": {},
+                    "createdDateTime": {},
+                    "lastModifiedDateTime": {},
+                    "lastEditedDateTime": {},
+                    "deletedDateTime": {},
+                    "subject": {},
+                    "chatId": {},
+                    "channelIdentity": {},
+                    "from": {},
+                    "body": {},
+                    "attachments": {},
+                    "mentions": {},
+                    "reactions": {},
+                    "importance": {},
+                    "eventDetail": {},
+                    "webUrl": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "channels.replies.update",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels replies: update",
+        "description": "Talk edit.\n\nGraph reference: chatmessage-update",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "replyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {},
+                  "mentions[]?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies": {
+      "get": {
+        "operationId": "channels.replies.list",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels replies: list",
+        "description": "Messages of the thread, newest first.\n\nGraph reference: chatmessage-list-replies",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "replyToId": {},
+                    "etag": {},
+                    "messageType": {},
+                    "createdDateTime": {},
+                    "lastModifiedDateTime": {},
+                    "lastEditedDateTime": {},
+                    "deletedDateTime": {},
+                    "subject": {},
+                    "chatId": {},
+                    "channelIdentity": {},
+                    "from": {},
+                    "body": {},
+                    "attachments": {},
+                    "mentions": {},
+                    "reactions": {},
+                    "importance": {},
+                    "eventDetail": {},
+                    "webUrl": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "post": {
+        "operationId": "channels.replies.send",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels replies: send",
+        "description": "Talk message with threadId.\n\nGraph reference: chatmessage-post-replies",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {},
+                  "mentions[]?": {},
+                  "importance?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "replyToId": {},
+                    "etag": {},
+                    "messageType": {},
+                    "createdDateTime": {},
+                    "lastModifiedDateTime": {},
+                    "lastEditedDateTime": {},
+                    "deletedDateTime": {},
+                    "subject": {},
+                    "chatId": {},
+                    "channelIdentity": {},
+                    "from": {},
+                    "body": {},
+                    "attachments": {},
+                    "mentions": {},
+                    "reactions": {},
+                    "importance": {},
+                    "eventDetail": {},
+                    "webUrl": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}/setReaction": {
+      "post": {
+        "operationId": "channels.replies.set-reaction",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels replies: set reaction",
+        "description": "Talk reaction.\n\nGraph reference: chatmessage-setreaction",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "replyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reactionType": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}/softDelete": {
+      "post": {
+        "operationId": "channels.replies.soft-delete",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels replies: soft delete",
+        "description": "Talk delete.\n\nGraph reference: chatmessage-softdelete",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "replyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}/unsetReaction": {
+      "post": {
+        "operationId": "channels.replies.unset-reaction",
+        "tags": [
+          "Channels"
+        ],
+        "summary": "Channels replies: unset reaction",
+        "description": "Removes the caller's reaction.\n\nGraph reference: chatmessage-unsetreaction",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "replyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reactionType": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/chats": {
+      "post": {
+        "operationId": "chats.create",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats: create",
+        "description": "oneOnOne returns Talk's existing room, as Graph does; group creates a group room named topic.\n\nGraph reference: chat-post",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "chatType": {},
+                  "topic?": {},
+                  "members[] {@odata": {
+                    "type": "object",
+                    "properties": {
+                      "type, roles, user@odata": {
+                        "type": "object",
+                        "properties": {
+                          "bind}": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "topic": {},
+                    "chatType": {},
+                    "createdDateTime": {},
+                    "lastUpdatedDateTime": {},
+                    "webUrl": {},
+                    "viewpoint": {},
+                    "onlineMeetingInfo": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/chats/{chatId}": {
+      "get": {
+        "operationId": "chats.get",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats: get",
+        "description": "One Talk conversation by token. Also served as {mailbox}/chats/{chatId}.\n\nGraph reference: chat-get",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "topic": {},
+                    "chatType": {},
+                    "createdDateTime": {},
+                    "lastUpdatedDateTime": {},
+                    "webUrl": {},
+                    "viewpoint": {},
+                    "onlineMeetingInfo": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "chats.update",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats: update",
+        "description": "Renames a group conversation. A one-to-one chat has no topic (400).\n\nGraph reference: chat-patch",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "topic": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "topic": {},
+                    "chatType": {},
+                    "createdDateTime": {},
+                    "lastUpdatedDateTime": {},
+                    "webUrl": {},
+                    "viewpoint": {},
+                    "onlineMeetingInfo": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/chats/{chatId}/hideForUser": {
+      "post": {
+        "operationId": "chats.hide",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats: hide",
+        "description": "Talk archive.\n\nGraph reference: chat-hideforuser",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user {id}": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/chats": {
+      "get": {
+        "operationId": "chats.list",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats: list",
+        "description": "The caller's Talk conversations: one-to-one, group, meeting. Note to self, changelog, sample and channel rooms left out. /users/{x} only for the caller. $top up to 50; $expand=members and lastMessagePreview.\n\nGraph reference: chat-list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "topic": {},
+                    "chatType": {},
+                    "createdDateTime": {},
+                    "lastUpdatedDateTime": {},
+                    "webUrl": {},
+                    "viewpoint": {},
+                    "onlineMeetingInfo": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/chats": {
+      "get": {
+        "operationId": "chats.list.users",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats: list",
+        "description": "The caller's Talk conversations: one-to-one, group, meeting. Note to self, changelog, sample and channel rooms left out. /users/{x} only for the caller. $top up to 50; $expand=members and lastMessagePreview.\n\nGraph reference: chat-list",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "topic": {},
+                    "chatType": {},
+                    "createdDateTime": {},
+                    "lastUpdatedDateTime": {},
+                    "webUrl": {},
+                    "viewpoint": {},
+                    "onlineMeetingInfo": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/chats/{chatId}/markChatReadForUser": {
+      "post": {
+        "operationId": "chats.mark-read",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats: mark read",
+        "description": "Read marker to the newest message.\n\nGraph reference: chat-markchatreadforuser",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user {id}": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/chats/{chatId}/markChatUnreadForUser": {
+      "post": {
+        "operationId": "chats.mark-unread",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats: mark unread",
+        "description": "Talk's mark-unread; lastMessageReadDateTime is ignored.\n\nGraph reference: chat-markchatunreadforuser",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user {id}": {},
+                  "lastMessageReadDateTime?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/chats/{chatId}/members": {
+      "post": {
+        "operationId": "chats.members.add",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats members: add",
+        "description": "Talk add participant; history is always visible.\n\nGraph reference: chat-post-members",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "@odata.type": {},
+                  "user@odata": {
+                    "type": "object",
+                    "properties": {
+                      "bind": {}
+                    }
+                  },
+                  "roles": {},
+                  "visibleHistoryStartDateTime?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "roles": {},
+                    "displayName": {},
+                    "userId": {},
+                    "email": {},
+                    "visibleHistoryStartDateTime": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "chats.members.list",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats members: list",
+        "description": "Room participants of type users; owners and moderators carry roles [owner].\n\nGraph reference: chat-list-members",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "roles": {},
+                    "displayName": {},
+                    "userId": {},
+                    "email": {},
+                    "visibleHistoryStartDateTime": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/chats/{chatId}/members/{membershipId}": {
+      "get": {
+        "operationId": "chats.members.get",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats members: get",
+        "description": "Membership id m.<attendeeId>.\n\nGraph reference: chat-get-members",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "membershipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "roles": {},
+                    "displayName": {},
+                    "userId": {},
+                    "email": {},
+                    "visibleHistoryStartDateTime": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "chats.members.remove",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats members: remove",
+        "description": "Talk remove attendee, or leaving when it is the caller.\n\nGraph reference: chat-delete-members",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "membershipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "get": {
+        "operationId": "chats.messages.get",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats messages: get",
+        "description": "One message (Talk chat context of the id).\n\nGraph reference: chatmessage-get",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "replyToId": {},
+                    "etag": {},
+                    "messageType": {},
+                    "createdDateTime": {},
+                    "lastModifiedDateTime": {},
+                    "lastEditedDateTime": {},
+                    "deletedDateTime": {},
+                    "subject": {},
+                    "chatId": {},
+                    "channelIdentity": {},
+                    "from": {},
+                    "body": {},
+                    "attachments": {},
+                    "mentions": {},
+                    "reactions": {},
+                    "importance": {},
+                    "eventDetail": {},
+                    "webUrl": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "chats.messages.update",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats messages: update",
+        "description": "Talk edit; the sender only.\n\nGraph reference: chatmessage-update",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {},
+                  "mentions[]?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/chats/{chatId}/messages": {
+      "get": {
+        "operationId": "chats.messages.list",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats messages: list",
+        "description": "Newest first; $top up to 50; $skiptoken is Talk's X-Chat-Last-Given. Never moves the read marker.\n\nGraph reference: chat-list-messages",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "replyToId": {},
+                    "etag": {},
+                    "messageType": {},
+                    "createdDateTime": {},
+                    "lastModifiedDateTime": {},
+                    "lastEditedDateTime": {},
+                    "deletedDateTime": {},
+                    "subject": {},
+                    "chatId": {},
+                    "channelIdentity": {},
+                    "from": {},
+                    "body": {},
+                    "attachments": {},
+                    "mentions": {},
+                    "reactions": {},
+                    "importance": {},
+                    "eventDetail": {},
+                    "webUrl": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "post": {
+        "operationId": "chats.messages.send",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats messages: send",
+        "description": "Markdown to Talk; <at id> mentions become @\"uid\".\n\nGraph reference: chat-post-messages",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body {contentType, content}": {},
+                  "mentions[]?": {},
+                  "importance?": {},
+                  "subject?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "replyToId": {},
+                    "etag": {},
+                    "messageType": {},
+                    "createdDateTime": {},
+                    "lastModifiedDateTime": {},
+                    "lastEditedDateTime": {},
+                    "deletedDateTime": {},
+                    "subject": {},
+                    "chatId": {},
+                    "channelIdentity": {},
+                    "from": {},
+                    "body": {},
+                    "attachments": {},
+                    "mentions": {},
+                    "reactions": {},
+                    "importance": {},
+                    "eventDetail": {},
+                    "webUrl": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/chats/{chatId}/messages/{messageId}/setReaction": {
+      "post": {
+        "operationId": "chats.messages.set-reaction",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats messages: set reaction",
+        "description": "Talk reaction (an emoji).\n\nGraph reference: chatmessage-setreaction",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reactionType": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/chats/{chatId}/messages/{messageId}/softDelete": {
+      "post": {
+        "operationId": "chats.messages.soft-delete",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats messages: soft delete",
+        "description": "Talk delete; the message stays with deletedDateTime.\n\nGraph reference: chatmessage-softdelete",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/chats/{chatId}/messages/{messageId}/softDelete": {
+      "post": {
+        "operationId": "chats.messages.soft-delete.users",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats messages: soft delete",
+        "description": "Talk delete; the message stays with deletedDateTime.\n\nGraph reference: chatmessage-softdelete",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/chats/{chatId}/messages/{messageId}/unsetReaction": {
+      "post": {
+        "operationId": "chats.messages.unset-reaction",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats messages: unset reaction",
+        "description": "Removes the caller's reaction.\n\nGraph reference: chatmessage-unsetreaction",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reactionType": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/chats/{chatId}/pinnedMessages": {
+      "post": {
+        "operationId": "chats.pinned.add",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats pinned: add",
+        "description": "Talk pin (moderators); pinned id is the message id.\n\nGraph reference: chat-post-pinnedmessages",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message@odata": {
+                    "type": "object",
+                    "properties": {
+                      "bind": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "chats.pinned.list",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats pinned: list",
+        "description": "Talk pinned messages; $expand=message.\n\nGraph reference: chat-list-pinnedmessages",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "message": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/chats/{chatId}/pinnedMessages/{pinnedMessageId}": {
+      "delete": {
+        "operationId": "chats.pinned.remove",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats pinned: remove",
+        "description": "Talk unpin.\n\nGraph reference: chat-delete-pinnedmessages",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pinnedMessageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/chats/{chatId}/unhideForUser": {
+      "post": {
+        "operationId": "chats.unhide",
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Chats: unhide",
+        "description": "Talk unarchive.\n\nGraph reference: chat-unhideforuser",
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user {id}": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
             "description": "Success."
           },
           "400": {
@@ -33978,6 +37225,1326 @@
         }
       }
     },
+    "/me/onlineMeetings": {
+      "post": {
+        "operationId": "online-meetings.create",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings: create",
+        "description": "A public Talk room, bound to its span; attendees who are users become participants.\n\nGraph reference: application-post-onlinemeetings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subject?": {},
+                  "startDateTime?": {},
+                  "endDateTime?": {},
+                  "participants?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "subject": {},
+                    "startDateTime": {},
+                    "endDateTime": {},
+                    "creationDateTime": {},
+                    "joinWebUrl": {},
+                    "chatInfo": {},
+                    "participants": {},
+                    "joinMeetingIdSettings": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "online-meetings.find",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings: find",
+        "description": "Only $filter=JoinWebUrl eq '…' (Graph's rule); finds calendar events' rooms too.\n\nGraph reference: onlinemeeting-get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "subject": {},
+                    "startDateTime": {},
+                    "endDateTime": {},
+                    "creationDateTime": {},
+                    "joinWebUrl": {},
+                    "chatInfo": {},
+                    "participants": {},
+                    "joinMeetingIdSettings": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/onlineMeetings": {
+      "post": {
+        "operationId": "online-meetings.create.users",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings: create",
+        "description": "A public Talk room, bound to its span; attendees who are users become participants.\n\nGraph reference: application-post-onlinemeetings",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subject?": {},
+                  "startDateTime?": {},
+                  "endDateTime?": {},
+                  "participants?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "subject": {},
+                    "startDateTime": {},
+                    "endDateTime": {},
+                    "creationDateTime": {},
+                    "joinWebUrl": {},
+                    "chatInfo": {},
+                    "participants": {},
+                    "joinMeetingIdSettings": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "online-meetings.find.users",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings: find",
+        "description": "Only $filter=JoinWebUrl eq '…' (Graph's rule); finds calendar events' rooms too.\n\nGraph reference: onlinemeeting-get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "subject": {},
+                    "startDateTime": {},
+                    "endDateTime": {},
+                    "creationDateTime": {},
+                    "joinWebUrl": {},
+                    "chatInfo": {},
+                    "participants": {},
+                    "joinMeetingIdSettings": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/onlineMeetings/{meetingId}": {
+      "delete": {
+        "operationId": "online-meetings.delete",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings: delete",
+        "description": "Closes the room.\n\nGraph reference: onlinemeeting-delete",
+        "parameters": [
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "online-meetings.get",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings: get",
+        "description": "Id t.<token>.\n\nGraph reference: onlinemeeting-get",
+        "parameters": [
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "subject": {},
+                    "startDateTime": {},
+                    "endDateTime": {},
+                    "creationDateTime": {},
+                    "joinWebUrl": {},
+                    "chatInfo": {},
+                    "participants": {},
+                    "joinMeetingIdSettings": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "online-meetings.update",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings: update",
+        "description": "Renames; a changed span unbinds the room (phase 22).\n\nGraph reference: onlinemeeting-update",
+        "parameters": [
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subject?": {},
+                  "startDateTime?": {},
+                  "endDateTime?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "subject": {},
+                    "startDateTime": {},
+                    "endDateTime": {},
+                    "creationDateTime": {},
+                    "joinWebUrl": {},
+                    "chatInfo": {},
+                    "participants": {},
+                    "joinMeetingIdSettings": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/onlineMeetings/{meetingId}": {
+      "delete": {
+        "operationId": "online-meetings.delete.users",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings: delete",
+        "description": "Closes the room.\n\nGraph reference: onlinemeeting-delete",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "online-meetings.get.users",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings: get",
+        "description": "Id t.<token>.\n\nGraph reference: onlinemeeting-get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "subject": {},
+                    "startDateTime": {},
+                    "endDateTime": {},
+                    "creationDateTime": {},
+                    "joinWebUrl": {},
+                    "chatInfo": {},
+                    "participants": {},
+                    "joinMeetingIdSettings": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "online-meetings.update.users",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings: update",
+        "description": "Renames; a changed span unbinds the room (phase 22).\n\nGraph reference: onlinemeeting-update",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subject?": {},
+                  "startDateTime?": {},
+                  "endDateTime?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "subject": {},
+                    "startDateTime": {},
+                    "endDateTime": {},
+                    "creationDateTime": {},
+                    "joinWebUrl": {},
+                    "chatInfo": {},
+                    "participants": {},
+                    "joinMeetingIdSettings": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/onlineMeetings/{meetingId}/recordings/{recordingId}/content": {
+      "get": {
+        "operationId": "online-meetings.recordings.content",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings recordings: content",
+        "description": "Streams the file (audio/video as Talk recorded it).\n\nGraph reference: callrecording-get",
+        "parameters": [
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recordingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/onlineMeetings/{meetingId}/recordings/{recordingId}/content": {
+      "get": {
+        "operationId": "online-meetings.recordings.content.users",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings recordings: content",
+        "description": "Streams the file (audio/video as Talk recorded it).\n\nGraph reference: callrecording-get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recordingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/onlineMeetings/{meetingId}/recordings/{recordingId}": {
+      "get": {
+        "operationId": "online-meetings.recordings.get",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings recordings: get",
+        "description": "Recording id is the file id.\n\nGraph reference: callrecording-get",
+        "parameters": [
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recordingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "meetingId": {},
+                    "createdDateTime": {},
+                    "endDateTime": {},
+                    "recordingContentUrl": {},
+                    "contentCorrelationId": {},
+                    "meetingOrganizer": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/onlineMeetings/{meetingId}/recordings/{recordingId}": {
+      "get": {
+        "operationId": "online-meetings.recordings.get.users",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings recordings: get",
+        "description": "Recording id is the file id.\n\nGraph reference: callrecording-get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recordingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "meetingId": {},
+                    "createdDateTime": {},
+                    "endDateTime": {},
+                    "recordingContentUrl": {},
+                    "contentCorrelationId": {},
+                    "meetingOrganizer": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/onlineMeetings/{meetingId}/recordings": {
+      "get": {
+        "operationId": "online-meetings.recordings.list",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings recordings: list",
+        "description": "Recordings Talk uploaded to the organiser's files for this room.\n\nGraph reference: onlinemeeting-list-recordings",
+        "parameters": [
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "meetingId": {},
+                    "createdDateTime": {},
+                    "endDateTime": {},
+                    "recordingContentUrl": {},
+                    "contentCorrelationId": {},
+                    "meetingOrganizer": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/onlineMeetings/{meetingId}/recordings": {
+      "get": {
+        "operationId": "online-meetings.recordings.list.users",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings recordings: list",
+        "description": "Recordings Talk uploaded to the organiser's files for this room.\n\nGraph reference: onlinemeeting-list-recordings",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "meetingId": {},
+                    "createdDateTime": {},
+                    "endDateTime": {},
+                    "recordingContentUrl": {},
+                    "contentCorrelationId": {},
+                    "meetingOrganizer": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/onlineMeetings/{meetingId}/transcripts/{transcriptId}/content": {
+      "get": {
+        "operationId": "online-meetings.transcripts.content",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings transcripts: content",
+        "description": "text/vtt built from Talk's Markdown transcript (no cue times: one cue per paragraph spanning the recording).\n\nGraph reference: calltranscript-get",
+        "parameters": [
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transcriptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/onlineMeetings/{meetingId}/transcripts/{transcriptId}/content": {
+      "get": {
+        "operationId": "online-meetings.transcripts.content.users",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings transcripts: content",
+        "description": "text/vtt built from Talk's Markdown transcript (no cue times: one cue per paragraph spanning the recording).\n\nGraph reference: calltranscript-get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transcriptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/onlineMeetings/{meetingId}/transcripts/{transcriptId}": {
+      "get": {
+        "operationId": "online-meetings.transcripts.get",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings transcripts: get",
+        "description": "Transcript id is the file id.\n\nGraph reference: calltranscript-get",
+        "parameters": [
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transcriptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "meetingId": {},
+                    "createdDateTime": {},
+                    "endDateTime": {},
+                    "transcriptContentUrl": {},
+                    "contentCorrelationId": {},
+                    "meetingOrganizer": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/onlineMeetings/{meetingId}/transcripts/{transcriptId}": {
+      "get": {
+        "operationId": "online-meetings.transcripts.get.users",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings transcripts: get",
+        "description": "Transcript id is the file id.\n\nGraph reference: calltranscript-get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "transcriptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "meetingId": {},
+                    "createdDateTime": {},
+                    "endDateTime": {},
+                    "transcriptContentUrl": {},
+                    "contentCorrelationId": {},
+                    "meetingOrganizer": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/onlineMeetings/{meetingId}/transcripts": {
+      "get": {
+        "operationId": "online-meetings.transcripts.list",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings transcripts: list",
+        "description": "Transcripts Talk's transcription wrote next to the recordings.\n\nGraph reference: onlinemeeting-list-transcripts",
+        "parameters": [
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "meetingId": {},
+                    "createdDateTime": {},
+                    "endDateTime": {},
+                    "transcriptContentUrl": {},
+                    "contentCorrelationId": {},
+                    "meetingOrganizer": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/onlineMeetings/{meetingId}/transcripts": {
+      "get": {
+        "operationId": "online-meetings.transcripts.list.users",
+        "tags": [
+          "Online-meetings"
+        ],
+        "summary": "Online meetings transcripts: list",
+        "description": "Transcripts Talk's transcription wrote next to the recordings.\n\nGraph reference: onlinemeeting-list-transcripts",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meetingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "meetingId": {},
+                    "createdDateTime": {},
+                    "endDateTime": {},
+                    "transcriptContentUrl": {},
+                    "contentCorrelationId": {},
+                    "meetingOrganizer": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me/outlook/supportedLanguages": {
       "get": {
         "operationId": "outlook.supported-languages",
@@ -34490,6 +39057,692 @@
         }
       }
     },
+    "/me/presence/clearPresence": {
+      "post": {
+        "operationId": "presence.clear",
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Presence: clear",
+        "description": "Back to online.\n\nGraph reference: presence-clearpresence",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/presence/clearPresence": {
+      "post": {
+        "operationId": "presence.clear.users",
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Presence: clear",
+        "description": "Back to online.\n\nGraph reference: presence-clearpresence",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/presence/clearUserPreferredPresence": {
+      "post": {
+        "operationId": "presence.clear-preferred",
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Presence: clear preferred",
+        "description": "Back to online.\n\nGraph reference: presence-clearuserpreferredpresence",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/presence/clearUserPreferredPresence": {
+      "post": {
+        "operationId": "presence.clear-preferred.users",
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Presence: clear preferred",
+        "description": "Back to online.\n\nGraph reference: presence-clearuserpreferredpresence",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/presence": {
+      "get": {
+        "operationId": "presence.get",
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Presence: get",
+        "description": "User status mapped per; another user's via statuses/{uid}.\n\nGraph reference: presence-get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "availability": {},
+                    "activity": {},
+                    "statusMessage": {},
+                    "outOfOfficeSettings": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/presence": {
+      "get": {
+        "operationId": "presence.get.users",
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Presence: get",
+        "description": "User status mapped per; another user's via statuses/{uid}.\n\nGraph reference: presence-get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "availability": {},
+                    "activity": {},
+                    "statusMessage": {},
+                    "outOfOfficeSettings": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/communications/presences/{userId}": {
+      "get": {
+        "operationId": "presence.get-by-id.users",
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Presence: get by id",
+        "description": "Same as /users/{id}/presence.\n\nGraph reference: presence-get",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "availability": {},
+                    "activity": {},
+                    "statusMessage": {},
+                    "outOfOfficeSettings": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/communications/getPresencesByUserId": {
+      "post": {
+        "operationId": "presence.get-by-ids",
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Presence: get by ids",
+        "description": "One statuses/{uid} read per id; unknown ids are left out.\n\nGraph reference: cloudcommunications-getpresencesbyuserid",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "availability": {},
+                    "activity": {},
+                    "statusMessage": {},
+                    "outOfOfficeSettings": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/presence/setPresence": {
+      "post": {
+        "operationId": "presence.set",
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Presence: set",
+        "description": "Sets the user-defined status (one status per user, not per application).\n\nGraph reference: presence-setpresence",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": {},
+                  "availability": {},
+                  "activity": {},
+                  "expirationDuration?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/presence/setPresence": {
+      "post": {
+        "operationId": "presence.set.users",
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Presence: set",
+        "description": "Sets the user-defined status (one status per user, not per application).\n\nGraph reference: presence-setpresence",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": {},
+                  "availability": {},
+                  "activity": {},
+                  "expirationDuration?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/presence/setUserPreferredPresence": {
+      "post": {
+        "operationId": "presence.set-preferred",
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Presence: set preferred",
+        "description": "User-defined status; InACall/InAMeeting set the predefined message.\n\nGraph reference: presence-setuserpreferredpresence",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "availability": {},
+                  "activity": {},
+                  "expirationDuration?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/presence/setUserPreferredPresence": {
+      "post": {
+        "operationId": "presence.set-preferred.users",
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Presence: set preferred",
+        "description": "User-defined status; InACall/InAMeeting set the predefined message.\n\nGraph reference: presence-setuserpreferredpresence",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "availability": {},
+                  "activity": {},
+                  "expirationDuration?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/presence/setStatusMessage": {
+      "post": {
+        "operationId": "presence.set-status-message",
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Presence: set status message",
+        "description": "Custom status message with clearAt.\n\nGraph reference: presence-setstatusmessage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "statusMessage {message {content, contentType}, expiryDateTime?}": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/presence/setStatusMessage": {
+      "post": {
+        "operationId": "presence.set-status-message.users",
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Presence: set status message",
+        "description": "Custom status message with clearAt.\n\nGraph reference: presence-setstatusmessage",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "statusMessage {message {content, contentType}, expiryDateTime?}": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me/findRooms": {
       "get": {
         "operationId": "rooms.find-rooms",
@@ -34793,6 +40046,690 @@
             "description": "Graph beta"
           }
         ]
+      }
+    },
+    "/teams": {
+      "post": {
+        "operationId": "teams.create",
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Teams: create",
+        "description": "Circle, members and the General channel; Location names a succeeded teamsAsyncOperation.\n\nGraph reference: team-post",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "template@odata": {
+                    "type": "object",
+                    "properties": {
+                      "bind (standard)": {}
+                    }
+                  },
+                  "displayName": {},
+                  "description?": {},
+                  "visibility?": {},
+                  "members[]?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/groups/{teamId}": {
+      "delete": {
+        "operationId": "teams.delete",
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Teams: delete",
+        "description": "Deletes the circle and its channels' rooms when the id is a team id; other group ids stay read-only (phase 21).\n\nGraph reference: group-delete",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}": {
+      "get": {
+        "operationId": "teams.get",
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Teams: get",
+        "description": "A circle the caller belongs to.\n\nGraph reference: team-get",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "displayName": {},
+                    "description": {},
+                    "visibility": {},
+                    "createdDateTime": {},
+                    "webUrl": {},
+                    "isArchived": {},
+                    "tenantId": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "teams.update",
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Teams: update",
+        "description": "Renames and redescribes the circle; visibility sets its visible and open flags.\n\nGraph reference: team-update",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName?": {},
+                  "description?": {},
+                  "visibility?": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/joinedTeams": {
+      "get": {
+        "operationId": "teams.joined",
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Teams: joined",
+        "description": "The caller's Nextcloud teams (circles); /users/{x} only for the caller.\n\nGraph reference: user-list-joinedteams",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "displayName": {},
+                    "description": {},
+                    "visibility": {},
+                    "createdDateTime": {},
+                    "webUrl": {},
+                    "isArchived": {},
+                    "tenantId": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/joinedTeams": {
+      "get": {
+        "operationId": "teams.joined.users",
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Teams: joined",
+        "description": "The caller's Nextcloud teams (circles); /users/{x} only for the caller.\n\nGraph reference: user-list-joinedteams",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "displayName": {},
+                    "description": {},
+                    "visibility": {},
+                    "createdDateTime": {},
+                    "webUrl": {},
+                    "isArchived": {},
+                    "tenantId": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/members": {
+      "post": {
+        "operationId": "teams.members.add",
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Teams members: add",
+        "description": "Circle member add; owner is level 8.\n\nGraph reference: team-post-members",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "@odata.type": {},
+                  "user@odata": {
+                    "type": "object",
+                    "properties": {
+                      "bind": {}
+                    }
+                  },
+                  "roles": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "roles": {},
+                    "displayName": {},
+                    "userId": {},
+                    "email": {},
+                    "visibleHistoryStartDateTime": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "get": {
+        "operationId": "teams.members.list",
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Teams members: list",
+        "description": "Circle members; level 8-9 is owner.\n\nGraph reference: team-list-members",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "roles": {},
+                    "displayName": {},
+                    "userId": {},
+                    "email": {},
+                    "visibleHistoryStartDateTime": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/members/{membershipId}": {
+      "get": {
+        "operationId": "teams.members.get",
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Teams members: get",
+        "description": "Membership id m.<circle member id>.\n\nGraph reference: team-get-members",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "membershipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "roles": {},
+                    "displayName": {},
+                    "userId": {},
+                    "email": {},
+                    "visibleHistoryStartDateTime": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "teams.members.remove",
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Teams members: remove",
+        "description": "Circle member remove; not the circle owner (400).\n\nGraph reference: team-delete-members",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "membershipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "teams.members.update",
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Teams members: update",
+        "description": "Circle member level; the circle owner can't be demoted (400).\n\nGraph reference: team-update-members",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "membershipId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "@odata.type": {},
+                  "roles": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "roles": {},
+                    "displayName": {},
+                    "userId": {},
+                    "email": {},
+                    "visibleHistoryStartDateTime": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/teams/{teamId}/operations/{operationId}": {
+      "get": {
+        "operationId": "teams.operation.get",
+        "tags": [
+          "Teams"
+        ],
+        "summary": "Teams operation: get",
+        "description": "Always succeeded; the id encodes the team.\n\nGraph reference: teamsasyncoperation-get",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "operationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "operationType": {},
+                    "status": {},
+                    "targetResourceId": {},
+                    "targetResourceLocation": {},
+                    "createdDateTime": {},
+                    "lastActionDateTime": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
       }
     },
     "/me/todo/lists/{listId}/tasks/{taskId}/attachments": {

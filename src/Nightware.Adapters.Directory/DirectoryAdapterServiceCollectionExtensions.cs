@@ -10,6 +10,7 @@ using Nightware.Adapters.Directory.Core;
 using Nightware.Adapters.Directory.Core.Admin;
 using Nightware.Adapters.Directory.Credentials;
 using Nightware.Application.Common.Identity;
+using Nightware.Adapters.Directory.Chats;
 
 namespace Nightware.Adapters.Directory;
 
@@ -39,7 +40,8 @@ public static class DirectoryAdapterServiceCollectionExtensions
         return services
             .AddDirectoryUsers()
             .AddDirectoryPreferences()
-            .AddDirectorySubscriptions();
+            .AddDirectorySubscriptions()
+            .AddDirectoryChats();
     }
 
     /// <summary>

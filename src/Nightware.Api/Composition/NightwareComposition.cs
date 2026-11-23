@@ -38,6 +38,11 @@ using Nightware.Api.Throttling;
 using Nightware.Application;
 using Nightware.Application.Common.Identity;
 using Nightware.Hosting.Http;
+using Nightware.Api.Features.Chats;
+using Nightware.Api.Features.Teams;
+using Nightware.Api.Features.Presence;
+using Nightware.Api.Features.OnlineMeetings;
+using Nightware.Api.Features.Calls;
 
 namespace Nightware.Api.Composition;
 
@@ -163,7 +168,12 @@ public static class NightwareComposition
                 .MapFilesEndpoints()
                 .MapSecurityEndpoints()
                 .MapSubscriptionsEndpoints()
-                .MapBatchEndpoints();
+                .MapBatchEndpoints()
+                .MapChatsEndpoints()
+                .MapTeamsEndpoints()
+                .MapPresenceEndpoints()
+                .MapOnlineMeetingsEndpoints()
+                .MapCallsEndpoints();
             foreach (var contributor in endpoints.ServiceProvider.GetServices<IGraphEndpointContributor>())
             {
                 contributor.Map(graph);

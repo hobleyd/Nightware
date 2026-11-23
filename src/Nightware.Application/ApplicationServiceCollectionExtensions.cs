@@ -11,6 +11,11 @@ using Nightware.Application.MailboxSettings;
 using Nightware.Application.Files;
 using Nightware.Application.Security;
 using Nightware.Application.Subscriptions;
+using Nightware.Application.Chats;
+using Nightware.Application.Teams;
+using Nightware.Application.Presence;
+using Nightware.Application.OnlineMeetings;
+using Nightware.Application.Calls;
 
 namespace Nightware.Application;
 
@@ -30,5 +35,10 @@ public static class ApplicationServiceCollectionExtensions
             .AddFilesUseCases()
             .AddSecurityUseCases()
             .AddSubscriptionsUseCases()
-            .AddChangesUseCases();
+            .AddChangesUseCases()
+            .AddChatsUseCases()
+            .AddTeamsUseCases()
+            .AddPresenceUseCases()
+            .AddOnlineMeetingsUseCases()
+            .AddCallsUseCases();
 }

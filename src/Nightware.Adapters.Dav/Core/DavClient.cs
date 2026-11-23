@@ -280,69 +280,126 @@ public sealed class DavClient : IDavClient
         return SendMultistatusAsync(SearchMethod, _paths.RootPath, null, body, cancellationToken);
     }
 
-    public Task<Result<JsonElement>> OcsGetAsync(string path, IReadOnlyDictionary<string, string>? query, CancellationToken cancellationToken) =>
-        OcsCoreAsync(HttpMethod.Get, path, query, null, cancellationToken);
-
-    public Task<Result<JsonElement>> OcsSendAsync(HttpMethod method, string path, IReadOnlyDictionary<string, string>? form, CancellationToken cancellationToken)
+    public async Task<Result<JsonElement>> OcsGetAsync(string path, IReadOnlyDictionary<string, string>? query, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(method);
-        return OcsCoreAsync(method, path, null, form ?? new Dictionary<string, string>(), cancellationToken);
+        var response = await OcsExchangeAsync(OcsRequest.Get(path, query), cancellationToken).ConfigureAwait(false);
+        return response.IsSuccess ? response.Value.Data : response.Error;
     }
 
-    private async Task<Result<JsonElement>> OcsCoreAsync(
-        HttpMethod method, string path, IReadOnlyDictionary<string, string>? query, IReadOnlyDictionary<string, string>? form, CancellationToken cancellationToken)
+    public async Task<Result<JsonElement>> OcsSendAsync(HttpMethod method, string path, IReadOnlyDictionary<string, string>? form, CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        if (!DavHrefRules.IsSafeRelative(path))
+        ArgumentNullException.ThrowIfNull(method);
+        var response = await OcsExchangeAsync(new OcsRequest(method, path) { Form = form ?? new Dictionary<string, string>() }, cancellationToken).ConfigureAwait(false);
+        return response.IsSuccess ? response.Value.Data : response.Error;
+    }
+
+    public async Task<Result<OcsResponse>> OcsExchangeAsync(OcsRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Path);
+        if (!DavHrefRules.IsSafeRelative(request.Path))
         {
             return OutsideRoot();
         }
 
-        var parameters = new Dictionary<string, string>(query ?? new Dictionary<string, string>(), StringComparer.Ordinal)
+        var parameters = new Dictionary<string, string>(request.Query ?? new Dictionary<string, string>(), StringComparer.Ordinal)
         {
             ["format"] = "json",
         };
         var queryString = string.Join('&', parameters.Select(p => $"{Uri.EscapeDataString(p.Key)}={Uri.EscapeDataString(p.Value)}"));
-        var uri = new Uri(_paths.Origin, $"{_paths.OcsRootPath}{path}?{queryString}");
+        var uri = new Uri(_paths.Origin, $"{_paths.OcsRootPath}{request.Path}?{queryString}");
 
-        using var response = await SendToAsync(method, uri, r =>
+        // OCS v2 answers failures with the HTTP status too; keep the response so Talk's reason in ocs.data survives.
+        using var response = await SendToAsync(request.Method, uri, r =>
         {
+            foreach (var (name, value) in request.Headers ?? new Dictionary<string, string>())
+            {
+                r.Headers.TryAddWithoutValidation(name, value);
+            }
+
+            r.Headers.Remove("OCS-APIRequest");
             r.Headers.Add("OCS-APIRequest", "true");
+            r.Headers.Accept.Clear();
             r.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            if (form is not null)
+            if (request.Json is { } json)
+            {
+                r.Content = new StringContent(json.ToJsonString(), Encoding.UTF8, "application/json");
+            }
+            else if (request.Form is { } form)
             {
                 r.Content = new FormUrlEncodedContent(form);
             }
-        }, DavRequestIntent.Default, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
+        }, DavRequestIntent.Default, HttpCompletionOption.ResponseContentRead, cancellationToken, keepFailures: true).ConfigureAwait(false);
         if (!response.IsSuccess)
         {
             return response.Error;
         }
 
-        var text = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        var message = response.Message;
+        var text = await ReadErrorBodyAsync(message, cancellationToken).ConfigureAwait(false) ?? string.Empty;
+        JsonElement ocs = default;
+        var parsed = false;
         try
         {
             using var document = JsonDocument.Parse(text);
-            if (!document.RootElement.TryGetProperty("ocs", out var ocs))
+            if (document.RootElement.ValueKind == JsonValueKind.Object && document.RootElement.TryGetProperty("ocs", out var root))
             {
-                return DavErrors.Unavailable("The groupware server returned an unexpected OCS response.");
+                ocs = root.Clone();
+                parsed = true;
             }
-
-            if (ocs.TryGetProperty("meta", out var meta) && meta.TryGetProperty("statuscode", out var statusCode)
-                && statusCode.TryGetInt32(out var code) && code is not (100 or (>= 200 and < 300)))
-            {
-                // The request succeeded, so the credential is cached and its strategy known.
-                var credential = await GetCredentialAsync(cancellationToken).ConfigureAwait(false);
-                var strategy = credential.IsSuccess ? credential.Value.Strategy : CredentialStrategy.PassThrough;
-                return DavErrors.Map((HttpStatusCode)(code == 998 ? 404 : code == 997 ? 401 : code), null, null, DavRequestIntent.Default, strategy);
-            }
-
-            return ocs.TryGetProperty("data", out var data) ? data.Clone() : default;
         }
         catch (JsonException)
         {
-            return DavErrors.Unavailable("The groupware server returned malformed OCS JSON.");
+            // Treated below: a failure keeps its HTTP status, a success without OCS JSON is malformed.
         }
+
+        var status = (int)message.StatusCode;
+        var ocsStatus = parsed && ocs.TryGetProperty("meta", out var meta) && meta.TryGetProperty("statuscode", out var statusCode)
+            && statusCode.TryGetInt32(out var code) ? code : (int?)null;
+        var failed = !message.IsSuccessStatusCode || ocsStatus is { } s && s is not (100 or (>= 200 and < 300));
+        if (failed)
+        {
+            // The request reached the server, so the credential is cached and its strategy known.
+            var credential = await GetCredentialAsync(cancellationToken).ConfigureAwait(false);
+            var strategy = credential.IsSuccess ? credential.Value.Strategy : CredentialStrategy.PassThrough;
+            var mapped = message.IsSuccessStatusCode
+                ? (HttpStatusCode)(ocsStatus == 998 ? 404 : ocsStatus == 997 ? 401 : ocsStatus!.Value)
+                : message.StatusCode;
+            var error = DavErrors.Map(mapped, null, DavErrors.RetryAfterSeconds(message, _timeProvider), DavRequestIntent.Default, strategy);
+            return OcsReason(ocs, parsed) is { } reason && error.Kind is not (ErrorKind.Unknown or ErrorKind.BackendAuthFailed or ErrorKind.Unauthorized)
+                ? error with { Message = $"{error.Message} ({reason})" }
+                : error;
+        }
+
+        if (!parsed)
+        {
+            return DavErrors.Unavailable("The groupware server returned an unexpected OCS response.");
+        }
+
+        var headers = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var header in message.Headers.Concat(message.Content.Headers))
+        {
+            headers[header.Key] = header.Value.ToList();
+        }
+
+        return new OcsResponse(ocs.TryGetProperty("data", out var data) ? data : default, status, headers);
+    }
+
+    /// <summary>The reason an OCS failure gives in <c>ocs.data</c> (Talk's <c>{"error": "…"}</c>) or <c>ocs.meta.message</c>.</summary>
+    private static string? OcsReason(JsonElement ocs, bool parsed)
+    {
+        if (!parsed)
+        {
+            return null;
+        }
+
+        var reason = ocs.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object
+                     && data.TryGetProperty("error", out var e) && e.ValueKind == JsonValueKind.String
+            ? e.GetString()
+            : ocs.TryGetProperty("meta", out var meta) && meta.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String
+                ? m.GetString()
+                : null;
+        return string.IsNullOrWhiteSpace(reason) ? null : reason.Length > 200 ? reason[..200] : reason;
     }
 
     private async Task<Result<DavWriteResult>> PutCoreAsync(string href, Func<HttpContent> content, DavPrecondition precondition, CancellationToken cancellationToken)
@@ -404,7 +461,10 @@ public sealed class DavClient : IDavClient
             : await SendToAsync(method, uri, configure, intent, completion, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<Outcome> SendToAsync(HttpMethod method, Uri uri, Action<HttpRequestMessage> configure, DavRequestIntent intent, HttpCompletionOption completion, CancellationToken cancellationToken)
+    /// <param name="keepFailures">Return a non-success response as it is (OCS reads its body), instead of mapping it.</param>
+    private async Task<Outcome> SendToAsync(
+        HttpMethod method, Uri uri, Action<HttpRequestMessage> configure, DavRequestIntent intent, HttpCompletionOption completion, CancellationToken cancellationToken,
+        bool keepFailures = false)
     {
         var credential = await GetCredentialAsync(cancellationToken).ConfigureAwait(false);
         if (!credential.IsSuccess)
@@ -431,7 +491,7 @@ public sealed class DavClient : IDavClient
             return new Outcome(DavErrors.Unavailable("The groupware server did not respond."));
         }
 
-        if (message.IsSuccessStatusCode)
+        if (message.IsSuccessStatusCode || keepFailures)
         {
             return new Outcome(message);
         }
