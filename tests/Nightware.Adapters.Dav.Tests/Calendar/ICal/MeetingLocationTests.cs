@@ -148,6 +148,30 @@ public sealed class MeetingLocationTests
     }
 
     [Fact]
+    public void An_event_talk_would_fail_on_gets_a_dtend_and_loses_an_empty_summary()
+    {
+        // Talk's listener answers 500 to a PUT without DTEND or with an empty SUMMARY (Talk 25.0.8, probed).
+        var stored = Stored(location: "Boardroom").Replace("DTEND:20261201T100000Z", "DURATION:PT2H", StringComparison.Ordinal)
+            .Replace("SUMMARY:Review", "SUMMARY:", StringComparison.Ordinal);
+
+        var edited = Unfolded(_editor.ApplyPatch(stored, new EventPatch { Location = new Location("Room 2") }, null, Alice).Value);
+
+        edited.ShouldContain("DTEND:20261201T110000Z");
+        edited.ShouldNotContain("DURATION");
+        edited.ShouldNotContain("SUMMARY");
+        edited.ShouldContain(@"LOCATION:Room 2\, " + Link);
+    }
+
+    [Fact]
+    public void A_new_online_event_without_a_subject_has_no_summary()
+    {
+        var ics = _codec.Serialize(new CalendarDocument(null, [Plain() with { Subject = string.Empty, OnlineMeetingUrl = Link, IsOnlineMeeting = true }]));
+
+        ics.ShouldNotContain("SUMMARY");
+        ics.ShouldContain("DTEND:");
+    }
+
+    [Fact]
     public void An_attendees_copy_is_left_as_the_organizer_sent_it()
     {
         var copy = Stored(location: "Boardroom", organizer: "bob@example.com");

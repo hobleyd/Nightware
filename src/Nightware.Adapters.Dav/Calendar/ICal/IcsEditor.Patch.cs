@@ -81,6 +81,7 @@ public sealed partial class IcsEditor
                 var location = MeetingLocation.With(vevent.Location, link);
                 vevent.Properties.Remove("LOCATION");
                 vevent.AddProperty("LOCATION", location);
+                ReadyForTalk(vevent);
             }
 
             if (patch.Attendees is { } attendees)
@@ -432,6 +433,26 @@ public sealed partial class IcsEditor
         {
             attendee.Parameters.Remove(ScheduleForceSend);
             attendee.Parameters.Add(ScheduleForceSend, "REQUEST");
+        }
+    }
+
+    /// <summary>
+    /// Talk's calendar listener fails the whole CalDAV write (500) on an event without DTEND (it reads DTEND unchecked) or
+    /// with an empty SUMMARY (an empty room name): such an event gets a DTEND from its DURATION (or its day), and loses
+    /// the empty SUMMARY (Talk then names the room "Meeting"). Verified on Talk 25.0.8.
+    /// </summary>
+    private static void ReadyForTalk(IcalEvent vevent)
+    {
+        if (vevent.DtEnd is null && vevent.DtStart is { } start)
+        {
+            var length = vevent.Duration ?? (start.HasTime ? Duration.Zero : Duration.FromDays(1));
+            vevent.Properties.Remove("DURATION");
+            vevent.DtEnd = start.Add(length);
+        }
+
+        if (string.IsNullOrWhiteSpace(vevent.Summary))
+        {
+            vevent.Properties.Remove("SUMMARY");
         }
     }
 

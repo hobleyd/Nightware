@@ -212,6 +212,48 @@ public sealed class OnlineMeetingLiveTests
         }
     }
 
+    [Fact]
+    public async Task A_bound_meeting_whose_event_was_deleted_in_a_calendar_gets_a_new_one_and_still_follows()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
+        await using var live = TalkLive.Start();
+        using var alice = await live.Stack.GraphClientAsync("alice", Ct);
+        var subject = "nw-orphan-" + Guid.NewGuid().ToString("N")[..8];
+        var start = DateTimeOffset.UtcNow.AddDays(5);
+        var meeting = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/onlineMeetings", new
+        {
+            subject,
+            startDateTime = start.ToString("O", CultureInfo.InvariantCulture),
+            endDateTime = start.AddHours(1).ToString("O", CultureInfo.InvariantCulture),
+        }, HttpStatusCode.Created);
+        var id = meeting["id"]!.GetValue<string>();
+        var token = meeting["chatInfo"]!["threadId"]!.GetValue<string>();
+        try
+        {
+            // Deleted in a calendar client: into the calendar's trash bin.
+            var href = (await EventsWithLinkAsync(live, token)).Single();
+            using (var deleted = await live.DavAsync("alice", HttpMethod.Delete, href[(href.IndexOf("/remote.php/dav/", StringComparison.Ordinal) + "/remote.php/dav/".Length)..], null, Ct))
+            {
+                deleted.IsSuccessStatusCode.ShouldBeTrue();
+            }
+
+            var moved = start.AddDays(1);
+            var renamed = await SendAsync(alice, HttpMethod.Patch, $"/v1.0/me/onlineMeetings/{id}", new
+            {
+                subject = subject + " (again)",
+                startDateTime = moved.ToString("O", CultureInfo.InvariantCulture),
+                endDateTime = moved.AddHours(1).ToString("O", CultureInfo.InvariantCulture),
+            });
+            renamed["subject"]!.GetValue<string>().ShouldBe(subject + " (again)");
+            await RoomShouldFollowAsync(live, token, subject + " (again)", moved, moved.AddHours(1));
+            (await EventsWithLinkAsync(live, token)).Count.ShouldBe(1);
+        }
+        finally
+        {
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/onlineMeetings/{id}", expected: HttpStatusCode.NoContent);
+        }
+    }
+
     private static string Wall(DateTimeOffset at) => at.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture);
 
     private static string Ical(DateTimeOffset at) => at.UtcDateTime.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture);

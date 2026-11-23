@@ -69,7 +69,16 @@
   send attendees an update for nothing. An attendee's copy is never
   rewritten. NightMail resends the subject with every edit, so in practice
   its first edit upgrades the event, with one "updated" message to
-  attendees. A room already unbound by the old rule stays unbound. The organizer deleting or
+  attendees. A room already unbound by the old rule stays unbound.
+- **Talk's listener runs inside every such write**, and fails it (HTTP 500)
+  for an event without `DTEND` (it reads `DTEND` unchecked) or with an empty
+  `SUMMARY` (an empty room name), probed on Talk 25.0.8. So when the link
+  goes into `LOCATION`, a `DURATION`-only event gets a `DTEND` and an empty
+  `SUMMARY` is dropped (Talk names the room "Meeting"). A subject longer than
+  254 bytes is cut by Talk at a byte boundary plus "…" (multibyte subjects
+  were probed: accepted).
+- Nextcloud's invitation mail shows the link on its "Location:" line as well
+  as "Link:". The organizer deleting or
   cancelling the whole meeting closes the room; one occurrence, or an
   attendee's copy, never does.
 - **Turning an event online later** (`PATCH` with `isOnlineMeeting: true`)

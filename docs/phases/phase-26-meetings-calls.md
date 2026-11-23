@@ -176,7 +176,9 @@ listed and downloaded over Graph with the recorder's start and upload times.
   stay until deleted.
 - **The meeting's event shows in the organiser's calendar** (it is how Talk
   follows it); deleting it there leaves the room as it is (not read-only on
-  this stack, see ADR 0009 D7), and the next PATCH makes a new one.
+  this stack, see ADR 0009 D7), and the next PATCH makes a new one, which
+  Talk follows (verified live: the trashed event doesn't count as a second
+  event for the room).
 - **Recordings started by someone else** are in their files, not the caller's,
   and don't list for the organizer. A user's separate Talk recording folder
   setting isn't visible over the API (the default `{attachments}/Recording` is

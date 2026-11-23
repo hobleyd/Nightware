@@ -447,6 +447,11 @@ public sealed class IcalNetCalendarCodec : IICalendarCodec
         {
             // Talk follows the room owner's event by the link in LOCATION (ADR 0009 D7).
             vevent.Location = MeetingLocation.With(locationText, link);
+            if (string.IsNullOrWhiteSpace(source.Subject))
+            {
+                // Talk's listener fails the write on an empty SUMMARY; without one it names the room "Meeting".
+                vevent.Properties.Remove("SUMMARY");
+            }
         }
         else if (!string.IsNullOrWhiteSpace(locationText))
         {
