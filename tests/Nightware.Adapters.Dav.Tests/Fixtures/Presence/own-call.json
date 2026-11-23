@@ -1,0 +1,1 @@
+{"ocs":{"meta":{"status":"ok","statuscode":200,"message":"OK"},"data":{"userId":"alice","message":"In a call","messageId":"call","messageIsPredefined":true,"icon":"💬","clearAt":null,"status":"busy","statusIsUserDefined":true}}}

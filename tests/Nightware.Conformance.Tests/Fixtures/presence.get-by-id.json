@@ -1,0 +1,37 @@
+{
+  "operationId": "presence.get-by-id",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/presence-get); constructed with the page's example data (example 3's request; the page's response wraps the entity in 'value', which a single-entity GET does not, so the body is the presence itself, with setStatusMessage example 3's message as another user sees it), no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/communications/presences/dc74d9bb-6afe-433d-8eaa-e39d80d3a647",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#communications/presences/$entity",
+      "id": "dc74d9bb-6afe-433d-8eaa-e39d80d3a647",
+      "availability": "Available",
+      "activity": "Available",
+      "outOfOfficeSettings": {
+        "message": null,
+        "isOutOfOffice": false
+      },
+      "statusMessage": {
+        "message": {
+          "content": "Hey I am available now",
+          "contentType": "text"
+        }
+      },
+      "sequenceNumber": "A0129311063"
+    }
+  }
+}

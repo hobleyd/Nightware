@@ -1,0 +1,31 @@
+{
+  "operationId": "presence.get",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/presence-get); constructed with the page's example data (example 2, another user); Nextcloud has no 'Presenting', so the do-not-disturb activity is DoNotDisturb. sequenceNumber is emitted by Graph and not by Nightware (ADR 0009 D6), no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/users/66825e03-7ef5-42da-9069-724602c31f6b/presence",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('66825e03-7ef5-42da-9069-724602c31f6b')/presence/$entity",
+      "id": "66825e03-7ef5-42da-9069-724602c31f6b",
+      "availability": "DoNotDisturb",
+      "activity": "DoNotDisturb",
+      "outOfOfficeSettings": {
+        "message": null,
+        "isOutOfOffice": false
+      },
+      "sequenceNumber": "A0129311063"
+    }
+  }
+}
