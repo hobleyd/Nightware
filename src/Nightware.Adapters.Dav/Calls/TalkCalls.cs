@@ -197,6 +197,7 @@ internal sealed partial class TalkCalls(
         var joined = await dav.OcsExchangeAsync(new OcsRequest(HttpMethod.Post, $"{TalkRooms.CallPath}/{token}")
         {
             Form = new Dictionary<string, string> { ["flags"] = InCall, ["silent"] = "true" },
+            OwnSession = true,
             Headers = CookieHeader(session.Cookie),
         }, cancellationToken).ConfigureAwait(false);
         if (!joined.IsSuccess)
@@ -222,6 +223,7 @@ internal sealed partial class TalkCalls(
             var rung = await dav.OcsExchangeAsync(new OcsRequest(HttpMethod.Post, string.Create(CultureInfo.InvariantCulture, $"{TalkRooms.CallPath}/{token}/ring/{attendeeId}"))
             {
                 Form = new Dictionary<string, string>(),
+                OwnSession = true,
                 Headers = CookieHeader(session.Cookie),
             }, cancellationToken).ConfigureAwait(false);
             if (!rung.IsSuccess)
@@ -298,6 +300,7 @@ internal sealed partial class TalkCalls(
         var joined = await dav.OcsExchangeAsync(new OcsRequest(HttpMethod.Post, $"{TalkRooms.RoomsPath}/{token}/participants/active")
         {
             Form = new Dictionary<string, string> { ["force"] = "true" },
+            OwnSession = true,
         }, cancellationToken).ConfigureAwait(false);
         if (!joined.IsSuccess)
         {
@@ -313,12 +316,14 @@ internal sealed partial class TalkCalls(
         dav.OcsExchangeAsync(new OcsRequest(HttpMethod.Delete, $"{TalkRooms.CallPath}/{token}")
         {
             Query = new Dictionary<string, string> { ["all"] = "true" },
+            OwnSession = true,
             Headers = CookieHeader(cookie),
         }, cancellationToken);
 
     private Task LeaveRoomAsync(string token, string cookie, CancellationToken cancellationToken) =>
         BestEffortAsync("leave the call's room", dav.OcsExchangeAsync(new OcsRequest(HttpMethod.Delete, $"{TalkRooms.RoomsPath}/{token}/participants/active")
         {
+            OwnSession = true,
             Headers = CookieHeader(cookie),
         }, cancellationToken));
 

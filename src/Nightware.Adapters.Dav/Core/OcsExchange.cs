@@ -20,6 +20,12 @@ public sealed record OcsRequest(HttpMethod Method, string Path)
     /// <summary>Extra request headers (e.g. <c>Cookie</c>). <c>Authorization</c> and <c>OCS-APIRequest</c> are the client's own.</summary>
     public IReadOnlyDictionary<string, string>? Headers { get; init; }
 
+    /// <summary>
+    /// The request belongs to a Nextcloud session of its own (a Talk call's), not the user's shared one: its <c>Cookie</c>
+    /// header (if any) is sent as given, and the session cookies the answer sets are left to the caller.
+    /// </summary>
+    public bool OwnSession { get; init; }
+
     public static OcsRequest Get(string path, IReadOnlyDictionary<string, string>? query = null) =>
         new(HttpMethod.Get, path) { Query = query };
 }

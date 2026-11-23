@@ -9,6 +9,12 @@ public static class DavRequestOptions
 {
     /// <summary>The caller's credential, attached by <see cref="DavClient"/> (which lives in the request scope).</summary>
     public static readonly HttpRequestOptionsKey<BackendCredential> Credential = new("Nightware.Dav.Credential");
+
+    /// <summary>
+    /// The request runs in a Nextcloud session of its own (a Talk call's): <see cref="NextcloudSessionHandler"/> sends
+    /// the request's own <c>Cookie</c> header as it is and keeps nothing the response sets.
+    /// </summary>
+    public static readonly HttpRequestOptionsKey<bool> OwnSession = new("Nightware.Dav.OwnSession");
 }
 
 /// <summary>

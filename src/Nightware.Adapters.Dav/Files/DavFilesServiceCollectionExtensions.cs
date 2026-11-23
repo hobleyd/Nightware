@@ -26,13 +26,14 @@ internal static class DavFilesServiceCollectionExtensions
             .ConfigurePrimaryHttpMessageHandler(static (handler, _) => NoCookiesNoRedirects(handler));
         shares.AddResilienceHandler(DavResilience.PipelineName, static (builder, context) =>
             DavResilience.Configure(builder, context.ServiceProvider.GetRequiredService<IOptions<DavOptions>>().Value));
+        shares.WithNightwareUserAgent();
 
         // File-id search: the DavClient pipeline (resilience outermost, then the caller's credential).
         var search = services.AddHttpClient<NextcloudFileIdSearch>(static http => http.Timeout = Timeout.InfiniteTimeSpan)
             .ConfigurePrimaryHttpMessageHandler(static (handler, _) => NoCookiesNoRedirects(handler));
         search.AddResilienceHandler(DavResilience.PipelineName, static (builder, context) =>
             DavResilience.Configure(builder, context.ServiceProvider.GetRequiredService<IOptions<DavOptions>>().Value));
-        search.AddHttpMessageHandler<DavAuthenticationHandler>();
+        search.AddHttpMessageHandler<DavAuthenticationHandler>().WithNextcloudSession().WithNightwareUserAgent();
 
         services.TryAddScoped<ISharedFileReader, NextcloudSharedFileReader>();
 
@@ -41,7 +42,7 @@ internal static class DavFilesServiceCollectionExtensions
             .ConfigurePrimaryHttpMessageHandler(static (handler, _) => NoCookiesNoRedirects(handler));
         app.AddResilienceHandler(DavResilience.PipelineName, static (builder, context) =>
             DavResilience.Configure(builder, context.ServiceProvider.GetRequiredService<IOptions<DavOptions>>().Value));
-        app.AddHttpMessageHandler<DavAuthenticationHandler>();
+        app.AddHttpMessageHandler<DavAuthenticationHandler>().WithNextcloudSession().WithNightwareUserAgent();
         services.TryAddScoped<DriveHomeLocator>();
         services.TryAddScoped<DriveItemLocator>();
         services.TryAddScoped<IDriveStore, NextcloudDriveStore>();

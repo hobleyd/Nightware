@@ -317,6 +317,11 @@ public sealed class DavClient : IDavClient
                 r.Headers.TryAddWithoutValidation(name, value);
             }
 
+            if (request.OwnSession)
+            {
+                r.Options.Set(DavRequestOptions.OwnSession, true);
+            }
+
             r.Headers.Remove("OCS-APIRequest");
             r.Headers.Add("OCS-APIRequest", "true");
             r.Headers.Accept.Clear();

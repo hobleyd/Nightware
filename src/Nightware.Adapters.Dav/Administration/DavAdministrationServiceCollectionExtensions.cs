@@ -30,6 +30,7 @@ public static class DavAdministrationServiceCollectionExtensions
         // Cookie-free and redirect-free: Nextcloud answers Basic with a session cookie, and an unauthenticated
         // request with a redirect to its login page. The pipeline's timeouts govern, not HttpClient.Timeout.
         services.AddHttpClient<NextcloudProvisioningClient>(static http => http.Timeout = Timeout.InfiniteTimeSpan)
+            .WithNightwareUserAgent()
             .ConfigurePrimaryHttpMessageHandler(static (handler, _) =>
             {
                 DavHandlers.DisableRedirects(handler);

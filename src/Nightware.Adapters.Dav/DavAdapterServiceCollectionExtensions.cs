@@ -58,6 +58,8 @@ public static class DavAdapterServiceCollectionExtensions
         services.AddMemoryCache();
         services.TryAddSingleton<DavPaths>();
         services.TryAddTransient<DavAuthenticationHandler>();
+        services.TryAddSingleton<NextcloudSessions>();
+        services.TryAddTransient<NextcloudSessionHandler>();
 
         // Resilience is outermost so every attempt passes through the auth handler again.
         var client = services.AddHttpClient<IDavClient, DavClient>((sp, http) =>
@@ -69,18 +71,21 @@ public static class DavAdapterServiceCollectionExtensions
         client.AddResilienceHandler(DavResilience.PipelineName, (builder, context) =>
             DavResilience.Configure(builder, context.ServiceProvider.GetRequiredService<IOptions<DavOptions>>().Value));
         client.AddHttpMessageHandler<DavAuthenticationHandler>();
+        client.WithNextcloudSession();
+        client.WithNightwareUserAgent();
 
         services.TryAddScoped<IDavPrincipalDiscovery, DavPrincipalDiscovery>();
         services.TryAddScoped<IDavCollectionCatalog, DavCollectionCatalog>();
 
-        services.AddHttpClient(DavHealthProbe.HttpClientName).ConfigurePrimaryHttpMessageHandler(CookieFreeHandler);
+        services.AddHttpClient(DavHealthProbe.HttpClientName).ConfigurePrimaryHttpMessageHandler(CookieFreeHandler).WithNightwareUserAgent();
         services.TryAddSingleton<DavHealthProbe>();
         services.AddHealthChecks().AddCheck<DavHealthCheck>(DavHealthProbe.Name, tags: [DavHealthProbe.Tag]);
     }
 
     // Pooled handlers are shared across callers. Nextcloud answers a bearer request with a session
     // cookie; with cookies on, that cookie would ride along on the next user's request (CSRF 401s at
-    // best, another user's data at worst). Every DAV client must stay cookie-free.
+    // best, another user's data at worst). Every DAV client's primary handler stays cookie-free; the
+    // caller's own session goes back per request through NextcloudSessionHandler, keyed on the caller.
     internal static SocketsHttpHandler CookieFreeHandler() => new() { UseCookies = false };
 
     private static void AddDavCodecs(IServiceCollection services)
