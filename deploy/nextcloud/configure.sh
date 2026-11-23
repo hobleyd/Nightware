@@ -21,6 +21,9 @@ log "Nextcloud: waiting for installation"
 wait_for "nextcloud installed" bash -c "docker compose -p '${COMPOSE_PROJECT_NAME}' exec -T -u www-data nextcloud php occ status --output=json | grep -q '\"installed\":true'"
 
 # --------------------------------------------------------------------- apps
+# docker-compose.yml mounts nightware_talk into custom_apps, so on a fresh volume Docker makes custom_apps (root's)
+# before the image copies Nextcloud in, and the image leaves it so: give it back to www-data, or app:install fails.
+dc exec -T nextcloud chown www-data:www-data /var/www/html/custom_apps
 # activity: the façade's drive delta reads its stream (ADR 0008 D5); circles, user_status and notifications back
 # teams, presence and call rings (ADR 0009 D9). A default install has these, but make sure.
 for app in calendar contacts tasks user_oidc calendar_resource_management richdocuments groupfolders activity spreed circles user_status notifications; do

@@ -122,9 +122,9 @@ listed and downloaded over Graph with the recorder's start and upload times.
   shares each file that lands in a `{recording folder}/{token}/` with the
   conversation, and Graph lists Talk's shared items for the room as the caller
   sees them (`GET chat/{token}/share?objectType=` `audio`, `media`, `file`,
-  and `recording` for Talk's own "Share to chat"; pages of 40, since a file's
-  message is about 1 KB and the OCS client reads at most 64 KiB; at most 25
-  pages a category), keeping files named as the recording server names them
+  and `recording` for Talk's own "Share to chat"; pages of 20, since a file's
+  message is about 1 KB, more with a caption, and the OCS client reads at most
+  64 KiB; at most 50 pages a category), keeping files named as the recording server names them
   (`Recording yyyy-MM-dd HH-mm-ss`, a ` (n)` Nextcloud adds on arrival
   ignored). The caller's own recording folder is still read (phase 26's
   reading), for a file not shared yet or a stack without the app; the two
@@ -204,7 +204,7 @@ listed and downloaded over Graph with the recorder's start and upload times.
 - **Any participant can post a file named like a recording** (`Recording
   2026-… .ogg`) into the chat, and it lists as one of the meeting's recordings.
 - **Shared items are read in full on every request** (four categories, pages
-  of 40, at most 1000 a category): a chat with more audio, video or files than
+  of 20, at most 1000 a category): a chat with more audio, video or files than
   that may hide older recordings. A user's separate Talk recording folder
   setting isn't visible over the API for the own-folder reading (the default
   `{attachments}/Recording` is assumed there; the app reads Talk's setting).

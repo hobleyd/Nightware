@@ -47,10 +47,10 @@ internal sealed partial class TalkMeetingArtifacts(IDavClient dav, DriveHomeLoca
 
     /// <summary>
     /// A page of shared items, and how many pages of each category are read at most. Talk would give 200, but a file's
-    /// message is about a kilobyte and the OCS client reads at most 64 KiB of a reply.
+    /// message is about a kilobyte (more with a caption) and the OCS client reads at most 64 KiB of a reply.
     /// </summary>
-    internal const int SharedPageSize = 40;
-    private const int SharedPages = 25;
+    internal const int SharedPageSize = 20;
+    private const int SharedPages = 50;
 
     private static readonly XName UploadTime = DriveItemMapping.FilesNs + "upload_time";
     private static readonly XName[] Properties =
