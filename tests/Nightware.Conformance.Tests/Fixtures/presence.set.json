@@ -1,0 +1,25 @@
+{
+  "operationId": "presence.set",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/presence-setpresence); constructed with the page's example data, no tenant capture yet",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/users/fa8bf3dc-eca7-46b7-bad1-db199b62afc3/presence/setPresence",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "sessionId": "22553876-f5ab-4529-bffb-cfe50aa89f87",
+      "availability": "Available",
+      "activity": "Available",
+      "expirationDuration": "PT1H"
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {},
+    "body": null
+  }
+}
