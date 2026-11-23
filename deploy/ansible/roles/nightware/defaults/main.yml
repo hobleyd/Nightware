@@ -69,6 +69,7 @@ nightware_ai_summary_model: ""
 # nightware_nextcloud_admin_password:
 # nightware_nextcloud_db_password:
 # nightware_delta_link_key:
+# nightware_calls_key: (openssl rand -hex 32; rotating it only drops calls in progress)
 # nightware_admin_client_secret:
 # nightware_nextcloud_provisioning_password:
 # nightware_grafana_client_secret:
