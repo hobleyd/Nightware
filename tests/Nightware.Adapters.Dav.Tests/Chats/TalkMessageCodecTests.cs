@@ -186,7 +186,7 @@ public sealed class TalkMessageCodecTests
     {
         var channel = new TalkConversation("indwxaa7", "General") { Channel = new ChannelIdentity("team1", "indwxaa7") };
         var post = new TalkMessage(100, "indwxaa7", new TalkActor("users", "alice", "Alice"), DateTimeOffset.UnixEpoch) { Text = "Kick-off", ThreadId = 100, IsThread = true, ThreadTitle = "Plans" };
-        var reply = new TalkMessage(102, "indwxaa7", new TalkActor("users", "bob", "Bob"), DateTimeOffset.UnixEpoch) { Text = "ok", ThreadId = 100 };
+        var reply = new TalkMessage(102, "indwxaa7", new TalkActor("users", "bob", "Bob"), DateTimeOffset.UnixEpoch) { Text = "ok", ThreadId = 100, IsThread = true, ThreadTitle = "Plans" };
 
         var decodedPost = TalkMessageCodec.ToChatMessage(post, channel, Identify)!;
         decodedPost.ChatId.ShouldBeNull();
@@ -194,12 +194,56 @@ public sealed class TalkMessageCodecTests
         decodedPost.Subject.ShouldBe("Plans");
         decodedPost.ReplyToId.ShouldBeNull();
         decodedPost.WebUrl.ShouldBeNull();
-        TalkMessageCodec.ToChatMessage(reply, channel, Identify)!.ReplyToId.ShouldBe("100");
+        var decodedReply = TalkMessageCodec.ToChatMessage(reply, channel, Identify)!;
+        decodedReply.ReplyToId.ShouldBe("100");
+        decodedReply.Subject.ShouldBeNull();
 
         // A chat has no replies or subjects, even when Talk has a thread.
         TalkMessageCodec.ToChatMessage(reply, Chat, Identify)!.ReplyToId.ShouldBeNull();
         TalkMessageCodec.ToChatMessage(post, Chat, Identify)!.Subject.ShouldBeNull();
     }
+
+    [Fact]
+    public void In_a_channel_a_reply_outside_threads_is_a_post_and_a_default_title_is_no_subject()
+    {
+        var channel = new TalkConversation("indwxaa7", "General") { Channel = new ChannelIdentity("team1", "indwxaa7") };
+
+        // Talk's own clients reply with replyTo outside threads; Talk then gives the parent's id as threadId.
+        var quoted = new TalkMessage(213, "indwxaa7", new TalkActor("users", "bob", "Bob"), DateTimeOffset.UnixEpoch) { Text = "ok", ThreadId = 211 };
+        TalkMessageCodec.IsPost(quoted).ShouldBeTrue();
+        TalkMessageCodec.ToChatMessage(quoted, channel, Identify)!.ReplyToId.ShouldBeNull();
+
+        // A post made without a subject took its first line as the thread's title, and reports no subject.
+        var untitled = new TalkMessage(300, "indwxaa7", new TalkActor("users", "alice", "Alice"), DateTimeOffset.UnixEpoch)
+        {
+            Text = "\n  First line  \nmore", ThreadId = 300, IsThread = true, ThreadTitle = "First line",
+        };
+        TalkMessageCodec.IsPost(untitled).ShouldBeTrue();
+        TalkMessageCodec.ToChatMessage(untitled, channel, Identify)!.Subject.ShouldBeNull();
+        TalkMessageCodec.IsThreadReply(untitled).ShouldBeFalse();
+
+        // The title was cut from the sent text (@"bob"); Talk keeps the mention as a placeholder.
+        var mentioning = untitled with { Text = "{mention-user1} see this", ThreadTitle = TalkMessageCodec.DefaultThreadTitle("@\"bob\" see this") };
+        TalkMessageCodec.ToChatMessage(mentioning, channel, Identify)!.Subject.ShouldBeNull();
+
+        // A deleted post's text is Talk's notice, so its title can't be told from a default: it reports none.
+        var deleted = untitled with { MessageType = TalkMessage.CommentDeleted, Text = "Message deleted by you", ThreadTitle = "Plans" };
+        TalkMessageCodec.ToChatMessage(deleted, channel, Identify)!.Subject.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("Hello\nworld", "Hello")]
+    [InlineData("\n\n  spaced  ", "spaced")]
+    [InlineData("", "Post")]
+    [InlineData("@\"bob\"", "Post")]
+    [InlineData("Hi @\"bob\"  and @all\nnext", "Hi and")]
+    [InlineData("Hi {mention-user1}  and {mention-call1}", "Hi and")]
+    public void The_default_thread_title_is_the_first_line_with_text(string text, string title) =>
+        TalkMessageCodec.DefaultThreadTitle(text).ShouldBe(title);
+
+    [Fact]
+    public void The_default_thread_title_is_cut_to_its_limit() =>
+        TalkMessageCodec.DefaultThreadTitle(new string('x', 150)).Length.ShouldBe(TalkMessageCodec.DefaultTitleLength);
 
     [Fact]
     public void A_channel_mention_of_everyone_names_the_channel()

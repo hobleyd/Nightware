@@ -4066,16 +4066,16 @@ operation:
 
 **GET v1.0 `{mailbox}/joinedTeams`** — forms: me, users; success: 200; paging: none
 
-- Client reads: `id`, `displayName`, `description`, `visibility`, `createdDateTime`, `webUrl`, `isArchived`, `tenantId`
+- Client reads: `id`, `displayName`, `description`, `visibility`, `createdDateTime`, `webUrl`, `isArchived`, `internalId`, `classification`, `specialization`, `isMembershipLimitedToOwners`
 - Graph parity (ADR 0006); reference: user-list-joinedteams
-- Notes: The caller's Nextcloud teams (circles); /users/{x} only for the caller (ADR 0009 D5).
+- Notes: The caller's Nextcloud teams (circles); /users/{x} only for the caller (ADR 0009 D5). tenantId and the settings objects are not emitted (no tenant, no counterpart).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/teams.joined.json`
 
 #### `teams.get`
 
 **GET v1.0 `/teams/{teamId}`** — forms: root; success: 200; paging: none
 
-- Client reads: `id`, `displayName`, `description`, `visibility`, `createdDateTime`, `webUrl`, `isArchived`, `tenantId`
+- Client reads: `id`, `displayName`, `description`, `visibility`, `createdDateTime`, `webUrl`, `isArchived`, `internalId`, `classification`, `specialization`, `isMembershipLimitedToOwners`
 - Graph parity (ADR 0006); reference: team-get
 - Notes: A circle the caller belongs to.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/teams.get.json`
@@ -4086,14 +4086,14 @@ operation:
 
 - Request body: `template@odata.bind (standard)`; `displayName`; `description?`; `visibility?`; `members[]?`
 - Graph parity (ADR 0006); reference: team-post
-- Notes: Circle, members and the General channel; Location names a succeeded teamsAsyncOperation.
+- Notes: Circle, members and the General channel; 202 with Location naming a succeeded teamsAsyncOperation (/teams('{id}')/operations('{opId}'), also routed) and Content-Location the team, no body.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/teams.create.json`
 
 #### `teams.operation.get`
 
 **GET v1.0 `/teams/{teamId}/operations/{operationId}`** — forms: root; success: 200; paging: none
 
-- Client reads: `id`, `operationType`, `status`, `targetResourceId`, `targetResourceLocation`, `createdDateTime`, `lastActionDateTime`
+- Client reads: `id`, `operationType`, `status`, `targetResourceId`, `targetResourceLocation`, `createdDateTime`, `lastActionDateTime`, `attemptsCount`, `error`
 - Graph parity (ADR 0006); reference: teamsasyncoperation-get
 - Notes: Always succeeded; the id encodes the team.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/teams.operation.get.json`
@@ -4165,7 +4165,7 @@ operation:
 
 **GET v1.0 `/teams/{teamId}/channels`** — forms: root; success: 200; paging: none
 
-- Client reads: `id`, `displayName`, `description`, `membershipType`, `createdDateTime`, `webUrl`, `email`, `isArchived`
+- Client reads: `id`, `displayName`, `description`, `membershipType`, `createdDateTime`, `webUrl`, `email`, `isArchived`, `isFavoriteByDefault`, `layoutType`
 - Graph parity (ADR 0006); reference: channel-list
 - Notes: The team's Talk resources (teams/{id}/resources); all standard.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.list.json`
@@ -4174,7 +4174,7 @@ operation:
 
 **GET v1.0 `/teams/{teamId}/channels/{channelId}`** — forms: root; success: 200; paging: none
 
-- Client reads: `id`, `displayName`, `description`, `membershipType`, `createdDateTime`, `webUrl`, `email`, `isArchived`
+- Client reads: `id`, `displayName`, `description`, `membershipType`, `createdDateTime`, `webUrl`, `email`, `isArchived`, `isFavoriteByDefault`, `layoutType`
 - Graph parity (ADR 0006); reference: channel-get
 - Notes: A team room by token.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.get.json`
@@ -4184,7 +4184,7 @@ operation:
 **POST v1.0 `/teams/{teamId}/channels`** — forms: root; success: 201; paging: none
 
 - Request body: `displayName`; `description?`; `membershipType? (standard)`
-- Client reads: `id`, `displayName`, `description`, `membershipType`, `createdDateTime`, `webUrl`, `email`, `isArchived`
+- Client reads: `id`, `displayName`, `description`, `membershipType`, `createdDateTime`, `webUrl`, `email`, `isArchived`, `isFavoriteByDefault`, `layoutType`
 - Graph parity (ADR 0006); reference: channel-post
 - Notes: Group room with the team as participant; private and shared are 400.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.create.json`
@@ -4210,7 +4210,7 @@ operation:
 
 **GET v1.0 `/teams/{teamId}/primaryChannel`** — forms: root; success: 200; paging: none
 
-- Client reads: `id`, `displayName`, `description`, `membershipType`, `createdDateTime`, `webUrl`, `email`, `isArchived`
+- Client reads: `id`, `displayName`, `description`, `membershipType`, `createdDateTime`, `webUrl`, `email`, `isArchived`, `isFavoriteByDefault`, `layoutType`
 - Graph parity (ADR 0006); reference: team-get-primarychannel
 - Notes: The team's room with the lowest Talk room id.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.primary.json`
@@ -4302,7 +4302,7 @@ operation:
 
 - Client reads: `id`, `replyToId`, `etag`, `messageType`, `createdDateTime`, `lastModifiedDateTime`, `lastEditedDateTime`, `deletedDateTime`, `subject`, `chatId`, `channelIdentity`, `from`, `body`, `attachments`, `mentions`, `reactions`, `importance`, `eventDetail`, `webUrl`
 - Graph parity (ADR 0006); reference: chatmessage-delta
-- Notes: Talk chat after the token's last message id; edits and deletes re-read their parent (ADR 0009 D5).
+- Notes: First sync: the channel's posts, newest first. Then Talk's chat after the token's last message id: new posts and replies, and the message an edit, delete, rename or reaction is about, re-read (ADR 0009 D5).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.messages.delta.json`
 
 #### `channels.replies.list`
