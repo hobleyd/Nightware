@@ -18,14 +18,17 @@ namespace Nightware.Adapters.Dav.OnlineMeetings;
 /// <item>A meeting is a public room (type 3), the kind phase 22 opens for calendar events, so a calendar event's room is a
 /// meeting too. Its id is <c>t.</c> plus the token; any other room is NotFound.</item>
 /// <item>A meeting with a span is bound to it (object <c>event</c>), so Talk expires the room once the meeting is long
-/// over. Talk can't re-time a bound room and refuses to rename one: a changed span or subject unbinds it, and from then
-/// on the meeting has no known span (and stays until deleted).</item>
+/// over, and has an event in the organiser's calendar (<see cref="TalkMeetingEvents"/>). Talk refuses to rename or re-time
+/// a bound room over its API but follows that event: a changed subject or span changes the event, and Talk the room.
+/// Span and subject are always read from the room.</item>
+/// <item>A meeting without a span is an unbound room with no event: it is renamed directly, and can't gain a span
+/// (Talk has no way to bind a room again).</item>
 /// <item>Attendees who are directory users become participants, so the meeting is in their chats. Others join by the link.</item>
 /// <item>The room has no creation time; its first chat message (<c>conversation_created</c>) gives it, read without
 /// moving the caller's read marker or clearing notifications.</item>
 /// </list>
 /// </summary>
-internal sealed class NextcloudOnlineMeetings(IDavClient dav, TalkPeople people, IOptions<TalkOptions> options) : IOnlineMeetingStore
+internal sealed class NextcloudOnlineMeetings(IDavClient dav, TalkPeople people, TalkMeetingEvents events, IOptions<TalkOptions> options) : IOnlineMeetingStore
 {
     public const string IdPrefix = "t.";
 
@@ -51,10 +54,11 @@ internal sealed class NextcloudOnlineMeetings(IDavClient dav, TalkPeople people,
             }
         }
 
+        var name = TalkRooms.RoomName(options.Value, meeting.Subject);
         var body = new JsonObject
         {
             ["roomType"] = TalkRooms.PublicRoom,
-            ["roomName"] = TalkRooms.RoomName(options.Value, meeting.Subject),
+            ["roomName"] = name,
         };
         if (meeting is { Start: { } start, End: { } end })
         {
@@ -73,9 +77,23 @@ internal sealed class NextcloudOnlineMeetings(IDavClient dav, TalkPeople people,
             return created.Error;
         }
 
-        return Str(created.Value.Data, "token") is { } token && TalkRooms.IsToken(token)
-            ? await ReadAsync(token, cancellationToken).ConfigureAwait(false)
-            : Error.BackendUnavailable("Nextcloud Talk returned no room token.");
+        if (Str(created.Value.Data, "token") is not { } token || !TalkRooms.IsToken(token))
+        {
+            return Error.BackendUnavailable("Nextcloud Talk returned no room token.");
+        }
+
+        if (meeting is { Start: { } from, End: { } to })
+        {
+            // The event is what lets the meeting be renamed and re-timed later: without it the room goes again.
+            var recorded = await events.CreateAsync(token, name, from, to, cancellationToken).ConfigureAwait(false);
+            if (!recorded.IsSuccess)
+            {
+                await CloseAsync(token, cancellationToken).ConfigureAwait(false);
+                return recorded.Error;
+            }
+        }
+
+        return await ReadAsync(token, cancellationToken).ConfigureAwait(false);
     }
 
     public Task<Result<OnlineMeeting>> GetAsync(string meetingId, CancellationToken cancellationToken) =>
@@ -107,17 +125,20 @@ internal sealed class NextcloudOnlineMeetings(IDavClient dav, TalkPeople people,
 
         var name = TalkRooms.RoomName(options.Value, change.Subject);
         var rename = change.ChangesSubject && name != Str(room.Value, "name");
-        var span = TalkRooms.SpanOf(Str(room.Value, "objectType"), Str(room.Value, "objectId"));
-        var retime = change is { Start: { } start, End: { } end } && span is { } bound && (bound.Start != Seconds(start) || bound.End != Seconds(end));
-
-        // Talk can't re-time a bound room, and refuses to rename one (400 "event"): either change unbinds it first.
-        if (span is not null && (rename || retime))
+        if (TalkRooms.SpanOf(Str(room.Value, "objectType"), Str(room.Value, "objectId")) is { } span)
         {
-            var unbound = await dav.OcsSendAsync(HttpMethod.Delete, $"{TalkRooms.RoomsPath}/{token}/object", null, cancellationToken).ConfigureAwait(false);
-            if (!unbound.IsSuccess && unbound.Error.Kind != ErrorKind.Validation)
-            {
-                return unbound.Error;
-            }
+            (DateTimeOffset Start, DateTimeOffset End)? moved = change is { Start: { } start, End: { } end } && (span.Start != Seconds(start) || span.End != Seconds(end))
+                ? (start, end)
+                : null;
+            var changed = rename || moved is not null
+                ? await ChangeEventAsync(token, room.Value, rename ? name : null, moved, span, cancellationToken).ConfigureAwait(false)
+                : Result.Success();
+            return changed.IsSuccess ? await ReadAsync(token, cancellationToken).ConfigureAwait(false) : changed.Error;
+        }
+
+        if (change.ChangesSpan)
+        {
+            return Error.Validation("The meeting was made without a span, and Talk can't give it one now: create a new meeting with startDateTime and endDateTime.", "startDateTime");
         }
 
         if (rename)
@@ -146,9 +167,61 @@ internal sealed class NextcloudOnlineMeetings(IDavClient dav, TalkPeople people,
             return room.Error;
         }
 
+        if (Int(room.Value, "participantType") == Owner)
+        {
+            var found = await events.FindAsync(token, cancellationToken).ConfigureAwait(false);
+            if (!found.IsSuccess)
+            {
+                return found.Error;
+            }
+
+            if (found.Value is { } meetingEvent)
+            {
+                var removed = await events.DeleteAsync(meetingEvent, cancellationToken).ConfigureAwait(false);
+                if (!removed.IsSuccess)
+                {
+                    return removed.Error;
+                }
+            }
+        }
+
         var deleted = await dav.OcsSendAsync(HttpMethod.Delete, $"{TalkRooms.RoomsPath}/{token}", null, cancellationToken).ConfigureAwait(false);
         return deleted.IsSuccess ? Result.Success() : deleted.Error;
     }
+
+    /// <summary>
+    /// Renames and/or re-times a bound room through its event, which Talk follows only for the room's owner. A meeting
+    /// whose event is missing (made before meetings had one, or deleted in a calendar client) gets one now, with the
+    /// meeting's current subject and span for what doesn't change.
+    /// </summary>
+    private async Task<Result> ChangeEventAsync(
+        string token, JsonElement room, string? subject, (DateTimeOffset Start, DateTimeOffset End)? span, (DateTimeOffset Start, DateTimeOffset End) current,
+        CancellationToken cancellationToken)
+    {
+        if (Int(room, "participantType") != Owner)
+        {
+            return Error.Forbidden("Only the meeting's organizer can rename or re-time it.");
+        }
+
+        var found = await events.FindAsync(token, cancellationToken).ConfigureAwait(false);
+        if (!found.IsSuccess)
+        {
+            return found.Error;
+        }
+
+        if (found.Value is { } meetingEvent)
+        {
+            return await events.UpdateAsync(meetingEvent, subject, span, cancellationToken).ConfigureAwait(false);
+        }
+
+        var (start, end) = span ?? current;
+        return await events.CreateAsync(token, subject ?? Str(room, "name") ?? TalkRooms.RoomName(options.Value, null), start, end, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>Closes a room just made for a meeting that could not be completed; a failure leaves it (nothing else to do).</summary>
+    private async Task CloseAsync(string token, CancellationToken cancellationToken) =>
+        await dav.OcsSendAsync(HttpMethod.Delete, $"{TalkRooms.RoomsPath}/{token}", null, cancellationToken).ConfigureAwait(false);
 
     /// <summary>The room token a meeting id names; null for an id this adapter didn't issue.</summary>
     internal static string? TokenOfId(string? meetingId) =>

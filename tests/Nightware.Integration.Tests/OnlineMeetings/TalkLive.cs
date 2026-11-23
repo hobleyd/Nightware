@@ -91,6 +91,33 @@ internal sealed class TalkLive : IAsyncDisposable
         return await Backchannel.SendAsync(request, cancellationToken);
     }
 
+    /// <summary>A CalDAV <c>calendar-query</c> REPORT (Depth 1) on a collection below <c>/remote.php/dav/</c> as <paramref name="user"/>; returns the body.</summary>
+    public async Task<string> ReportAsync(string user, string path, string query, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(new HttpMethod("REPORT"), $"{DevStack.CloudBase}/remote.php/dav/{path}")
+        {
+            Content = new StringContent(query, System.Text.Encoding.UTF8, "application/xml"),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await Stack.NextcloudTokenAsync(user, cancellationToken));
+        request.Headers.Add("Depth", "1");
+        using var response = await Backchannel.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync(cancellationToken);
+    }
+
+    /// <summary>Creates a Talk room directly as <paramref name="user"/> (as an older Nightware did); returns its token.</summary>
+    public async Task<string> CreateRoomAsync(string user, HttpContent form, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{DevStack.CloudBase}/ocs/v2.php/apps/spreed/api/v4/room") { Content = form };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await Stack.NextcloudTokenAsync(user, cancellationToken));
+        request.Headers.Add("OCS-APIRequest", "true");
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        using var response = await Backchannel.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+        return body.GetProperty("ocs").GetProperty("data").GetProperty("token").GetString()!;
+    }
+
     public async ValueTask DisposeAsync()
     {
         Backchannel.Dispose();

@@ -18,7 +18,9 @@ namespace Nightware.Adapters.Dav.Calendar.Talk;
 /// <item>A single meeting's room is bound to the event's span (object type <c>event</c>, id
 /// <c>start#end</c> in Unix seconds), so Talk expires it itself once the meeting is long over
 /// (<c>retention_event_rooms</c>, 28 days by default). A series' room is unbound and stays until closed.</item>
-/// <item>Talk cannot re-time a bound room; a meeting moved later is unbound instead (it stays until closed).</item>
+/// <item>The event carries the link in <c>LOCATION</c> too, so Talk's calendar integration renames and re-times the
+/// bound room whenever the owner's event changes (ADR 0009 D7). A meeting that becomes a series is unbound
+/// (<see cref="KeepAsync"/>), as Talk itself does for an event with a recurrence rule.</item>
 /// </list>
 /// A failure is logged and returned; the event use cases carry on without the room.
 /// </summary>

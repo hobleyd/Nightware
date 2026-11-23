@@ -60,7 +60,10 @@ public sealed class DavCalendarWriterTests : IDisposable
         _h.Serve("PUT", "/remote.php/dav/calendars/alice/personal/*", 201);
         await _h.Writer.CreateAsync(AliceMailbox, Meeting() with { IsOnlineMeeting = true, OnlineMeetingUrl = "https://cloud.example.com/cloud/call/pv8f59mw" }, Ct);
 
-        BodyOf(_h.Requests("PUT").ShouldHaveSingleItem()).ShouldContain("URL:https://cloud.example.com/cloud/call/pv8f59mw");
+        var body = BodyOf(_h.Requests("PUT").ShouldHaveSingleItem());
+        body.ShouldContain("URL:https://cloud.example.com/cloud/call/pv8f59mw");
+        // And after the place in LOCATION, which Talk follows (ADR 0009 D7).
+        body.Replace("\r\n ", string.Empty, StringComparison.Ordinal).ShouldContain(@"LOCATION:Boardroom\, https://cloud.example.com/cloud/call/pv8f59mw" + "\r\n");
     }
 
     [Fact]

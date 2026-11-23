@@ -197,7 +197,7 @@ Mapping, iCalendar → Domain:
   - ROLE OPT-PARTICIPANT or NON-PARTICIPANT → `Optional`.
   - PARTSTAT maps to the response type.
   - On write, RSVP=TRUE is set for NEEDS-ACTION. Rooms whose address matches `Location.LocationEmailAddress` get CUTYPE=ROOM, and other resources get CUTYPE=RESOURCE.
-- **Locations**: LOCATION → `Location`. The location's email comes from the room attendee whose CN matches, or from the only room attendee. Other rooms go into `Locations`.
+- **Locations**: LOCATION → `Location`. The location's email comes from the room attendee whose CN matches, or from the only room attendee. Other rooms go into `Locations`. When the event's `URL` is a Talk link (`…/call/{token}`), LOCATION also carries that link after the place (`{place}, {link}`, written by the codec and by `ApplyPatch` on a change of subject, time, place or link, never on an attendee's copy) so Talk follows the event (ADR 0009 D7); reading strips it again (`MeetingLocation`).
 - **Body**: DESCRIPTION and `X-ALT-DESC;FMTTYPE=text/html` map to `BodyHtml`/`BodyPreview` (255 characters).
 - **ShowAs**: `X-MICROSOFT-CDO-BUSYSTATUS` takes precedence, then TRANSP, then STATUS:TENTATIVE.
 - **Reminder**: the first VALARM becomes the reminder (relative, END-related or absolute).

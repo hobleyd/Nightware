@@ -184,9 +184,10 @@ public sealed class OnlineMeetingRoomsTests
     }
 
     [Fact]
-    public async Task A_patch_that_neither_asks_for_a_room_nor_moves_the_event_reads_nothing()
+    public async Task A_patch_that_neither_asks_for_a_room_nor_makes_a_series_reads_nothing()
     {
         await new UpdateEvent(_writer, Rooms).ExecuteAsync(Me, Id, new EventPatch { Subject = "Renamed", IsOnlineMeeting = false }, Ct);
+        await new UpdateEvent(_writer, Rooms).ExecuteAsync(Me, Id, new EventPatch { Start = Sydney(14), End = Sydney(15) }, Ct);
 
         await _reader.DidNotReceiveWithAnyArgs().GetAsync(default, default, Ct);
     }
@@ -215,21 +216,22 @@ public sealed class OnlineMeetingRoomsTests
     }
 
     [Fact]
-    public async Task A_meeting_moved_later_or_made_a_series_keeps_its_room()
+    public async Task A_moved_or_renamed_meeting_leaves_its_room_to_follow_the_event_and_a_series_keeps_it()
     {
         Current(Stored(Room));
         var update = new UpdateEvent(_writer, Rooms);
 
-        await update.ExecuteAsync(Me, Id, new EventPatch { Start = Sydney(9), End = Sydney(10) }, Ct); // NightMail resends the times
-        await update.ExecuteAsync(Me, Id, new EventPatch { Start = Sydney(8), End = Sydney(9) }, Ct);  // earlier: Talk's expiry still holds
+        // Talk re-times and renames the room from the stored event itself (ADR 0009 D7): nothing to do here.
+        await update.ExecuteAsync(Me, Id, new EventPatch { Start = Sydney(9), End = Sydney(10) }, Ct);
+        await update.ExecuteAsync(Me, Id, new EventPatch { Start = Sydney(8), End = Sydney(9) }, Ct);
+        await update.ExecuteAsync(Me, Id, new EventPatch { Start = Sydney(14), End = Sydney(15), Subject = "Moved" }, Ct);
         await _meetings.DidNotReceiveWithAnyArgs().KeepAsync(null!, Ct);
 
-        await update.ExecuteAsync(Me, Id, new EventPatch { Start = Sydney(14), End = Sydney(15) }, Ct);
         await update.ExecuteAsync(Me, Id, new EventPatch
         {
             Recurrence = new PatternedRecurrence(new RecurrencePattern(RecurrencePatternType.Weekly, 1) { DaysOfWeek = [DayOfWeek.Wednesday] }, new RecurrenceRange(RecurrenceRangeType.NoEnd, new DateOnly(2026, 6, 10))),
         }, Ct);
-        await _meetings.Received(2).KeepAsync(Room, Ct);
+        await _meetings.Received(1).KeepAsync(Room, Ct);
     }
 
     [Fact]
