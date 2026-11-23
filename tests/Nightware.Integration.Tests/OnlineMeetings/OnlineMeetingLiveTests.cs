@@ -186,4 +186,81 @@ public sealed class OnlineMeetingLiveTests
             await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/onlineMeetings/{id}", expected: HttpStatusCode.NoContent);
         }
     }
+
+    /// <summary>
+    /// The stack's <c>nightware_talk</c> app (deploy/nextcloud/apps) shares what lands in alice's recording folder with
+    /// the conversation, so bob, who recorded nothing, lists and reads it with the same ids.
+    /// </summary>
+    [Fact]
+    public async Task A_recording_shared_into_the_conversation_lists_and_downloads_for_every_participant()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
+        await using var live = TalkLive.Start();
+        using var alice = await live.Stack.GraphClientAsync("alice", Ct);
+        using var bobClient = await live.Stack.GraphClientAsync("bob", Ct);
+        var bobId = (await SendAsync(alice, HttpMethod.Get, $"/v1.0/users/{DevStack.Address("bob")}"))["id"]!.GetValue<string>();
+        var meeting = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/onlineMeetings", new
+        {
+            subject = "nw-shared-recording-" + Guid.NewGuid().ToString("N")[..8],
+            participants = new { attendees = new[] { new { identity = new { user = new { id = bobId } } } } },
+        }, HttpStatusCode.Created);
+        var id = meeting["id"]!.GetValue<string>();
+        var token = meeting["chatInfo"]!["threadId"]!.GetValue<string>();
+        // A start of its own, so bob's earlier shares of the same name don't number this one.
+        var start = new DateTimeOffset(2026, 11, 23, 0, 0, 0, TimeSpan.Zero).AddSeconds(Random.Shared.Next(0, 86400));
+        var name = "Recording " + start.ToString("yyyy-MM-dd HH-mm-ss", CultureInfo.InvariantCulture);
+        try
+        {
+            foreach (var folder in new[] { "Talk", "Talk/Recording", $"Talk/Recording/{token}" })
+            {
+                using var _ = await live.DavAsync("alice", new HttpMethod("MKCOL"), $"files/alice/{folder}", null, Ct);
+            }
+
+            var audio = Encoding.ASCII.GetBytes("OggS-shared-" + token);
+            using (var put = await live.DavAsync("alice", HttpMethod.Put, $"files/alice/Talk/Recording/{token}/{Uri.EscapeDataString(name)}.ogg",
+                       new ByteArrayContent(audio) { Headers = { ContentType = new("audio/ogg") } }, Ct))
+            {
+                put.IsSuccessStatusCode.ShouldBeTrue();
+            }
+
+            using (var put = await live.DavAsync("alice", HttpMethod.Put, $"files/alice/Talk/Recording/{token}/{Uri.EscapeDataString(name)}.md",
+                       new StringContent("Shared with the room.\n\nTranscript is AI generated and may contain mistakes\n", Encoding.UTF8, "text/markdown"), Ct))
+            {
+                put.IsSuccessStatusCode.ShouldBeTrue();
+            }
+
+            // The app posted each into the chat once, as alice.
+            var (_, shared) = await live.OcsAsync("bob", HttpMethod.Get, $"apps/spreed/api/v1/chat/{token}/share/overview?limit=20", Ct);
+            var posted = shared.EnumerateObject().SelectMany(c => c.Value.EnumerateArray()).ToList();
+            posted.Select(m => m.GetProperty("messageParameters").GetProperty("file").GetProperty("name").GetString()).Order(StringComparer.Ordinal)
+                .ShouldBe([name + ".md", name + ".ogg"]);
+            posted.ShouldAllBe(m => m.GetProperty("actorId").GetString() == "alice");
+
+            var aliceRecording = (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/onlineMeetings/{id}/recordings"))["value"]!.AsArray().Single()!;
+            var recording = (await SendAsync(bobClient, HttpMethod.Get, $"/v1.0/me/onlineMeetings/{id}/recordings"))["value"]!.AsArray().Single()!;
+            var recordingId = recording["id"]!.GetValue<string>();
+            recordingId.ShouldBe(aliceRecording["id"]!.GetValue<string>());
+            recording["createdDateTime"]!.GetValue<DateTimeOffset>().ShouldBe(start);
+            (await SendAsync(bobClient, HttpMethod.Get, $"/v1.0/me/onlineMeetings/{id}/recordings/{recordingId}"))["id"]!.GetValue<string>().ShouldBe(recordingId);
+            using (var content = await bobClient.GetAsync(LiveStack.Local(recording["recordingContentUrl"]!.GetValue<string>()), Ct))
+            {
+                content.StatusCode.ShouldBe(HttpStatusCode.OK);
+                content.Content.Headers.ContentType!.MediaType.ShouldBe("audio/ogg");
+                (await content.Content.ReadAsByteArrayAsync(Ct)).ShouldBe(audio);
+            }
+
+            var transcript = (await SendAsync(bobClient, HttpMethod.Get, $"/v1.0/me/onlineMeetings/{id}/transcripts"))["value"]!.AsArray().Single()!;
+            transcript["contentCorrelationId"]!.GetValue<string>().ShouldBe(recordingId);
+            using (var vtt = await bobClient.GetAsync(LiveStack.Local(transcript["transcriptContentUrl"]!.GetValue<string>()), Ct))
+            {
+                vtt.StatusCode.ShouldBe(HttpStatusCode.OK);
+                (await vtt.Content.ReadAsStringAsync(Ct)).ShouldContain("Shared with the room.");
+            }
+        }
+        finally
+        {
+            using var _ = await live.DavAsync("alice", HttpMethod.Delete, $"files/alice/Talk/Recording/{token}", null, Ct);
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/onlineMeetings/{id}", expected: HttpStatusCode.NoContent);
+        }
+    }
 }

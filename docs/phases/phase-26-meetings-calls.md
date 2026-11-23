@@ -30,6 +30,25 @@ list/get/content, calls create/get/delete.
   No cue times, no speakers. (Transcription is currently off on the dev stack,
   `call_recording_transcription=no`; the transcripts from phase 22's testing,
   in alice's `Talk/Recording/g4qoq2me/` and `oygp6e5d/`, show the format.)
+- **Sharing a recording (2026-11-23).** Talk's `share-chat` (the
+  notification's "Share to chat") makes a read-only room share
+  (`IShare::TYPE_ROOM`, shared with the token) and posts it with
+  `messageType` `record-audio`/`record-video`, even for a transcript, so it
+  lands in the `recording` shared-item category. Any other room share (the
+  share manager, the Files sharing API) makes Talk post a plain `file_shared`
+  message, categorised by mime type: `.ogg` under `audio`, `.webm` under
+  `media`, `.md` under `file`. The ShareCreatedEvent listener that posts it
+  skips only the `share-chat` route, so calling Talk's `shareToChat` from
+  elsewhere posts twice. It posts as the signed-in user, else (no user, not
+  CLI) Talk's `talk-overwrite-actor-id` session override, else a guest
+  (`failed-to-get-session`): the recording server's chunked upload goes
+  through a public link, where Nextcloud hides any user (incognito), so an
+  unassisted share there is posted by a guest. File events: a WebDAV upload
+  and the chunk assembly (`public.php/dav/uploads/…`) each fire created and
+  written on the final path with the whole file; `newFile` from a background
+  job does too. After a share, `share-chat` for the same file fails ("Already
+  shared", HTTP 500). Each participant sees the file at
+  `{their attachment folder}/{name}` with the owner's file id.
 - **The call session.** `POST room/{token}/participants/active` with the bearer
   answers with Nextcloud's session cookies. Two are needed and sufficient: the
   instance's session cookie (named per instance, e.g. `oc7tfh0d0328`; its value
@@ -64,6 +83,7 @@ list/get/content, calls create/get/delete.
 | Gap | Version |
 |---|---|
 | Online meetings as public Talk rooms: create (bound to its span, directory attendees added as participants), get, find by `JoinWebUrl` (calendar events' rooms too), rename/re-span, delete; recordings and transcripts in the room's recording folder, listed, read and downloaded (transcripts as WebVTT) | 1.66.0 |
+| Recordings and transcripts belong to the conversation (ADR 0009 D7 amendment): the stack's `nightware_talk` Nextcloud app shares each recording, transcript and summary with its conversation as it lands; every participant lists, gets and downloads them with the same ids (the recorder's unshared files still list) | (branch `recordings-room`) |
 | Delegated calls: `POST /communications/calls` rings the targets from the caller's one-to-one room (or a new group room), `GET` reports `establishing`/`established`/`terminated`, `DELETE` ends it; the call id seals the Talk session (`Calls:SealingKey`) | 1.66.0 |
 
 Verified live on the dev stack (`tests/Nightware.Integration.Tests/OnlineMeetings/`,
@@ -97,14 +117,33 @@ listed and downloaded over Graph with the recorder's start and upload times.
   `IUserAccountNames`; guests and email invitees have a name and a null id;
   groups and teams are left out. Unknown attendees on create are skipped (they
   join by the link).
-- **Recordings** are read from the caller's own files (whoever started the
-  recording has them; normally the organizer). `createdDateTime` is the start in
-  the file name, `endDateTime` the upload; a recording and its transcript share
-  the recording's file id as `contentCorrelationId`. Get and content look the id
-  up in the room's folder, so no other file is reachable. Content answers `200`
-  with the bytes (Graph's own shape; the `/content` route already gets the
-  2-minute transfer budget), not the drive's 302; it streams with the drive's
-  `ResponseStream`.
+- **Recordings** (amended 2026-11-23, recordings available to everyone) are
+  the conversation's: the stack's `nightware_talk` app (deploy/README.md)
+  shares each file that lands in a `{recording folder}/{token}/` with the
+  conversation, and Graph lists Talk's shared items for the room as the caller
+  sees them (`GET chat/{token}/share?objectType=` `audio`, `media`, `file`,
+  and `recording` for Talk's own "Share to chat"; pages of 40, since a file's
+  message is about 1 KB and the OCS client reads at most 64 KiB; at most 25
+  pages a category), keeping files named as the recording server names them
+  (`Recording yyyy-MM-dd HH-mm-ss`, a ` (n)` Nextcloud adds on arrival
+  ignored). The caller's own recording folder is still read (phase 26's
+  reading), for a file not shared yet or a stack without the app; the two
+  join by file id. In the own folder any audio or video is a recording, as
+  before; among shared items only recording-server names count.
+- **Ids.** An artifact's id is the file id, which is the same for every
+  participant (a room share is the owner's file; verified: bob's PROPFIND of
+  `Talk/Recording … .ogg` answers alice's `oc:fileid`). Get and content look
+  the id up among the meeting's artifacts, so no other file is reachable.
+  Content reads the file at the caller's own path to it (Talk's
+  `messageParameters.file.path`, checked by a PROPFIND that must answer the
+  same id; a shared file gone from there is left out).
+- **Times.** `createdDateTime` is the start in the file name, `endDateTime`
+  the upload (`nc:upload_time` in the recorder's folder; a participant sees 0
+  there, so the file's last modification, which is when it was written); a
+  recording and its transcript share the recording's file id as
+  `contentCorrelationId`. Content answers `200` with the bytes (Graph's own
+  shape; the `/content` route already gets the 2-minute transfer budget), not
+  the drive's 302; it streams with the drive's `ResponseStream`.
 - **Transcript content** is WebVTT only (`$format=text/vtt` accepted, anything
   else `400`): one cue per paragraph spanning the recording, Talk's last
   paragraph (its localised warning) dropped.
@@ -155,10 +194,20 @@ listed and downloaded over Graph with the recorder's start and upload times.
   no media (ADR 0009 D1).
 - **Re-timing or renaming a meeting unbinds its room**, so Talk no longer
   expires it; it stays until deleted (as phase 22's moved meetings do).
-- **Recordings started by someone else** are in their files, not the caller's,
-  and don't list for the organizer. A user's separate Talk recording folder
-  setting isn't visible over the API (the default `{attachments}/Recording` is
-  assumed).
+- **Recordings need the `nightware_talk` app** to reach anyone but the
+  recorder (deploy/README.md); without it only the recorder lists them (their
+  own folder). Files recorded before the app was enabled are not shared
+  retroactively (the recorder's notification, or the Files app, can still
+  share them; Graph then lists them for everyone).
+- **The recorder's "Share to chat" button stays** in Talk's notification and
+  fails ("Already shared") once the app has shared the file.
+- **Any participant can post a file named like a recording** (`Recording
+  2026-… .ogg`) into the chat, and it lists as one of the meeting's recordings.
+- **Shared items are read in full on every request** (four categories, pages
+  of 40, at most 1000 a category): a chat with more audio, video or files than
+  that may hide older recordings. A user's separate Talk recording folder
+  setting isn't visible over the API for the own-folder reading (the default
+  `{attachments}/Recording` is assumed there; the app reads Talk's setting).
 - **Transcripts have no cue times or speakers** (Talk keeps none). Graph's
   `metadataContent` and the `application/vnd.microsoft.graph.transcript+text`
   format are not offered. A transcript from Talk's transcription itself was not

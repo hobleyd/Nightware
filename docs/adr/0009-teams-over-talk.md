@@ -264,6 +264,14 @@ rule 2):
   The recordings and transcripts routes list the conversation's shared items
   (any participant's view), so every participant gets them, whoever recorded;
   `content` streams the share as the participant sees it.
+  *Corrected (verified live):* the app makes a plain room share through the
+  share manager rather than calling Talk's `shareToChat` (which, called from
+  anywhere but its own route, posts the file twice). Talk then posts it as an
+  ordinary shared file, so it is listed under the `audio`, `media` (video) or
+  `file` (transcript) categories, not `recording`; the routes read all four
+  and keep the recording server's names. The owner is made the poster (the
+  uploads and transcription run with nobody signed in). Ids are the file ids,
+  the same for every participant; the recorder's own unshared files still list.
 - **Calls** (`POST /communications/calls`) are delegated. Graph requires an
   application permission for them; Nightware accepts the caller's own token,
   because there is no bot.
