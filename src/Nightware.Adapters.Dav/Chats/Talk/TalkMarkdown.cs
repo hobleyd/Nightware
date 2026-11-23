@@ -35,7 +35,10 @@ internal static partial class TalkMarkdown
         return Restore(body, fragments).Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\n", "<br>", StringComparison.Ordinal);
     }
 
+    /// <summary>Html-encodes text; the private-use characters that fence rendered fragments are dropped, so no message can forge one.</summary>
     public static string Encode(string text) => text
+        .Replace(Open.ToString(), string.Empty, StringComparison.Ordinal)
+        .Replace(Close.ToString(), string.Empty, StringComparison.Ordinal)
         .Replace("&", "&amp;", StringComparison.Ordinal)
         .Replace("<", "&lt;", StringComparison.Ordinal)
         .Replace(">", "&gt;", StringComparison.Ordinal)
@@ -176,7 +179,8 @@ internal static partial class TalkMarkdown
         // A link's text may hold a fenced code span or mention, so restore until none is left.
         for (var pass = 0; pass < 3 && html.Contains(Open, StringComparison.Ordinal); pass++)
         {
-            html = Fenced().Replace(html, m => fragments[int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture)]);
+            html = Fenced().Replace(html, m =>
+                int.TryParse(m.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var index) && index < fragments.Count ? fragments[index] : string.Empty);
         }
 
         return html;

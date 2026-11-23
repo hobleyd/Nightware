@@ -57,12 +57,6 @@
 - **Users.** A Nextcloud uid is the Keycloak username; Graph user ids are
   Keycloak ids (ADR 0009 D2).
 
-## Operations
-`docs/contract/endpoints.json`, phase 23 (22 operations): chats list/get/create/
-update, hide/unhide, mark read/unread, members list/get/add/remove, messages
-list/get/send/update/softDelete, set/unset reaction, pinned messages
-list/add/remove.
-
 ## Step 0, completed for this phase (Talk 25.0.8, 2026-11-23)
 Probed with alice and bob in a fresh group room; the answers are recorded in
 `tests/Nightware.Adapters.Dav.Tests/Fixtures/Chats/` (host rewritten to
@@ -124,7 +118,8 @@ Probed with alice and bob in a fresh group room; the answers are recorded in
 update, hide/unhide, mark read/unread, members list/get/add/remove, messages
 list/get/send/update/softDelete, set/unset reaction, pinned messages
 list/add/remove. Every chat route is served under `/chats/{id}`,
-`/me/chats/{id}` and `/users/{caller}/chats/{id}`; `POST /chats` is root only.
+`/me/chats/{id}` and `/users/{caller}/chats/{id}`, as Graph's are (the
+contract's notes say so); `POST /chats` is root only.
 
 ## Done
 | Gap | Version |
@@ -151,10 +146,10 @@ made over Graph gets its topic and owners.
   reactions, identities), `TalkIdentities` and `TalkLinks`. `TalkConversation`
   says chat or channel (`channelIdentity`, `replyToId` = the thread, `subject`
   = the thread title). Chat-only code (which rooms are chats) is in `Chats/`.
-- **Paging.** Talk pages include its bookkeeping, so a Graph page reads up to
-  five Talk pages of 100 to fill `$top`. `$skiptoken` is the id of the last
-  message given (Talk's `X-Chat-Last-Given` when a page ends on a Talk page),
-  read as `lastKnownMessageId`. A long run of bookkeeping gives a short page
+- **Paging** (amends ADR 0009 D4). Talk pages include its bookkeeping, so a
+  Graph page reads up to five Talk pages of 100 to fill `$top`. `$skiptoken`
+  is the id of the last message given (Talk's `X-Chat-Last-Given` when a page
+  ends on a Talk page), read as `lastKnownMessageId`. A long run of bookkeeping gives a short page
   with a link. The chat list is one Talk call, paged by offset.
 - **Talk's 304** reaches the adapter as an unknown error (the frozen OCS
   client has no bodiless success); `TalkChatClient.IsNotModified` reads it as
@@ -187,8 +182,14 @@ made over Graph gets its topic and owners.
   `#message_{id}`); without `Talk:PublicBaseUrl` it is `null`, and chats
   still work. The Directory adapter's map is optional in the Dav adapter
   (people then have names and no ids), so the adapter composes on its own.
-- `tenantId`, `summary`, `locale`, `policyViolation` and hosted contents are
-  not emitted.
+- **Shapes checked against the reference pages.** An added member answers
+  `201` with `Location` and no body. `@odata.type` is written on a message's
+  sender and reactions' users, on members and pins, and not on an event's
+  members or initiator, nor a mentioned conversation (as Graph's examples).
+  `isHiddenForAllMembers` is always `false`. A reaction's `displayName` (the
+  emoji's name) and `reactionContentUrl` are `null`. `tenantId`, `summary`,
+  `locale`, `policyViolation`, `messageHistory`, `onBehalfOf` and hosted
+  contents are not emitted.
 
 ## Known gaps
 - A reply in a chat (Talk's `replyTo`) is listed as a plain message: Graph

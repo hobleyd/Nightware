@@ -22,19 +22,8 @@
   "response": {
     "status": 201,
     "headers": {
-      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+      "Location": "/chats/5opkrcg6/members/m.19"
     },
-    "body": {
-      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#chats('5opkrcg6')/members/$entity",
-      "@odata.type": "#microsoft.graph.aadUserConversationMember",
-      "id": "m.19",
-      "roles": [
-        "owner"
-      ],
-      "displayName": "Bob Brown",
-      "visibleHistoryStartDateTime": "0001-01-01T00:00:00Z",
-      "userId": "5d3f2a1b-9c4e-4b7a-8f0d-2e6c1a9b7d44",
-      "email": "bob@example.com"
-    }
+    "body": null
   }
 }

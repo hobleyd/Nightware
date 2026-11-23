@@ -38,6 +38,13 @@ public sealed class TalkMarkdownTests
     }
 
     [Fact]
+    public void A_message_cannot_forge_a_rendered_fragment()
+    {
+        Html("x \uE0007\uE001 **{mention-user1}** \uE00099999999999\uE001").ShouldBe("<p>x 7 <strong><at id=\"0\">Bob Brown</at></strong> 99999999999</p>");
+        TalkMarkdown.PlainToHtml("\uE0000\uE001", _ => "<b>never</b>").ShouldBe("0");
+    }
+
+    [Fact]
     public void Placeholders_are_replaced_and_unknown_ones_kept()
     {
         Html("Hi {mention-user1} and {unknown}").ShouldBe("<p>Hi <at id=\"0\">Bob Brown</at> and {unknown}</p>");

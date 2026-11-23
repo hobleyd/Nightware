@@ -117,8 +117,11 @@ rule 2):
   (reactions, edits, deletes, thread creation, read-only changes) is left out
   of listings, as Teams has no counterpart.
 - **Paging.** Lists are newest first. `$top` is at most 50 (Graph's limit), and
-  `@odata.nextLink`'s `$skiptoken` is Talk's `X-Chat-Last-Given`, read with
-  `lookIntoFuture=0`.
+  `@odata.nextLink`'s `$skiptoken` is a Talk message id read on from with
+  `lookIntoFuture=0`: the last message the page gave, or Talk's
+  `X-Chat-Last-Given` when the page ends where a Talk page did. (Amended in
+  phase 23: Talk's pages include bookkeeping the façade leaves out, so a Graph
+  page can end inside a Talk page.)
 - **Reading never moves the read marker** (`setReadMarker=0`,
   `markNotificationsAsRead=0`). Graph reads don't, and a client listing chats
   must not clear its user's notifications.

@@ -22,6 +22,7 @@
       "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#chats('5opkrcg6')/pinnedMessages",
       "value": [
         {
+          "@odata.type": "#microsoft.graph.pinnedChatMessageInfo",
           "id": "59",
           "message": {
             "id": "59",
@@ -74,6 +75,8 @@
             "reactions": [
               {
                 "reactionType": "👍",
+                "displayName": null,
+                "reactionContentUrl": null,
                 "createdDateTime": "2026-11-21T10:35:00Z",
                 "user": {
                   "application": null,

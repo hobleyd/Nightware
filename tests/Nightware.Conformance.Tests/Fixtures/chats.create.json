@@ -48,7 +48,8 @@
         "isHidden": false,
         "lastMessageReadDateTime": null
       },
-      "onlineMeetingInfo": null
+      "onlineMeetingInfo": null,
+      "isHiddenForAllMembers": false
     }
   }
 }

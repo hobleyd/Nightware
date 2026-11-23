@@ -114,6 +114,8 @@
           "reactions": [
             {
               "reactionType": "👍",
+              "displayName": null,
+              "reactionContentUrl": null,
               "createdDateTime": "2026-11-21T10:35:00Z",
               "user": {
                 "application": null,
@@ -147,7 +149,6 @@
             "visibleHistoryStartDateTime": "0001-01-01T00:00:00Z",
             "members": [
               {
-                "@odata.type": "#microsoft.graph.teamworkUserIdentity",
                 "id": "5d3f2a1b-9c4e-4b7a-8f0d-2e6c1a9b7d44",
                 "displayName": "Bob Brown",
                 "userIdentityType": "aadUser"
@@ -157,7 +158,6 @@
               "application": null,
               "device": null,
               "user": {
-                "@odata.type": "#microsoft.graph.teamworkUserIdentity",
                 "id": "8b081ef6-4792-4def-b2c9-c363a1bf41d5",
                 "displayName": "Alice Anderson",
                 "userIdentityType": "aadUser"

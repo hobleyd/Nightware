@@ -183,9 +183,10 @@ public static class ChatsEndpoints
             return GraphResults.Error(member.Error);
         }
 
+        // Graph answers an added member with its Location only, no body.
         return GraphResults.Match(
             await useCase.ExecuteAsync(chatId, member.Value, cancellationToken).ConfigureAwait(false),
-            added => GraphResults.Created(ConversationMemberDto.From(added), Members(chatId)));
+            added => TypedResults.Created($"/chats/{Uri.EscapeDataString(chatId)}/members/{Uri.EscapeDataString(added.Id)}"));
     }
 
     private static async Task<IResult> RemoveMemberAsync(

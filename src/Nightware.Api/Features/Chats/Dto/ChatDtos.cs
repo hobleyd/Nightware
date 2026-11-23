@@ -24,6 +24,9 @@ public sealed record ChatDto
 
     public TeamworkOnlineMeetingInfoDto? OnlineMeetingInfo { get; init; }
 
+    /// <summary>Talk can't hide a chat from everyone, only for oneself.</summary>
+    public bool IsHiddenForAllMembers { get; init; }
+
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<ConversationMemberDto>? Members { get; init; }
 
@@ -112,6 +115,10 @@ public sealed record ConversationMemberDto
 /// <summary>Graph <c>pinnedChatMessageInfo</c>; <c>message</c> only with <c>$expand=message</c>.</summary>
 public sealed record PinnedChatMessageInfoDto
 {
+    [JsonPropertyName("@odata.type")]
+    [JsonPropertyOrder(-1)]
+    public string ODataType { get; init; } = "#microsoft.graph.pinnedChatMessageInfo";
+
     public required string Id { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -311,10 +318,6 @@ public sealed record ChatMessageMentionedIdentitySetDto
 
 public sealed record TeamworkConversationIdentityDto
 {
-    [JsonPropertyName("@odata.type")]
-    [JsonPropertyOrder(-1)]
-    public string ODataType { get; init; } = "#microsoft.graph.teamworkConversationIdentity";
-
     public required string Id { get; init; }
 
     public string? DisplayName { get; init; }
@@ -326,6 +329,12 @@ public sealed record TeamworkConversationIdentityDto
 public sealed record ChatMessageReactionDto
 {
     public required string ReactionType { get; init; }
+
+    /// <summary>The emoji's name, which Talk doesn't give.</summary>
+    public string? DisplayName { get; init; }
+
+    /// <summary>Only for custom reactions, which Talk doesn't have.</summary>
+    public string? ReactionContentUrl { get; init; }
 
     public DateTimeOffset CreatedDateTime { get; init; }
 
@@ -341,11 +350,13 @@ public sealed record IdentitySetDto
 
     public IdentityDto? User { get; init; }
 
-    public static IdentitySetDto? From(ChatIdentity? identity) => identity switch
+    /// <param name="typed">Whether the identity names its <c>@odata.type</c>: Graph writes it on a message's sender and
+    /// on reactions, not in an event's <c>initiator</c> or members.</param>
+    public static IdentitySetDto? From(ChatIdentity? identity, bool typed = true) => identity switch
     {
         null => null,
-        { Kind: ChatIdentityKind.Application } => new IdentitySetDto { Application = IdentityDto.Application(identity) },
-        _ => new IdentitySetDto { User = IdentityDto.User(identity) },
+        { Kind: ChatIdentityKind.Application } => new IdentitySetDto { Application = IdentityDto.Application(identity, typed) },
+        _ => new IdentitySetDto { User = IdentityDto.User(identity, typed) },
     };
 }
 
@@ -354,7 +365,8 @@ public sealed record IdentityDto
 {
     [JsonPropertyName("@odata.type")]
     [JsonPropertyOrder(-1)]
-    public required string ODataType { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ODataType { get; init; }
 
     public string? Id { get; init; }
 
@@ -366,24 +378,26 @@ public sealed record IdentityDto
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ApplicationIdentityType { get; init; }
 
-    public static IdentityDto User(ChatIdentity identity)
+    public static IdentityDto User(ChatIdentity identity) => User(identity, typed: true);
+
+    public static IdentityDto User(ChatIdentity identity, bool typed)
     {
         ArgumentNullException.ThrowIfNull(identity);
         return new IdentityDto
         {
-            ODataType = "#microsoft.graph.teamworkUserIdentity",
+            ODataType = typed ? "#microsoft.graph.teamworkUserIdentity" : null,
             Id = identity.Id,
             DisplayName = identity.DisplayName,
             UserIdentityType = identity.Kind == ChatIdentityKind.Guest ? "anonymousGuest" : "aadUser",
         };
     }
 
-    public static IdentityDto Application(ChatIdentity identity)
+    public static IdentityDto Application(ChatIdentity identity, bool typed = true)
     {
         ArgumentNullException.ThrowIfNull(identity);
         return new IdentityDto
         {
-            ODataType = "#microsoft.graph.teamworkApplicationIdentity",
+            ODataType = typed ? "#microsoft.graph.teamworkApplicationIdentity" : null,
             Id = identity.Id,
             DisplayName = identity.DisplayName,
             ApplicationIdentityType = "bot",
@@ -398,25 +412,25 @@ public static class EventDetailDtos
     {
         ChatEventDetail.MembersAdded added => new MembersAddedEventMessageDetailDto
         {
-            Members = added.Members.Select(IdentityDto.User).ToList(),
-            Initiator = IdentitySetDto.From(added.Initiator),
+            Members = added.Members.Select(m => IdentityDto.User(m, typed: false)).ToList(),
+            Initiator = IdentitySetDto.From(added.Initiator, typed: false),
         },
         ChatEventDetail.MembersDeleted deleted => new MembersDeletedEventMessageDetailDto
         {
-            Members = deleted.Members.Select(IdentityDto.User).ToList(),
-            Initiator = IdentitySetDto.From(deleted.Initiator),
+            Members = deleted.Members.Select(m => IdentityDto.User(m, typed: false)).ToList(),
+            Initiator = IdentitySetDto.From(deleted.Initiator, typed: false),
         },
         ChatEventDetail.ChatRenamed renamed => new ChatRenamedEventMessageDetailDto
         {
             ChatId = renamed.ChatId,
             ChatDisplayName = renamed.ChatDisplayName,
-            Initiator = IdentitySetDto.From(renamed.Initiator),
+            Initiator = IdentitySetDto.From(renamed.Initiator, typed: false),
         },
         ChatEventDetail.CallEnded ended => new CallEndedEventMessageDetailDto
         {
             CallDuration = ended.Duration is { } duration ? XmlConvert.ToString(duration) : null,
-            CallParticipants = ended.Participants.Select(p => new CallParticipantInfoDto { Participant = IdentitySetDto.From(p) }).ToList(),
-            Initiator = IdentitySetDto.From(ended.Initiator),
+            CallParticipants = ended.Participants.Select(p => new CallParticipantInfoDto { Participant = IdentitySetDto.From(p, typed: false) }).ToList(),
+            Initiator = IdentitySetDto.From(ended.Initiator, typed: false),
         },
         _ => null,
     };

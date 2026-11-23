@@ -184,12 +184,17 @@ public sealed class ChatLiveTests
             // Members: bob leaves, alice adds him back (a new membership), then removes him.
             await SendAsync(bob, HttpMethod.Delete, $"/v1.0/chats/{chatId}/members/{bobsMembership}", expected: HttpStatusCode.NoContent);
             await SendAsync(bob, HttpMethod.Get, $"/v1.0/chats/{chatId}", expected: HttpStatusCode.NotFound);
-            var readded = await SendAsync(alice, HttpMethod.Post, $"/v1.0/chats/{chatId}/members",
-                new Dictionary<string, object> { ["@odata.type"] = "#microsoft.graph.aadUserConversationMember", ["roles"] = Array.Empty<string>(), ["user@odata.bind"] = $"https://graph.microsoft.com/v1.0/users('{bobId}')" },
-                HttpStatusCode.Created);
-            readded["userId"]!.GetValue<string>().ShouldBe(bobId);
-            Id(readded).ShouldNotBe(bobsMembership);
-            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/chats/{chatId}/members/{Id(readded)}", expected: HttpStatusCode.NoContent);
+            // Graph answers an added member with its Location only.
+            using var add = new HttpRequestMessage(HttpMethod.Post, $"/v1.0/chats/{chatId}/members")
+            {
+                Content = JsonContent.Create(new Dictionary<string, object> { ["@odata.type"] = "#microsoft.graph.aadUserConversationMember", ["roles"] = Array.Empty<string>(), ["user@odata.bind"] = $"https://graph.microsoft.com/v1.0/users('{bobId}')" }),
+            };
+            using var added = await alice.SendAsync(add, Ct);
+            added.StatusCode.ShouldBe(HttpStatusCode.Created, await added.Content.ReadAsStringAsync(Ct));
+            var readded = added.Headers.Location!.OriginalString.Split('/')[^1];
+            readded.ShouldNotBe(bobsMembership);
+            (await SendAsync(alice, HttpMethod.Get, $"/v1.0/chats/{chatId}/members/{readded}"))["userId"]!.GetValue<string>().ShouldBe(bobId);
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/chats/{chatId}/members/{readded}", expected: HttpStatusCode.NoContent);
         }
         finally
         {

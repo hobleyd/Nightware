@@ -31,7 +31,8 @@
         "isHidden": false,
         "lastMessageReadDateTime": "2026-11-21T10:35:00Z"
       },
-      "onlineMeetingInfo": null
+      "onlineMeetingInfo": null,
+      "isHiddenForAllMembers": false
     }
   }
 }

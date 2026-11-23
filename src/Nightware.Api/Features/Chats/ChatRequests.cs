@@ -117,8 +117,10 @@ internal static partial class ChatRequests
             return Error.Validation($"A member needs '{UserBind}'.", UserBind);
         }
 
-        var roles = body["roles"] is JsonArray array ? array.Select(r => r?.GetValue<string>()).ToList() : [];
-        if (roles.Any(r => r is not null && !r.Equals(ChatMember.OwnerRole, StringComparison.OrdinalIgnoreCase) && !r.Equals("guest", StringComparison.OrdinalIgnoreCase)))
+        var roles = body["roles"] is JsonArray array
+            ? array.Select(r => r is JsonValue v && v.TryGetValue<string>(out var role) ? role : "").ToList()
+            : [];
+        if (roles.Any(r => !r.Equals(ChatMember.OwnerRole, StringComparison.OrdinalIgnoreCase) && !r.Equals("guest", StringComparison.OrdinalIgnoreCase)))
         {
             return Error.Validation("A member's roles are [] or [\"owner\"].", "roles");
         }

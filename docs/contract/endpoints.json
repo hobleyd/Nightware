@@ -12847,7 +12847,8 @@
       "lastUpdatedDateTime",
       "webUrl",
       "viewpoint",
-      "onlineMeetingInfo"
+      "onlineMeetingInfo",
+      "isHiddenForAllMembers"
     ],
     "successStatus": 200,
     "paging": "nextLink",
@@ -12855,7 +12856,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chat-list",
-    "notes": "The caller's Talk conversations (ADR 0009 D3): one-to-one, group, meeting. Note to self, changelog, sample and channel rooms left out. /users/{x} only for the caller. $top up to 50; $expand=members and lastMessagePreview."
+    "notes": "The caller's Talk conversations (ADR 0009 D3): one-to-one, group, meeting. Note to self, changelog, sample and channel rooms left out. /users/{x} only for the caller. $top up to 50; $expand=members and lastMessagePreview. Also served as GET /chats."
   },
   {
     "id": "chats.get",
@@ -12885,7 +12886,8 @@
       "lastUpdatedDateTime",
       "webUrl",
       "viewpoint",
-      "onlineMeetingInfo"
+      "onlineMeetingInfo",
+      "isHiddenForAllMembers"
     ],
     "successStatus": 200,
     "paging": "none",
@@ -12929,7 +12931,8 @@
       "lastUpdatedDateTime",
       "webUrl",
       "viewpoint",
-      "onlineMeetingInfo"
+      "onlineMeetingInfo",
+      "isHiddenForAllMembers"
     ],
     "successStatus": 201,
     "paging": "none",
@@ -12971,7 +12974,8 @@
       "lastUpdatedDateTime",
       "webUrl",
       "viewpoint",
-      "onlineMeetingInfo"
+      "onlineMeetingInfo",
+      "isHiddenForAllMembers"
     ],
     "successStatus": 200,
     "paging": "none",
@@ -12979,7 +12983,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chat-patch",
-    "notes": "Renames a group conversation. A one-to-one chat has no topic (400)."
+    "notes": "Renames a group conversation. A one-to-one chat has no topic (400). Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.hide",
@@ -13012,7 +13016,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chat-hideforuser",
-    "notes": "Talk archive."
+    "notes": "Talk archive. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.unhide",
@@ -13045,7 +13049,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chat-unhideforuser",
-    "notes": "Talk unarchive."
+    "notes": "Talk unarchive. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.mark-read",
@@ -13078,7 +13082,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chat-markchatreadforuser",
-    "notes": "Read marker to the newest message."
+    "notes": "Read marker to the newest message. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.mark-unread",
@@ -13112,7 +13116,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chat-markchatunreadforuser",
-    "notes": "Talk's mark-unread; lastMessageReadDateTime is ignored."
+    "notes": "Talk's mark-unread; lastMessageReadDateTime is ignored. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.members.list",
@@ -13148,7 +13152,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chat-list-members",
-    "notes": "Room participants of type users; owners and moderators carry roles [owner]."
+    "notes": "Room participants of type users; owners and moderators carry roles [owner]. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.members.get",
@@ -13184,7 +13188,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chat-get-members",
-    "notes": "Membership id m.<attendeeId> (ADR 0009 D2)."
+    "notes": "Membership id m.<attendeeId> (ADR 0009 D2). Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.members.add",
@@ -13213,21 +13217,14 @@
         "visibleHistoryStartDateTime?"
       ]
     },
-    "responseFields": [
-      "id",
-      "roles",
-      "displayName",
-      "userId",
-      "email",
-      "visibleHistoryStartDateTime"
-    ],
+    "responseFields": [],
     "successStatus": 201,
     "paging": "none",
     "clientErrorHandling": "",
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chat-post-members",
-    "notes": "Talk add participant; history is always visible."
+    "notes": "Talk add participant; history is always visible. 201 with Location and no body, as Graph's. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.members.remove",
@@ -13256,7 +13253,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chat-delete-members",
-    "notes": "Talk remove attendee, or leaving when it is the caller."
+    "notes": "Talk remove attendee, or leaving when it is the caller. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.messages.list",
@@ -13305,7 +13302,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chat-list-messages",
-    "notes": "Newest first; $top up to 50; $skiptoken is Talk's X-Chat-Last-Given (ADR 0009 D4). Never moves the read marker."
+    "notes": "Newest first; $top up to 50; $skiptoken is Talk's X-Chat-Last-Given (ADR 0009 D4). Never moves the read marker. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.messages.get",
@@ -13354,7 +13351,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chatmessage-get",
-    "notes": "One message (Talk chat context of the id)."
+    "notes": "One message (Talk chat context of the id). Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.messages.send",
@@ -13410,7 +13407,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chat-post-messages",
-    "notes": "Markdown to Talk; <at id> mentions become @\"uid\" (ADR 0009 D4)."
+    "notes": "Markdown to Talk; <at id> mentions become @\"uid\" (ADR 0009 D4). Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.messages.update",
@@ -13444,7 +13441,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chatmessage-update",
-    "notes": "Talk edit; the sender only."
+    "notes": "Talk edit; the sender only. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.messages.soft-delete",
@@ -13474,7 +13471,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chatmessage-softdelete",
-    "notes": "Talk delete; the message stays with deletedDateTime."
+    "notes": "Talk delete; the message stays with deletedDateTime. Also served as /chats/{chatId}/messages/{messageId}/softDelete."
   },
   {
     "id": "chats.messages.set-reaction",
@@ -13507,7 +13504,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chatmessage-setreaction",
-    "notes": "Talk reaction (an emoji)."
+    "notes": "Talk reaction (an emoji). Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.messages.unset-reaction",
@@ -13540,7 +13537,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chatmessage-unsetreaction",
-    "notes": "Removes the caller's reaction."
+    "notes": "Removes the caller's reaction. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.pinned.list",
@@ -13572,7 +13569,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chat-list-pinnedmessages",
-    "notes": "Talk pinned messages; $expand=message."
+    "notes": "Talk pinned messages; $expand=message. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.pinned.add",
@@ -13607,7 +13604,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chat-post-pinnedmessages",
-    "notes": "Talk pin (moderators); pinned id is the message id."
+    "notes": "Talk pin (moderators); pinned id is the message id. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "chats.pinned.remove",
@@ -13636,7 +13633,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chat-delete-pinnedmessages",
-    "notes": "Talk unpin."
+    "notes": "Talk unpin. Also served under {mailbox}/chats/{chatId}… (Graph's /users/{id}/chats/{chatId}… paths; /users/{x} only for the caller)."
   },
   {
     "id": "teams.joined",

@@ -21,6 +21,7 @@
     },
     "body": {
       "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#chats('5opkrcg6')/pinnedMessages/$entity",
+      "@odata.type": "#microsoft.graph.pinnedChatMessageInfo",
       "id": "76"
     }
   }
