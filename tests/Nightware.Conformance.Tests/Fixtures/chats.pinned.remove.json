@@ -1,0 +1,19 @@
+{
+  "operationId": "chats.pinned.remove",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/chat-delete-pinnedmessages); constructed with example.com data and Talk-shaped ids (ADR 0009 D2), no tenant capture yet",
+  "request": {
+    "method": "DELETE",
+    "path": "/v1.0/chats/5opkrcg6/pinnedMessages/59",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 204,
+    "headers": {},
+    "body": null
+  }
+}

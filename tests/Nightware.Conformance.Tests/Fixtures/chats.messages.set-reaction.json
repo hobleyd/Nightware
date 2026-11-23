@@ -1,0 +1,22 @@
+{
+  "operationId": "chats.messages.set-reaction",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/chatmessage-setreaction); constructed with example.com data and Talk-shaped ids (ADR 0009 D2), no tenant capture yet",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/chats/5opkrcg6/messages/59/setReaction",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "reactionType": "💘"
+    }
+  },
+  "response": {
+    "status": 204,
+    "headers": {},
+    "body": null
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "operationId": "chats.unhide",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/chat-unhideforuser); constructed with example.com data and Talk-shaped ids (ADR 0009 D2), no tenant capture yet",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/chats/5opkrcg6/unhideForUser",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "user": {
+        "id": "conformance-user",
+        "tenantId": "2a690434-97d9-4eed-83a6-f5f13600199a"
+      }
+    }
+  },
+  "response": {
+    "status": 204,
+    "headers": {},
+    "body": null
+  }
+}

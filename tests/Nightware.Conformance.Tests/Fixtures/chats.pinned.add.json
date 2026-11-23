@@ -1,0 +1,27 @@
+{
+  "operationId": "chats.pinned.add",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/chat-post-pinnedmessages); constructed with example.com data and Talk-shaped ids (ADR 0009 D2), no tenant capture yet",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/chats/5opkrcg6/pinnedMessages",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "message@odata.bind": "https://graph.microsoft.com/v1.0/chats/5opkrcg6/messages/76"
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#chats('5opkrcg6')/pinnedMessages/$entity",
+      "id": "76"
+    }
+  }
+}

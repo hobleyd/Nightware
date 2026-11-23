@@ -1,0 +1,37 @@
+{
+  "operationId": "chats.update",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/chat-patch); constructed with example.com data and Talk-shaped ids (ADR 0009 D2), no tenant capture yet",
+  "request": {
+    "method": "PATCH",
+    "path": "/v1.0/chats/5opkrcg6",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "topic": "Project review (Q4)"
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#chats/$entity",
+      "id": "5opkrcg6",
+      "topic": "Project review (Q4)",
+      "createdDateTime": null,
+      "lastUpdatedDateTime": "2026-11-21T10:35:00Z",
+      "chatType": "group",
+      "webUrl": "https://cloud.example.com/call/5opkrcg6",
+      "viewpoint": {
+        "isHidden": false,
+        "lastMessageReadDateTime": "2026-11-21T10:35:00Z"
+      },
+      "onlineMeetingInfo": null
+    }
+  }
+}
