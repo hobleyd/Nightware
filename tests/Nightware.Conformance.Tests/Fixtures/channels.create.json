@@ -1,0 +1,38 @@
+{
+  "operationId": "channels.create",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/channel-post); constructed with example.com data and Nextcloud/Talk-shaped ids (ADR 0009 D2), no tenant capture yet",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/teams/Pq7Xk2LmN9vRt4WzYc8BdHf3JsQa6Ue/channels",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "displayName": "Design",
+      "description": "UI and UX work",
+      "membershipType": "standard"
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#teams('Pq7Xk2LmN9vRt4WzYc8BdHf3JsQa6Ue')/channels/$entity",
+      "id": "hktd6xvp",
+      "createdDateTime": null,
+      "displayName": "Design",
+      "description": "UI and UX work",
+      "isFavoriteByDefault": null,
+      "email": "",
+      "webUrl": "https://cloud.example.com/call/hktd6xvp",
+      "membershipType": "standard",
+      "layoutType": "post",
+      "isArchived": false
+    }
+  }
+}

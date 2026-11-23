@@ -13664,7 +13664,10 @@
       "createdDateTime",
       "webUrl",
       "isArchived",
-      "tenantId"
+      "internalId",
+      "classification",
+      "specialization",
+      "isMembershipLimitedToOwners"
     ],
     "successStatus": 200,
     "paging": "none",
@@ -13672,7 +13675,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "user-list-joinedteams",
-    "notes": "The caller's Nextcloud teams (circles); /users/{x} only for the caller (ADR 0009 D5)."
+    "notes": "The caller's Nextcloud teams (circles); /users/{x} only for the caller (ADR 0009 D5). tenantId and the settings objects are not emitted (no tenant, no counterpart)."
   },
   {
     "id": "teams.get",
@@ -13702,7 +13705,10 @@
       "createdDateTime",
       "webUrl",
       "isArchived",
-      "tenantId"
+      "internalId",
+      "classification",
+      "specialization",
+      "isMembershipLimitedToOwners"
     ],
     "successStatus": 200,
     "paging": "none",
@@ -13747,7 +13753,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "team-post",
-    "notes": "Circle, members and the General channel; Location names a succeeded teamsAsyncOperation."
+    "notes": "Circle, members and the General channel; 202 with Location naming a succeeded teamsAsyncOperation (/teams('{id}')/operations('{opId}'), also routed) and Content-Location the team, no body."
   },
   {
     "id": "teams.operation.get",
@@ -13776,7 +13782,9 @@
       "targetResourceId",
       "targetResourceLocation",
       "createdDateTime",
-      "lastActionDateTime"
+      "lastActionDateTime",
+      "attemptsCount",
+      "error"
     ],
     "successStatus": 200,
     "paging": "none",
@@ -14062,7 +14070,9 @@
       "createdDateTime",
       "webUrl",
       "email",
-      "isArchived"
+      "isArchived",
+      "isFavoriteByDefault",
+      "layoutType"
     ],
     "successStatus": 200,
     "paging": "none",
@@ -14100,7 +14110,9 @@
       "createdDateTime",
       "webUrl",
       "email",
-      "isArchived"
+      "isArchived",
+      "isFavoriteByDefault",
+      "layoutType"
     ],
     "successStatus": 200,
     "paging": "none",
@@ -14144,7 +14156,9 @@
       "createdDateTime",
       "webUrl",
       "email",
-      "isArchived"
+      "isArchived",
+      "isFavoriteByDefault",
+      "layoutType"
     ],
     "successStatus": 201,
     "paging": "none",
@@ -14245,7 +14259,9 @@
       "createdDateTime",
       "webUrl",
       "email",
-      "isArchived"
+      "isArchived",
+      "isFavoriteByDefault",
+      "layoutType"
     ],
     "successStatus": 200,
     "paging": "none",
@@ -14657,7 +14673,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "chatmessage-delta",
-    "notes": "Talk chat after the token's last message id; edits and deletes re-read their parent (ADR 0009 D5)."
+    "notes": "First sync: the channel's posts, newest first. Then Talk's chat after the token's last message id: new posts and replies, and the message an edit, delete, rename or reaction is about, re-read (ADR 0009 D5)."
   },
   {
     "id": "channels.replies.list",

@@ -1,0 +1,36 @@
+{
+  "operationId": "teams.create",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/team-post); constructed with example.com data and Nextcloud/Talk-shaped ids (ADR 0009 D2), no tenant capture yet",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/teams",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "template@odata.bind": "https://graph.microsoft.com/v1.0/teamsTemplates('standard')",
+      "displayName": "Project Phoenix",
+      "description": "Planning the Phoenix launch",
+      "members": [
+        {
+          "@odata.type": "#microsoft.graph.aadUserConversationMember",
+          "roles": [
+            "owner"
+          ],
+          "user@odata.bind": "https://graph.microsoft.com/v1.0/users('5d3f2a1b-9c4e-4b7a-8f0d-2e6c1a9b7d44')"
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 202,
+    "headers": {
+      "Location": "/teams('Pq7Xk2LmN9vRt4WzYc8BdHf3JsQa6Ue')/operations('create.Pq7Xk2LmN9vRt4WzYc8BdHf3JsQa6Ue')",
+      "Content-Location": "/teams('Pq7Xk2LmN9vRt4WzYc8BdHf3JsQa6Ue')"
+    },
+    "body": null
+  }
+}

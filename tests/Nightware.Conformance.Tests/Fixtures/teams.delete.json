@@ -1,0 +1,19 @@
+{
+  "operationId": "teams.delete",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/group-delete); constructed with example.com data and Nextcloud/Talk-shaped ids (ADR 0009 D2), no tenant capture yet",
+  "request": {
+    "method": "DELETE",
+    "path": "/v1.0/groups/Pq7Xk2LmN9vRt4WzYc8BdHf3JsQa6Ue",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 204,
+    "headers": {},
+    "body": null
+  }
+}

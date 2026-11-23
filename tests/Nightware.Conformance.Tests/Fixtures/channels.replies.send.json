@@ -1,0 +1,63 @@
+{
+  "operationId": "channels.replies.send",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/chatmessage-post-replies); constructed with example.com data and Nextcloud/Talk-shaped ids (ADR 0009 D2), no tenant capture yet",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/teams/Pq7Xk2LmN9vRt4WzYc8BdHf3JsQa6Ue/channels/hktd6xvp/messages/100/replies",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "body": {
+        "contentType": "html",
+        "content": "Sounds good"
+      }
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#teams('Pq7Xk2LmN9vRt4WzYc8BdHf3JsQa6Ue')/channels('hktd6xvp')/messages('100')/replies/$entity",
+      "id": "102",
+      "replyToId": "100",
+      "etag": "1795257300000",
+      "messageType": "message",
+      "createdDateTime": "2026-11-21T10:35:00Z",
+      "lastModifiedDateTime": "2026-11-21T10:35:00Z",
+      "lastEditedDateTime": null,
+      "deletedDateTime": null,
+      "subject": null,
+      "chatId": null,
+      "channelIdentity": {
+        "teamId": "Pq7Xk2LmN9vRt4WzYc8BdHf3JsQa6Ue",
+        "channelId": "hktd6xvp"
+      },
+      "importance": "normal",
+      "webUrl": "https://cloud.example.com/call/hktd6xvp#message_102",
+      "eventDetail": null,
+      "from": {
+        "application": null,
+        "device": null,
+        "user": {
+          "@odata.type": "#microsoft.graph.teamworkUserIdentity",
+          "id": "5d3f2a1b-9c4e-4b7a-8f0d-2e6c1a9b7d44",
+          "displayName": "Bob Brown",
+          "userIdentityType": "aadUser"
+        }
+      },
+      "body": {
+        "contentType": "html",
+        "content": "<p>Sounds good</p>"
+      },
+      "attachments": [],
+      "mentions": [],
+      "reactions": []
+    }
+  }
+}

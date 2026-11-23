@@ -60,6 +60,9 @@ internal sealed class TalkTestServer : IDisposable
 
     public IUserAccountNames Names { get; }
 
+    /// <summary>The OCS client every Talk piece here uses (teams' circles too, phase 24).</summary>
+    public Nightware.Adapters.Dav.Core.IDavClient Dav => _dav.Client;
+
     public TalkChatClient Client { get; }
 
     public TalkIdentities Identities { get; }
