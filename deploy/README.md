@@ -525,8 +525,9 @@ replaces Talk's default public STUN server with ours.
 | Nextcloud (room notifications, signed) | `https://${PUBLIC_HOST}/standalone-signaling/api/v1/room/…`, through Caddy's alias | the same; the shared `TALK_SIGNALING_SECRET` |
 | The signaling server (ticket checks) | the Nextcloud URL the client names, e.g. `https://${PUBLIC_HOST}/cloud/…` | `NC_DOMAIN`: its backend list |
 | Clients and Janus (media) | TURN at `${TALK_TURN_HOST}:3478` (Janus: `talk:3478`, its own container) | `talk:turn:add` / `talk:stun:add`; `TALK_TURN_SECRET` |
-| Nextcloud (start/stop a recording, signed) | `http://talk-recording:1234` | app config `spreed recording_servers` (Talk has no occ command for it); the shared `TALK_RECORDING_SECRET` |
+| Nextcloud (start/stop a recording, signed) | `TALK_RECORDING_URL` (`http://talk-recording:1234`) | app config `spreed recording_servers` (Talk has no occ command for it); the shared `TALK_RECORDING_SECRET` |
 | The recording server (status, upload) and its Firefox (the call page) | `https://${PUBLIC_HOST}/cloud`, through Caddy's alias | its `NC_DOMAIN`; it joins the call on the signaling server as an internal client (`TALK_INTERNAL_SECRET`) |
+| Nextcloud (a recording's transcript and summary) | `${NEXTCLOUD_AI_TRANSCRIPTION_URL:-$NEXTCLOUD_AI_URL}/audio/transcriptions`, and `${NEXTCLOUD_AI_URL}/chat/completions` | integration_openai, `NEXTCLOUD_AI_*` |
 
 - Talk signs each room notification with the URL Nextcloud believes it has:
   the public one for requests through Caddy, `http://nextcloud/` for the
@@ -559,6 +560,32 @@ replaces Talk's default public STUN server with ours.
   recording runs its own Firefox and ffmpeg encode, so size the host for
   them (`shm_size: 2g` is Firefox's). Recording consent is not required
   (Talk's default; app config `spreed recording_consent`).
+- **Transcripts.** With `NEXTCLOUD_AI_URL` or `NEXTCLOUD_AI_TRANSCRIPTION_URL`
+  set, `configure.sh` enables `integration_openai` as Nextcloud's
+  speech-to-text provider and turns on Talk's `call_recording_transcription`.
+  Once a recording is stored, Talk queues a `core:audio2text` task.
+  Nextcloud's cron (every 5 minutes) runs it, sending the whole file to
+  `audio/transcriptions` with `NEXTCLOUD_AI_TRANSCRIPTION_MODEL`. The
+  transcript is saved beside the video as `Recording … .md` (with "Transcript
+  is AI generated and may contain mistakes"), and Talk notifies the starter
+  ("Transcript now available", or "Failed to transcript call recording").
+  With `NEXTCLOUD_AI_SUMMARY_MODEL` it also summarises through
+  `chat/completions` on `NEXTCLOUD_AI_URL`. Image, speech and translation
+  providers stay off, and so does the `core:text2speech` task type, which the
+  app registers regardless. Without either URL the app is disabled: its
+  built-in URL is OpenAI's.
+- **The transcription server must take webm and Ogg**, since Talk sends the
+  recording as stored and `integration_openai` labels it `file.mp3`. OpenAI
+  and Whisper servers do (speaches 0.8.3 transcribed the webm correctly).
+  Ollama 0.40.17 with `lfm3-audio` accepted only WAV: webm, Ogg, MP3, FLAC
+  and M4A were refused. Use Ollama for summaries only.
+- Transcripts verified (2026-11-23, integration_openai 5.0.0, speaches
+  0.8.3-cpu with `Systran/faster-whisper-small`): a webm of synthesised
+  speech uploaded as a recording through the recorder's own client was
+  transcribed word for word (bar a name), saved as `.md` beside it, and
+  notified. Whisper over a real call's audio is untested, as is the size at
+  which a recording no longer fits through PHP (`getContent()` loads the
+  whole file).
 - Verified (2026-11-22, aio-talk 20261119_161514, signaling 2.2.0, Janus
   1.4.3, on arm64): Nextcloud's notifications accepted from both URLs; a
   signaling `hello` with alice's Talk ticket answered as alice (a forged ticket

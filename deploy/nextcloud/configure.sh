@@ -6,6 +6,8 @@
 #     spreed (Talk: the room behind an event's isOnlineMeeting, phase 22)
 #   - Talk's signaling server and TURN/STUN (the talk service), and its
 #     call recording server (talk-recording)
+#   - recording transcripts and summaries: integration_openai on
+#     OpenAI-compatible servers (NEXTCLOUD_AI_*), or off
 #   - user_oidc provider "keycloak" with bearer-token validation, so
 #     CalDAV/CardDAV/WebDAV/OCS accept Keycloak access tokens whose aud
 #     contains "nextcloud" (the provider's client id)
@@ -125,11 +127,64 @@ occ talk:stun:list --output=json | jq -e --arg s "$TURN_HOST" 'index($s)' >/dev/
 occ talk:stun:list --output=json | jq -r --arg s "$TURN_HOST" '.[]? | select(. != $s)' | while IFS= read -r stun; do
   occ talk:stun:delete "$stun" </dev/null >/dev/null
 done
-# Call recording: the talk-recording service. Talk has no occ command for its
-# recording servers; the admin page stores this JSON, which is set whole.
-log "Nextcloud: Talk -> recording server http://talk-recording:1234"
-occ config:app:set spreed recording_servers --type=array --value="$(jq -cn --arg s "$TALK_RECORDING_SECRET" \
-  '{servers: [{server: "http://talk-recording:1234", verify: true}], secret: $s}')" >/dev/null
+# Call recording: the talk-recording service (TALK_RECORDING_URL, as Nextcloud
+# reaches it). Talk has no occ command for its recording servers; the admin
+# page stores this JSON, which is set whole.
+TALK_RECORDING_URL="${TALK_RECORDING_URL:-http://talk-recording:1234}"
+log "Nextcloud: Talk -> recording server ${TALK_RECORDING_URL}"
+occ config:app:set spreed recording_servers --type=array --value="$(jq -cn --arg u "$TALK_RECORDING_URL" --arg s "$TALK_RECORDING_SECRET" \
+  '{servers: [{server: $u, verify: true}], secret: $s}')" >/dev/null
+
+# ------------------------------------------------- recording transcripts (AI)
+# Talk transcribes each finished recording through Nextcloud's task processing
+# (core:audio2text) and, given a text model, summarises it too. The provider is
+# integration_openai, on OpenAI-compatible servers: NEXTCLOUD_AI_URL for
+# summaries (chat/completions) and, unless NEXTCLOUD_AI_TRANSCRIPTION_URL names
+# another, for transcription (audio/transcriptions). The transcription server
+# is sent the recording as Talk stored it (webm or Ogg), so it must take those
+# (OpenAI, a Whisper server such as speaches; Ollama's audio models take WAV
+# only). With neither URL the app is disabled: its built-in default is
+# api.openai.com. Only the providers asked for are offered to Nextcloud.
+stt_url="${NEXTCLOUD_AI_TRANSCRIPTION_URL:-${NEXTCLOUD_AI_URL:-}}"
+if [[ -n "$stt_url" ]]; then
+  : "${NEXTCLOUD_AI_TRANSCRIPTION_MODEL:?is required with NEXTCLOUD_AI_URL or NEXTCLOUD_AI_TRANSCRIPTION_URL}"
+  summary_model="${NEXTCLOUD_AI_SUMMARY_MODEL:-}"
+  [[ -z "$summary_model" || -n "${NEXTCLOUD_AI_URL:-}" ]] || { echo "NEXTCLOUD_AI_SUMMARY_MODEL needs NEXTCLOUD_AI_URL" >&2; exit 1; }
+  log "Nextcloud: recording transcripts -> ${stt_url} (${NEXTCLOUD_AI_TRANSCRIPTION_MODEL})${summary_model:+, summaries -> ${NEXTCLOUD_AI_URL} (${summary_model})}"
+  occ app:list --output=json | jq -e '.enabled | has("integration_openai")' >/dev/null \
+    || occ app:install integration_openai >/dev/null 2>&1 || occ app:enable integration_openai >/dev/null
+  # Through the app's own settings service, which stores each key the way it
+  # reads it back (lazy, sensitive, encrypted API keys). url is never left
+  # empty: the app takes empty for OpenAI's and offers more providers for it.
+  jq -n --arg url "${NEXTCLOUD_AI_URL:-$stt_url}" --arg key "${NEXTCLOUD_AI_API_KEY:-}" \
+        --arg sttUrl "${NEXTCLOUD_AI_TRANSCRIPTION_URL:-}" --arg sttKey "${NEXTCLOUD_AI_TRANSCRIPTION_API_KEY:-}" \
+        --arg stt "$NEXTCLOUD_AI_TRANSCRIPTION_MODEL" --arg llm "$summary_model" \
+        --argjson timeout "${NEXTCLOUD_AI_TIMEOUT:-900}" '{
+      url: ($url | rtrimstr("/")), api_key: $key, service_name: "",
+      stt_url: ($sttUrl | rtrimstr("/")), stt_api_key: $sttKey, stt_service_name: "",
+      default_stt_model_id: $stt,
+      request_timeout: $timeout, stt_request_timeout: $timeout,
+      stt_provider_enabled: true,
+      llm_provider_enabled: ($llm != ""),
+      t2i_provider_enabled: false, tts_provider_enabled: false, translation_provider_enabled: false
+    } + (if $llm != "" then {default_completion_model_id: $llm} else {} end)' \
+  | dc exec -T -u www-data nextcloud php -r '
+      require "/var/www/html/lib/base.php";
+      \OCP\Server::get(\OCA\OpenAi\Service\OpenAiSettingsService::class)
+        ->setAdminConfig(json_decode(stream_get_contents(STDIN), true, flags: JSON_THROW_ON_ERROR));'
+  # The app registers its text-to-speech provider whatever tts_provider_enabled
+  # says; the task type goes instead (no other provider here offers it).
+  occ taskprocessing:task-type:set-enabled core:text2speech 0 >/dev/null
+  occ config:app:set spreed call_recording_transcription --value=yes >/dev/null
+  occ config:app:set spreed call_recording_summary --value="$([[ -n "$summary_model" ]] && echo yes || echo no)" >/dev/null
+else
+  log "Nextcloud: recording transcripts off (no NEXTCLOUD_AI_URL or NEXTCLOUD_AI_TRANSCRIPTION_URL)"
+  occ config:app:set spreed call_recording_transcription --value=no >/dev/null
+  occ config:app:set spreed call_recording_summary --value=no >/dev/null
+  if occ app:list --output=json | jq -e '.enabled | has("integration_openai")' >/dev/null; then
+    occ app:disable integration_openai >/dev/null
+  fi
+fi
 
 # ------------------------------------------------------ brute-force allow-list
 # The façade reads public shares anonymously (/shares in Nightware), so every

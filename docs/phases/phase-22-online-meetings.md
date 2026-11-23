@@ -30,6 +30,7 @@
 | `isOnlineMeeting: true` on `POST events`, `POST calendars/{id}/events` and `PATCH events/{id}` opens a Talk room whose link is `onlineMeeting.joinUrl`; deleting or cancelling the meeting closes it (verified live on the local stack) | 1.59.0 |
 | Turning an existing meeting online sends the attendees the update ("Invitation updated", with the link); Talk's High-Performance Backend and a TURN server (the `talk` service), registered with Talk by `configure.sh` (both verified live on the local stack) | 1.60.0 |
 | Call recording: Talk's recording server (the `talk-recording` service), registered with Talk by `configure.sh`; a recording started over OCS was uploaded to the starter's files with its notification (verified on the local stack, no media in the call) | 1.61.0 |
+| Recording transcripts: integration_openai on any OpenAI-compatible server (a separate transcription URL allowed), Talk's `call_recording_transcription`; a speech webm uploaded as a recording came back as a transcript `.md` with its notification (verified on the local stack with speaches) | 1.62.0 |
 
 ## Decisions
 - **One public room per meeting**, named after the subject (255 characters at
@@ -85,6 +86,10 @@
   verified, not audio/video between two people. Likewise no recording has
   captured a participant's audio or video; the recorder reaches Janus only
   by its compose-network address (deploy/README.md "Online meetings").
+- **Long recordings and PHP memory.** integration_openai reads the whole
+  recording into PHP to send it (memory_limit 1G here). A 1080p recording
+  runs about 400 MB an hour (1.58 MB for 14 s), so meetings much past an hour
+  may fail to transcribe; untested.
 - **`PUBLIC_HOST=*.localhost` breaks Talk** inside the containers (curl
   resolves it to loopback): rooms fail to open. Use another name
   locally.
@@ -109,10 +114,17 @@
   coredns gives the LAN 192.168.18.7). **fw must forward 3478 tcp and udp to
   the docker host** (192.168.18.7), as it does 25 and 443; it isn't managed
   by ansible.
-- Live recording (not yet applied): a service like `talk-recording` in
-  `deploy/docker-compose.yml`, which Nextcloud must reach as
-  `http://talk-recording:1234` (what `configure.sh` registers: the service
-  name or a network alias), with `NC_DOMAIN` the live public host plus
-  `/cloud` and `HPB_DOMAIN` the host the signaling server is registered
-  under; and `nightware_talk_recording_secret` in the vault
-  (`TALK_RECORDING_SECRET`). It needs no nginx route or firewall port.
+- Transcripts: `NEXTCLOUD_AI_URL` and/or `NEXTCLOUD_AI_TRANSCRIPTION_URL`
+  with `NEXTCLOUD_AI_TRANSCRIPTION_MODEL` (optionally `_SUMMARY_MODEL` and the
+  keys) in `.env`; `configure.sh` sets up integration_openai and Talk's
+  transcription, or turns both off. The transcription server must take webm
+  and Ogg (OpenAI, a Whisper server; not Ollama's audio models).
+- Live recording and transcripts (in the ansible repo, not yet applied):
+  `nightware-talk-recording` in `compose/nightware.yml`, reached as
+  `TALK_RECORDING_URL=http://nightware-talk-recording:1234`, its secret
+  `nightware_talk_recording_secret` in the vault (into `talk-recording.env`
+  and `deploy/.env`); transcripts from ishtar's `whisper-api` (speaches,
+  on demand, `http://ishtar.sharpblue.com.au:10310/v1`,
+  `deepdml/faster-whisper-large-v3-turbo-ct2`; `roles/ishtar_apps`, and
+  `ishtar_firewall` opens 10310 to the LAN), summaries off (Ollama ready for
+  them). No nginx route or firewall port on the docker host.
