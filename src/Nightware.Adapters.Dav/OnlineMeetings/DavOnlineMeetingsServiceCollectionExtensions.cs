@@ -19,6 +19,7 @@ internal static class DavOnlineMeetingsServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(configuration);
         services.AddTalkOptions(configuration);
         services.AddTalkPeople();
+        services.TryAddScoped<TalkMeetingEvents>();
         services.TryAddScoped<NextcloudOnlineMeetings>();
         services.TryAddScoped<TalkMeetingArtifacts>();
         services.TryAddScoped<IOnlineMeetingStore>(static sp =>

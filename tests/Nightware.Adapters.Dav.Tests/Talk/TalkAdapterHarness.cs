@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+using Nightware.Adapters.Dav.Core.Collections;
 using Nightware.Adapters.Dav.Core.Discovery;
 using Nightware.Application.Common.Identity;
 using Nightware.Application.Directory;
@@ -27,14 +28,27 @@ internal sealed class TalkAdapterHarness : IDisposable
     public const string Calls = Spreed + "v4/call/";
     public const string Chat = Spreed + "v1/chat/";
     public const string Public = "https://cloud.example.com/cloud/";
+    public const string AliceCalendar = DavRoot + "calendars/alice/personal/";
     public const string SealingKey = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
 
     private readonly ServiceProvider _provider;
 
     public TalkAdapterHarness(bool configured = true, string callerId = "alice-id")
     {
+        // Alice's calendars, where a meeting's event lives (ADR 0009 D7): her personal calendar and the read-only birthdays.
+        var alice = new DavPrincipal(DavRoot + "principals/users/alice/", true)
+        {
+            CalendarHomeSet = DavRoot + "calendars/alice/",
+            EmailAddresses = ["alice@example.com"],
+        };
         var discovery = Substitute.For<IDavPrincipalDiscovery>();
-        discovery.CurrentUserAsync(Arg.Any<CancellationToken>()).Returns(new DavPrincipal(DavRoot + "principals/users/alice/", true));
+        discovery.CurrentUserAsync(Arg.Any<CancellationToken>()).Returns(alice);
+        discovery.DiscoverAsync(new MailboxRef("alice@example.com"), Arg.Any<CancellationToken>()).Returns(alice);
+        var catalog = Substitute.For<IDavCollectionCatalog>();
+        catalog.ListCalendarsAsync(alice, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<DavCalendar>>.Success([
+            new DavCalendar(AliceCalendar, "Personal") { Components = new HashSet<string>(["VEVENT"]) },
+            new DavCalendar(DavRoot + "calendars/alice/contact_birthdays/", "Birthdays") { Components = new HashSet<string>(["VEVENT"]), IsReadOnly = true },
+        ]));
         var credentials = Substitute.For<IBackendCredentials>();
         credentials.ForAsync(Backend.Groupware, Arg.Any<CancellationToken>()).Returns(new BackendCredential("Bearer", "nc-token", CredentialStrategy.TokenExchange));
         var user = Substitute.For<IUserContext>();
@@ -65,6 +79,7 @@ internal sealed class TalkAdapterHarness : IDisposable
         services.AddLogging();
         services.AddScoped(_ => credentials);
         services.AddScoped(_ => discovery);
+        services.AddScoped(_ => catalog);
         services.AddScoped(_ => user);
         services.AddSingleton(Names);
         services.AddDavAdapter(new ConfigurationBuilder().AddInMemoryCollection(settings).Build());

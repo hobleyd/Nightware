@@ -75,10 +75,29 @@ public sealed class OnlineMeetingLiveTests
                 startDateTime = start.AddDays(1).ToString("O", CultureInfo.InvariantCulture),
                 endDateTime = start.AddDays(1).AddHours(1).ToString("O", CultureInfo.InvariantCulture),
             });
+            // Talk renamed and re-timed the room from the meeting's event, within the write: still bound (ADR 0009 D7).
             renamed["subject"]!.GetValue<string>().ShouldBe(subject + " (moved)");
-            renamed["startDateTime"].ShouldBeNull(); // unbound: Talk can't re-time a room
-            var (_, room) = await live.OcsAsync("alice", HttpMethod.Get, $"apps/spreed/api/v4/room/{token}", Ct);
-            room.GetProperty("objectType").GetString().ShouldBeEmpty();
+            renamed["startDateTime"]!.GetValue<DateTimeOffset>().ShouldBe(DateTimeOffset.FromUnixTimeSeconds(start.AddDays(1).ToUnixTimeSeconds()));
+            await RoomShouldFollowAsync(live, token, subject + " (moved)", start.AddDays(1), start.AddDays(1).AddHours(1));
+            (await EventsWithLinkAsync(live, token)).Count.ShouldBe(1);
+
+            // A meeting made without a span can't gain one; it is renamed directly.
+            var unbound = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/onlineMeetings", new { subject = subject + " (no span)" }, HttpStatusCode.Created);
+            var unboundId = unbound["id"]!.GetValue<string>();
+            try
+            {
+                (await SendAsync(alice, HttpMethod.Patch, $"/v1.0/me/onlineMeetings/{unboundId}", new { subject = subject + " (renamed)" }))["subject"]!.GetValue<string>()
+                    .ShouldBe(subject + " (renamed)");
+                await SendAsync(alice, HttpMethod.Patch, $"/v1.0/me/onlineMeetings/{unboundId}", new
+                {
+                    startDateTime = start.ToString("O", CultureInfo.InvariantCulture),
+                    endDateTime = start.AddHours(1).ToString("O", CultureInfo.InvariantCulture),
+                }, HttpStatusCode.BadRequest);
+            }
+            finally
+            {
+                await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/onlineMeetings/{unboundId}", expected: HttpStatusCode.NoContent);
+            }
         }
         finally
         {
@@ -86,6 +105,178 @@ public sealed class OnlineMeetingLiveTests
         }
 
         await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/onlineMeetings/{id}", expected: HttpStatusCode.NotFound);
+        (await EventsWithLinkAsync(live, token)).ShouldBeEmpty(); // the meeting's event went with it
+    }
+
+    [Fact]
+    public async Task A_calendar_events_room_follows_the_event_when_it_is_renamed_and_moved()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
+        await using var live = TalkLive.Start();
+        using var alice = await live.Stack.GraphClientAsync("alice", Ct);
+        var subject = "nw-event-follow-" + Guid.NewGuid().ToString("N")[..8];
+        var start = DateTimeOffset.UtcNow.AddDays(3);
+        var created = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/events", new
+        {
+            subject,
+            start = new { dateTime = Wall(start), timeZone = "UTC" },
+            end = new { dateTime = Wall(start.AddHours(1)), timeZone = "UTC" },
+            location = new { displayName = "Boardroom" },
+            isOnlineMeeting = true,
+        }, HttpStatusCode.Created);
+        var eventId = created["id"]!.GetValue<string>();
+        try
+        {
+            var joinUrl = created["onlineMeeting"]!["joinUrl"]!.GetValue<string>();
+            var token = joinUrl[(joinUrl.LastIndexOf('/') + 1)..];
+
+            // The link is in LOCATION for Talk, never in Graph's location.
+            created["location"]!["displayName"]!.GetValue<string>().ShouldBe("Boardroom");
+            var read = await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/events/{eventId}");
+            read["location"]!["displayName"]!.GetValue<string>().ShouldBe("Boardroom");
+            (await EventsWithLinkAsync(live, token)).Count.ShouldBe(1);
+
+            var moved = start.AddDays(2);
+            var patched = await SendAsync(alice, HttpMethod.Patch, $"/v1.0/me/events/{eventId}", new
+            {
+                subject = subject + " (moved)",
+                start = new { dateTime = Wall(moved), timeZone = "UTC" },
+                end = new { dateTime = Wall(moved.AddHours(2)), timeZone = "UTC" },
+            });
+            patched["location"]!["displayName"]!.GetValue<string>().ShouldBe("Boardroom");
+            await RoomShouldFollowAsync(live, token, subject + " (moved)", moved, moved.AddHours(2));
+
+            // A new place keeps the link after it; the room stays bound.
+            (await SendAsync(alice, HttpMethod.Patch, $"/v1.0/me/events/{eventId}", new { location = new { displayName = "Room 2" } }))["location"]!["displayName"]!
+                .GetValue<string>().ShouldBe("Room 2");
+            await RoomShouldFollowAsync(live, token, subject + " (moved)", moved, moved.AddHours(2));
+
+            // Through the meeting: the event is changed, and Talk follows it.
+            var meetingId = "t." + token;
+            var renamed = await SendAsync(alice, HttpMethod.Patch, $"/v1.0/me/onlineMeetings/{meetingId}", new { subject = subject + " (renamed)" });
+            renamed["subject"]!.GetValue<string>().ShouldBe(subject + " (renamed)");
+            (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/events/{eventId}"))["subject"]!.GetValue<string>().ShouldBe(subject + " (renamed)");
+            await RoomShouldFollowAsync(live, token, subject + " (renamed)", moved, moved.AddHours(2));
+        }
+        finally
+        {
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/events/{eventId}", expected: HttpStatusCode.NoContent);
+        }
+    }
+
+    [Fact]
+    public async Task An_event_with_its_link_in_url_alone_gains_it_in_location_when_moved_and_the_room_follows()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
+        await using var live = TalkLive.Start();
+        using var alice = await live.Stack.GraphClientAsync("alice", Ct);
+        var subject = "nw-legacy-" + Guid.NewGuid().ToString("N")[..8];
+        var start = DateTimeOffset.UtcNow.AddDays(4);
+
+        // As phase 22 made them: a room bound to the span and an event with the link in URL only.
+        using var form = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["roomType"] = "3", ["roomName"] = subject, ["objectType"] = "event",
+            ["objectId"] = $"{start.ToUnixTimeSeconds()}#{start.AddHours(1).ToUnixTimeSeconds()}",
+        });
+        var token = await live.CreateRoomAsync("alice", form, Ct);
+        var link = $"{DevStack.CloudBase}/call/{token}";
+        var uid = "nw-legacy-" + Guid.NewGuid().ToString("N");
+        var ics = string.Join("\r\n",
+            "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//nightware-tests//EN", "BEGIN:VEVENT", $"UID:{uid}", "DTSTAMP:20261123T000000Z",
+            $"DTSTART:{Ical(start)}", $"DTEND:{Ical(start.AddHours(1))}", $"SUMMARY:{subject}", "LOCATION:Boardroom", $"URL:{link}",
+            "END:VEVENT", "END:VCALENDAR", string.Empty);
+        using (var put = await live.DavAsync("alice", HttpMethod.Put, $"calendars/alice/personal/{uid}.ics", new StringContent(ics, Encoding.UTF8, "text/calendar"), Ct))
+        {
+            put.IsSuccessStatusCode.ShouldBeTrue();
+        }
+
+        try
+        {
+            var events = await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/events?$filter={Uri.EscapeDataString($"iCalUId eq '{uid}'")}");
+            var eventId = events["value"]!.AsArray().Single()!["id"]!.GetValue<string>();
+            var moved = start.AddDays(40); // past Talk's 28-day expiry of the old span: before, the room was unbound for this
+            await SendAsync(alice, HttpMethod.Patch, $"/v1.0/me/events/{eventId}", new
+            {
+                start = new { dateTime = Wall(moved), timeZone = "UTC" },
+                end = new { dateTime = Wall(moved.AddHours(1)), timeZone = "UTC" },
+            });
+
+            await RoomShouldFollowAsync(live, token, subject, moved, moved.AddHours(1));
+            (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/events/{eventId}"))["location"]!["displayName"]!.GetValue<string>().ShouldBe("Boardroom");
+        }
+        finally
+        {
+            using var _ = await live.DavAsync("alice", HttpMethod.Delete, $"calendars/alice/personal/{uid}.ics", null, Ct);
+            await live.OcsAsync("alice", HttpMethod.Delete, $"apps/spreed/api/v4/room/{token}", Ct);
+        }
+    }
+
+    [Fact]
+    public async Task A_bound_meeting_whose_event_was_deleted_in_a_calendar_gets_a_new_one_and_still_follows()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
+        await using var live = TalkLive.Start();
+        using var alice = await live.Stack.GraphClientAsync("alice", Ct);
+        var subject = "nw-orphan-" + Guid.NewGuid().ToString("N")[..8];
+        var start = DateTimeOffset.UtcNow.AddDays(5);
+        var meeting = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/onlineMeetings", new
+        {
+            subject,
+            startDateTime = start.ToString("O", CultureInfo.InvariantCulture),
+            endDateTime = start.AddHours(1).ToString("O", CultureInfo.InvariantCulture),
+        }, HttpStatusCode.Created);
+        var id = meeting["id"]!.GetValue<string>();
+        var token = meeting["chatInfo"]!["threadId"]!.GetValue<string>();
+        try
+        {
+            // Deleted in a calendar client: into the calendar's trash bin.
+            var href = (await EventsWithLinkAsync(live, token)).Single();
+            using (var deleted = await live.DavAsync("alice", HttpMethod.Delete, href[(href.IndexOf("/remote.php/dav/", StringComparison.Ordinal) + "/remote.php/dav/".Length)..], null, Ct))
+            {
+                deleted.IsSuccessStatusCode.ShouldBeTrue();
+            }
+
+            var moved = start.AddDays(1);
+            var renamed = await SendAsync(alice, HttpMethod.Patch, $"/v1.0/me/onlineMeetings/{id}", new
+            {
+                subject = subject + " (again)",
+                startDateTime = moved.ToString("O", CultureInfo.InvariantCulture),
+                endDateTime = moved.AddHours(1).ToString("O", CultureInfo.InvariantCulture),
+            });
+            renamed["subject"]!.GetValue<string>().ShouldBe(subject + " (again)");
+            await RoomShouldFollowAsync(live, token, subject + " (again)", moved, moved.AddHours(1));
+            (await EventsWithLinkAsync(live, token)).Count.ShouldBe(1);
+        }
+        finally
+        {
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/onlineMeetings/{id}", expected: HttpStatusCode.NoContent);
+        }
+    }
+
+    private static string Wall(DateTimeOffset at) => at.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture);
+
+    private static string Ical(DateTimeOffset at) => at.UtcDateTime.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture);
+
+    /// <summary>The room is still bound to an event (Talk expires it), named and timed as the event now is.</summary>
+    private static async Task RoomShouldFollowAsync(TalkLive live, string token, string name, DateTimeOffset start, DateTimeOffset end)
+    {
+        var (_, room) = await live.OcsAsync("alice", HttpMethod.Get, $"apps/spreed/api/v4/room/{token}", Ct);
+        room.GetProperty("objectType").GetString().ShouldBe("event");
+        room.GetProperty("objectId").GetString().ShouldBe($"{start.ToUnixTimeSeconds()}#{end.ToUnixTimeSeconds()}");
+        room.GetProperty("name").GetString().ShouldBe(name);
+    }
+
+    /// <summary>The hrefs of alice's personal events whose LOCATION holds the room's link (as Talk looks for them).</summary>
+    private static async Task<List<string>> EventsWithLinkAsync(TalkLive live, string token)
+    {
+        var query = $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><d:getetag/></d:prop>
+            <c:filter><c:comp-filter name="VCALENDAR"><c:comp-filter name="VEVENT"><c:prop-filter name="LOCATION"><c:text-match collation="i;octet">/call/{token}</c:text-match></c:prop-filter></c:comp-filter></c:comp-filter></c:filter></c:calendar-query>
+            """;
+        var xml = System.Xml.Linq.XDocument.Parse(await live.ReportAsync("alice", "calendars/alice/personal/", query, Ct));
+        return [.. xml.Descendants(System.Xml.Linq.XName.Get("href", "DAV:")).Select(h => h.Value)];
     }
 
     [Fact]

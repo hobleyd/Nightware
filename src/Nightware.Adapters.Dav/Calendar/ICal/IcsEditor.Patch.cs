@@ -34,6 +34,8 @@ public sealed partial class IcsEditor
     /// update: SEQUENCE is bumped and, on the main component, each person attendee gets RFC 6638
     /// <c>SCHEDULE-FORCE-SEND=REQUEST</c> (Nextcloud does not count <c>URL</c> as a significant change, and strips
     /// the parameter from that component once it has sent).</item>
+    /// <item>An event with a Talk join link keeps it at the end of <c>LOCATION</c> whenever the patch changes its link,
+    /// subject, times or place (<see cref="MeetingLocation"/>), so Talk renames and re-times the room with it.</item>
     /// </list>
     /// </summary>
     /// <param name="organizerAddress">The mailbox making the change; it becomes the ORGANIZER of an event that gains its first attendees.</param>
@@ -69,6 +71,19 @@ public sealed partial class IcsEditor
             var urlBefore = vevent.Url;
             ApplyDetails(vevent, patch);
             var linked = vevent.Url is not null && vevent.Url != urlBefore;
+            if (MeetingLocation.LinkOf(vevent) is { } link && !IsAttendeeCopy(vevent, organizerAddress)
+                && (linked || rescheduled || patch.Subject is not null || patch.Location is not null))
+            {
+                // Talk renames and re-times the room from the link in LOCATION (ADR 0009 D7). An event that has the link
+                // in URL alone (made before) gains it with its next change of subject, time or place, not with an edit
+                // that would otherwise send attendees nothing (LOCATION is a significant change for Nextcloud).
+                // Ical.Net 5 never sets LOCATION again once it was set to null (as a cleared place is): replace the property.
+                var location = MeetingLocation.With(vevent.Location, link);
+                vevent.Properties.Remove("LOCATION");
+                vevent.AddProperty("LOCATION", location);
+                ReadyForTalk(vevent);
+            }
+
             if (patch.Attendees is { } attendees)
             {
                 // The attendee list is the meeting's: a series edit also reaches the modified occurrences,
@@ -420,6 +435,31 @@ public sealed partial class IcsEditor
             attendee.Parameters.Add(ScheduleForceSend, "REQUEST");
         }
     }
+
+    /// <summary>
+    /// Talk's calendar listener fails the whole CalDAV write (500) on an event without DTEND (it reads DTEND unchecked) or
+    /// with an empty SUMMARY (an empty room name): such an event gets a DTEND from its DURATION (or its day), and loses
+    /// the empty SUMMARY (Talk then names the room "Meeting"). Verified on Talk 25.0.8.
+    /// </summary>
+    private static void ReadyForTalk(IcalEvent vevent)
+    {
+        if (vevent.DtEnd is null && vevent.DtStart is { } start)
+        {
+            var length = vevent.Duration ?? (start.HasTime ? Duration.Zero : Duration.FromDays(1));
+            vevent.Properties.Remove("DURATION");
+            vevent.DtEnd = start.Add(length);
+        }
+
+        if (string.IsNullOrWhiteSpace(vevent.Summary))
+        {
+            vevent.Properties.Remove("SUMMARY");
+        }
+    }
+
+    /// <summary>A meeting someone else organizes, as filed in an attendee's calendar: it changes as the organizer sends it.</summary>
+    private static bool IsAttendeeCopy(IcalEvent vevent, string address) =>
+        IcalNetCalendarCodec.AddressOf(vevent.Organizer?.Value) is { } organizer
+        && !string.Equals(organizer, address.Trim(), StringComparison.OrdinalIgnoreCase);
 
     private static bool IsOrganizedBy(IcalEvent vevent, string address) =>
         vevent.Attendees.Count > 0

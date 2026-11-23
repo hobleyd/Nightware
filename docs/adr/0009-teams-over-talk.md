@@ -243,16 +243,33 @@ rule 2):
     unchanged. `URL` keeps the link as before (`onlineMeeting.joinUrl`, iMIP).
   - `POST /me/onlineMeetings` with a span creates the room bound to it and an
     event in the organiser's default calendar (subject, span, attendees not
-    invited: the event is the meeting's record, not an invitation). Without a
-    span the room is unbound and there is no event, as before.
-  - `PATCH` (subject, span) updates the event; Talk renames and re-times the
-    room itself. The façade never unbinds a room for a rename or a move. A
-    series still unbinds (Talk's rule for `RRULE`).
-  - `DELETE` deletes the event and closes the room. Deleting the event in
-    any client leaves the room (Talk makes it read-only); Nightware closes it
-    only when the deletion comes through Nightware, as before.
+    invited: the event is the meeting's record, not an invitation, marked
+    `X-NIGHTWARE-ONLINE-MEETING:{token}`). If the event can't be written the
+    room is closed again and the request fails. Without a span the room is
+    unbound and there is no event, as before.
+  - `PATCH` (subject, span) of a bound meeting updates the event, found in
+    the organiser's own calendars by the link in `LOCATION` (then `URL`);
+    Talk renames and re-times the room within the CalDAV write (verified:
+    the room read straight after the PUT has the new name and `objectId`).
+    A calendar event made online is that event too, so its attendees are
+    sent the change. A bound meeting without an event (made before this, or
+    its event deleted in a client) gets one. Only the room's owner can do
+    this (Talk follows the owner's calendar alone): anyone else is `403`.
+    The façade never unbinds a room for a rename or a move. A series still
+    unbinds (Talk's rule for `RRULE`).
+  - An unbound meeting is renamed over OCS as before. A span can't be given
+    to it (Talk has no route to bind a room again): `400`.
+  - `DELETE` deletes the meeting's record event and closes the room. A
+    calendar event made online is left (its room is closed, as before).
+    *Corrected:* deleting the event in a client does **not** make the room
+    read-only on the dev stack (Nextcloud 35, Talk 25.0.8; probe
+    2026-11-23: `readOnly` stayed 0, likely because the deletion moves the
+    object to the calendar trash bin, which Talk's listener doesn't handle).
+    The room stays until it expires or is closed.
   - A meeting's span and subject are read from the room (`objectId`, name),
-    which Talk keeps in step with the event.
+    which Talk keeps in step with the event. Talk names a room "Meeting"
+    for an event without `SUMMARY` and copies `DESCRIPTION` into the room
+    description, so Nightware always writes the room name as `SUMMARY`.
 - *Amended (2026-11-23, asked for: recordings available to everyone):*
   **recordings and transcripts belong to the conversation.** Talk keeps them in
   the files of whoever recorded and offers "Share to chat", a room share

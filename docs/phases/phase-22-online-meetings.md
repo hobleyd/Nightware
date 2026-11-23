@@ -31,6 +31,7 @@
 | Turning an existing meeting online sends the attendees the update ("Invitation updated", with the link); Talk's High-Performance Backend and a TURN server (the `talk` service), registered with Talk by `configure.sh` (both verified live on the local stack) | 1.60.0 |
 | Call recording: Talk's recording server (the `talk-recording` service), registered with Talk by `configure.sh`; a recording started over OCS was uploaded to the starter's files with its notification (verified on the local stack, no media in the call) | 1.61.0 |
 | Recording transcripts: integration_openai on any OpenAI-compatible server (a separate transcription URL allowed), Talk's `call_recording_transcription`; a speech webm uploaded as a recording came back as a transcript `.md` with its notification (verified on the local stack with speaches) | 1.62.0 |
+| The join link also in `LOCATION` (after the place, stripped again on read), so Talk renames and re-times a meeting's room with its event; a move or rename no longer unbinds it (ADR 0009 D7, verified live) | 1.68.0 |
 | Audio-only recordings (`TALK_RECORDING_AUDIO_ONLY`): the recorder's video settings are rewritten so Talk's video recording comes out as an Opus `.ogg` (verified on the local stack; on for live) | 1.63.0 |
 
 ## Decisions
@@ -47,8 +48,37 @@
 - **Lifetime.** A single meeting's room is bound to its span, so Talk tidies it
   up once the meeting is long over, even when the event is never deleted. A
   series' room is unbound (it has no end Nightware can name cheaply). When a
-  change moves a meeting's end later, or makes it a series, the room is
-  unbound and stays until the meeting is deleted. The organizer deleting or
+  change makes a meeting a series the room is unbound and stays until the
+  meeting is deleted. *Amended (2026-11-23):* a moved or renamed meeting's
+  room is no longer unbound: Talk follows the event (below).
+- **The link in `LOCATION` too** (ADR 0009 D7). Talk's `CalDavEventListener`
+  renames a room bound to an event and moves its span whenever the room
+  owner's event whose `LOCATION` ends in `…/call/{token}` changes (inside the
+  CalDAV write). So an event whose `URL` is a Talk link (`…/call/{token}`)
+  stores `LOCATION` as `{place}, {link}` (or `{link}`), and reading strips
+  that trailing link again, so Graph's `location`/`locations` (and the room
+  matched by name) are unchanged, in calendars and in mailed invitations;
+  any other event's `LOCATION` is read and written as before. Talk takes
+  `SUMMARY` as the room name (or "Meeting"), and `DESCRIPTION` as its
+  description.
+- **Events made before** (link in `URL` only): the editor adds the link to
+  `LOCATION` with the organiser's next change of subject, time, place or
+  link, whose PUT Talk then follows (verified live: such an event moved 40
+  days later re-timed its bound room). Not with other edits (categories,
+  reminders…): `LOCATION` is a significant change for Nextcloud and would
+  send attendees an update for nothing. An attendee's copy is never
+  rewritten. NightMail resends the subject with every edit, so in practice
+  its first edit upgrades the event, with one "updated" message to
+  attendees. A room already unbound by the old rule stays unbound.
+- **Talk's listener runs inside every such write**, and fails it (HTTP 500)
+  for an event without `DTEND` (it reads `DTEND` unchecked) or with an empty
+  `SUMMARY` (an empty room name), probed on Talk 25.0.8. So when the link
+  goes into `LOCATION`, a `DURATION`-only event gets a `DTEND` and an empty
+  `SUMMARY` is dropped (Talk names the room "Meeting"). A subject longer than
+  254 bytes is cut by Talk at a byte boundary plus "…" (multibyte subjects
+  were probed: accepted).
+- Nextcloud's invitation mail shows the link on its "Location:" line as well
+  as "Link:". The organizer deleting or
   cancelling the whole meeting closes the room; one occurrence, or an
   attendee's copy, never does.
 - **Turning an event online later** (`PATCH` with `isOnlineMeeting: true`)
@@ -95,6 +125,14 @@
 - **`PUBLIC_HOST=*.localhost` breaks Talk** inside the containers (curl
   resolves it to loopback): rooms fail to open. Use another name
   locally.
+- **Delegated writes don't move the room.** Talk follows only the room
+  owner's own calendar. An event written in someone else's calendar
+  (`/users/{x}/events`) has its room opened by the caller, so Talk ignores
+  that event, and a move no longer unbinds the room either: moved more than
+  `retention_event_rooms` (28) days later, the room can expire before the
+  meeting. Likewise a room owned by someone other than the calendar's owner.
+- **Talk ignores an event whose `LOCATION` has parameters** (it looks for the
+  literal `LOCATION:`); Nightware writes none, but another client might.
 - **Rooms of meetings deleted by other clients** (Thunderbird, the Nextcloud
   calendar) are not closed. A single meeting's room still expires by itself.
 - **A link added to one occurrence only** reaches attendees with the next

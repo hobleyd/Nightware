@@ -16,8 +16,8 @@ public interface IOnlineMeetings
     Task<Result<string>> OpenAsync(OnlineMeetingRequest request, CancellationToken cancellationToken);
 
     /// <summary>
-    /// The meeting now runs past the end its room was opened for (or became a series): the room stays until it
-    /// is closed. A join URL the provider did not issue is left alone.
+    /// The meeting became a series: the room no longer follows one span and stays until it is closed. A join URL the
+    /// provider did not issue is left alone. (A single meeting's room follows its event's subject and span itself.)
     /// </summary>
     Task<Result> KeepAsync(string joinUrl, CancellationToken cancellationToken);
 

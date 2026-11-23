@@ -6,8 +6,9 @@ namespace Nightware.Application.Calendar.OnlineMeetings;
 
 /// <summary>
 /// Keeps an event's meeting room in step with the event, for the event use cases: a room is opened when an
-/// event asks to be online, kept open when the meeting moves later, and closed when the organizer deletes or
-/// cancels the meeting. A provider failure never fails the event write: the event is saved without a room
+/// event asks to be online, kept open when the meeting becomes a series, and closed when the organizer deletes or
+/// cancels the meeting. A single meeting's room follows the event by itself (renamed and re-timed by the provider
+/// from the stored event, ADR 0009 D7), so a rename or a move leaves it alone. A provider failure never fails the event write: the event is saved without a room
 /// (the client sees no <c>joinUrl</c>), and a room that could not be closed is left (the adapter logs both).
 /// </summary>
 public sealed class OnlineMeetingRooms(IOnlineMeetings meetings, ICalendarReader reader)
@@ -37,12 +38,12 @@ public sealed class OnlineMeetingRooms(IOnlineMeetings meetings, ICalendarReader
 
     /// <summary>
     /// The patch to write: with a new room's join URL when it turns an organizer's event online. When the event
-    /// already has a room and the change moves its end later (or makes it a series), the room is kept open.
+    /// already has a room and the change makes it a series, the room is kept open (it has no single span to follow).
     /// </summary>
     public async Task<EventPatch> PrepareAsync(MailboxRef mailbox, EventId id, EventPatch patch, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(patch);
-        if (!meetings.IsEnabled || (patch.IsOnlineMeeting != true && !patch.ChangesSchedule))
+        if (!meetings.IsEnabled || (patch.IsOnlineMeeting != true && patch.Recurrence is null))
         {
             return patch;
         }
@@ -56,7 +57,7 @@ public sealed class OnlineMeetingRooms(IOnlineMeetings meetings, ICalendarReader
         var stored = current.Value;
         if (stored.OnlineMeetingUrl is { } url)
         {
-            if (patch.Recurrence is not null || (patch.End is { } end && Instant(end) > Instant(stored.End)))
+            if (patch.Recurrence is not null)
             {
                 await meetings.KeepAsync(url, cancellationToken).ConfigureAwait(false);
             }

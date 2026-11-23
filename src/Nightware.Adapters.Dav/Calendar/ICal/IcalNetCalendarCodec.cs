@@ -170,7 +170,7 @@ public sealed class IcalNetCalendarCodec : IICalendarCodec
             ? alt.Value?.ToString()
             : null;
         var plain = description ?? (html is null ? null : HtmlText.ToPlain(html));
-        var (location, locations) = Locations(vevent.Location, attendees);
+        var (location, locations) = Locations(MeetingLocation.Strip(vevent.Location, MeetingLocation.LinkOf(vevent)), attendees);
         var onlineUrl = Text(vevent, TeamsUrl) ?? Text(vevent, GoogleConference) ?? vevent.Url?.OriginalString;
         var (reminderOn, reminderMinutes) = Reminder(vevent, dtStart, start, end, zones);
 
@@ -443,7 +443,17 @@ public sealed class IcalNetCalendarCodec : IICalendarCodec
 
         var locationText = source.Location?.DisplayName
                            ?? (source.Locations.Count > 0 ? string.Join("; ", source.Locations.Select(l => l.DisplayName)) : null);
-        if (!string.IsNullOrWhiteSpace(locationText))
+        if (MeetingLocation.LinkOf(source.OnlineMeetingUrl) is { } link)
+        {
+            // Talk follows the room owner's event by the link in LOCATION (ADR 0009 D7).
+            vevent.Location = MeetingLocation.With(locationText, link);
+            if (string.IsNullOrWhiteSpace(source.Subject))
+            {
+                // Talk's listener fails the write on an empty SUMMARY; without one it names the room "Meeting".
+                vevent.Properties.Remove("SUMMARY");
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(locationText))
         {
             vevent.Location = locationText;
         }

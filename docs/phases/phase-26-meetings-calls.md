@@ -64,6 +64,7 @@ list/get/content, calls create/get/delete.
 | Gap | Version |
 |---|---|
 | Online meetings as public Talk rooms: create (bound to its span, directory attendees added as participants), get, find by `JoinWebUrl` (calendar events' rooms too), rename/re-span, delete; recordings and transcripts in the room's recording folder, listed, read and downloaded (transcripts as WebVTT) | 1.66.0 |
+| Calendar-backed meetings (ADR 0009 D7, 2026-11-23): a meeting with a span has an event in the organiser's calendar with the link in `LOCATION`; `PATCH` changes the event and Talk renames and re-times the room, still bound; `DELETE` deletes that event too; an unbound meeting can't gain a span (`400`); rename/re-time is the owner's (`403` otherwise) | 1.68.0 |
 | Delegated calls: `POST /communications/calls` rings the targets from the caller's one-to-one room (or a new group room), `GET` reports `establishing`/`established`/`terminated`, `DELETE` ends it; the call id seals the Talk session (`Calls:SealingKey`) | 1.66.0 |
 
 Verified live on the dev stack (`tests/Nightware.Integration.Tests/OnlineMeetings/`,
@@ -71,7 +72,9 @@ Verified live on the dev stack (`tests/Nightware.Integration.Tests/OnlineMeeting
 NIGHTWARE_DEPLOY_DIR=…/deploy`): alice creates a meeting with bob, bob has the
 room in his Talk conversations, get/find (with the link plain and
 percent-encoded) and a calendar event's meeting found by its `joinUrl`, a
-rename and re-span (room unbound), delete then 404; files placed where the
+rename and re-span (2026-11-23: room still bound, name and `objectId` changed
+by Talk from the meeting's event), a spanless meeting renamed and refused a
+span, delete then 404 with its event gone; files placed where the
 recording server puts them list and download, the transcript as WebVTT without
 the AI warning; alice calls bob, bob gets Talk's call notification, `GET` is
 `establishing`, bob answers from his own Talk session and `GET` is
@@ -87,9 +90,24 @@ listed and downloaded over Graph with the recorder's start and upload times.
   is `404`.
 - **Span.** A meeting created without both times is unbound and reports null
   `startDateTime`/`endDateTime` (Graph would invent now and an hour). Half a
-  span is `400`. A rename or a changed span unbinds a bound room (Talk can
-  neither rename nor re-time one), after which the meeting reports no span: the
-  PATCH response says so rather than echoing times nothing keeps.
+  span is `400`. *Superseded (2026-11-23, ADR 0009 D7 amendment):* a rename or
+  re-time no longer unbinds. A bound meeting has an event in the organiser's
+  default calendar (`TalkMeetingEvents`: subject, span in UTC, the link in
+  `LOCATION` and `URL`, no attendees, no reminder,
+  `X-NIGHTWARE-ONLINE-MEETING:{token}`); `PATCH` edits that event with the
+  calendar editor and Talk's `CalDavEventListener` renames and re-times the
+  room inside the PUT, so the response is read from the room. The event is
+  found by a `calendar-query` text-match on `LOCATION`, then `URL`, in the
+  caller's own writable calendars, checked for the exact token (a text-match
+  is a substring match). A bound meeting with no event gets one on its next
+  change. An unbound meeting is renamed directly; a span for it is `400`
+  (Talk can't bind a room again). Only the owner (participant type 1) can
+  rename or re-time a bound meeting (`403`): Talk follows the owner's
+  calendar only.
+- **Create and delete.** If the event can't be written on create, the room is
+  closed and the error returned. `DELETE` by the owner deletes the meeting's
+  record event (marked, no attendees), never a calendar meeting made online
+  (that is the user's meeting with its invitations; only its room closes).
 - **`joinMeetingIdSettings.joinMeetingId`** is the room token (what Talk joins
   by); `isPasscodeRequired` is the room's password flag.
 - **Participants.** The owner is the organizer (`presenter`); moderators are
@@ -153,8 +171,14 @@ listed and downloaded over Graph with the recorder's start and upload times.
   surface is implemented).
 - **No Graph notifications** to `callbackUri`, no `answer`/`reject`/`transfer`,
   no media (ADR 0009 D1).
-- **Re-timing or renaming a meeting unbinds its room**, so Talk no longer
-  expires it; it stays until deleted (as phase 22's moved meetings do).
+- **Meetings unbound before 2026-11-23** (renamed or re-timed by the old
+  rule) stay unbound: they can be renamed but not given a span again, and
+  stay until deleted.
+- **The meeting's event shows in the organiser's calendar** (it is how Talk
+  follows it); deleting it there leaves the room as it is (not read-only on
+  this stack, see ADR 0009 D7), and the next PATCH makes a new one, which
+  Talk follows (verified live: the trashed event doesn't count as a second
+  event for the room).
 - **Recordings started by someone else** are in their files, not the caller's,
   and don't list for the organizer. A user's separate Talk recording folder
   setting isn't visible over the API (the default `{attachments}/Recording` is
