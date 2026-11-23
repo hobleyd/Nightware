@@ -22,7 +22,7 @@ public sealed class CallLiveTests
     }
 
     [Fact]
-    public async Task Alice_calls_bob_who_is_rung_and_hangs_up()
+    public async Task Alice_calls_bob_who_is_rung_answers_and_is_hung_up_on()
     {
         Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
         await using var live = TalkLive.Start();
@@ -54,6 +54,12 @@ public sealed class CallLiveTests
                 var (got, _) = await SendAsync(alice, HttpMethod.Get, $"/v1.0/communications/calls/{id}", null, HttpStatusCode.OK);
                 got["state"]!.GetValue<string>().ShouldBe("establishing");
                 got["callbackUri"]!.GetValue<string>().ShouldBe("https://bot.example.com/callback");
+
+                // bob answers from his own Talk session: the call is established.
+                var bobCookie = await live.JoinRoomAsync("bob", token, Ct);
+                (await live.InSessionAsync("bob", HttpMethod.Post, $"apps/spreed/api/v4/call/{token}", bobCookie, new Dictionary<string, string> { ["flags"] = "1" }, Ct)).ShouldBe(200);
+                var (answered, _) = await SendAsync(alice, HttpMethod.Get, $"/v1.0/communications/calls/{id}", null, HttpStatusCode.OK);
+                answered["state"]!.GetValue<string>().ShouldBe("established");
 
                 // The id is alice's alone.
                 using var bobClient = await live.Stack.GraphClientAsync("bob", Ct);

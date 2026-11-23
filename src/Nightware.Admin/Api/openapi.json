@@ -13528,11 +13528,12 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "callbackUri": {},
+                  "callbackUri?": {},
                   "targets[] {identity {user {id}}}": {},
-                  "requestedModalities": {},
+                  "requestedModalities?": {},
                   "mediaConfig?": {},
-                  "source?": {}
+                  "source?": {},
+                  "subject?": {}
                 }
               }
             }
@@ -38081,6 +38082,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "required": false,
+            "description": "Page size.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": "1..1000"
           }
         ],
         "responses": {
@@ -38145,6 +38156,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "required": false,
+            "description": "Page size.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": "1..1000"
           }
         ],
         "responses": {
@@ -38209,6 +38230,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "text/vtt"
           }
         ],
         "responses": {
@@ -38265,6 +38295,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "text/vtt"
           }
         ],
         "responses": {
@@ -38441,6 +38480,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "required": false,
+            "description": "Page size.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": "1..1000"
           }
         ],
         "responses": {
@@ -38505,6 +38554,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "required": false,
+            "description": "Page size.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": "1..1000"
           }
         ],
         "responses": {

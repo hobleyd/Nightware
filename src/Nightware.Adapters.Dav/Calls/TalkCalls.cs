@@ -32,8 +32,8 @@ namespace Nightware.Adapters.Dav.Calls;
 /// <item>The façade's session has no signaling connection: Talk drops it from the call's peers after about 30 seconds,
 /// and reaps it (ending a call nobody joined; the targets get "missed call") once anything lists the room's participants
 /// after 100 seconds without a ping. Reading a call therefore never lists participants.</item>
-/// <item><c>GET</c> is <c>terminated</c> once the room has no call or a different one, <c>established</c> while any peer
-/// other than the façade's session is in it, and <c>establishing</c> otherwise.</item>
+/// <item><c>GET</c> is <c>terminated</c> once the room has no call or a different one, <c>established</c> while anyone
+/// other than the caller is in it, and <c>establishing</c> otherwise.</item>
 /// </list>
 /// </summary>
 internal sealed partial class TalkCalls(
@@ -102,9 +102,10 @@ internal sealed partial class TalkCalls(
             return left.Error;
         }
 
-        if (!left.IsSuccess && await StateAsync(ticket, cancellationToken).ConfigureAwait(false) is { IsSuccess: true, Value: CallState.Establishing })
+        if (!left.IsSuccess && await StateAsync(ticket, cancellationToken).ConfigureAwait(false) is { IsSuccess: true, Value: not CallState.Terminated })
         {
-            // Talk has already reaped the façade's session, but the targets are still being rung: end it from a fresh session.
+            // Talk has already reaped the façade's session (a Talk client listing the room's participants does that), but
+            // the call goes on, ringing or answered: end it from a fresh session.
             var fresh = await JoinAsync(ticket.Token, cancellationToken).ConfigureAwait(false);
             if (fresh.IsSuccess)
             {
@@ -258,7 +259,12 @@ internal sealed partial class TalkCalls(
             return peers.Error.Kind is ErrorKind.NotFound or ErrorKind.Forbidden ? CallState.Terminated : peers.Error;
         }
 
-        return Items(peers.Value).Any(p => Str(p, "sessionId") is { } session && SessionHash(session) != ticket.SessionHash)
+        // Someone else has joined: a peer that is neither the façade's session nor the caller (whose own Talk client
+        // joining for media is not the call being answered).
+        var callerType = Str(room.Value, "actorType");
+        var callerId = Str(room.Value, "actorId");
+        return Items(peers.Value).Any(p => Str(p, "sessionId") is { } session && SessionHash(session) != ticket.SessionHash
+                && !(Str(p, "actorType") == callerType && Str(p, "actorId") == callerId))
             ? CallState.Established
             : CallState.Establishing;
     }

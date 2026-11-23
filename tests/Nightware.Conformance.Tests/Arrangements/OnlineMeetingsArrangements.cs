@@ -41,7 +41,7 @@ public sealed class OnlineMeetingsArrangements : IConformanceArrangements
             .FindByJoinUrlAsync("https://cloud.example.com/cloud/call/abcd1234", Any).Returns(Meeting));
         yield return new ConformanceArrangement("online-meetings.update", static f => f.For<IOnlineMeetingStore>()
             .UpdateAsync(MeetingId, new OnlineMeetingChange(true, "Patch Meeting Subject", Start.AddDays(1), Start.AddDays(1).AddMinutes(30)), Any)
-            .Returns(Meeting with { Subject = "Patch Meeting Subject", Start = null, End = null }));
+            .Returns(Meeting with { Subject = "Patch Meeting Subject", Start = Start.AddDays(1), End = Start.AddDays(1).AddMinutes(30) }));
         yield return new ConformanceArrangement("online-meetings.delete", static f => f.For<IOnlineMeetingStore>().DeleteAsync(MeetingId, Any).Returns(Result.Success()));
 
         yield return Artifacts("online-meetings.recordings.list", static f => f.For<IMeetingArtifacts>()

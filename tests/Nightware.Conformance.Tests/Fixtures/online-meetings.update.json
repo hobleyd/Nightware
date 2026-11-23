@@ -26,8 +26,8 @@
       "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/onlineMeetings/$entity",
       "id": "t.abcd1234",
       "creationDateTime": "2026-11-20T09:00:00Z",
-      "startDateTime": null,
-      "endDateTime": null,
+      "startDateTime": "2026-12-02T09:00:00Z",
+      "endDateTime": "2026-12-02T09:30:00Z",
       "joinWebUrl": "https://cloud.example.com/cloud/call/abcd1234",
       "subject": "Patch Meeting Subject",
       "chatInfo": {

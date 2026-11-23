@@ -15442,7 +15442,9 @@
       "select": [],
       "filter": [],
       "orderby": [],
-      "top": [],
+      "top": [
+        "1..1000"
+      ],
       "search": [],
       "expand": [],
       "other": {}
@@ -15548,7 +15550,9 @@
       "select": [],
       "filter": [],
       "orderby": [],
-      "top": [],
+      "top": [
+        "1..1000"
+      ],
       "search": [],
       "expand": [],
       "other": {}
@@ -15627,7 +15631,11 @@
       "top": [],
       "search": [],
       "expand": [],
-      "other": {}
+      "other": {
+        "$format": [
+          "text/vtt"
+        ]
+      }
     },
     "headers": {},
     "requestBody": null,
@@ -15661,11 +15669,12 @@
     "headers": {},
     "requestBody": {
       "fields": [
-        "callbackUri",
+        "callbackUri?",
         "targets[] {identity {user {id}}}",
-        "requestedModalities",
+        "requestedModalities?",
         "mediaConfig?",
-        "source?"
+        "source?",
+        "subject?"
       ]
     },
     "responseFields": [

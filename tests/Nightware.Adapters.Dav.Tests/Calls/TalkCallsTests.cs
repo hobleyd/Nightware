@@ -43,11 +43,11 @@ public sealed class TalkCallsTests : IDisposable
 
     private ICallService Calls => _talk.Get<ICallService>();
 
-    private void ServeJoin(string sessionId = "sess-facade")
+    private void ServeJoin(string sessionId = "sess-facade", string[]? setCookies = null)
     {
         _talk.Server.Given(Request.Create().WithPath(Room + "/participants/active").UsingPost())
             .RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "application/json")
-                .WithHeader("Set-Cookie", SetCookies)
+                .WithHeader("Set-Cookie", setCookies ?? SetCookies)
                 .WithBody($$$$"""{"ocs":{"meta":{"status":"ok","statuscode":200,"message":"OK"},"data":{"token":"nge9dkks","sessionId":"{{{{sessionId}}}}","participantType":1}}}"""));
     }
 
@@ -62,7 +62,7 @@ public sealed class TalkCallsTests : IDisposable
     }
 
     private void ServeRoom(bool hasCall, long start) =>
-        _talk.Ocs("GET", Room, 200, $$"""{"token":"nge9dkks","type":1,"hasCall":{{(hasCall ? "true" : "false")}},"callStartTime":{{start}},"participantType":1}""");
+        _talk.Ocs("GET", Room, 200, $$"""{"token":"nge9dkks","type":1,"hasCall":{{(hasCall ? "true" : "false")}},"callStartTime":{{start}},"participantType":1,"actorType":"users","actorId":"alice"}""");
 
     private async Task<string> PlaceAsync()
     {
@@ -165,9 +165,15 @@ public sealed class TalkCallsTests : IDisposable
 
         (await Calls.GetAsync(id, Ct)).Value.State.ShouldBe(CallState.Establishing);
 
+        // alice's own Talk client joining for media is not the call being answered.
         _talk.Server.Reset();
         ServeRoom(hasCall: true, Started);
-        _talk.Ocs("GET", Call, 200, """[{"actorType":"users","actorId":"bob","sessionId":"sess-bob"}]""");
+        _talk.Ocs("GET", Call, 200, """[{"actorType":"users","actorId":"alice","sessionId":"sess-alice-app"}]""");
+        (await Calls.GetAsync(id, Ct)).Value.State.ShouldBe(CallState.Establishing);
+
+        _talk.Server.Reset();
+        ServeRoom(hasCall: true, Started);
+        _talk.Ocs("GET", Call, 200, """[{"actorType":"users","actorId":"alice","sessionId":"sess-alice-app"},{"actorType":"users","actorId":"bob","sessionId":"sess-bob"}]""");
         (await Calls.GetAsync(id, Ct)).Value.State.ShouldBe(CallState.Established);
 
         _talk.Server.Reset();
@@ -215,20 +221,26 @@ public sealed class TalkCallsTests : IDisposable
         CookieOf("DELETE", Room + "/participants/active").ShouldBe(Cookie);
     }
 
-    [Fact]
-    public async Task A_reaped_session_still_ends_a_call_that_is_ringing()
+    [Theory]
+    [InlineData("[]")] // still ringing
+    [InlineData("""[{"actorType":"users","actorId":"bob","sessionId":"sess-bob"}]""")] // answered
+    public async Task A_reaped_session_still_ends_a_call_that_goes_on(string peers)
     {
         var id = await PlaceAsync();
+        const string Fresh = "oc7tfh0d0328=fresh; oc_sessionPassphrase=freshpass";
         _talk.Ocs("DELETE", Call, 404, "null", r => r.WithHeader("Cookie", Cookie));
+        _talk.Ocs("DELETE", Call, 200, "null", r => r.WithHeader("Cookie", Fresh));
         ServeRoom(hasCall: true, Started);
-        _talk.Ocs("GET", Call, 200, "[]");
-        ServeJoin("sess-fresh");
+        _talk.Ocs("GET", Call, 200, peers);
+        ServeJoin("sess-fresh", ["oc7tfh0d0328=fresh; path=/cloud", "oc_sessionPassphrase=freshpass; path=/cloud", "nc_session_id=fresh; path=/cloud"]);
         _talk.Ocs("DELETE", Room + "/participants/active", 200, "null");
 
         (await Calls.HangUpAsync(id, Ct)).IsSuccess.ShouldBeTrue();
 
         _talk.Requests("POST", Room + "/participants/active").Count.ShouldBe(1);
-        _talk.Requests("DELETE", Call).Count.ShouldBe(2);
+        var deletes = _talk.Requests("DELETE", Call).Select(e => e.RequestMessage!.Headers!["Cookie"].Single()).ToList();
+        deletes.ShouldBe([Cookie, Fresh]);
+        _talk.Requests("DELETE", Call).All(e => e.RequestMessage!.Query!["all"].Single() == "true").ShouldBeTrue();
     }
 
     [Fact]

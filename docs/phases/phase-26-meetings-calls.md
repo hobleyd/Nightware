@@ -74,7 +74,8 @@ percent-encoded) and a calendar event's meeting found by its `joinUrl`, a
 rename and re-span (room unbound), delete then 404; files placed where the
 recording server puts them list and download, the transcript as WebVTT without
 the AI warning; alice calls bob, bob gets Talk's call notification, `GET` is
-`establishing`, bob's token can't read alice's call id, `DELETE` ends the call
+`establishing`, bob answers from his own Talk session and `GET` is
+`established`, bob's token can't read alice's call id, `DELETE` ends the call
 (`hasCall` false) and `GET` is `terminated`. Also by hand: a real recording
 made by the `talk-recording` service in a public room (audio-only `.ogg`)
 listed and downloaded over Graph with the recorder's start and upload times.
@@ -120,11 +121,13 @@ listed and downloaded over Graph with the recorder's start and upload times.
   user replaying it gets `404` and never sends alice's cookie.
 - **State.** `terminated` once the room has no call, or a call with another
   start time, or is gone; `established` while `GET call/{token}` lists a peer
-  other than the façade's session; `establishing` otherwise. Reading a call
+  that is neither the façade's session nor the caller (the caller's own Talk
+  client joining for media isn't an answer); `establishing` otherwise. Reading a call
   never lists participants (that would end it, see Step 0).
 - **Hanging up** sends `DELETE call/{token}?all=true` and leaves the room. If
-  Talk has already reaped the session but the targets are still being rung, a
-  fresh session ends the call; a call already over is `204`.
+  Talk has already reaped the session (any Talk client listing the room's
+  participants does, so after an answer it is likely) and the call goes on,
+  ringing or answered, a fresh session ends it; a call already over is `204`.
 - **Off-switches.** Without `Talk:PublicBaseUrl` every meeting route is `501`;
   without `Calls:SealingKey` (or Talk) every call route is `501`. A sealing key
   that is set must be at least 32 bytes of hex, or the host fails to start.
@@ -142,6 +145,12 @@ listed and downloaded over Graph with the recorder's start and upload times.
   after 100 s: the call ends and the callee sees a missed call. Until then it
   rings for as long as nobody looks (8 minutes in the probe). Media and keeping
   the session alive are the caller's own Talk client's job (`@nightware.joinWebUrl`).
+- **Every call to several people leaves a new group room behind** (it is also
+  the call's chat); nothing tidies them up.
+- **Routes Graph has but D1 leaves out** (`calls/{id}/answer`, `reject`,
+  `transfer`, `playPrompt`, …) are not mapped, so they answer the unknown-route
+  `400`, not `501`: they are not in the contract (CLAUDE.md: only contract
+  surface is implemented).
 - **No Graph notifications** to `callbackUri`, no `answer`/`reject`/`transfer`,
   no media (ADR 0009 D1).
 - **Re-timing or renaming a meeting unbinds its room**, so Talk no longer
