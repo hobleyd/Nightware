@@ -477,10 +477,10 @@ name without an id).
 | Class | Port | Over |
 |---|---|---|
 | `NextcloudOnlineMeetings` | `IOnlineMeetingStore` | `apps/spreed/api/v4/room` (JSON create with `participants`), its participants, the first chat message for the creation time |
-| `TalkMeetingArtifacts` | `IMeetingArtifacts` | `PROPFIND` of `files/{uid}{attachment folder}/Recording/{token}/`, `GET` of a file (streamed with `ResponseStream`) |
+| `TalkMeetingArtifacts` | `IMeetingArtifacts` | OCS `GET chat/{token}/share?objectType=` (audio, media, file, recording; pages of 40), `PROPFIND` of each shared recording at the caller's path and of `files/{uid}{attachment folder}/Recording/{token}/`, `GET` of a file (streamed with `ResponseStream`) |
 | `TalkCalls` | `ICallService` | `room` (one-to-one or group), `room/{token}/participants/active` (the session), `call/{token}` (start, peers, leave), `call/{token}/ring/{attendeeId}` |
 
-- **Ids.** A meeting is `t.{token}`; a recording or transcript is its file id, looked up in the room's folder only. A
+- **Ids.** A meeting is `t.{token}`; a recording or transcript is its file id (the same for every participant), looked up among the conversation's shared recordings and the caller's own recording folder for the room only. A
   call id is `CallIdSealer`'s AES-GCM seal of the call (token, session cookie pair, session-id hash, start time,
   targets) bound to the caller's id.
 - **Cookies.** The DAV client keeps none, so the Talk session's cookie pair is sent as an explicit `Cookie` header
