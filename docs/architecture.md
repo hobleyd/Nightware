@@ -49,7 +49,7 @@ Dependencies point inward only. Enforced by `tests/Nightware.Architecture.Tests`
 | `Nightware.Domain` | nothing | Entities, value objects, `Result<T>`/`Error`. No I/O, no framework types. |
 | `Nightware.Application` | Domain | Ports (interfaces) the adapters implement, use cases, the provider-neutral query model (`ItemQuery`, `FilterNode`), `IUserContext`. |
 | `Nightware.Adapters.Jmap` | Application | Stalwart JMAP client + mail/mailbox-settings/spam port implementations. |
-| `Nightware.Adapters.Dav` | Application | Nextcloud CalDAV/CardDAV/WebDAV/OCS client + calendar, contacts, tasks, rooms, file-share, drive (OneDrive, ADR 0008) and online-meeting (Talk, phase 22) port implementations. |
+| `Nightware.Adapters.Dav` | Application | Nextcloud CalDAV/CardDAV/WebDAV/OCS client + calendar, contacts, tasks, rooms, file-share, drive (OneDrive, ADR 0008), online-meeting (Talk, phase 22) and, over Talk, Teams and user status, chat, team, presence, meeting and call (ADR 0009) port implementations. |
 | `Nightware.Adapters.Directory` | Application | Keycloak admin/userinfo + Nextcloud avatar: user lookup, photos; groups, reporting lines and organizations (phase 21). |
 | `Nightware.Adapters.Cloudflare` | Application | Cloudflare v4 API for the admin console: publishing an entity's DNS records with the entity's own token; and public DNS lookups (Cloudflare's DNS-over-HTTPS resolver) for the server's public addresses. |
 | `Nightware.Adapters.DnsHosts` | Application | The admin console's other DNS hosts, one `IDnsHosting` each: DigitalOcean (v2), Gandi (LiveDNS v5), Hetzner (Cloud API zones), Amazon Route 53 (REST/XML, SigV4), Azure DNS (Resource Manager, client-credentials sign-in) and Google Cloud DNS (v1, service-account JWT sign-in), each with the entity's own credential; Azure and Google access tokens are cached in memory until shortly before they expire. Record-set hosts give each value a stable id (name, type, value hash). |
@@ -113,7 +113,8 @@ Code is organised by feature folder in every project, so phases can be built
 in parallel without touching each other's files:
 
 `Mail/`, `Calendar/`, `Contacts/`, `People/`, `Directory/`, `Tasks/`,
-`MailboxSettings/`, `Files/`, `Security/` (threat submission), `Rooms/`.
+`MailboxSettings/`, `Files/`, `Security/` (threat submission), `Rooms/`,
+`Chats/`, `Teams/`, `Presence/`, `OnlineMeetings/`, `Calls/` (ADR 0009).
 
 Each feature exposes, in its own files:
 - `Application/<Feature>/<Feature>ServiceCollectionExtensions.cs` → `Add<Feature>UseCases()`
@@ -139,5 +140,6 @@ add configuration options).
 - **Nextcloud** — Calendar (CalDAV, iTIP/iMIP via Sabre), Contacts (CardDAV),
   Tasks (CalDAV VTODO), `calendar_resource_management` (rooms), Files
   (WebDAV), OCS Share API, avatars, Talk (`spreed`: an online meeting's room,
-  phase 22).
+  phase 22; chats, channels, meetings and calls, ADR 0009), Teams (`circles`) and
+  user status (presence).
 - **Keycloak** — OIDC issuer trusted by Nightware, Stalwart and Nextcloud.

@@ -332,7 +332,11 @@ operation:
 | Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity) | 81 |
 | Phase 20 — OneDrive over Nextcloud Files (Graph parity, ADR 0008) | 30 |
 | Phase 21 — The directory: groups, manager, organization (Graph parity) | 14 |
-| **Total** | **322** |
+| Phase 23 — Chats over Nextcloud Talk (Graph parity, ADR 0009) | 22 |
+| Phase 24 — Teams and channels over Nextcloud Teams and Talk (Graph parity, ADR 0009) | 34 |
+| Phase 25 — Presence over Nextcloud user status (Graph parity, ADR 0009) | 8 |
+| Phase 26 — Online meetings and calls over Talk (Graph parity, ADR 0009) | 14 |
+| **Total** | **400** |
 
 ### Phase 2 — Mail, read side
 
@@ -3792,5 +3796,806 @@ operation:
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/organization-get
 - Notes: One of the caller's organizations; any other id is 404 Request_ResourceNotFound.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.organization.get.json`
+
+### Phase 23 — Chats over Nextcloud Talk (Graph parity, ADR 0009)
+
+| Id | Method | Ver | Path | Paging |
+|---|---|---|---|---|
+| [`chats.list`](#chatslist) | GET | v1.0 | `{mailbox}/chats` | nextLink |
+| [`chats.get`](#chatsget) | GET | v1.0 | `/chats/{chatId}` | none |
+| [`chats.create`](#chatscreate) | POST | v1.0 | `/chats` | none |
+| [`chats.update`](#chatsupdate) | PATCH | v1.0 | `/chats/{chatId}` | none |
+| [`chats.hide`](#chatshide) | POST | v1.0 | `/chats/{chatId}/hideForUser` | none |
+| [`chats.unhide`](#chatsunhide) | POST | v1.0 | `/chats/{chatId}/unhideForUser` | none |
+| [`chats.mark-read`](#chatsmark-read) | POST | v1.0 | `/chats/{chatId}/markChatReadForUser` | none |
+| [`chats.mark-unread`](#chatsmark-unread) | POST | v1.0 | `/chats/{chatId}/markChatUnreadForUser` | none |
+| [`chats.members.list`](#chatsmemberslist) | GET | v1.0 | `/chats/{chatId}/members` | none |
+| [`chats.members.get`](#chatsmembersget) | GET | v1.0 | `/chats/{chatId}/members/{membershipId}` | none |
+| [`chats.members.add`](#chatsmembersadd) | POST | v1.0 | `/chats/{chatId}/members` | none |
+| [`chats.members.remove`](#chatsmembersremove) | DELETE | v1.0 | `/chats/{chatId}/members/{membershipId}` | none |
+| [`chats.messages.list`](#chatsmessageslist) | GET | v1.0 | `/chats/{chatId}/messages` | nextLink |
+| [`chats.messages.get`](#chatsmessagesget) | GET | v1.0 | `/chats/{chatId}/messages/{messageId}` | none |
+| [`chats.messages.send`](#chatsmessagessend) | POST | v1.0 | `/chats/{chatId}/messages` | none |
+| [`chats.messages.update`](#chatsmessagesupdate) | PATCH | v1.0 | `/chats/{chatId}/messages/{messageId}` | none |
+| [`chats.messages.soft-delete`](#chatsmessagessoft-delete) | POST | v1.0 | `{mailbox}/chats/{chatId}/messages/{messageId}/softDelete` | none |
+| [`chats.messages.set-reaction`](#chatsmessagesset-reaction) | POST | v1.0 | `/chats/{chatId}/messages/{messageId}/setReaction` | none |
+| [`chats.messages.unset-reaction`](#chatsmessagesunset-reaction) | POST | v1.0 | `/chats/{chatId}/messages/{messageId}/unsetReaction` | none |
+| [`chats.pinned.list`](#chatspinnedlist) | GET | v1.0 | `/chats/{chatId}/pinnedMessages` | none |
+| [`chats.pinned.add`](#chatspinnedadd) | POST | v1.0 | `/chats/{chatId}/pinnedMessages` | none |
+| [`chats.pinned.remove`](#chatspinnedremove) | DELETE | v1.0 | `/chats/{chatId}/pinnedMessages/{pinnedMessageId}` | none |
+
+#### `chats.list`
+
+**GET v1.0 `{mailbox}/chats`** — forms: me, users; success: 200; paging: nextLink
+
+- Client reads: `id`, `topic`, `chatType`, `createdDateTime`, `lastUpdatedDateTime`, `webUrl`, `viewpoint`, `onlineMeetingInfo`
+- Graph parity (ADR 0006); reference: chat-list
+- Notes: The caller's Talk conversations (ADR 0009 D3): one-to-one, group, meeting. Note to self, changelog, sample and channel rooms left out. /users/{x} only for the caller. $top up to 50; $expand=members and lastMessagePreview.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.list.json`
+
+#### `chats.get`
+
+**GET v1.0 `/chats/{chatId}`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `topic`, `chatType`, `createdDateTime`, `lastUpdatedDateTime`, `webUrl`, `viewpoint`, `onlineMeetingInfo`
+- Graph parity (ADR 0006); reference: chat-get
+- Notes: One Talk conversation by token. Also served as {mailbox}/chats/{chatId}.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.get.json`
+
+#### `chats.create`
+
+**POST v1.0 `/chats`** — forms: root; success: 201; paging: none
+
+- Request body: `chatType`; `topic?`; `members[] {@odata.type, roles, user@odata.bind}`
+- Client reads: `id`, `topic`, `chatType`, `createdDateTime`, `lastUpdatedDateTime`, `webUrl`, `viewpoint`, `onlineMeetingInfo`
+- Graph parity (ADR 0006); reference: chat-post
+- Notes: oneOnOne returns Talk's existing room, as Graph does; group creates a group room named topic.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.create.json`
+
+#### `chats.update`
+
+**PATCH v1.0 `/chats/{chatId}`** — forms: root; success: 200; paging: none
+
+- Request body: `topic`
+- Client reads: `id`, `topic`, `chatType`, `createdDateTime`, `lastUpdatedDateTime`, `webUrl`, `viewpoint`, `onlineMeetingInfo`
+- Graph parity (ADR 0006); reference: chat-patch
+- Notes: Renames a group conversation. A one-to-one chat has no topic (400).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.update.json`
+
+#### `chats.hide`
+
+**POST v1.0 `/chats/{chatId}/hideForUser`** — forms: root; success: 204; paging: none
+
+- Request body: `user {id}`
+- Graph parity (ADR 0006); reference: chat-hideforuser
+- Notes: Talk archive.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.hide.json`
+
+#### `chats.unhide`
+
+**POST v1.0 `/chats/{chatId}/unhideForUser`** — forms: root; success: 204; paging: none
+
+- Request body: `user {id}`
+- Graph parity (ADR 0006); reference: chat-unhideforuser
+- Notes: Talk unarchive.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.unhide.json`
+
+#### `chats.mark-read`
+
+**POST v1.0 `/chats/{chatId}/markChatReadForUser`** — forms: root; success: 204; paging: none
+
+- Request body: `user {id}`
+- Graph parity (ADR 0006); reference: chat-markchatreadforuser
+- Notes: Read marker to the newest message.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.mark-read.json`
+
+#### `chats.mark-unread`
+
+**POST v1.0 `/chats/{chatId}/markChatUnreadForUser`** — forms: root; success: 204; paging: none
+
+- Request body: `user {id}`; `lastMessageReadDateTime?`
+- Graph parity (ADR 0006); reference: chat-markchatunreadforuser
+- Notes: Talk's mark-unread; lastMessageReadDateTime is ignored.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.mark-unread.json`
+
+#### `chats.members.list`
+
+**GET v1.0 `/chats/{chatId}/members`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `roles`, `displayName`, `userId`, `email`, `visibleHistoryStartDateTime`
+- Graph parity (ADR 0006); reference: chat-list-members
+- Notes: Room participants of type users; owners and moderators carry roles [owner].
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.members.list.json`
+
+#### `chats.members.get`
+
+**GET v1.0 `/chats/{chatId}/members/{membershipId}`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `roles`, `displayName`, `userId`, `email`, `visibleHistoryStartDateTime`
+- Graph parity (ADR 0006); reference: chat-get-members
+- Notes: Membership id m.<attendeeId> (ADR 0009 D2).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.members.get.json`
+
+#### `chats.members.add`
+
+**POST v1.0 `/chats/{chatId}/members`** — forms: root; success: 201; paging: none
+
+- Request body: `@odata.type`; `user@odata.bind`; `roles`; `visibleHistoryStartDateTime?`
+- Client reads: `id`, `roles`, `displayName`, `userId`, `email`, `visibleHistoryStartDateTime`
+- Graph parity (ADR 0006); reference: chat-post-members
+- Notes: Talk add participant; history is always visible.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.members.add.json`
+
+#### `chats.members.remove`
+
+**DELETE v1.0 `/chats/{chatId}/members/{membershipId}`** — forms: root; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: chat-delete-members
+- Notes: Talk remove attendee, or leaving when it is the caller.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.members.remove.json`
+
+#### `chats.messages.list`
+
+**GET v1.0 `/chats/{chatId}/messages`** — forms: root; success: 200; paging: nextLink
+
+- Client reads: `id`, `replyToId`, `etag`, `messageType`, `createdDateTime`, `lastModifiedDateTime`, `lastEditedDateTime`, `deletedDateTime`, `subject`, `chatId`, `channelIdentity`, `from`, `body`, `attachments`, `mentions`, `reactions`, `importance`, `eventDetail`, `webUrl`
+- Graph parity (ADR 0006); reference: chat-list-messages
+- Notes: Newest first; $top up to 50; $skiptoken is Talk's X-Chat-Last-Given (ADR 0009 D4). Never moves the read marker.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.messages.list.json`
+
+#### `chats.messages.get`
+
+**GET v1.0 `/chats/{chatId}/messages/{messageId}`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `replyToId`, `etag`, `messageType`, `createdDateTime`, `lastModifiedDateTime`, `lastEditedDateTime`, `deletedDateTime`, `subject`, `chatId`, `channelIdentity`, `from`, `body`, `attachments`, `mentions`, `reactions`, `importance`, `eventDetail`, `webUrl`
+- Graph parity (ADR 0006); reference: chatmessage-get
+- Notes: One message (Talk chat context of the id).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.messages.get.json`
+
+#### `chats.messages.send`
+
+**POST v1.0 `/chats/{chatId}/messages`** — forms: root; success: 201; paging: none
+
+- Request body: `body {contentType, content}`; `mentions[]?`; `importance?`; `subject?`
+- Client reads: `id`, `replyToId`, `etag`, `messageType`, `createdDateTime`, `lastModifiedDateTime`, `lastEditedDateTime`, `deletedDateTime`, `subject`, `chatId`, `channelIdentity`, `from`, `body`, `attachments`, `mentions`, `reactions`, `importance`, `eventDetail`, `webUrl`
+- Graph parity (ADR 0006); reference: chat-post-messages
+- Notes: Markdown to Talk; <at id> mentions become @"uid" (ADR 0009 D4).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.messages.send.json`
+
+#### `chats.messages.update`
+
+**PATCH v1.0 `/chats/{chatId}/messages/{messageId}`** — forms: root; success: 204; paging: none
+
+- Request body: `body`; `mentions[]?`
+- Graph parity (ADR 0006); reference: chatmessage-update
+- Notes: Talk edit; the sender only.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.messages.update.json`
+
+#### `chats.messages.soft-delete`
+
+**POST v1.0 `{mailbox}/chats/{chatId}/messages/{messageId}/softDelete`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: chatmessage-softdelete
+- Notes: Talk delete; the message stays with deletedDateTime.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.messages.soft-delete.json`
+
+#### `chats.messages.set-reaction`
+
+**POST v1.0 `/chats/{chatId}/messages/{messageId}/setReaction`** — forms: root; success: 204; paging: none
+
+- Request body: `reactionType`
+- Graph parity (ADR 0006); reference: chatmessage-setreaction
+- Notes: Talk reaction (an emoji).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.messages.set-reaction.json`
+
+#### `chats.messages.unset-reaction`
+
+**POST v1.0 `/chats/{chatId}/messages/{messageId}/unsetReaction`** — forms: root; success: 204; paging: none
+
+- Request body: `reactionType`
+- Graph parity (ADR 0006); reference: chatmessage-unsetreaction
+- Notes: Removes the caller's reaction.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.messages.unset-reaction.json`
+
+#### `chats.pinned.list`
+
+**GET v1.0 `/chats/{chatId}/pinnedMessages`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `message`
+- Graph parity (ADR 0006); reference: chat-list-pinnedmessages
+- Notes: Talk pinned messages; $expand=message.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.pinned.list.json`
+
+#### `chats.pinned.add`
+
+**POST v1.0 `/chats/{chatId}/pinnedMessages`** — forms: root; success: 201; paging: none
+
+- Request body: `message@odata.bind`
+- Client reads: `id`
+- Graph parity (ADR 0006); reference: chat-post-pinnedmessages
+- Notes: Talk pin (moderators); pinned id is the message id.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.pinned.add.json`
+
+#### `chats.pinned.remove`
+
+**DELETE v1.0 `/chats/{chatId}/pinnedMessages/{pinnedMessageId}`** — forms: root; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: chat-delete-pinnedmessages
+- Notes: Talk unpin.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.pinned.remove.json`
+
+### Phase 24 — Teams and channels over Nextcloud Teams and Talk (Graph parity, ADR 0009)
+
+| Id | Method | Ver | Path | Paging |
+|---|---|---|---|---|
+| [`teams.joined`](#teamsjoined) | GET | v1.0 | `{mailbox}/joinedTeams` | none |
+| [`teams.get`](#teamsget) | GET | v1.0 | `/teams/{teamId}` | none |
+| [`teams.create`](#teamscreate) | POST | v1.0 | `/teams` | none |
+| [`teams.operation.get`](#teamsoperationget) | GET | v1.0 | `/teams/{teamId}/operations/{operationId}` | none |
+| [`teams.update`](#teamsupdate) | PATCH | v1.0 | `/teams/{teamId}` | none |
+| [`teams.delete`](#teamsdelete) | DELETE | v1.0 | `/groups/{teamId}` | none |
+| [`teams.members.list`](#teamsmemberslist) | GET | v1.0 | `/teams/{teamId}/members` | none |
+| [`teams.members.get`](#teamsmembersget) | GET | v1.0 | `/teams/{teamId}/members/{membershipId}` | none |
+| [`teams.members.add`](#teamsmembersadd) | POST | v1.0 | `/teams/{teamId}/members` | none |
+| [`teams.members.update`](#teamsmembersupdate) | PATCH | v1.0 | `/teams/{teamId}/members/{membershipId}` | none |
+| [`teams.members.remove`](#teamsmembersremove) | DELETE | v1.0 | `/teams/{teamId}/members/{membershipId}` | none |
+| [`channels.list`](#channelslist) | GET | v1.0 | `/teams/{teamId}/channels` | none |
+| [`channels.get`](#channelsget) | GET | v1.0 | `/teams/{teamId}/channels/{channelId}` | none |
+| [`channels.create`](#channelscreate) | POST | v1.0 | `/teams/{teamId}/channels` | none |
+| [`channels.update`](#channelsupdate) | PATCH | v1.0 | `/teams/{teamId}/channels/{channelId}` | none |
+| [`channels.delete`](#channelsdelete) | DELETE | v1.0 | `/teams/{teamId}/channels/{channelId}` | none |
+| [`channels.primary`](#channelsprimary) | GET | v1.0 | `/teams/{teamId}/primaryChannel` | none |
+| [`channels.files-folder`](#channelsfiles-folder) | GET | v1.0 | `/teams/{teamId}/channels/{channelId}/filesFolder` | none |
+| [`channels.members.list`](#channelsmemberslist) | GET | v1.0 | `/teams/{teamId}/channels/{channelId}/members` | none |
+| [`channels.messages.list`](#channelsmessageslist) | GET | v1.0 | `/teams/{teamId}/channels/{channelId}/messages` | nextLink |
+| [`channels.messages.get`](#channelsmessagesget) | GET | v1.0 | `/teams/{teamId}/channels/{channelId}/messages/{messageId}` | none |
+| [`channels.messages.send`](#channelsmessagessend) | POST | v1.0 | `/teams/{teamId}/channels/{channelId}/messages` | none |
+| [`channels.messages.update`](#channelsmessagesupdate) | PATCH | v1.0 | `/teams/{teamId}/channels/{channelId}/messages/{messageId}` | none |
+| [`channels.messages.soft-delete`](#channelsmessagessoft-delete) | POST | v1.0 | `/teams/{teamId}/channels/{channelId}/messages/{messageId}/softDelete` | none |
+| [`channels.messages.set-reaction`](#channelsmessagesset-reaction) | POST | v1.0 | `/teams/{teamId}/channels/{channelId}/messages/{messageId}/setReaction` | none |
+| [`channels.messages.unset-reaction`](#channelsmessagesunset-reaction) | POST | v1.0 | `/teams/{teamId}/channels/{channelId}/messages/{messageId}/unsetReaction` | none |
+| [`channels.messages.delta`](#channelsmessagesdelta) | GET | v1.0 | `/teams/{teamId}/channels/{channelId}/messages/delta` | deltaLink |
+| [`channels.replies.list`](#channelsreplieslist) | GET | v1.0 | `/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies` | nextLink |
+| [`channels.replies.get`](#channelsrepliesget) | GET | v1.0 | `/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}` | none |
+| [`channels.replies.send`](#channelsrepliessend) | POST | v1.0 | `/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies` | none |
+| [`channels.replies.update`](#channelsrepliesupdate) | PATCH | v1.0 | `/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}` | none |
+| [`channels.replies.soft-delete`](#channelsrepliessoft-delete) | POST | v1.0 | `/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}/softDelete` | none |
+| [`channels.replies.set-reaction`](#channelsrepliesset-reaction) | POST | v1.0 | `/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}/setReaction` | none |
+| [`channels.replies.unset-reaction`](#channelsrepliesunset-reaction) | POST | v1.0 | `/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}/unsetReaction` | none |
+
+#### `teams.joined`
+
+**GET v1.0 `{mailbox}/joinedTeams`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `displayName`, `description`, `visibility`, `createdDateTime`, `webUrl`, `isArchived`, `tenantId`
+- Graph parity (ADR 0006); reference: user-list-joinedteams
+- Notes: The caller's Nextcloud teams (circles); /users/{x} only for the caller (ADR 0009 D5).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/teams.joined.json`
+
+#### `teams.get`
+
+**GET v1.0 `/teams/{teamId}`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `displayName`, `description`, `visibility`, `createdDateTime`, `webUrl`, `isArchived`, `tenantId`
+- Graph parity (ADR 0006); reference: team-get
+- Notes: A circle the caller belongs to.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/teams.get.json`
+
+#### `teams.create`
+
+**POST v1.0 `/teams`** — forms: root; success: 202; paging: none
+
+- Request body: `template@odata.bind (standard)`; `displayName`; `description?`; `visibility?`; `members[]?`
+- Graph parity (ADR 0006); reference: team-post
+- Notes: Circle, members and the General channel; Location names a succeeded teamsAsyncOperation.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/teams.create.json`
+
+#### `teams.operation.get`
+
+**GET v1.0 `/teams/{teamId}/operations/{operationId}`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `operationType`, `status`, `targetResourceId`, `targetResourceLocation`, `createdDateTime`, `lastActionDateTime`
+- Graph parity (ADR 0006); reference: teamsasyncoperation-get
+- Notes: Always succeeded; the id encodes the team.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/teams.operation.get.json`
+
+#### `teams.update`
+
+**PATCH v1.0 `/teams/{teamId}`** — forms: root; success: 204; paging: none
+
+- Request body: `displayName?`; `description?`; `visibility?`
+- Graph parity (ADR 0006); reference: team-update
+- Notes: Renames and redescribes the circle; visibility sets its visible and open flags.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/teams.update.json`
+
+#### `teams.delete`
+
+**DELETE v1.0 `/groups/{teamId}`** — forms: root; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: group-delete
+- Notes: Deletes the circle and its channels' rooms when the id is a team id; other group ids stay read-only (phase 21).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/teams.delete.json`
+
+#### `teams.members.list`
+
+**GET v1.0 `/teams/{teamId}/members`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `roles`, `displayName`, `userId`, `email`, `visibleHistoryStartDateTime`
+- Graph parity (ADR 0006); reference: team-list-members
+- Notes: Circle members; level 8-9 is owner.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/teams.members.list.json`
+
+#### `teams.members.get`
+
+**GET v1.0 `/teams/{teamId}/members/{membershipId}`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `roles`, `displayName`, `userId`, `email`, `visibleHistoryStartDateTime`
+- Graph parity (ADR 0006); reference: team-get-members
+- Notes: Membership id m.<circle member id>.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/teams.members.get.json`
+
+#### `teams.members.add`
+
+**POST v1.0 `/teams/{teamId}/members`** — forms: root; success: 201; paging: none
+
+- Request body: `@odata.type`; `user@odata.bind`; `roles`
+- Client reads: `id`, `roles`, `displayName`, `userId`, `email`, `visibleHistoryStartDateTime`
+- Graph parity (ADR 0006); reference: team-post-members
+- Notes: Circle member add; owner is level 8.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/teams.members.add.json`
+
+#### `teams.members.update`
+
+**PATCH v1.0 `/teams/{teamId}/members/{membershipId}`** — forms: root; success: 200; paging: none
+
+- Request body: `@odata.type`; `roles`
+- Client reads: `id`, `roles`, `displayName`, `userId`, `email`, `visibleHistoryStartDateTime`
+- Graph parity (ADR 0006); reference: team-update-members
+- Notes: Circle member level; the circle owner can't be demoted (400).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/teams.members.update.json`
+
+#### `teams.members.remove`
+
+**DELETE v1.0 `/teams/{teamId}/members/{membershipId}`** — forms: root; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: team-delete-members
+- Notes: Circle member remove; not the circle owner (400).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/teams.members.remove.json`
+
+#### `channels.list`
+
+**GET v1.0 `/teams/{teamId}/channels`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `displayName`, `description`, `membershipType`, `createdDateTime`, `webUrl`, `email`, `isArchived`
+- Graph parity (ADR 0006); reference: channel-list
+- Notes: The team's Talk resources (teams/{id}/resources); all standard.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.list.json`
+
+#### `channels.get`
+
+**GET v1.0 `/teams/{teamId}/channels/{channelId}`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `displayName`, `description`, `membershipType`, `createdDateTime`, `webUrl`, `email`, `isArchived`
+- Graph parity (ADR 0006); reference: channel-get
+- Notes: A team room by token.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.get.json`
+
+#### `channels.create`
+
+**POST v1.0 `/teams/{teamId}/channels`** — forms: root; success: 201; paging: none
+
+- Request body: `displayName`; `description?`; `membershipType? (standard)`
+- Client reads: `id`, `displayName`, `description`, `membershipType`, `createdDateTime`, `webUrl`, `email`, `isArchived`
+- Graph parity (ADR 0006); reference: channel-post
+- Notes: Group room with the team as participant; private and shared are 400.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.create.json`
+
+#### `channels.update`
+
+**PATCH v1.0 `/teams/{teamId}/channels/{channelId}`** — forms: root; success: 204; paging: none
+
+- Request body: `displayName?`; `description?`
+- Graph parity (ADR 0006); reference: channel-patch
+- Notes: Room name and description; General can't be renamed (400).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.update.json`
+
+#### `channels.delete`
+
+**DELETE v1.0 `/teams/{teamId}/channels/{channelId}`** — forms: root; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: channel-delete
+- Notes: Deletes the room; the primary channel can't be deleted (400).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.delete.json`
+
+#### `channels.primary`
+
+**GET v1.0 `/teams/{teamId}/primaryChannel`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `displayName`, `description`, `membershipType`, `createdDateTime`, `webUrl`, `email`, `isArchived`
+- Graph parity (ADR 0006); reference: team-get-primarychannel
+- Notes: The team's room with the lowest Talk room id.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.primary.json`
+
+#### `channels.files-folder`
+
+**GET v1.0 `/teams/{teamId}/channels/{channelId}/filesFolder`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `name`, `webUrl`, `folder`, `parentReference`
+- Graph parity (ADR 0006); reference: channel-get-filesfolder
+- Notes: The channel's folder in the team folder, created on first use; a drive item (ADR 0008).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.files-folder.json`
+
+#### `channels.members.list`
+
+**GET v1.0 `/teams/{teamId}/channels/{channelId}/members`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `roles`, `displayName`, `userId`, `email`, `visibleHistoryStartDateTime`
+- Graph parity (ADR 0006); reference: channel-list-members
+- Notes: Standard channel: the team's members.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.members.list.json`
+
+#### `channels.messages.list`
+
+**GET v1.0 `/teams/{teamId}/channels/{channelId}/messages`** — forms: root; success: 200; paging: nextLink
+
+- Client reads: `id`, `replyToId`, `etag`, `messageType`, `createdDateTime`, `lastModifiedDateTime`, `lastEditedDateTime`, `deletedDateTime`, `subject`, `chatId`, `channelIdentity`, `from`, `body`, `attachments`, `mentions`, `reactions`, `importance`, `eventDetail`, `webUrl`
+- Graph parity (ADR 0006); reference: channel-list-messages
+- Notes: Posts (thread roots and plain top-level messages), newest first; $top up to 50; $expand=replies.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.messages.list.json`
+
+#### `channels.messages.get`
+
+**GET v1.0 `/teams/{teamId}/channels/{channelId}/messages/{messageId}`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `replyToId`, `etag`, `messageType`, `createdDateTime`, `lastModifiedDateTime`, `lastEditedDateTime`, `deletedDateTime`, `subject`, `chatId`, `channelIdentity`, `from`, `body`, `attachments`, `mentions`, `reactions`, `importance`, `eventDetail`, `webUrl`
+- Graph parity (ADR 0006); reference: chatmessage-get
+- Notes: One post.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.messages.get.json`
+
+#### `channels.messages.send`
+
+**POST v1.0 `/teams/{teamId}/channels/{channelId}/messages`** — forms: root; success: 201; paging: none
+
+- Request body: `body`; `subject?`; `mentions[]?`; `importance?`
+- Client reads: `id`, `replyToId`, `etag`, `messageType`, `createdDateTime`, `lastModifiedDateTime`, `lastEditedDateTime`, `deletedDateTime`, `subject`, `chatId`, `channelIdentity`, `from`, `body`, `attachments`, `mentions`, `reactions`, `importance`, `eventDetail`, `webUrl`
+- Graph parity (ADR 0006); reference: channel-post-messages
+- Notes: A Talk thread; subject is its title (first body line when absent, reported null).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.messages.send.json`
+
+#### `channels.messages.update`
+
+**PATCH v1.0 `/teams/{teamId}/channels/{channelId}/messages/{messageId}`** — forms: root; success: 204; paging: none
+
+- Request body: `body`; `subject?`; `mentions[]?`
+- Graph parity (ADR 0006); reference: chatmessage-update
+- Notes: Talk edit; subject renames the thread.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.messages.update.json`
+
+#### `channels.messages.soft-delete`
+
+**POST v1.0 `/teams/{teamId}/channels/{channelId}/messages/{messageId}/softDelete`** — forms: root; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: chatmessage-softdelete
+- Notes: Talk delete.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.messages.soft-delete.json`
+
+#### `channels.messages.set-reaction`
+
+**POST v1.0 `/teams/{teamId}/channels/{channelId}/messages/{messageId}/setReaction`** — forms: root; success: 204; paging: none
+
+- Request body: `reactionType`
+- Graph parity (ADR 0006); reference: chatmessage-setreaction
+- Notes: Talk reaction.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.messages.set-reaction.json`
+
+#### `channels.messages.unset-reaction`
+
+**POST v1.0 `/teams/{teamId}/channels/{channelId}/messages/{messageId}/unsetReaction`** — forms: root; success: 204; paging: none
+
+- Request body: `reactionType`
+- Graph parity (ADR 0006); reference: chatmessage-unsetreaction
+- Notes: Removes the caller's reaction.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.messages.unset-reaction.json`
+
+#### `channels.messages.delta`
+
+**GET v1.0 `/teams/{teamId}/channels/{channelId}/messages/delta`** — forms: root; success: 200; paging: deltaLink
+
+- Client reads: `id`, `replyToId`, `etag`, `messageType`, `createdDateTime`, `lastModifiedDateTime`, `lastEditedDateTime`, `deletedDateTime`, `subject`, `chatId`, `channelIdentity`, `from`, `body`, `attachments`, `mentions`, `reactions`, `importance`, `eventDetail`, `webUrl`
+- Graph parity (ADR 0006); reference: chatmessage-delta
+- Notes: Talk chat after the token's last message id; edits and deletes re-read their parent (ADR 0009 D5).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.messages.delta.json`
+
+#### `channels.replies.list`
+
+**GET v1.0 `/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies`** — forms: root; success: 200; paging: nextLink
+
+- Client reads: `id`, `replyToId`, `etag`, `messageType`, `createdDateTime`, `lastModifiedDateTime`, `lastEditedDateTime`, `deletedDateTime`, `subject`, `chatId`, `channelIdentity`, `from`, `body`, `attachments`, `mentions`, `reactions`, `importance`, `eventDetail`, `webUrl`
+- Graph parity (ADR 0006); reference: chatmessage-list-replies
+- Notes: Messages of the thread, newest first.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.replies.list.json`
+
+#### `channels.replies.get`
+
+**GET v1.0 `/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `replyToId`, `etag`, `messageType`, `createdDateTime`, `lastModifiedDateTime`, `lastEditedDateTime`, `deletedDateTime`, `subject`, `chatId`, `channelIdentity`, `from`, `body`, `attachments`, `mentions`, `reactions`, `importance`, `eventDetail`, `webUrl`
+- Graph parity (ADR 0006); reference: chatmessage-get
+- Notes: One reply.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.replies.get.json`
+
+#### `channels.replies.send`
+
+**POST v1.0 `/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies`** — forms: root; success: 201; paging: none
+
+- Request body: `body`; `mentions[]?`; `importance?`
+- Client reads: `id`, `replyToId`, `etag`, `messageType`, `createdDateTime`, `lastModifiedDateTime`, `lastEditedDateTime`, `deletedDateTime`, `subject`, `chatId`, `channelIdentity`, `from`, `body`, `attachments`, `mentions`, `reactions`, `importance`, `eventDetail`, `webUrl`
+- Graph parity (ADR 0006); reference: chatmessage-post-replies
+- Notes: Talk message with threadId.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.replies.send.json`
+
+#### `channels.replies.update`
+
+**PATCH v1.0 `/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}`** — forms: root; success: 204; paging: none
+
+- Request body: `body`; `mentions[]?`
+- Graph parity (ADR 0006); reference: chatmessage-update
+- Notes: Talk edit.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.replies.update.json`
+
+#### `channels.replies.soft-delete`
+
+**POST v1.0 `/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}/softDelete`** — forms: root; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: chatmessage-softdelete
+- Notes: Talk delete.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.replies.soft-delete.json`
+
+#### `channels.replies.set-reaction`
+
+**POST v1.0 `/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}/setReaction`** — forms: root; success: 204; paging: none
+
+- Request body: `reactionType`
+- Graph parity (ADR 0006); reference: chatmessage-setreaction
+- Notes: Talk reaction.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.replies.set-reaction.json`
+
+#### `channels.replies.unset-reaction`
+
+**POST v1.0 `/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}/unsetReaction`** — forms: root; success: 204; paging: none
+
+- Request body: `reactionType`
+- Graph parity (ADR 0006); reference: chatmessage-unsetreaction
+- Notes: Removes the caller's reaction.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/channels.replies.unset-reaction.json`
+
+### Phase 25 — Presence over Nextcloud user status (Graph parity, ADR 0009)
+
+| Id | Method | Ver | Path | Paging |
+|---|---|---|---|---|
+| [`presence.get`](#presenceget) | GET | v1.0 | `{mailbox}/presence` | none |
+| [`presence.get-by-id`](#presenceget-by-id) | GET | v1.0 | `/communications/presences/{userId}` | none |
+| [`presence.get-by-ids`](#presenceget-by-ids) | POST | v1.0 | `/communications/getPresencesByUserId` | none |
+| [`presence.set`](#presenceset) | POST | v1.0 | `{mailbox}/presence/setPresence` | none |
+| [`presence.clear`](#presenceclear) | POST | v1.0 | `{mailbox}/presence/clearPresence` | none |
+| [`presence.set-preferred`](#presenceset-preferred) | POST | v1.0 | `{mailbox}/presence/setUserPreferredPresence` | none |
+| [`presence.clear-preferred`](#presenceclear-preferred) | POST | v1.0 | `{mailbox}/presence/clearUserPreferredPresence` | none |
+| [`presence.set-status-message`](#presenceset-status-message) | POST | v1.0 | `{mailbox}/presence/setStatusMessage` | none |
+
+#### `presence.get`
+
+**GET v1.0 `{mailbox}/presence`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `availability`, `activity`, `statusMessage`, `outOfOfficeSettings`
+- Graph parity (ADR 0006); reference: presence-get
+- Notes: User status mapped per ADR 0009 D6; another user's via statuses/{uid}.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/presence.get.json`
+
+#### `presence.get-by-id`
+
+**GET v1.0 `/communications/presences/{userId}`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `availability`, `activity`, `statusMessage`, `outOfOfficeSettings`
+- Graph parity (ADR 0006); reference: presence-get
+- Notes: Same as /users/{id}/presence.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/presence.get-by-id.json`
+
+#### `presence.get-by-ids`
+
+**POST v1.0 `/communications/getPresencesByUserId`** — forms: root; success: 200; paging: none
+
+- Request body: `ids[]`
+- Client reads: `id`, `availability`, `activity`, `statusMessage`, `outOfOfficeSettings`
+- Graph parity (ADR 0006); reference: cloudcommunications-getpresencesbyuserid
+- Notes: One statuses/{uid} read per id; unknown ids are left out.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/presence.get-by-ids.json`
+
+#### `presence.set`
+
+**POST v1.0 `{mailbox}/presence/setPresence`** — forms: me, users; success: 200; paging: none
+
+- Request body: `sessionId`; `availability`; `activity`; `expirationDuration?`
+- Graph parity (ADR 0006); reference: presence-setpresence
+- Notes: Sets the user-defined status (one status per user, not per application).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/presence.set.json`
+
+#### `presence.clear`
+
+**POST v1.0 `{mailbox}/presence/clearPresence`** — forms: me, users; success: 200; paging: none
+
+- Request body: `sessionId`
+- Graph parity (ADR 0006); reference: presence-clearpresence
+- Notes: Back to online.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/presence.clear.json`
+
+#### `presence.set-preferred`
+
+**POST v1.0 `{mailbox}/presence/setUserPreferredPresence`** — forms: me, users; success: 200; paging: none
+
+- Request body: `availability`; `activity`; `expirationDuration?`
+- Graph parity (ADR 0006); reference: presence-setuserpreferredpresence
+- Notes: User-defined status; InACall/InAMeeting set the predefined message.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/presence.set-preferred.json`
+
+#### `presence.clear-preferred`
+
+**POST v1.0 `{mailbox}/presence/clearUserPreferredPresence`** — forms: me, users; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: presence-clearuserpreferredpresence
+- Notes: Back to online.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/presence.clear-preferred.json`
+
+#### `presence.set-status-message`
+
+**POST v1.0 `{mailbox}/presence/setStatusMessage`** — forms: me, users; success: 200; paging: none
+
+- Request body: `statusMessage {message {content, contentType}, expiryDateTime?}`
+- Graph parity (ADR 0006); reference: presence-setstatusmessage
+- Notes: Custom status message with clearAt.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/presence.set-status-message.json`
+
+### Phase 26 — Online meetings and calls over Talk (Graph parity, ADR 0009)
+
+| Id | Method | Ver | Path | Paging |
+|---|---|---|---|---|
+| [`online-meetings.create`](#online-meetingscreate) | POST | v1.0 | `{mailbox}/onlineMeetings` | none |
+| [`online-meetings.get`](#online-meetingsget) | GET | v1.0 | `{mailbox}/onlineMeetings/{meetingId}` | none |
+| [`online-meetings.find`](#online-meetingsfind) | GET | v1.0 | `{mailbox}/onlineMeetings` | none |
+| [`online-meetings.update`](#online-meetingsupdate) | PATCH | v1.0 | `{mailbox}/onlineMeetings/{meetingId}` | none |
+| [`online-meetings.delete`](#online-meetingsdelete) | DELETE | v1.0 | `{mailbox}/onlineMeetings/{meetingId}` | none |
+| [`online-meetings.recordings.list`](#online-meetingsrecordingslist) | GET | v1.0 | `{mailbox}/onlineMeetings/{meetingId}/recordings` | none |
+| [`online-meetings.recordings.get`](#online-meetingsrecordingsget) | GET | v1.0 | `{mailbox}/onlineMeetings/{meetingId}/recordings/{recordingId}` | none |
+| [`online-meetings.recordings.content`](#online-meetingsrecordingscontent) | GET | v1.0 | `{mailbox}/onlineMeetings/{meetingId}/recordings/{recordingId}/content` | none |
+| [`online-meetings.transcripts.list`](#online-meetingstranscriptslist) | GET | v1.0 | `{mailbox}/onlineMeetings/{meetingId}/transcripts` | none |
+| [`online-meetings.transcripts.get`](#online-meetingstranscriptsget) | GET | v1.0 | `{mailbox}/onlineMeetings/{meetingId}/transcripts/{transcriptId}` | none |
+| [`online-meetings.transcripts.content`](#online-meetingstranscriptscontent) | GET | v1.0 | `{mailbox}/onlineMeetings/{meetingId}/transcripts/{transcriptId}/content` | none |
+| [`calls.create`](#callscreate) | POST | v1.0 | `/communications/calls` | none |
+| [`calls.get`](#callsget) | GET | v1.0 | `/communications/calls/{callId}` | none |
+| [`calls.delete`](#callsdelete) | DELETE | v1.0 | `/communications/calls/{callId}` | none |
+
+#### `online-meetings.create`
+
+**POST v1.0 `{mailbox}/onlineMeetings`** — forms: me, users; success: 201; paging: none
+
+- Request body: `subject?`; `startDateTime?`; `endDateTime?`; `participants?`
+- Client reads: `id`, `subject`, `startDateTime`, `endDateTime`, `creationDateTime`, `joinWebUrl`, `chatInfo`, `participants`, `joinMeetingIdSettings`
+- Graph parity (ADR 0006); reference: application-post-onlinemeetings
+- Notes: A public Talk room, bound to its span (ADR 0009 D7); attendees who are users become participants.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.create.json`
+
+#### `online-meetings.get`
+
+**GET v1.0 `{mailbox}/onlineMeetings/{meetingId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `subject`, `startDateTime`, `endDateTime`, `creationDateTime`, `joinWebUrl`, `chatInfo`, `participants`, `joinMeetingIdSettings`
+- Graph parity (ADR 0006); reference: onlinemeeting-get
+- Notes: Id t.<token>.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.get.json`
+
+#### `online-meetings.find`
+
+**GET v1.0 `{mailbox}/onlineMeetings`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `subject`, `startDateTime`, `endDateTime`, `creationDateTime`, `joinWebUrl`, `chatInfo`, `participants`, `joinMeetingIdSettings`
+- Graph parity (ADR 0006); reference: onlinemeeting-get
+- Notes: Only $filter=JoinWebUrl eq '…' (Graph's rule); finds calendar events' rooms too.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.find.json`
+
+#### `online-meetings.update`
+
+**PATCH v1.0 `{mailbox}/onlineMeetings/{meetingId}`** — forms: me, users; success: 200; paging: none
+
+- Request body: `subject?`; `startDateTime?`; `endDateTime?`
+- Client reads: `id`, `subject`, `startDateTime`, `endDateTime`, `creationDateTime`, `joinWebUrl`, `chatInfo`, `participants`, `joinMeetingIdSettings`
+- Graph parity (ADR 0006); reference: onlinemeeting-update
+- Notes: Renames; a changed span unbinds the room (phase 22).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.update.json`
+
+#### `online-meetings.delete`
+
+**DELETE v1.0 `{mailbox}/onlineMeetings/{meetingId}`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: onlinemeeting-delete
+- Notes: Closes the room.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.delete.json`
+
+#### `online-meetings.recordings.list`
+
+**GET v1.0 `{mailbox}/onlineMeetings/{meetingId}/recordings`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `meetingId`, `createdDateTime`, `endDateTime`, `recordingContentUrl`, `contentCorrelationId`, `meetingOrganizer`
+- Graph parity (ADR 0006); reference: onlinemeeting-list-recordings
+- Notes: Recordings Talk uploaded to the organiser's files for this room.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.recordings.list.json`
+
+#### `online-meetings.recordings.get`
+
+**GET v1.0 `{mailbox}/onlineMeetings/{meetingId}/recordings/{recordingId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `meetingId`, `createdDateTime`, `endDateTime`, `recordingContentUrl`, `contentCorrelationId`, `meetingOrganizer`
+- Graph parity (ADR 0006); reference: callrecording-get
+- Notes: Recording id is the file id.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.recordings.get.json`
+
+#### `online-meetings.recordings.content`
+
+**GET v1.0 `{mailbox}/onlineMeetings/{meetingId}/recordings/{recordingId}/content`** — forms: me, users; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: callrecording-get
+- Notes: Streams the file (audio/video as Talk recorded it).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.recordings.content.json`
+
+#### `online-meetings.transcripts.list`
+
+**GET v1.0 `{mailbox}/onlineMeetings/{meetingId}/transcripts`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `meetingId`, `createdDateTime`, `endDateTime`, `transcriptContentUrl`, `contentCorrelationId`, `meetingOrganizer`
+- Graph parity (ADR 0006); reference: onlinemeeting-list-transcripts
+- Notes: Transcripts Talk's transcription wrote next to the recordings.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.transcripts.list.json`
+
+#### `online-meetings.transcripts.get`
+
+**GET v1.0 `{mailbox}/onlineMeetings/{meetingId}/transcripts/{transcriptId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `meetingId`, `createdDateTime`, `endDateTime`, `transcriptContentUrl`, `contentCorrelationId`, `meetingOrganizer`
+- Graph parity (ADR 0006); reference: calltranscript-get
+- Notes: Transcript id is the file id.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.transcripts.get.json`
+
+#### `online-meetings.transcripts.content`
+
+**GET v1.0 `{mailbox}/onlineMeetings/{meetingId}/transcripts/{transcriptId}/content`** — forms: me, users; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: calltranscript-get
+- Notes: text/vtt built from Talk's Markdown transcript (no cue times: one cue per paragraph spanning the recording).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.transcripts.content.json`
+
+#### `calls.create`
+
+**POST v1.0 `/communications/calls`** — forms: root; success: 201; paging: none
+
+- Request body: `callbackUri`; `targets[] {identity {user {id}}}`; `requestedModalities`; `mediaConfig?`; `source?`
+- Client reads: `id`, `state`, `direction`, `callbackUri`, `source`, `targets`, `requestedModalities`, `chatInfo`, `@nightware.joinWebUrl`
+- Graph parity (ADR 0006); reference: application-post-calls
+- Notes: Delegated (ADR 0009 D7): starts a Talk call as the caller and rings the targets; callbackUri is never called; media in Talk clients.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calls.create.json`
+
+#### `calls.get`
+
+**GET v1.0 `/communications/calls/{callId}`** — forms: root; success: 200; paging: none
+
+- Client reads: `id`, `state`, `direction`, `callbackUri`, `source`, `targets`, `requestedModalities`, `chatInfo`, `@nightware.joinWebUrl`
+- Graph parity (ADR 0006); reference: call-get
+- Notes: establishing / established / terminated from the room's call state.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calls.get.json`
+
+#### `calls.delete`
+
+**DELETE v1.0 `/communications/calls/{callId}`** — forms: root; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: call-delete
+- Notes: Leaves the call; ends it for everyone when the caller moderates.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calls.delete.json`
 
 <!-- END GENERATED -->

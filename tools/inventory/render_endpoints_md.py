@@ -34,6 +34,10 @@ PHASES = [
     ("19", "Phase 19 — Photos, MIME, copies, $count segments and more aliases (Graph parity)"),
     ("20", "Phase 20 — OneDrive over Nextcloud Files (Graph parity, ADR 0008)"),
     ("21", "Phase 21 — The directory: groups, manager, organization (Graph parity)"),
+    ("23", "Phase 23 — Chats over Nextcloud Talk (Graph parity, ADR 0009)"),
+    ("24", "Phase 24 — Teams and channels over Nextcloud Teams and Talk (Graph parity, ADR 0009)"),
+    ("25", "Phase 25 — Presence over Nextcloud user status (Graph parity, ADR 0009)"),
+    ("26", "Phase 26 — Online meetings and calls over Talk (Graph parity, ADR 0009)"),
 ]
 
 

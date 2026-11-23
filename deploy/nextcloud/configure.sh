@@ -20,8 +20,9 @@ log "Nextcloud: waiting for installation"
 wait_for "nextcloud installed" bash -c "docker compose -p '${COMPOSE_PROJECT_NAME}' exec -T -u www-data nextcloud php occ status --output=json | grep -q '\"installed\":true'"
 
 # --------------------------------------------------------------------- apps
-# activity: the façade's drive delta reads its stream (ADR 0008 D5); a default install has it, but make sure.
-for app in calendar contacts tasks user_oidc calendar_resource_management richdocuments groupfolders activity spreed; do
+# activity: the façade's drive delta reads its stream (ADR 0008 D5); circles, user_status and notifications back
+# teams, presence and call rings (ADR 0009 D9). A default install has these, but make sure.
+for app in calendar contacts tasks user_oidc calendar_resource_management richdocuments groupfolders activity spreed circles user_status notifications; do
   if occ app:list --output=json | jq -e --arg a "$app" '.enabled | has($a)' >/dev/null; then
     log "Nextcloud: app ${app} enabled"
   else

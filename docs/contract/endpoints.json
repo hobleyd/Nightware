@@ -12817,5 +12817,2942 @@
     "source": "graph-parity",
     "docs": "permission-delete",
     "notes": "Removes one of the item's own shares; an inherited one is 403. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "chats.list",
+    "phase": 23,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/chats",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "topic",
+      "chatType",
+      "createdDateTime",
+      "lastUpdatedDateTime",
+      "webUrl",
+      "viewpoint",
+      "onlineMeetingInfo"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-list",
+    "notes": "The caller's Talk conversations (ADR 0009 D3): one-to-one, group, meeting. Note to self, changelog, sample and channel rooms left out. /users/{x} only for the caller. $top up to 50; $expand=members and lastMessagePreview."
+  },
+  {
+    "id": "chats.get",
+    "phase": 23,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/chats/{chatId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "topic",
+      "chatType",
+      "createdDateTime",
+      "lastUpdatedDateTime",
+      "webUrl",
+      "viewpoint",
+      "onlineMeetingInfo"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-get",
+    "notes": "One Talk conversation by token. Also served as {mailbox}/chats/{chatId}."
+  },
+  {
+    "id": "chats.create",
+    "phase": 23,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/chats",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "chatType",
+        "topic?",
+        "members[] {@odata.type, roles, user@odata.bind}"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "topic",
+      "chatType",
+      "createdDateTime",
+      "lastUpdatedDateTime",
+      "webUrl",
+      "viewpoint",
+      "onlineMeetingInfo"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-post",
+    "notes": "oneOnOne returns Talk's existing room, as Graph does; group creates a group room named topic."
+  },
+  {
+    "id": "chats.update",
+    "phase": 23,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "/chats/{chatId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "topic"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "topic",
+      "chatType",
+      "createdDateTime",
+      "lastUpdatedDateTime",
+      "webUrl",
+      "viewpoint",
+      "onlineMeetingInfo"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-patch",
+    "notes": "Renames a group conversation. A one-to-one chat has no topic (400)."
+  },
+  {
+    "id": "chats.hide",
+    "phase": 23,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/hideForUser",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "user {id}"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-hideforuser",
+    "notes": "Talk archive."
+  },
+  {
+    "id": "chats.unhide",
+    "phase": 23,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/unhideForUser",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "user {id}"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-unhideforuser",
+    "notes": "Talk unarchive."
+  },
+  {
+    "id": "chats.mark-read",
+    "phase": 23,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/markChatReadForUser",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "user {id}"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-markchatreadforuser",
+    "notes": "Read marker to the newest message."
+  },
+  {
+    "id": "chats.mark-unread",
+    "phase": 23,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/markChatUnreadForUser",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "user {id}",
+        "lastMessageReadDateTime?"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-markchatunreadforuser",
+    "notes": "Talk's mark-unread; lastMessageReadDateTime is ignored."
+  },
+  {
+    "id": "chats.members.list",
+    "phase": 23,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/members",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "roles",
+      "displayName",
+      "userId",
+      "email",
+      "visibleHistoryStartDateTime"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-list-members",
+    "notes": "Room participants of type users; owners and moderators carry roles [owner]."
+  },
+  {
+    "id": "chats.members.get",
+    "phase": 23,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/members/{membershipId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "roles",
+      "displayName",
+      "userId",
+      "email",
+      "visibleHistoryStartDateTime"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-get-members",
+    "notes": "Membership id m.<attendeeId> (ADR 0009 D2)."
+  },
+  {
+    "id": "chats.members.add",
+    "phase": 23,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/members",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "@odata.type",
+        "user@odata.bind",
+        "roles",
+        "visibleHistoryStartDateTime?"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "roles",
+      "displayName",
+      "userId",
+      "email",
+      "visibleHistoryStartDateTime"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-post-members",
+    "notes": "Talk add participant; history is always visible."
+  },
+  {
+    "id": "chats.members.remove",
+    "phase": 23,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/members/{membershipId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-delete-members",
+    "notes": "Talk remove attendee, or leaving when it is the caller."
+  },
+  {
+    "id": "chats.messages.list",
+    "phase": 23,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/messages",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "replyToId",
+      "etag",
+      "messageType",
+      "createdDateTime",
+      "lastModifiedDateTime",
+      "lastEditedDateTime",
+      "deletedDateTime",
+      "subject",
+      "chatId",
+      "channelIdentity",
+      "from",
+      "body",
+      "attachments",
+      "mentions",
+      "reactions",
+      "importance",
+      "eventDetail",
+      "webUrl"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-list-messages",
+    "notes": "Newest first; $top up to 50; $skiptoken is Talk's X-Chat-Last-Given (ADR 0009 D4). Never moves the read marker."
+  },
+  {
+    "id": "chats.messages.get",
+    "phase": 23,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/messages/{messageId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "replyToId",
+      "etag",
+      "messageType",
+      "createdDateTime",
+      "lastModifiedDateTime",
+      "lastEditedDateTime",
+      "deletedDateTime",
+      "subject",
+      "chatId",
+      "channelIdentity",
+      "from",
+      "body",
+      "attachments",
+      "mentions",
+      "reactions",
+      "importance",
+      "eventDetail",
+      "webUrl"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-get",
+    "notes": "One message (Talk chat context of the id)."
+  },
+  {
+    "id": "chats.messages.send",
+    "phase": 23,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/messages",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "body {contentType, content}",
+        "mentions[]?",
+        "importance?",
+        "subject?"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "replyToId",
+      "etag",
+      "messageType",
+      "createdDateTime",
+      "lastModifiedDateTime",
+      "lastEditedDateTime",
+      "deletedDateTime",
+      "subject",
+      "chatId",
+      "channelIdentity",
+      "from",
+      "body",
+      "attachments",
+      "mentions",
+      "reactions",
+      "importance",
+      "eventDetail",
+      "webUrl"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-post-messages",
+    "notes": "Markdown to Talk; <at id> mentions become @\"uid\" (ADR 0009 D4)."
+  },
+  {
+    "id": "chats.messages.update",
+    "phase": 23,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/messages/{messageId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "body",
+        "mentions[]?"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-update",
+    "notes": "Talk edit; the sender only."
+  },
+  {
+    "id": "chats.messages.soft-delete",
+    "phase": 23,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/chats/{chatId}/messages/{messageId}/softDelete",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-softdelete",
+    "notes": "Talk delete; the message stays with deletedDateTime."
+  },
+  {
+    "id": "chats.messages.set-reaction",
+    "phase": 23,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/messages/{messageId}/setReaction",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "reactionType"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-setreaction",
+    "notes": "Talk reaction (an emoji)."
+  },
+  {
+    "id": "chats.messages.unset-reaction",
+    "phase": 23,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/messages/{messageId}/unsetReaction",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "reactionType"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-unsetreaction",
+    "notes": "Removes the caller's reaction."
+  },
+  {
+    "id": "chats.pinned.list",
+    "phase": 23,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/pinnedMessages",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "message"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-list-pinnedmessages",
+    "notes": "Talk pinned messages; $expand=message."
+  },
+  {
+    "id": "chats.pinned.add",
+    "phase": 23,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/pinnedMessages",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "message@odata.bind"
+      ]
+    },
+    "responseFields": [
+      "id"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-post-pinnedmessages",
+    "notes": "Talk pin (moderators); pinned id is the message id."
+  },
+  {
+    "id": "chats.pinned.remove",
+    "phase": 23,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "/chats/{chatId}/pinnedMessages/{pinnedMessageId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chat-delete-pinnedmessages",
+    "notes": "Talk unpin."
+  },
+  {
+    "id": "teams.joined",
+    "phase": 24,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/joinedTeams",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "displayName",
+      "description",
+      "visibility",
+      "createdDateTime",
+      "webUrl",
+      "isArchived",
+      "tenantId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "user-list-joinedteams",
+    "notes": "The caller's Nextcloud teams (circles); /users/{x} only for the caller (ADR 0009 D5)."
+  },
+  {
+    "id": "teams.get",
+    "phase": 24,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/teams/{teamId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "displayName",
+      "description",
+      "visibility",
+      "createdDateTime",
+      "webUrl",
+      "isArchived",
+      "tenantId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "team-get",
+    "notes": "A circle the caller belongs to."
+  },
+  {
+    "id": "teams.create",
+    "phase": 24,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/teams",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "template@odata.bind (standard)",
+        "displayName",
+        "description?",
+        "visibility?",
+        "members[]?"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 202,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "team-post",
+    "notes": "Circle, members and the General channel; Location names a succeeded teamsAsyncOperation."
+  },
+  {
+    "id": "teams.operation.get",
+    "phase": 24,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/operations/{operationId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "operationType",
+      "status",
+      "targetResourceId",
+      "targetResourceLocation",
+      "createdDateTime",
+      "lastActionDateTime"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "teamsasyncoperation-get",
+    "notes": "Always succeeded; the id encodes the team."
+  },
+  {
+    "id": "teams.update",
+    "phase": 24,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "/teams/{teamId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "displayName?",
+        "description?",
+        "visibility?"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "team-update",
+    "notes": "Renames and redescribes the circle; visibility sets its visible and open flags."
+  },
+  {
+    "id": "teams.delete",
+    "phase": 24,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "/groups/{teamId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "group-delete",
+    "notes": "Deletes the circle and its channels' rooms when the id is a team id; other group ids stay read-only (phase 21)."
+  },
+  {
+    "id": "teams.members.list",
+    "phase": 24,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/members",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "roles",
+      "displayName",
+      "userId",
+      "email",
+      "visibleHistoryStartDateTime"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "team-list-members",
+    "notes": "Circle members; level 8-9 is owner."
+  },
+  {
+    "id": "teams.members.get",
+    "phase": 24,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/members/{membershipId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "roles",
+      "displayName",
+      "userId",
+      "email",
+      "visibleHistoryStartDateTime"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "team-get-members",
+    "notes": "Membership id m.<circle member id>."
+  },
+  {
+    "id": "teams.members.add",
+    "phase": 24,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/members",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "@odata.type",
+        "user@odata.bind",
+        "roles"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "roles",
+      "displayName",
+      "userId",
+      "email",
+      "visibleHistoryStartDateTime"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "team-post-members",
+    "notes": "Circle member add; owner is level 8."
+  },
+  {
+    "id": "teams.members.update",
+    "phase": 24,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/members/{membershipId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "@odata.type",
+        "roles"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "roles",
+      "displayName",
+      "userId",
+      "email",
+      "visibleHistoryStartDateTime"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "team-update-members",
+    "notes": "Circle member level; the circle owner can't be demoted (400)."
+  },
+  {
+    "id": "teams.members.remove",
+    "phase": 24,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/members/{membershipId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "team-delete-members",
+    "notes": "Circle member remove; not the circle owner (400)."
+  },
+  {
+    "id": "channels.list",
+    "phase": 24,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "displayName",
+      "description",
+      "membershipType",
+      "createdDateTime",
+      "webUrl",
+      "email",
+      "isArchived"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "channel-list",
+    "notes": "The team's Talk resources (teams/{id}/resources); all standard."
+  },
+  {
+    "id": "channels.get",
+    "phase": 24,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "displayName",
+      "description",
+      "membershipType",
+      "createdDateTime",
+      "webUrl",
+      "email",
+      "isArchived"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "channel-get",
+    "notes": "A team room by token."
+  },
+  {
+    "id": "channels.create",
+    "phase": 24,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "displayName",
+        "description?",
+        "membershipType? (standard)"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "displayName",
+      "description",
+      "membershipType",
+      "createdDateTime",
+      "webUrl",
+      "email",
+      "isArchived"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "channel-post",
+    "notes": "Group room with the team as participant; private and shared are 400."
+  },
+  {
+    "id": "channels.update",
+    "phase": 24,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "displayName?",
+        "description?"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "channel-patch",
+    "notes": "Room name and description; General can't be renamed (400)."
+  },
+  {
+    "id": "channels.delete",
+    "phase": 24,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "channel-delete",
+    "notes": "Deletes the room; the primary channel can't be deleted (400)."
+  },
+  {
+    "id": "channels.primary",
+    "phase": 24,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/primaryChannel",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "displayName",
+      "description",
+      "membershipType",
+      "createdDateTime",
+      "webUrl",
+      "email",
+      "isArchived"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "team-get-primarychannel",
+    "notes": "The team's room with the lowest Talk room id."
+  },
+  {
+    "id": "channels.files-folder",
+    "phase": 24,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/filesFolder",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "name",
+      "webUrl",
+      "folder",
+      "parentReference"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "channel-get-filesfolder",
+    "notes": "The channel's folder in the team folder, created on first use; a drive item (ADR 0008)."
+  },
+  {
+    "id": "channels.members.list",
+    "phase": 24,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/members",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "roles",
+      "displayName",
+      "userId",
+      "email",
+      "visibleHistoryStartDateTime"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "channel-list-members",
+    "notes": "Standard channel: the team's members."
+  },
+  {
+    "id": "channels.messages.list",
+    "phase": 24,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/messages",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "replyToId",
+      "etag",
+      "messageType",
+      "createdDateTime",
+      "lastModifiedDateTime",
+      "lastEditedDateTime",
+      "deletedDateTime",
+      "subject",
+      "chatId",
+      "channelIdentity",
+      "from",
+      "body",
+      "attachments",
+      "mentions",
+      "reactions",
+      "importance",
+      "eventDetail",
+      "webUrl"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "channel-list-messages",
+    "notes": "Posts (thread roots and plain top-level messages), newest first; $top up to 50; $expand=replies."
+  },
+  {
+    "id": "channels.messages.get",
+    "phase": 24,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/messages/{messageId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "replyToId",
+      "etag",
+      "messageType",
+      "createdDateTime",
+      "lastModifiedDateTime",
+      "lastEditedDateTime",
+      "deletedDateTime",
+      "subject",
+      "chatId",
+      "channelIdentity",
+      "from",
+      "body",
+      "attachments",
+      "mentions",
+      "reactions",
+      "importance",
+      "eventDetail",
+      "webUrl"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-get",
+    "notes": "One post."
+  },
+  {
+    "id": "channels.messages.send",
+    "phase": 24,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/messages",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "body",
+        "subject?",
+        "mentions[]?",
+        "importance?"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "replyToId",
+      "etag",
+      "messageType",
+      "createdDateTime",
+      "lastModifiedDateTime",
+      "lastEditedDateTime",
+      "deletedDateTime",
+      "subject",
+      "chatId",
+      "channelIdentity",
+      "from",
+      "body",
+      "attachments",
+      "mentions",
+      "reactions",
+      "importance",
+      "eventDetail",
+      "webUrl"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "channel-post-messages",
+    "notes": "A Talk thread; subject is its title (first body line when absent, reported null)."
+  },
+  {
+    "id": "channels.messages.update",
+    "phase": 24,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/messages/{messageId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "body",
+        "subject?",
+        "mentions[]?"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-update",
+    "notes": "Talk edit; subject renames the thread."
+  },
+  {
+    "id": "channels.messages.soft-delete",
+    "phase": 24,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/messages/{messageId}/softDelete",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-softdelete",
+    "notes": "Talk delete."
+  },
+  {
+    "id": "channels.messages.set-reaction",
+    "phase": 24,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/messages/{messageId}/setReaction",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "reactionType"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-setreaction",
+    "notes": "Talk reaction."
+  },
+  {
+    "id": "channels.messages.unset-reaction",
+    "phase": 24,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/messages/{messageId}/unsetReaction",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "reactionType"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-unsetreaction",
+    "notes": "Removes the caller's reaction."
+  },
+  {
+    "id": "channels.messages.delta",
+    "phase": 24,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/messages/delta",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "replyToId",
+      "etag",
+      "messageType",
+      "createdDateTime",
+      "lastModifiedDateTime",
+      "lastEditedDateTime",
+      "deletedDateTime",
+      "subject",
+      "chatId",
+      "channelIdentity",
+      "from",
+      "body",
+      "attachments",
+      "mentions",
+      "reactions",
+      "importance",
+      "eventDetail",
+      "webUrl"
+    ],
+    "successStatus": 200,
+    "paging": "deltaLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-delta",
+    "notes": "Talk chat after the token's last message id; edits and deletes re-read their parent (ADR 0009 D5)."
+  },
+  {
+    "id": "channels.replies.list",
+    "phase": 24,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "replyToId",
+      "etag",
+      "messageType",
+      "createdDateTime",
+      "lastModifiedDateTime",
+      "lastEditedDateTime",
+      "deletedDateTime",
+      "subject",
+      "chatId",
+      "channelIdentity",
+      "from",
+      "body",
+      "attachments",
+      "mentions",
+      "reactions",
+      "importance",
+      "eventDetail",
+      "webUrl"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-list-replies",
+    "notes": "Messages of the thread, newest first."
+  },
+  {
+    "id": "channels.replies.get",
+    "phase": 24,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "replyToId",
+      "etag",
+      "messageType",
+      "createdDateTime",
+      "lastModifiedDateTime",
+      "lastEditedDateTime",
+      "deletedDateTime",
+      "subject",
+      "chatId",
+      "channelIdentity",
+      "from",
+      "body",
+      "attachments",
+      "mentions",
+      "reactions",
+      "importance",
+      "eventDetail",
+      "webUrl"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-get",
+    "notes": "One reply."
+  },
+  {
+    "id": "channels.replies.send",
+    "phase": 24,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "body",
+        "mentions[]?",
+        "importance?"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "replyToId",
+      "etag",
+      "messageType",
+      "createdDateTime",
+      "lastModifiedDateTime",
+      "lastEditedDateTime",
+      "deletedDateTime",
+      "subject",
+      "chatId",
+      "channelIdentity",
+      "from",
+      "body",
+      "attachments",
+      "mentions",
+      "reactions",
+      "importance",
+      "eventDetail",
+      "webUrl"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-post-replies",
+    "notes": "Talk message with threadId."
+  },
+  {
+    "id": "channels.replies.update",
+    "phase": 24,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "body",
+        "mentions[]?"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-update",
+    "notes": "Talk edit."
+  },
+  {
+    "id": "channels.replies.soft-delete",
+    "phase": 24,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}/softDelete",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-softdelete",
+    "notes": "Talk delete."
+  },
+  {
+    "id": "channels.replies.set-reaction",
+    "phase": 24,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}/setReaction",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "reactionType"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-setreaction",
+    "notes": "Talk reaction."
+  },
+  {
+    "id": "channels.replies.unset-reaction",
+    "phase": 24,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/teams/{teamId}/channels/{channelId}/messages/{messageId}/replies/{replyId}/unsetReaction",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "reactionType"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "chatmessage-unsetreaction",
+    "notes": "Removes the caller's reaction."
+  },
+  {
+    "id": "presence.get",
+    "phase": 25,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/presence",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "availability",
+      "activity",
+      "statusMessage",
+      "outOfOfficeSettings"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "presence-get",
+    "notes": "User status mapped per ADR 0009 D6; another user's via statuses/{uid}."
+  },
+  {
+    "id": "presence.get-by-id",
+    "phase": 25,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/communications/presences/{userId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "availability",
+      "activity",
+      "statusMessage",
+      "outOfOfficeSettings"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "presence-get",
+    "notes": "Same as /users/{id}/presence."
+  },
+  {
+    "id": "presence.get-by-ids",
+    "phase": 25,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/communications/getPresencesByUserId",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "ids[]"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "availability",
+      "activity",
+      "statusMessage",
+      "outOfOfficeSettings"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "cloudcommunications-getpresencesbyuserid",
+    "notes": "One statuses/{uid} read per id; unknown ids are left out."
+  },
+  {
+    "id": "presence.set",
+    "phase": 25,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/presence/setPresence",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "sessionId",
+        "availability",
+        "activity",
+        "expirationDuration?"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "presence-setpresence",
+    "notes": "Sets the user-defined status (one status per user, not per application)."
+  },
+  {
+    "id": "presence.clear",
+    "phase": 25,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/presence/clearPresence",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "sessionId"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "presence-clearpresence",
+    "notes": "Back to online."
+  },
+  {
+    "id": "presence.set-preferred",
+    "phase": 25,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/presence/setUserPreferredPresence",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "availability",
+        "activity",
+        "expirationDuration?"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "presence-setuserpreferredpresence",
+    "notes": "User-defined status; InACall/InAMeeting set the predefined message."
+  },
+  {
+    "id": "presence.clear-preferred",
+    "phase": 25,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/presence/clearUserPreferredPresence",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "presence-clearuserpreferredpresence",
+    "notes": "Back to online."
+  },
+  {
+    "id": "presence.set-status-message",
+    "phase": 25,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/presence/setStatusMessage",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "statusMessage {message {content, contentType}, expiryDateTime?}"
+      ]
+    },
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "presence-setstatusmessage",
+    "notes": "Custom status message with clearAt."
+  },
+  {
+    "id": "online-meetings.create",
+    "phase": 26,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/onlineMeetings",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "subject?",
+        "startDateTime?",
+        "endDateTime?",
+        "participants?"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "subject",
+      "startDateTime",
+      "endDateTime",
+      "creationDateTime",
+      "joinWebUrl",
+      "chatInfo",
+      "participants",
+      "joinMeetingIdSettings"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "application-post-onlinemeetings",
+    "notes": "A public Talk room, bound to its span (ADR 0009 D7); attendees who are users become participants."
+  },
+  {
+    "id": "online-meetings.get",
+    "phase": 26,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/onlineMeetings/{meetingId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "subject",
+      "startDateTime",
+      "endDateTime",
+      "creationDateTime",
+      "joinWebUrl",
+      "chatInfo",
+      "participants",
+      "joinMeetingIdSettings"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "onlinemeeting-get",
+    "notes": "Id t.<token>."
+  },
+  {
+    "id": "online-meetings.find",
+    "phase": 26,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/onlineMeetings",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "subject",
+      "startDateTime",
+      "endDateTime",
+      "creationDateTime",
+      "joinWebUrl",
+      "chatInfo",
+      "participants",
+      "joinMeetingIdSettings"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "onlinemeeting-get",
+    "notes": "Only $filter=JoinWebUrl eq '…' (Graph's rule); finds calendar events' rooms too."
+  },
+  {
+    "id": "online-meetings.update",
+    "phase": 26,
+    "method": "PATCH",
+    "version": "v1.0",
+    "path": "{mailbox}/onlineMeetings/{meetingId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "subject?",
+        "startDateTime?",
+        "endDateTime?"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "subject",
+      "startDateTime",
+      "endDateTime",
+      "creationDateTime",
+      "joinWebUrl",
+      "chatInfo",
+      "participants",
+      "joinMeetingIdSettings"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "onlinemeeting-update",
+    "notes": "Renames; a changed span unbinds the room (phase 22)."
+  },
+  {
+    "id": "online-meetings.delete",
+    "phase": 26,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "{mailbox}/onlineMeetings/{meetingId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "onlinemeeting-delete",
+    "notes": "Closes the room."
+  },
+  {
+    "id": "online-meetings.recordings.list",
+    "phase": 26,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/onlineMeetings/{meetingId}/recordings",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "meetingId",
+      "createdDateTime",
+      "endDateTime",
+      "recordingContentUrl",
+      "contentCorrelationId",
+      "meetingOrganizer"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "onlinemeeting-list-recordings",
+    "notes": "Recordings Talk uploaded to the organiser's files for this room."
+  },
+  {
+    "id": "online-meetings.recordings.get",
+    "phase": 26,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/onlineMeetings/{meetingId}/recordings/{recordingId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "meetingId",
+      "createdDateTime",
+      "endDateTime",
+      "recordingContentUrl",
+      "contentCorrelationId",
+      "meetingOrganizer"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "callrecording-get",
+    "notes": "Recording id is the file id."
+  },
+  {
+    "id": "online-meetings.recordings.content",
+    "phase": 26,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/onlineMeetings/{meetingId}/recordings/{recordingId}/content",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "callrecording-get",
+    "notes": "Streams the file (audio/video as Talk recorded it)."
+  },
+  {
+    "id": "online-meetings.transcripts.list",
+    "phase": 26,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/onlineMeetings/{meetingId}/transcripts",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "meetingId",
+      "createdDateTime",
+      "endDateTime",
+      "transcriptContentUrl",
+      "contentCorrelationId",
+      "meetingOrganizer"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "onlinemeeting-list-transcripts",
+    "notes": "Transcripts Talk's transcription wrote next to the recordings."
+  },
+  {
+    "id": "online-meetings.transcripts.get",
+    "phase": 26,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/onlineMeetings/{meetingId}/transcripts/{transcriptId}",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "meetingId",
+      "createdDateTime",
+      "endDateTime",
+      "transcriptContentUrl",
+      "contentCorrelationId",
+      "meetingOrganizer"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "calltranscript-get",
+    "notes": "Transcript id is the file id."
+  },
+  {
+    "id": "online-meetings.transcripts.content",
+    "phase": 26,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/onlineMeetings/{meetingId}/transcripts/{transcriptId}/content",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "calltranscript-get",
+    "notes": "text/vtt built from Talk's Markdown transcript (no cue times: one cue per paragraph spanning the recording)."
+  },
+  {
+    "id": "calls.create",
+    "phase": 26,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/communications/calls",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "callbackUri",
+        "targets[] {identity {user {id}}}",
+        "requestedModalities",
+        "mediaConfig?",
+        "source?"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "state",
+      "direction",
+      "callbackUri",
+      "source",
+      "targets",
+      "requestedModalities",
+      "chatInfo",
+      "@nightware.joinWebUrl"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "application-post-calls",
+    "notes": "Delegated (ADR 0009 D7): starts a Talk call as the caller and rings the targets; callbackUri is never called; media in Talk clients."
+  },
+  {
+    "id": "calls.get",
+    "phase": 26,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/communications/calls/{callId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "state",
+      "direction",
+      "callbackUri",
+      "source",
+      "targets",
+      "requestedModalities",
+      "chatInfo",
+      "@nightware.joinWebUrl"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "call-get",
+    "notes": "establishing / established / terminated from the room's call state."
+  },
+  {
+    "id": "calls.delete",
+    "phase": 26,
+    "method": "DELETE",
+    "version": "v1.0",
+    "path": "/communications/calls/{callId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [],
+    "successStatus": 204,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "call-delete",
+    "notes": "Leaves the call; ends it for everyone when the caller moderates."
   }
 ]
