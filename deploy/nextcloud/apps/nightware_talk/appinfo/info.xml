@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	  xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+	<id>nightware_talk</id>
+	<name>Nightware Talk recordings</name>
+	<summary>Shares Talk call recordings and transcripts with their conversation.</summary>
+	<description>Talk's recording server and transcription put each recording, transcript and summary in the files of
+whoever recorded the call ({attachment folder}/Recording/{token}/). This app shares each one with the conversation
+(a read-only room share, as Talk's "Share to chat" makes) as soon as it lands there, so every participant has it.
+Needs Talk (spreed). Shipped with Nightware's Docker Compose stack (deploy/nextcloud/apps).</description>
+	<version>1.0.0</version>
+	<licence>agpl</licence>
+	<author>Nightware</author>
+	<namespace>NightwareTalk</namespace>
+	<types>
+		<filesystem/>
+	</types>
+	<category>integration</category>
+	<dependencies>
+		<nextcloud min-version="35" max-version="35"/>
+	</dependencies>
+</info>
