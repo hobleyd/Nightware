@@ -1,0 +1,1 @@
+{"ocs":{"meta":{"status":"ok","statuscode":200,"message":"OK"},"data":{"userId":"bob","message":"Focus time","messageId":null,"messageIsPredefined":false,"icon":null,"clearAt":1795426506,"status":"dnd","statusIsUserDefined":true}}}

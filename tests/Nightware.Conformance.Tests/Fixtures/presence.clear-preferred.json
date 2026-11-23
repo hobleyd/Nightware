@@ -1,0 +1,19 @@
+{
+  "operationId": "presence.clear-preferred",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/presence-clearuserpreferredpresence); constructed with the page's example data, no tenant capture yet",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/users/fa8bf3dc-eca7-46b7-bad1-db199b62afc3/presence/clearUserPreferredPresence",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {},
+    "body": null
+  }
+}

@@ -425,6 +425,14 @@ Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf,
   with the uid the sharee search finds for the address (exact matches only). Permissions are the item's shares
   (`reshares=true`) plus `shares/inherited`; an inherited one can't be removed here.
 
+## Presence (phase 25, ADR 0009 D6)
+
+`Presence/NextcloudUserStatusStore` implements `IUserStatusStore` over OCS `apps/user_status/api/v1`, as the caller:
+`user_status` (own status, with `messageId`), `statuses/{uid}` (anyone's public status: no `messageId`, never
+`invisible`), `PUT user_status/status`, `PUT user_status/message/predefined|custom` (`clearAt` in Unix seconds) and
+`DELETE user_status/message`. A 404 (no status row: never set, or deleted when `clearAt` passed) reads as
+`UserStatus.None`. The mapping to Graph presence is Application logic (`PresenceMapping`).
+
 ## Known gaps
 
 - `CalendarDocument` and `CalendarEvent` have no slot for a resource href. The port's `Parse` therefore leaves `EventId` empty, and callers either use `CalendarParseOptions.Href` or fill the id with `with { Id = … }`.

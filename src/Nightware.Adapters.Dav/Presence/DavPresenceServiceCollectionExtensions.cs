@@ -1,5 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+
+using Nightware.Application.Presence;
 
 namespace Nightware.Adapters.Dav.Presence;
 
@@ -9,6 +12,7 @@ internal static class DavPresenceServiceCollectionExtensions
     public static IServiceCollection AddDavPresence(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
+        services.TryAddScoped<IUserStatusStore, NextcloudUserStatusStore>();
         return services;
     }
 }
