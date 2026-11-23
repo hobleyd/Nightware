@@ -60,6 +60,8 @@ in `tests/Nightware.Adapters.Dav.Tests/Fixtures/Teams/` (host rewritten to
   `thread_renamed` system message (parent: the first message).
 - **Deleting a thread's first message** works like any delete; replies can
   still be posted to the thread.
+- **Thread titles** longer than 200 characters are accepted and cut to 200
+  and an ellipsis.
 - **Newer messages.** `GET chat/{token}?lookIntoFuture=1&timeout=0` answers at
   once, oldest first, or 304 when nothing is newer. `message_edited`,
   `thread_renamed` and reactions carry the changed message as `parent` (with
@@ -113,8 +115,8 @@ alice deleting it removes the circle and both rooms.
   (mentions left out, at most 100 characters, `Post` when there is none), and a
   post whose title is that default reports `subject: null`; so does a deleted
   post. Editing such a post's body re-titles it with the new first line. A
-  reply has no subject (400 on PATCH with one). A subject has at most 255
-  characters.
+  reply has no subject (400 on PATCH with one). A subject has at most 200
+  characters (Talk cuts a longer thread title to 200 and an ellipsis).
 - **Posts outside threads** (Talk's own clients) are posts without replies;
   replying to one is 400, because Talk refuses (`reply-to`). A `replyTo`
   reply made in Talk outside threads is listed as a post.
@@ -142,8 +144,12 @@ alice deleting it removes the circle and both rooms.
   the room (three OCS calls); listing channels reads the caller's whole room
   list.
 - `$filter`, `$orderby` other than newest first and `$count` on channel
-  messages are 400; members and channels ignore `$filter`.
+  messages are 400 (a page is 20 unless `$top` says otherwise, as Graph's);
+  joined teams, members and channels are served whole and take `$select` only
+  (anything else is 400 rather than ignored).
 - Reading who reacted costs one Talk call per reacted message (as chats).
+- `$expand=replies` gives each post its newest 50 replies and no
+  `replies@odata.nextLink` (Graph gives up to 200, then a link).
 
 ## Acceptance
 - alice creates a team with bob over Graph; both see it in `joinedTeams` and in

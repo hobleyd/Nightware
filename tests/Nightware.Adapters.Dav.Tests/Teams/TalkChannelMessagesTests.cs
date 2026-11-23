@@ -218,6 +218,17 @@ public sealed class TalkChannelMessagesTests : IDisposable
     }
 
     [Fact]
+    public async Task Editing_a_reply_whose_text_is_its_threads_title_leaves_the_thread_alone()
+    {
+        var reply = """[{"id":302,"token":"xtugjbpy","actorType":"users","actorId":"bob","timestamp":1795429900,"message":"Kick-off (renamed)","messageType":"comment","threadId":209,"isThread":true,"threadTitle":"Kick-off (renamed)"}]""";
+        _teams.Reply("GET", $"{Chat}/302/context", 200, reply);
+        _teams.Reply("PUT", $"{Chat}/302", 200, """{"id":303,"messageType":"system","systemMessage":"message_edited","parent":{"id":302}}""");
+
+        (await _teams.Messages().UpdateAsync(new ChannelMessageRef(Team, Channel, "209", "302"), new ChatMessageDraft(new ChatMessageBody(ChatBodyType.Text, "Changed")), Ct)).IsSuccess.ShouldBeTrue();
+        _teams.Requests.ShouldNotContain(r => r.RequestMessage!.AbsolutePath.Contains("/threads/", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task A_post_outside_threads_has_no_subject_to_change()
     {
         Context(211);

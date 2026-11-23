@@ -10,8 +10,8 @@ public sealed record ChannelPostView(ChatMessage Post, IReadOnlyList<ChatMessage
 /// <summary>Checks on channel posts.</summary>
 public static class ChannelMessageRules
 {
-    /// <summary>The longest subject a post may have (Talk's thread title).</summary>
-    public const int MaxSubjectLength = 255;
+    /// <summary>The longest subject a post may have: Talk cuts a longer thread title to 200 characters and an ellipsis.</summary>
+    public const int MaxSubjectLength = 200;
 
     /// <summary>How many replies <c>$expand=replies</c> gives each post (Graph's own expansion is bounded too).</summary>
     public const int ExpandedReplies = 50;

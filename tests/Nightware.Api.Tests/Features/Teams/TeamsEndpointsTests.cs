@@ -352,6 +352,25 @@ public sealed class TeamsEndpointsTests : IAsyncLifetime
         await GetAsync($"{ChannelPath}/messages/delta?$filter=subject eq 'x'", HttpStatusCode.BadRequest);
     }
 
+    [Theory]
+    [InlineData("/v1.0/me/joinedTeams?$filter=displayName eq 'x'")]
+    [InlineData($"{Base}/members?$orderby=displayName")]
+    [InlineData($"{Base}/channels?$filter=membershipType eq 'private'")]
+    [InlineData($"{Base}/channels?$count=true")]
+    [InlineData($"{ChannelPath}/members?$search=\"bob\"")]
+    public async Task Whole_lists_refuse_options_they_would_ignore(string path) =>
+        await GetAsync(path, HttpStatusCode.BadRequest);
+
+    [Fact]
+    public async Task A_page_of_posts_is_20_unless_top_says_otherwise()
+    {
+        _messages.ListPostsAsync(TeamId, ChannelId, Arg.Any<ChatPageQuery>(), Arg.Any<CancellationToken>()).Returns(new Page<ChatMessage>([Post]));
+
+        await GetAsync($"{ChannelPath}/messages");
+
+        await _messages.Received(1).ListPostsAsync(TeamId, ChannelId, Arg.Is<ChatPageQuery>(q => q.Top == 20), Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task The_ports_are_composed_from_the_dav_adapter()
     {

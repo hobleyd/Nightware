@@ -93,7 +93,7 @@ public static class TeamsEndpoints
 
     private static async Task<IResult> ListJoinedAsync(Mailbox mailbox, IUserContext caller, ODataQuery odata, ListJoinedTeams useCase, CancellationToken cancellationToken)
     {
-        if (TeamRequests.OwnTeams(mailbox, caller) is { } denied)
+        if ((TeamRequests.OwnTeams(mailbox, caller) ?? TeamRequests.WholeList(odata.Query)) is { } denied)
         {
             return GraphResults.Error(denied);
         }
@@ -143,9 +143,11 @@ public static class TeamsEndpoints
         GraphResults.Match(await useCase.ExecuteAsync(groupId, cancellationToken).ConfigureAwait(false));
 
     private static async Task<IResult> ListMembersAsync(string teamId, ODataQuery odata, ListTeamMembers useCase, CancellationToken cancellationToken) =>
-        GraphResults.Match(
-            await useCase.ExecuteAsync(teamId, cancellationToken).ConfigureAwait(false),
-            members => GraphResults.Collection(members.Select(ConversationMemberDto.From), Members(teamId), odata.Query));
+        TeamRequests.WholeList(odata.Query) is { } invalid
+            ? GraphResults.Error(invalid)
+            : GraphResults.Match(
+                await useCase.ExecuteAsync(teamId, cancellationToken).ConfigureAwait(false),
+                members => GraphResults.Collection(members.Select(ConversationMemberDto.From), Members(teamId), odata.Query));
 
     private static async Task<IResult> GetMemberAsync(string teamId, string membershipId, ODataQuery odata, GetTeamMember useCase, CancellationToken cancellationToken) =>
         GraphResults.Match(
@@ -183,9 +185,11 @@ public static class TeamsEndpoints
         GraphResults.Match(await useCase.ExecuteAsync(teamId, membershipId, cancellationToken).ConfigureAwait(false));
 
     private static async Task<IResult> ListChannelsAsync(string teamId, ODataQuery odata, ListChannels useCase, CancellationToken cancellationToken) =>
-        GraphResults.Match(
-            await useCase.ExecuteAsync(teamId, cancellationToken).ConfigureAwait(false),
-            channels => GraphResults.Collection(channels.Select(ChannelDto.From), Channels(teamId), odata.Query));
+        TeamRequests.WholeList(odata.Query) is { } invalid
+            ? GraphResults.Error(invalid)
+            : GraphResults.Match(
+                await useCase.ExecuteAsync(teamId, cancellationToken).ConfigureAwait(false),
+                channels => GraphResults.Collection(channels.Select(ChannelDto.From), Channels(teamId), odata.Query));
 
     private static async Task<IResult> GetChannelAsync(string teamId, string channelId, ODataQuery odata, GetChannel useCase, CancellationToken cancellationToken) =>
         GraphResults.Match(
@@ -230,9 +234,11 @@ public static class TeamsEndpoints
                 $"{TeamPaths.Channel(teamId, channelId)}/filesFolder", odata.Query.Select));
 
     private static async Task<IResult> ListChannelMembersAsync(string teamId, string channelId, ODataQuery odata, ListChannelMembers useCase, CancellationToken cancellationToken) =>
-        GraphResults.Match(
-            await useCase.ExecuteAsync(teamId, channelId, cancellationToken).ConfigureAwait(false),
-            members => GraphResults.Collection(members.Select(ConversationMemberDto.From), $"{TeamPaths.Channel(teamId, channelId)}/members", odata.Query));
+        TeamRequests.WholeList(odata.Query) is { } invalid
+            ? GraphResults.Error(invalid)
+            : GraphResults.Match(
+                await useCase.ExecuteAsync(teamId, channelId, cancellationToken).ConfigureAwait(false),
+                members => GraphResults.Collection(members.Select(ConversationMemberDto.From), $"{TeamPaths.Channel(teamId, channelId)}/members", odata.Query));
 
     private static async Task<IResult> ListMessagesAsync(string teamId, string channelId, ODataQuery odata, ListChannelMessages useCase, CancellationToken cancellationToken)
     {
@@ -242,6 +248,8 @@ public static class TeamsEndpoints
             return GraphResults.Error(query.Error);
         }
 
+        // Graph's page of channel messages is 20 unless $top says otherwise.
+        query = query.Value with { Top = odata.Query.Top ?? TeamRequests.DefaultMessagePage };
         var withReplies = odata.Query.ExpandOf("replies") is not null;
         return GraphResults.Match(
             await useCase.ExecuteAsync(teamId, channelId, query.Value, withReplies, cancellationToken).ConfigureAwait(false),

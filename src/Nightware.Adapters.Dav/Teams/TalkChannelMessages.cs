@@ -142,7 +142,9 @@ internal sealed class TalkChannelMessages(TalkChatClient talk, TalkChannelStore 
 
         // A post whose title was only its first line keeps that rule: a new body gives it a new default title.
         var title = draft.Subject?.Trim()
-                    ?? (target.IsThread && target.ThreadTitle == TalkMessageCodec.DefaultThreadTitle(target.Text) ? TalkMessageCodec.DefaultThreadTitle(text.Value) : null);
+                    ?? (target.IsThread && !TalkMessageCodec.IsThreadReply(target) && target.ThreadTitle == TalkMessageCodec.DefaultThreadTitle(target.Text)
+                        ? TalkMessageCodec.DefaultThreadTitle(text.Value)
+                        : null);
         return title is not null && title != target.ThreadTitle
             ? await talk.RenameThreadAsync(conversation.Token, target.Id, title, cancellationToken).ConfigureAwait(false)
             : Result.Success();

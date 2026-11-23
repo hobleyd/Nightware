@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Nightware.Api.Features.Chats;
 using Nightware.Api.Graph.Routing;
 using Nightware.Application.Common.Identity;
+using Nightware.Application.Common.Query;
 using Nightware.Domain.Chats;
 using Nightware.Domain.Kernel;
 using Nightware.Domain.Teams;
@@ -23,6 +24,21 @@ internal static partial class TeamRequests
         return mailbox.IsMe || string.Equals(mailbox.Ref.Address, caller.Principal.Mail, StringComparison.OrdinalIgnoreCase)
             ? null
             : Error.Forbidden("Only your own teams can be listed.");
+    }
+
+    /// <summary>Graph's default page of channel messages (<c>$top</c> is up to 50).</summary>
+    public const int DefaultMessagePage = 20;
+
+    /// <summary>
+    /// A list served whole (teams, members, channels): <c>$select</c> only. <c>$filter</c>, <c>$search</c>,
+    /// <c>$orderby</c>, <c>$skip</c>, <c>$expand</c> and <c>$count</c> are refused rather than ignored.
+    /// </summary>
+    public static Error? WholeList(ItemQuery query)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        return query.Filter is not null || query.Search is not null || query.OrderBy.Count > 0 || query.Skip is not null || query.Expand.Count > 0 || query.Count
+            ? Error.Validation("This list takes $select only.")
+            : null;
     }
 
     /// <summary>
