@@ -1,0 +1,71 @@
+{
+    "ocs": {
+        "meta": {
+            "status": "ok",
+            "statuscode": 200,
+            "message": "OK"
+        },
+        "data": {
+            "id": 71,
+            "token": "5opkrcg6",
+            "actorType": "users",
+            "actorId": "alice",
+            "actorDisplayName": "Alice Anderson",
+            "timestamp": 1795426359,
+            "message": "You edited a message",
+            "messageParameters": {
+                "actor": {
+                    "type": "user",
+                    "id": "alice",
+                    "name": "Alice Anderson",
+                    "mention-id": "alice"
+                }
+            },
+            "systemMessage": "message_edited",
+            "messageType": "system",
+            "isReplyable": false,
+            "referenceId": "",
+            "reactions": {},
+            "expirationTimestamp": 0,
+            "markdown": false,
+            "threadId": 59,
+            "parent": {
+                "id": 59,
+                "token": "5opkrcg6",
+                "actorType": "users",
+                "actorId": "alice",
+                "actorDisplayName": "Alice Anderson",
+                "timestamp": 1795426346,
+                "message": "Edited **text** {mention-user1}",
+                "messageParameters": {
+                    "mention-user1": {
+                        "type": "user",
+                        "id": "bob",
+                        "name": "Bob Brown",
+                        "mention-id": "bob"
+                    }
+                },
+                "systemMessage": "",
+                "messageType": "comment",
+                "isReplyable": true,
+                "referenceId": "bbe1016213d32540a72a8dca3e0cc684d8268a7f676d2f905a3b2cdf1f32d04a",
+                "reactions": {
+                    "👍": 1
+                },
+                "expirationTimestamp": 0,
+                "markdown": true,
+                "threadId": 59,
+                "lastEditActorType": "users",
+                "lastEditActorId": "alice",
+                "lastEditActorDisplayName": "Alice Anderson",
+                "lastEditTimestamp": 1795426359,
+                "metaData": {
+                    "pinnedActorType": "users",
+                    "pinnedActorId": "alice",
+                    "pinnedActorDisplayName": "Alice Anderson",
+                    "pinnedAt": 1795426405
+                }
+            }
+        }
+    }
+}
