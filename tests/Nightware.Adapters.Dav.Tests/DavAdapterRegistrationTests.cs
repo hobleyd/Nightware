@@ -187,6 +187,24 @@ public sealed class DavAdapterRegistrationTests : IDisposable
         _server.LogEntries.Select(e => e.RequestMessage!.Headers!["Authorization"][0]).ShouldBe(["Bearer alice-token", "Bearer bob-token"]);
     }
 
+    [Fact]
+    public async Task Each_user_gets_their_own_nextcloud_session_back_and_nightware_names_itself()
+    {
+        _server.Given(Request.Create().WithPath("/remote.php/dav/x.ics").UsingGet()).RespondWith(Response.Create()
+            .WithStatusCode(200).WithBody("ok").WithHeader("Set-Cookie", "ocinstance=session-1; path=/; secure; HttpOnly"));
+        using var provider = Build();
+        foreach (var token in new[] { "alice-token", "alice-token", "bob-token" })
+        {
+            CurrentToken = token;
+            using var scope = provider.CreateScope();
+            (await scope.ServiceProvider.GetRequiredService<IDavClient>().GetAsync("x.ics", Ct)).IsSuccess.ShouldBeTrue();
+        }
+
+        var cookies = _server.LogEntries.Select(e => e.RequestMessage!.Headers!.TryGetValue("Cookie", out var c) ? c[0] : null);
+        cookies.ShouldBe([null, "ocinstance=session-1", null]);
+        _server.LogEntries.ShouldAllBe(e => e.RequestMessage!.Headers!["User-Agent"][0].StartsWith("Nightware/", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData(207, HealthStatus.Healthy)]
     [InlineData(401, HealthStatus.Healthy)]

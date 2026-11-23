@@ -17,7 +17,8 @@ internal static class DavDirectoryServiceCollectionExtensions
         // Same pipeline as DavClient (resilience outermost, then the per-request credential). The pooled
         // primary handler is adjusted, not replaced, so host-wide settings (proxy, TLS trust) still apply:
         // no redirects (Nextcloud redirects an unauthenticated request to its login page, which must read
-        // as a failure, not as an HTML "photo") and no cookies (see DavHandlers.DisableCookies).
+        // as a failure, not as an HTML "photo") and no cookie jar (see DavHandlers.DisableCookies;
+        // the caller's own session goes back through NextcloudSessionHandler).
         Configure(services.AddHttpClient<IUserPhotoReader, NextcloudAvatarReader>(static http => http.Timeout = Timeout.InfiniteTimeSpan));
         Configure(services.AddHttpClient<IUserPhotoWriter, NextcloudAvatarWriter>(static http => http.Timeout = Timeout.InfiniteTimeSpan));
         return services;
@@ -33,5 +34,7 @@ internal static class DavDirectoryServiceCollectionExtensions
         client.AddResilienceHandler(DavResilience.PipelineName, static (builder, context) =>
             DavResilience.Configure(builder, context.ServiceProvider.GetRequiredService<IOptions<DavOptions>>().Value));
         client.AddHttpMessageHandler<DavAuthenticationHandler>();
+        client.WithNextcloudSession();
+        client.WithNightwareUserAgent();
     }
 }

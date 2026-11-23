@@ -12,7 +12,8 @@ namespace Nightware.Hosting.Http;
 /// session cookie; with cookies on, the next user's request replayed it — CSRF 401s live, and a
 /// path to another user's data. The adapters now build cookie-free handlers themselves; this filter
 /// is the backstop so a client added later (or one that forgets) cannot regress it. The façade is
-/// stateless towards its backends: every call carries its own credential and nothing needs cookies.</para>
+/// stateless towards its backends except for one thing: Nextcloud's session, kept per user by
+/// <c>NextcloudSessionHandler</c>, which writes the <c>Cookie</c> header itself above the primary handler.</para>
 /// <para>A primary handler of another type (a test stub) is left alone;
 /// <c>HttpClientCookiePolicyTests</c> asserts the real composition has none.</para>
 /// </remarks>
