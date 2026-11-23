@@ -444,6 +444,21 @@ adds web links). `Chats/Talk/` is conversation-generic, for channels (phase 24) 
 The chat ports are `TalkChatStore` (`IChatStore`), `TalkChatMembers`, `TalkChatMessages` and `TalkChatPins`;
 `TalkChatRooms` says which rooms are chats. Talk's behaviour behind them is in `docs/phases/phase-23-chats.md`.
 
+## Teams and channels (phase 24, ADR 0009 D5)
+
+`Teams/` serves Graph's teams and standard channels from Nextcloud Teams (the circles app) and Talk, as the caller,
+over OCS only. It reuses the `Chats/Talk/` pieces (client, feed, codec, identities, links) that `AddDavChats` registers.
+
+| Class | What |
+|---|---|
+| `NextcloudCircles` | The circles app (`apps/circles/circles`: list, create with a team folder, name, description, config, members, level, leave, destroy), the team folder (`apps/circles/teams/{id}/folder`, its `mountPoint`) and the team's resources (`teams/{id}/resources`, provider `talk`). A team is looked up in the caller's own list first: the app answers a circle one isn't in with a throttled 403. Single, personal, system and hidden circles are not teams. |
+| `NextcloudTeamStore` | `ITeamStore`. Creating checks every member first, then makes the circle, its description and visibility (`config` 8+16 is `public`), adds the members (an owner is level 8) and the General room; a team that can't be finished is destroyed again. Deleting needs the circle's owner (level 9) who moderates every channel room: the rooms are deleted first, because Talk keeps them when the circle goes (its team folder goes with it). |
+| `NextcloudTeamMembers` | `ITeamMembers` over the circle's user members (`m.` + circle member id; level 8–9 is `owner`). The level-9 creator can't be demoted or removed (400); a member removing themselves leaves. |
+| `TalkChannelStore` | `IChannelStore`: the team's `talk` resources that are in the caller's room list; the primary channel is the lowest room id. Creates rooms with `participants.teams`, renames, describes, deletes (never the primary one). `filesFolder` is `{mountPoint}/{channel name}` in the caller's drive. |
+| `TalkChannelMessages` | `IChannelMessages`. Posts are thread starts and top-level messages (`TalkMessageCodec.IsPost`); replies are messages in the thread (`IsThreadReply`). A post without a subject is titled with its first line (`DefaultThreadTitle`), which reads back as no subject. Delta: the first sync pages posts newest first and remembers the newest message; later ones read `lookIntoFuture=1&timeout=0` from the last id and report new messages and the parents of edits, deletes, renames and reactions (`ChannelDeltaToken`). |
+
+Talk and circles behaviour behind them is in `docs/phases/phase-24-teams-channels.md` (Step 0).
+
 ## Presence (phase 25, ADR 0009 D6)
 
 `Presence/NextcloudUserStatusStore` implements `IUserStatusStore` over OCS `apps/user_status/api/v1`, as the caller:
