@@ -11,6 +11,8 @@ nightware_mail_domain: example.com
 nightware_tls: ops@example.com
 # Narrow to your management network or VPN.
 nightware_admin_allowed_cidrs: "0.0.0.0/0 ::/0"
+# Audio-only call recordings (default: video, as Talk records them):
+# nightware_talk_recording_audio_only: true
 # Transcripts of Talk's call recordings (optional; defaults leave them off),
 # e.g. a Whisper server such as speaches:
 # nightware_ai_transcription_url: http://whisper.example.com:8000/v1

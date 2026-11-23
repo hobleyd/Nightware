@@ -368,10 +368,16 @@ services:
       RECORDING_SECRET: ${TALK_RECORDING_SECRET:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
       INTERNAL_SECRET: ${TALK_INTERNAL_SECRET:?is not set in deploy/.env - run deploy/scripts/init-env.sh}
       SKIP_VERIFY: ${TALK_SKIP_CERT_VERIFY:-false}
+      # true: every recording is audio only (talk-recording/run.sh).
+      TALK_RECORDING_AUDIO_ONLY: ${TALK_RECORDING_AUDIO_ONLY:-false}
+    # The image's /start.sh writes /conf/recording.conf, then runs this, which
+    # adjusts it and starts the server (the image's own command, as arguments).
+    command: ["/bin/sh", "/opt/nightware/run.sh", "python", "-m", "nextcloud.talk.recording", "--config", "/conf/recording.conf"]
     volumes:
       # Recordings in progress (a long one is large; not tmpfs, so not in RAM).
       # Emptied at every start; each file is removed once uploaded.
       - talk-recordings:/tmp
+      - ./talk-recording/run.sh:/opt/nightware/run.sh:ro
     tmpfs:
       - /conf
     # Firefox renders the call in shared memory.

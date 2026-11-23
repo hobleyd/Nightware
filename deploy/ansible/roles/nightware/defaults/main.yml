@@ -42,6 +42,10 @@ nightware_users: []
 # another OTLP gRPC endpoint to export elsewhere, or "" to turn export off.
 nightware_otlp_endpoint: http://grafana:4317
 
+# true: Talk's call recordings are audio only (.ogg) - smaller, and all a
+# transcript needs (deploy/.env.example's TALK_RECORDING_AUDIO_ONLY).
+nightware_talk_recording_audio_only: false
+
 # Transcripts (and summaries) of Talk's call recordings, through
 # OpenAI-compatible servers: deploy/.env.example's NEXTCLOUD_AI_*. Empty URLs
 # leave them off. The transcription server must take webm and Ogg (OpenAI, a

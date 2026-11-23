@@ -31,6 +31,7 @@
 | Turning an existing meeting online sends the attendees the update ("Invitation updated", with the link); Talk's High-Performance Backend and a TURN server (the `talk` service), registered with Talk by `configure.sh` (both verified live on the local stack) | 1.60.0 |
 | Call recording: Talk's recording server (the `talk-recording` service), registered with Talk by `configure.sh`; a recording started over OCS was uploaded to the starter's files with its notification (verified on the local stack, no media in the call) | 1.61.0 |
 | Recording transcripts: integration_openai on any OpenAI-compatible server (a separate transcription URL allowed), Talk's `call_recording_transcription`; a speech webm uploaded as a recording came back as a transcript `.md` with its notification (verified on the local stack with speaches) | 1.62.0 |
+| Audio-only recordings (`TALK_RECORDING_AUDIO_ONLY`): the recorder's video settings are rewritten so Talk's video recording comes out as an Opus `.ogg` (verified on the local stack; on for live) | 1.63.0 |
 
 ## Decisions
 - **One public room per meeting**, named after the subject (255 characters at
@@ -89,7 +90,8 @@
 - **Long recordings and PHP memory.** integration_openai reads the whole
   recording into PHP to send it (memory_limit 1G here). A 1080p recording
   runs about 400 MB an hour (1.58 MB for 14 s), so meetings much past an hour
-  may fail to transcribe; untested.
+  may fail to transcribe; untested. Audio-only recordings (~45 MB an
+  hour) leave plenty of room.
 - **`PUBLIC_HOST=*.localhost` breaks Talk** inside the containers (curl
   resolves it to loopback): rooms fail to open. Use another name
   locally.
@@ -127,4 +129,6 @@
   on demand, `http://ishtar.sharpblue.com.au:10310/v1`,
   `deepdml/faster-whisper-large-v3-turbo-ct2`; `roles/ishtar_apps`, and
   `ishtar_firewall` opens 10310 to the LAN), summaries off (Ollama ready for
-  them). No nginx route or firewall port on the docker host.
+  them), recordings audio only (`TALK_RECORDING_AUDIO_ONLY: "true"` and
+  the checkout's `talk-recording/run.sh` mounted). No nginx route or
+  firewall port on the docker host.

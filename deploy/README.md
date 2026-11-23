@@ -560,6 +560,18 @@ replaces Talk's default public STUN server with ours.
   recording runs its own Firefox and ffmpeg encode, so size the host for
   them (`shm_size: 2g` is Firefox's). Recording consent is not required
   (Talk's default; app config `spreed recording_consent`).
+- **Audio-only recordings.** `TALK_RECORDING_AUDIO_ONLY=true` makes every
+  recording an Opus `.ogg` (at most ~45 MB an hour, libopus's default 96 kbit/s stereo, against ~400 MB of
+  video), which is all a transcript needs. Talk's API can ask for audio only
+  (status 2), but its web client always asks for video, so
+  `talk-recording/run.sh` (the service's command, after the image's
+  `/start.sh` has written `/conf/recording.conf`) rewrites the video settings
+  instead: the screen is grabbed at 1 frame a second, not encoded (`-vn`), and
+  the audio is always Opus in `.ogg`. (Where the image finds a GPU encoder it
+  sets AAC in `.m4a` for audio, which Talk's upload refuses; its allowed
+  formats are ogg, ogv, mp4, webm and mkv.) Talk still says "video recording" in the
+  chat. Firefox still renders the call, so the saving is the encode and the
+  file, not the browser.
 - **Transcripts.** With `NEXTCLOUD_AI_URL` or `NEXTCLOUD_AI_TRANSCRIPTION_URL`
   set, `configure.sh` enables `integration_openai` as Nextcloud's
   speech-to-text provider and turns on Talk's `call_recording_transcription`.
@@ -600,6 +612,13 @@ replaces Talk's default public STUN server with ours.
   inside the network `PUBLIC_HOST` resolves to Caddy, not TURN, so the
   recorder's Firefox can only reach Janus directly on its compose-network
   address.
+- Audio-only verified (2026-11-23, same stack): with
+  `TALK_RECORDING_AUDIO_ONLY=true` the same OCS video recording uploaded a
+  15.8 s `.ogg` holding one Opus stream and no video, which Talk accepted and
+  queued for transcription (speaches returned an empty transcript of the
+  silent call). An Opus `.ogg` of synthesised speech, sent as integration_openai
+  sends it, came back word for word from
+  `deepdml/faster-whisper-large-v3-turbo-ct2`.
 
 ### iMIP (meeting invitations by mail)
 
