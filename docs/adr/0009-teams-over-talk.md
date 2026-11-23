@@ -188,6 +188,13 @@ rule 2):
 - `statusMessage.publishedDateTime` is not known and is left out.
 - `outOfOfficeSettings` reads the auto-reply state from mailbox settings
   (JMAP `VacationResponse`, which the façade already serves).
+- *Amended (phase 25):* another user's status (`statuses/{uid}`) carries no
+  message id and its text is in the reader's language, so the `call`,
+  `meeting` and `be-right-back` messages are recognised by their icons there.
+  `outOfOfficeSettings` is read for the caller only: another user's mailbox is
+  not the caller's to read, so others are reported not out of office. An
+  expiring message clears the status with it (Nextcloud deletes the row), so
+  the user then reads Offline.
 
 ### D7 — Online meetings are Talk rooms; calls ring through Talk
 - An **online meeting** is a public Talk room, made as phase 22 makes an
