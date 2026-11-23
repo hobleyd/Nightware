@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 
-namespace Nightware.Adapters.Dav.Calendar.Talk;
+namespace Nightware.Adapters.Dav.Talk;
 
 /// <summary>
 /// Configuration section <c>Talk</c>: online meetings in Nextcloud Talk (the <c>spreed</c> app). Optional —

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Nightware.Adapters.Dav.Calendar.Talk;
+using Nightware.Adapters.Dav.Talk;
 using Nightware.Domain.Calendar;
 using Nightware.Domain.Kernel;
 using WireMock.RequestBuilders;

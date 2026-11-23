@@ -15396,7 +15396,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "onlinemeeting-update",
-    "notes": "Renames; a changed span unbinds the room (phase 22)."
+    "notes": "Renames and re-spans. Talk can neither rename nor re-time a room bound to its span, so either change unbinds it, and the meeting then reports no span (ADR 0009 D7)."
   },
   {
     "id": "online-meetings.delete",
@@ -15464,7 +15464,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "onlinemeeting-list-recordings",
-    "notes": "Recordings Talk uploaded to the organiser's files for this room."
+    "notes": "Recordings Talk's recording server uploaded to the caller's files for this room ({Talk folder}/Recording/{token}/)."
   },
   {
     "id": "online-meetings.recordings.get",

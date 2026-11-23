@@ -1,0 +1,80 @@
+{
+  "operationId": "online-meetings.create",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/application-post-onlinemeetings); constructed with example.com data and Talk-shaped ids (ADR 0009 D7), no tenant capture yet",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/onlineMeetings",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "startDateTime": "2026-12-01T19:00:00+10:00",
+      "endDateTime": "2026-12-01T19:30:00+10:00",
+      "subject": "Q3 review",
+      "participants": {
+        "attendees": [
+          {
+            "identity": {
+              "user": {
+                "id": "bob-id"
+              }
+            },
+            "upn": "bob@example.com"
+          }
+        ]
+      }
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('me%40example.com')/onlineMeetings/$entity",
+      "id": "t.abcd1234",
+      "creationDateTime": "2026-11-20T09:00:00Z",
+      "startDateTime": "2026-12-01T09:00:00Z",
+      "endDateTime": "2026-12-01T09:30:00Z",
+      "joinWebUrl": "https://cloud.example.com/cloud/call/abcd1234",
+      "subject": "Q3 review",
+      "chatInfo": {
+        "threadId": "abcd1234",
+        "messageId": "0",
+        "replyChainMessageId": null
+      },
+      "participants": {
+        "organizer": {
+          "identity": {
+            "user": {
+              "id": "me-id",
+              "displayName": "Me Example"
+            }
+          },
+          "upn": "me@example.com",
+          "role": "presenter"
+        },
+        "attendees": [
+          {
+            "identity": {
+              "user": {
+                "id": "bob-id",
+                "displayName": "Bob Brown"
+              }
+            },
+            "upn": "bob@example.com",
+            "role": "attendee"
+          }
+        ]
+      },
+      "joinMeetingIdSettings": {
+        "isPasscodeRequired": false,
+        "joinMeetingId": "abcd1234",
+        "passcode": null
+      }
+    }
+  }
+}

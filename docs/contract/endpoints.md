@@ -4508,7 +4508,7 @@ operation:
 - Request body: `subject?`; `startDateTime?`; `endDateTime?`
 - Client reads: `id`, `subject`, `startDateTime`, `endDateTime`, `creationDateTime`, `joinWebUrl`, `chatInfo`, `participants`, `joinMeetingIdSettings`
 - Graph parity (ADR 0006); reference: onlinemeeting-update
-- Notes: Renames; a changed span unbinds the room (phase 22).
+- Notes: Renames and re-spans. Talk can neither rename nor re-time a room bound to its span, so either change unbinds it, and the meeting then reports no span (ADR 0009 D7).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.update.json`
 
 #### `online-meetings.delete`
@@ -4525,7 +4525,7 @@ operation:
 
 - Client reads: `id`, `meetingId`, `createdDateTime`, `endDateTime`, `recordingContentUrl`, `contentCorrelationId`, `meetingOrganizer`
 - Graph parity (ADR 0006); reference: onlinemeeting-list-recordings
-- Notes: Recordings Talk uploaded to the organiser's files for this room.
+- Notes: Recordings Talk's recording server uploaded to the caller's files for this room ({Talk folder}/Recording/{token}/).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/online-meetings.recordings.list.json`
 
 #### `online-meetings.recordings.get`
