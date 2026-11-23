@@ -1,0 +1,167 @@
+{
+    "ocs": {
+        "meta": {
+            "status": "ok",
+            "statuscode": 200,
+            "message": "OK"
+        },
+        "data": [
+            {
+                "id": 61,
+                "token": "oygp6e5d",
+                "actorType": "guests",
+                "actorId": "system",
+                "actorDisplayName": "",
+                "timestamp": 1795426350,
+                "message": "Call with {user1} ended (Duration 10:40:17)",
+                "messageParameters": {
+                    "actor": {
+                        "type": "guest",
+                        "id": "guest/system",
+                        "name": "System",
+                        "mention-id": "guest/system"
+                    },
+                    "user1": {
+                        "type": "user",
+                        "id": "alice",
+                        "name": "Alice Anderson",
+                        "mention-id": "alice"
+                    }
+                },
+                "systemMessage": "call_ended",
+                "messageType": "system",
+                "isReplyable": false,
+                "referenceId": "",
+                "reactions": {},
+                "expirationTimestamp": 0,
+                "markdown": false,
+                "threadId": 61
+            },
+            {
+                "id": 60,
+                "token": "oygp6e5d",
+                "actorType": "users",
+                "actorId": "alice",
+                "actorDisplayName": "Alice Anderson",
+                "timestamp": 1795426350,
+                "message": "You left the call",
+                "messageParameters": {
+                    "actor": {
+                        "type": "user",
+                        "id": "alice",
+                        "name": "Alice Anderson",
+                        "mention-id": "alice"
+                    }
+                },
+                "systemMessage": "call_left",
+                "messageType": "system",
+                "isReplyable": false,
+                "referenceId": "",
+                "reactions": {},
+                "expirationTimestamp": 0,
+                "markdown": false,
+                "threadId": 60
+            },
+            {
+                "id": 4,
+                "token": "oygp6e5d",
+                "actorType": "users",
+                "actorId": "alice",
+                "actorDisplayName": "Alice Anderson",
+                "timestamp": 1795387953,
+                "message": "You stopped the video recording",
+                "messageParameters": {
+                    "actor": {
+                        "type": "user",
+                        "id": "alice",
+                        "name": "Alice Anderson",
+                        "mention-id": "alice"
+                    }
+                },
+                "systemMessage": "recording_stopped",
+                "messageType": "system",
+                "isReplyable": false,
+                "referenceId": "",
+                "reactions": {},
+                "expirationTimestamp": 0,
+                "markdown": false,
+                "threadId": 4
+            },
+            {
+                "id": 3,
+                "token": "oygp6e5d",
+                "actorType": "users",
+                "actorId": "alice",
+                "actorDisplayName": "Alice Anderson",
+                "timestamp": 1795387937,
+                "message": "You started the video recording",
+                "messageParameters": {
+                    "actor": {
+                        "type": "user",
+                        "id": "alice",
+                        "name": "Alice Anderson",
+                        "mention-id": "alice"
+                    }
+                },
+                "systemMessage": "recording_started",
+                "messageType": "system",
+                "isReplyable": false,
+                "referenceId": "",
+                "reactions": {},
+                "expirationTimestamp": 0,
+                "markdown": false,
+                "threadId": 3
+            },
+            {
+                "id": 2,
+                "token": "oygp6e5d",
+                "actorType": "users",
+                "actorId": "alice",
+                "actorDisplayName": "Alice Anderson",
+                "timestamp": 1795387933,
+                "message": "You started a call",
+                "messageParameters": {
+                    "actor": {
+                        "type": "user",
+                        "id": "alice",
+                        "name": "Alice Anderson",
+                        "mention-id": "alice"
+                    }
+                },
+                "systemMessage": "call_started",
+                "messageType": "system",
+                "isReplyable": false,
+                "referenceId": "",
+                "reactions": {},
+                "expirationTimestamp": 0,
+                "markdown": false,
+                "threadId": 2
+            },
+            {
+                "id": 1,
+                "token": "oygp6e5d",
+                "actorType": "users",
+                "actorId": "alice",
+                "actorDisplayName": "Alice Anderson",
+                "timestamp": 1795387932,
+                "message": "You created the conversation",
+                "messageParameters": {
+                    "actor": {
+                        "type": "user",
+                        "id": "alice",
+                        "name": "Alice Anderson",
+                        "mention-id": "alice"
+                    }
+                },
+                "systemMessage": "conversation_created",
+                "messageType": "system",
+                "isReplyable": false,
+                "referenceId": "",
+                "reactions": {},
+                "expirationTimestamp": 0,
+                "markdown": false,
+                "threadId": 1
+            }
+        ]
+    }
+}

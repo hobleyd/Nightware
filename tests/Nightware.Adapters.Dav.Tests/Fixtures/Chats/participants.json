@@ -1,0 +1,43 @@
+{
+    "ocs": {
+        "meta": {
+            "status": "ok",
+            "statuscode": 200,
+            "message": "OK"
+        },
+        "data": [
+            {
+                "roomToken": "5opkrcg6",
+                "inCall": 0,
+                "lastPing": 0,
+                "sessionIds": [],
+                "participantType": 1,
+                "attendeeId": 17,
+                "actorId": "alice",
+                "actorType": "users",
+                "displayName": "Alice Anderson",
+                "permissions": 510,
+                "attendeePermissions": 0,
+                "attendeePin": "",
+                "phoneNumber": "",
+                "callId": ""
+            },
+            {
+                "roomToken": "5opkrcg6",
+                "inCall": 0,
+                "lastPing": 0,
+                "sessionIds": [],
+                "participantType": 3,
+                "attendeeId": 19,
+                "actorId": "bob",
+                "actorType": "users",
+                "displayName": "Bob Brown",
+                "permissions": 502,
+                "attendeePermissions": 0,
+                "attendeePin": "",
+                "phoneNumber": "",
+                "callId": ""
+            }
+        ]
+    }
+}
