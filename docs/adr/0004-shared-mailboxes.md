@@ -75,6 +75,11 @@ in them, read from the Keycloak record (named by the address and titled by
 `nightware_name`) as the `nightware-api` service account (`view-organizations`).
 Every other `/users/{shared}/...` route already worked through
 `JmapAccountResolver`; nothing else changed in the façade.
+*(Amended, phase 27.)* A rename in the console also renames the mailbox's
+identities (Stalwart names them from the description once, at creation), and
+an address the caller's cached JMAP session doesn't know makes the façade
+fetch the session again (at most every 30 seconds per caller), so a member
+added a moment ago reaches the mailbox at once.
 
 ### D5 — Lifecycle
 - Offboarding takes the user out of every shared mailbox (membership kept in

@@ -173,6 +173,16 @@ public sealed class SharedMailboxesLiveTests : IAsyncDisposable
                 .Single(l => l.Backend == BackendKind.Groupware).State.ShouldBe(LinkState.Linked);
 
             // An address the shared mailbox holds cannot be a new user's.
+            // Rename: the identity members send as, and so the profile, takes the new name (phase 27).
+            (await s.GetRequiredService<UpdateSharedMailbox>().ExecuteAsync(entity.Id, mailbox.Id, new SharedMailboxForm("Service desk"), Ct)).IsSuccess.ShouldBeTrue();
+            (await server.FindByAddressAsync(address, Ct)).Value.Name.ShouldBe("Service desk");
+            await using (MailLiveHost facade = MailLiveHost.Start())
+            {
+                using HttpClient graph = await facade.GraphAsync(Ct);
+                JsonObject renamed = (await graph.GetFromJsonAsync<JsonObject>($"/v1.0/users/{address}?$select=displayName", Ct))!;
+                renamed["displayName"]!.GetValue<string>().ShouldBe("Service desk");
+            }
+
             ProvisioningPlan plan = (await s.GetRequiredService<Nightware.Application.Administration.Users.PlanUserProvisioning>()
                 .ExecuteAsync(new Nightware.Application.Administration.Users.NewUserRequest(entity.Id, address.Value, null, "It", "User", []), Ct)).Value;
             plan.For(BackendKind.Mail).Action.ShouldBe(PlannedAction.Conflict);

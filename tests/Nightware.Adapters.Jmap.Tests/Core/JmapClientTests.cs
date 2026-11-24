@@ -38,6 +38,40 @@ public sealed class JmapClientTests
     }
 
     [Fact]
+    public async Task A_mailbox_granted_since_the_session_was_fetched_is_found_by_fetching_it_again()
+    {
+        var time = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(DateTimeOffset.UtcNow);
+        await using var host = new JmapTestHost(time: time);
+        var withoutBob = JsonNode.Parse(Fixtures.AliceSession)!.AsObject();
+        withoutBob["accounts"]!.AsObject().Remove("d");
+        host.Server.Given(Request.Create().WithPath("/jmap/session").UsingGet()).InScenario("grant").WillSetStateTo("granted")
+            .RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "application/json").WithBody(withoutBob.ToJsonString()));
+        host.Server.Given(Request.Create().WithPath("/jmap/session").UsingGet()).InScenario("grant").WhenStateIs("granted")
+            .RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "application/json").WithBody(Fixtures.AliceSession));
+
+        // Cached a minute ago, before bob's mailbox was shared: the lookup fetches the session again and finds it.
+        (await host.Client().ResolveAccountAsync(new MailboxRef(JmapTestHost.AliceAddress), Ct)).IsSuccess.ShouldBeTrue();
+        time.Advance(TimeSpan.FromMinutes(1));
+        (await host.Client().ResolveAccountAsync(new MailboxRef("bob@nightware.localhost"), Ct)).Value.AccountId.ShouldBe("d");
+
+        host.Requests("/jmap/session", "GET").Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task An_address_that_is_no_account_refetches_the_session_at_most_every_thirty_seconds()
+    {
+        await using var host = new JmapTestHost();
+        host.StubSession();
+
+        (await host.Client().ResolveAccountAsync(new MailboxRef("nobody@nightware.localhost"), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        (await host.Client().ResolveAccountAsync(new MailboxRef("nobody@nightware.localhost"), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        (await host.Client().ResolveAccountAsync(new MailboxRef("nobody-else@nightware.localhost"), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+
+        // The first fetch is fresh, so no lookup refetches it within MinRefreshInterval.
+        host.Requests("/jmap/session", "GET").Count.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task Sends_a_mailbox_get_and_reads_the_typed_response()
     {
         await using var host = new JmapTestHost();

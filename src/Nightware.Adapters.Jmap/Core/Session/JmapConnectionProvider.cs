@@ -35,6 +35,13 @@ internal sealed class JmapConnectionProvider(IBackendCredentials credentials, IJ
         _credential = null;
     }
 
+    /// <summary>Drops the connection's cached session (throttled); true when the next connect fetches it again.</summary>
+    public bool TryRefresh(JmapConnection connection)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        return sessions.TryRefresh(connection.Credential);
+    }
+
     public void ObserveSessionState(JmapConnection connection, string? sessionState)
     {
         ArgumentNullException.ThrowIfNull(connection);

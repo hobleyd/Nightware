@@ -133,6 +133,35 @@ public sealed class StalwartSharedMailboxesTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_rename_renames_the_identities_members_send_as()
+    {
+        StubAcme();
+        _host.Stub("x:Account/set", """[["x:Account/set",{"updated":{"f":null}},"c0"]]""");
+        _host.Stub("Identity/get", """[["Identity/get",{"accountId":"f","state":"i","list":[{"id":"i1","name":"Support","email":"support@acme.example"},{"id":"i2","name":"Help desk","email":"help@acme.example"}],"notFound":[]},"c0"]]""");
+        _host.Stub("Identity/set", """[["Identity/set",{"accountId":"f","updated":{"i1":null}},"c0"]]""");
+
+        (await Mailboxes().UpdateAsync("f", [Address("help@acme.example")], "Help desk", Ct)).IsSuccess.ShouldBeTrue();
+
+        _host.Calls("Identity/get").Single()[1]!["accountId"]!.GetValue<string>().ShouldBe("f");
+        var update = _host.Calls("Identity/set").Single()[1]!["update"]!.AsObject();
+        update.Select(static p => p.Key).ShouldBe(["i1"]);
+        update["i1"]!["name"]!.GetValue<string>().ShouldBe("Help desk");
+    }
+
+    [Fact]
+    public async Task Identities_the_console_may_not_touch_leave_the_rename_done()
+    {
+        StubAcme();
+        _host.Stub("x:Account/set", """[["x:Account/set",{"updated":{"f":null}},"c0"]]""");
+        _host.Stub("Identity/get", """[["error",{"type":"forbidden"},"c0"]]""");
+
+        (await Mailboxes().UpdateAsync("f", [], "Help desk", Ct)).IsSuccess.ShouldBeTrue();
+
+        _host.Calls("Identity/set").ShouldBeEmpty();
+        _host.Logs.AllText.ShouldContain("keep their old name");
+    }
+
+    [Fact]
     public async Task Membership_is_patched_one_group_at_a_time()
     {
         _host.Stub("x:Account/set", """[["x:Account/set",{"updated":{"d":null}},"c0"]]""");

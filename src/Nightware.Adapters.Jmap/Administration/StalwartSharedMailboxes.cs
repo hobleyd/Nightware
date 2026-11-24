@@ -125,9 +125,45 @@ internal sealed partial class StalwartSharedMailboxes(
         if (updated.IsSuccess)
         {
             LogUpdated(logger, mailboxId, aliases.Count);
+            await RenameIdentitiesAsync(mailboxId, name, cancellationToken).ConfigureAwait(false);
         }
 
         return updated;
+    }
+
+    /// <summary>
+    /// Stalwart names a shared mailbox's identities from its description when it creates them and never again, and the
+    /// identity's name is what members send as and what <c>/users/{address}</c> shows (ADR 0004 D4): a rename gives them
+    /// the new name. The console acts on the account by its id (as for automatic replies); a server that refuses that
+    /// keeps the old names, which is logged, not an error: the rename itself has happened.
+    /// </summary>
+    private async Task RenameIdentitiesAsync(string mailboxId, string name, CancellationToken cancellationToken)
+    {
+        var read = new JmapRequestBuilder();
+        var get = read.Add(JmapMethods.IdentityGet, new GetRequest(mailboxId));
+        Result<GetResponse<Identity>> identities = (await client.SendAsync(read, cancellationToken).ConfigureAwait(false)).Bind(r => r.Get(get));
+        if (!identities.IsSuccess)
+        {
+            LogIdentitiesNotRenamed(logger, mailboxId, identities.Error.Message);
+            return;
+        }
+
+        var stale = identities.Value.List.Where(i => i.Id is not null && !string.Equals(i.Name, name, StringComparison.Ordinal)).ToList();
+        if (stale.Count == 0)
+        {
+            return;
+        }
+
+        var write = new JmapRequestBuilder();
+        var set = write.Add(JmapMethods.IdentitySet, new SetRequest<Identity>(mailboxId)
+        {
+            Update = stale.ToDictionary(static i => i.Id!, _ => new PatchObject { ["name"] = name }, StringComparer.Ordinal),
+        });
+        Result<SetResponse<Identity>> renamed = (await client.SendAsync(write, cancellationToken).ConfigureAwait(false)).Bind(r => r.Get(set));
+        if (!renamed.IsSuccess || renamed.Value.NotUpdated is { Count: > 0 })
+        {
+            LogIdentitiesNotRenamed(logger, mailboxId, renamed.IsSuccess ? "the mail server refused the update" : renamed.Error.Message);
+        }
     }
 
     public async Task<Result> AddMemberAsync(string mailboxId, string memberAccountId, CancellationToken cancellationToken)
@@ -332,4 +368,7 @@ internal sealed partial class StalwartSharedMailboxes(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Destroyed Stalwart shared mailbox {MailboxId} after taking out {Count} member(s)")]
     private static partial void LogDestroyed(ILogger logger, string mailboxId, int count);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Shared mailbox {MailboxId} renamed, but its identities keep their old name: {Reason}")]
+    private static partial void LogIdentitiesNotRenamed(ILogger logger, string mailboxId, string reason);
 }

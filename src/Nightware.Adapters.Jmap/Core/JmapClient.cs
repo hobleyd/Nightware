@@ -51,10 +51,27 @@ internal sealed partial class JmapClient(
         return connection.Map(c => c.Session);
     }
 
+    /// <remarks>
+    /// An address the cached session doesn't know may be a shared mailbox the caller was granted since it was fetched:
+    /// the session is fetched again (at most every <see cref="Session.JmapSessionProvider.MinRefreshInterval"/> per
+    /// caller) and the address looked up once more.
+    /// </remarks>
     public async Task<Result<JmapAccount>> ResolveAccountAsync(MailboxRef mailbox, CancellationToken cancellationToken, string capability = JmapCapabilities.Mail)
     {
-        var session = await GetSessionAsync(cancellationToken).ConfigureAwait(false);
-        return session.Bind(s => JmapAccountResolver.Resolve(s, mailbox, userContext.Principal?.Mail, capability));
+        var connected = await connections.ConnectAsync(cancellationToken).ConfigureAwait(false);
+        if (!connected.IsSuccess)
+        {
+            return connected.Error;
+        }
+
+        var resolved = JmapAccountResolver.Resolve(connected.Value.Session, mailbox, userContext.Principal?.Mail, capability);
+        if (resolved.IsSuccess || resolved.Error.Kind != ErrorKind.NotFound || !connections.TryRefresh(connected.Value))
+        {
+            return resolved;
+        }
+
+        var reconnected = await connections.ConnectAsync(cancellationToken).ConfigureAwait(false);
+        return reconnected.Bind(c => JmapAccountResolver.Resolve(c.Session, mailbox, userContext.Principal?.Mail, capability));
     }
 
     public async Task<Result<JmapResponse>> SendAsync(JmapRequestBuilder request, CancellationToken cancellationToken)

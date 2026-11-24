@@ -21,6 +21,12 @@ internal interface IJmapSessionProvider
 
     /// <summary>Drops the cached session when a response's <c>sessionState</c> differs from it (RFC 8620 §3.4).</summary>
     void ObserveSessionState(BackendCredential credential, JmapSession session, string? sessionState);
+
+    /// <summary>
+    /// Drops the cached session so the next request fetches it again, unless it was fetched less than
+    /// <see cref="JmapSessionProvider.MinRefreshInterval"/> ago. True when it was dropped.
+    /// </summary>
+    bool TryRefresh(BackendCredential credential);
 }
 
 /// <inheritdoc />
@@ -31,6 +37,12 @@ internal sealed class JmapSessionProvider(
     TimeProvider time) : IJmapSessionProvider
 {
     private const int MaxRedirects = 3;
+
+    /// <summary>
+    /// How often an unknown account may make a caller's session be fetched again: a shared mailbox granted a moment ago
+    /// is in a new session, but every request to an address that is no account must not cost a session fetch.
+    /// </summary>
+    public static readonly TimeSpan MinRefreshInterval = TimeSpan.FromSeconds(30);
 
     public async Task<Result<JmapSession>> GetAsync(BackendCredential credential, CancellationToken cancellationToken)
     {
@@ -45,10 +57,27 @@ internal sealed class JmapSessionProvider(
         if (fetched.IsSuccess)
         {
             cache.Set(key, fetched.Value, new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = options.Value.SessionCacheDuration });
+            cache.Set(key + FetchedSuffix, time.GetUtcNow(), new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = options.Value.SessionCacheDuration });
         }
 
         return fetched;
     }
+
+    public bool TryRefresh(BackendCredential credential)
+    {
+        ArgumentNullException.ThrowIfNull(credential);
+        var key = CacheKey(credential);
+        if (cache.TryGetValue(key + FetchedSuffix, out DateTimeOffset fetched) && time.GetUtcNow() - fetched < MinRefreshInterval)
+        {
+            return false;
+        }
+
+        cache.Remove(key);
+        return true;
+    }
+
+    /// <summary>When the cached session was fetched, beside it.</summary>
+    private const string FetchedSuffix = ":fetched";
 
     public void Invalidate(BackendCredential credential)
     {

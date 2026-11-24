@@ -38,3 +38,4 @@
 | An outside organizer's invitation is imported into the default calendar when `messages/{id}/event` finds no copy (idempotent by UID; Sabre silent until the RSVP) — verified live | 1.77.0 |
 | A `calendarView` walk expands once: follow-up pages read a one-minute, size-bounded snapshot of the first page's expansion | 1.77.2 |
 | Photos: any image is turned upright (EXIF), centre-cropped and re-encoded to a square JPEG/PNG for Nextcloud (SkiaSharp 4.156.2, MIT, NoDependencies native build; verified in the Linux SDK and aspnet images) — verified live | 1.78.0 |
+| Shared mailboxes: a console rename renames the identities (`/users/{shared}` shows it, verified live); a member added a moment ago reaches the mailbox at once (the session is fetched again for an unknown address, at most every 30 s per caller) | 1.78.1 |

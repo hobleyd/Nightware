@@ -23,7 +23,7 @@ internal sealed class JmapTestHost : IAsyncDisposable
 
     private readonly ServiceProvider _provider;
 
-    public JmapTestHost(Action<Dictionary<string, string?>>? configure = null, string sessionPath = "/jmap/session")
+    public JmapTestHost(Action<Dictionary<string, string?>>? configure = null, string sessionPath = "/jmap/session", TimeProvider? time = null)
     {
         Server = WireMockServer.Start();
         var settings = new Dictionary<string, string?>
@@ -41,6 +41,11 @@ internal sealed class JmapTestHost : IAsyncDisposable
         UserContext.Principal.Returns(new Principal("u-alice", AliceAddress, AliceAddress, "Alice"));
 
         var services = new ServiceCollection();
+        if (time is not null)
+        {
+            services.AddSingleton(time);
+        }
+
         services.AddJmapAdapter(new ConfigurationBuilder().AddInMemoryCollection(settings).Build());
         services.AddScoped(_ => Credentials);
         services.AddScoped(_ => UserContext);

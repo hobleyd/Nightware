@@ -99,11 +99,13 @@ what a fix needs. Ordered by impact within each section.
 
 ### Directory
 - `/users/{shared}` describes a shared mailbox only to its members, by address
-  and the name its identity was created with; renaming it in the console does
-  not change that name (ADR 0004).
-- A new member of a shared mailbox sees it in NightMail only once the façade's
-  cached JMAP session expires (`Jmap:SessionCacheDuration`, 5 minutes) or their
-  token is renewed. Removal is immediate (the mail server refuses).
+  and its identity's name. A console rename renames the identities too (phase
+  27) when the console's Stalwart role may act on the account (the Admin role,
+  as for automatic replies); otherwise the old name stays and is logged.
+- A new member of a shared mailbox reaches it at once: an address the cached
+  JMAP session doesn't know makes the façade fetch the session again, at most
+  every 30 seconds per caller (phase 27). Removal is immediate (the mail server
+  refuses).
 - A shared mailbox has a calendar (ADR 0004 D6) but no contacts or files:
   those routes answer as for any address Nextcloud does not know. Shared
   mailboxes created before v1.39 get their calendar from the console's Repair.
