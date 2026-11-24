@@ -20,13 +20,17 @@ internal sealed class TalkChannelRooms(IDavClient dav)
     /// Every channel room token. Teams being unavailable (the app disabled, a team gone in between) means no channels
     /// rather than no chats: the worst case is a channel listed as a group chat.
     /// </summary>
-    public async Task<IReadOnlySet<string>> TokensAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlySet<string>> TokensAsync(CancellationToken cancellationToken) =>
+        (await TeamsAsync(cancellationToken).ConfigureAwait(false)).Keys.ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>Every channel room token, with the team (circle id) it is a channel of; unavailable teams as in <see cref="TokensAsync"/>.</summary>
+    public async Task<IReadOnlyDictionary<string, string>> TeamsAsync(CancellationToken cancellationToken)
     {
-        var tokens = new HashSet<string>(StringComparer.Ordinal);
+        var teams = new Dictionary<string, string>(StringComparer.Ordinal);
         var circles = await dav.OcsGetAsync(CirclesPath, null, cancellationToken).ConfigureAwait(false);
         if (!circles.IsSuccess || circles.Value.ValueKind != JsonValueKind.Array)
         {
-            return tokens;
+            return teams;
         }
 
         foreach (var circle in circles.Value.EnumerateArray())
@@ -39,11 +43,11 @@ internal sealed class TalkChannelRooms(IDavClient dav)
             var resources = await dav.OcsGetAsync($"teams/{id}/resources", null, cancellationToken).ConfigureAwait(false);
             foreach (var token in TalkTokens(resources))
             {
-                tokens.Add(token);
+                teams.TryAdd(token, id);
             }
         }
 
-        return tokens;
+        return teams;
     }
 
     private static IEnumerable<string> TalkTokens(Result<JsonElement> resources)

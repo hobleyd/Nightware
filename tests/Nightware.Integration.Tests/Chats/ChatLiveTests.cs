@@ -265,6 +265,18 @@ public sealed class ChatLiveTests
             resource["from"]!["emailAddress"]!["address"]!.GetValue<string>().ShouldBe(DevStack.Address("alice"));
             resource["webLink"]!.GetValue<string>().ShouldBe($"{LiveStack.CloudBase}/call/{chatId}#message_{messageId}");
 
+            // KQL: a sender and read state with no text (Talk filters by sender alone), and text Talk can't apply.
+            async Task<IEnumerable<string>> FindAsync(string query) =>
+                (await SendAsync(bob, HttpMethod.Post, "/v1.0/search/query",
+                    new { requests = new[] { new { entityTypes = new[] { "chatMessage" }, query = new { queryString = query } } } }))
+                ["value"]![0]!["hitsContainers"]![0]!["hits"]!.AsArray().Select(h => Id(h!["resource"]!));
+            (await FindAsync($"from:{DevStack.Address("alice")} IsRead:false")).ShouldContain(messageId);
+            (await FindAsync($"{tag} done hasAttachment:false")).ShouldBe([messageId]);
+            (await FindAsync($"{tag} NOT budget")).ShouldBeEmpty();
+            (await FindAsync($"{tag} from:bob")).ShouldBeEmpty();
+            // Nothing Talk can filter by: the newest messages, checked one by one.
+            (await FindAsync("NOT nwsearchnothing")).ShouldContain(messageId);
+
             // The hit's ids read the whole message.
             (await SendAsync(bob, HttpMethod.Get, $"/v1.0/chats/{chatId}/messages/{messageId}"))["body"]!["content"]!.GetValue<string>().ShouldContain(tag);
         }

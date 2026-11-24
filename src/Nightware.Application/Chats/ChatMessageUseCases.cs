@@ -1,3 +1,4 @@
+using Nightware.Application.Common.Query;
 using Nightware.Domain.Chats;
 using Nightware.Domain.Kernel;
 
@@ -164,7 +165,7 @@ public sealed class UnpinChatMessage(IChatPins pins)
         pins.UnpinAsync(chatId, pinnedMessageId, cancellationToken);
 }
 
-/// <summary>Microsoft Search (<c>POST /search/query</c>) for <c>chatMessage</c>: the caller's chat messages by text.</summary>
+/// <summary>Microsoft Search (<c>POST /search/query</c>) for <c>chatMessage</c>: the caller's chat and channel messages by KQL.</summary>
 public sealed class SearchChatMessages(IChatSearch search)
 {
     /// <summary>
@@ -175,20 +176,33 @@ public sealed class SearchChatMessages(IChatSearch search)
 
     public const int DefaultSize = MaxSize;
 
-    /// <summary>The longest search text taken (Talk matches it as one phrase).</summary>
+    /// <summary>The longest query text taken.</summary>
     public const int MaxTextLength = 256;
 
-    public Task<Result<ChatSearchHits>> ExecuteAsync(string? text, int from, int size, CancellationToken cancellationToken)
+    /// <summary>The fields a chat message query may hold: free text and Microsoft Search's Teams scope terms.</summary>
+    public static IReadOnlySet<SearchField> Fields { get; } = new HashSet<SearchField>
     {
-        var term = text?.Trim();
-        if (string.IsNullOrEmpty(term))
+        SearchField.Any,
+        SearchField.From,
+        SearchField.To,
+        SearchField.Sent,
+        SearchField.HasAttachments,
+        SearchField.IsRead,
+        SearchField.IsMentioned,
+        SearchField.Mentions,
+    };
+
+    public Task<Result<ChatSearchHits>> ExecuteAsync(SearchQuery? query, int from, int size, CancellationToken cancellationToken)
+    {
+        if (query is null || (query.Terms.Count == 0 && query.AnyOf.Count == 0))
         {
             return Task.FromResult<Result<ChatSearchHits>>(Error.Validation("query.queryString is required.", "query.queryString"));
         }
 
-        if (term.Length > MaxTextLength)
+        if (query.Terms.Concat(query.AnyOf.SelectMany(g => g)).FirstOrDefault(t => !Fields.Contains(t.Field)) is { } unsupported)
         {
-            return Task.FromResult<Result<ChatSearchHits>>(Error.Validation($"query.queryString has at most {MaxTextLength} characters.", "query.queryString"));
+            return Task.FromResult<Result<ChatSearchHits>>(
+                Error.Validation($"Chat messages can't be searched by {unsupported.Field}.", "query.queryString"));
         }
 
         if (from < 0)
@@ -201,6 +215,6 @@ public sealed class SearchChatMessages(IChatSearch search)
             return Task.FromResult<Result<ChatSearchHits>>(Error.Validation("size must be at least 1.", "size"));
         }
 
-        return search.SearchAsync(term, from, Math.Min(size, MaxSize), cancellationToken);
+        return search.SearchAsync(query, from, Math.Min(size, MaxSize), cancellationToken);
     }
 }

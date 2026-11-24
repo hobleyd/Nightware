@@ -13,10 +13,11 @@ namespace Nightware.Api.Graph.OData;
 /// <para>NightMail sends <c>$search="&lt;whatever the user typed&gt;"</c> with the outer quotes
 /// always present and inner quotes <b>not</b> escaped, so exactly the first and last character
 /// are stripped when they are both <c>"</c> (docs/contract/odata-subset.md §6).</para>
-/// <para>Supported: free-text words and <c>"quoted phrases"</c> (implicit AND), field terms
-/// <c>from: to: cc: participants: subject: body: attachment: hasAttachments: received: sent:</c>
+/// <para>Supported: free-text words and <c>"quoted phrases"</c> (implicit AND), field terms of a vocabulary
+/// (<see cref="MailFields"/>: <c>from: to: cc: participants: subject: body: attachment: hasAttachments: received: sent:</c>;
+/// <see cref="ChatMessageFields"/>: <c>from: to: sent: hasAttachment: IsRead: IsMentioned: mentions:</c>)
 /// (field names case-insensitive; <c>:</c> = contains, <c>=</c> = equals; dates also take
-/// <c>&gt;= &lt;= &gt; &lt;</c>), upper-case <c>AND</c>/<c>OR</c>/<c>NOT</c> and parentheses (<c>OR</c> binds tighter than <c>AND</c>/adjacency, as in Outlook search).</para>
+/// <c>&gt;= &lt;= &gt; &lt;</c>, with or without spaces around the operator), upper-case <c>AND</c>/<c>OR</c>/<c>NOT</c> and parentheses (<c>OR</c> binds tighter than <c>AND</c>/adjacency, as in Outlook search).</para>
 /// <para>Because the text is the user's, the parser is lenient: an unknown <c>prop:value</c>
 /// (<c>re:</c>, <c>10:30</c>, a pasted URL), a malformed date, a stray operator or an unbalanced
 /// quote or parenthesis is read as free text rather than rejected. The boolean structure is
@@ -28,7 +29,8 @@ public static class KqlParser
 {
     public const int MaxClauses = 64;
 
-    private static readonly Dictionary<string, SearchField> Fields = new(StringComparer.OrdinalIgnoreCase)
+    /// <summary>Mail's fields (<c>$search</c> on messages).</summary>
+    public static IReadOnlyDictionary<string, SearchField> MailFields { get; } = new Dictionary<string, SearchField>(StringComparer.OrdinalIgnoreCase)
     {
         ["from"] = SearchField.From,
         ["to"] = SearchField.To,
@@ -44,21 +46,39 @@ public static class KqlParser
         ["sent"] = SearchField.Sent,
     };
 
-    public static Result<SearchQuery> Parse(string? value)
+    /// <summary>Microsoft Search's scope terms for Teams messages (<c>entityTypes: ["chatMessage"]</c>).</summary>
+    public static IReadOnlyDictionary<string, SearchField> ChatMessageFields { get; } = new Dictionary<string, SearchField>(StringComparer.OrdinalIgnoreCase)
     {
-        var text = StripOuterQuotes(value ?? string.Empty);
-        var tokens = Tokenize(text);
+        ["from"] = SearchField.From,
+        ["to"] = SearchField.To,
+        ["sent"] = SearchField.Sent,
+        ["hasattachment"] = SearchField.HasAttachments,
+        ["hasattachments"] = SearchField.HasAttachments,
+        ["isread"] = SearchField.IsRead,
+        ["ismentioned"] = SearchField.IsMentioned,
+        ["mentions"] = SearchField.Mentions,
+    };
+
+    /// <summary>A mail <c>$search</c> value (NightMail's outer quotes stripped).</summary>
+    public static Result<SearchQuery> Parse(string? value) =>
+        Parse(StripOuterQuotes(value ?? string.Empty), MailFields, ODataQueryParser.SearchOption);
+
+    /// <summary>KQL over <paramref name="fields"/>; errors name <paramref name="target"/>. The text is taken as given (no quote stripping).</summary>
+    public static Result<SearchQuery> Parse(string? text, IReadOnlyDictionary<string, SearchField> fields, string target)
+    {
+        ArgumentNullException.ThrowIfNull(fields);
+        var tokens = Tokenize(text ?? string.Empty, fields);
         var parser = new Parser(tokens);
         var expression = parser.ParseAll();
         if (expression is null)
         {
-            return Error.Validation("$search is empty.", ODataQueryParser.SearchOption);
+            return Error.Validation($"{target} is empty.", target);
         }
 
         var clauses = ToConjunctiveForm(ToNegationNormalForm(expression, negate: false));
         if (clauses is null)
         {
-            return Error.Validation($"$search is too complex: it expands to more than {MaxClauses} clauses.", ODataQueryParser.SearchOption);
+            return Error.Validation($"{target} is too complex: it expands to more than {MaxClauses} clauses.", target);
         }
 
         var terms = new List<SearchTerm>();
@@ -99,7 +119,7 @@ public static class KqlParser
 
     private sealed record Token(TokenKind Kind, string Raw, SearchTerm? Term = null);
 
-    private static List<Token> Tokenize(string text)
+    private static List<Token> Tokenize(string text, IReadOnlyDictionary<string, SearchField> fields)
     {
         var tokens = new List<Token>();
         var i = 0;
@@ -128,16 +148,93 @@ public static class KqlParser
                     tokens.Add(FreeText(phrase.Trim()));
                 }
             }
+            else if (ReadSpacedTerm(text, ref i, fields) is { } spaced)
+            {
+                tokens.Add(spaced);
+            }
             else
             {
-                tokens.Add(ReadChunk(text, ref i));
+                tokens.Add(ReadChunk(text, ref i, fields));
             }
         }
 
         return tokens;
     }
 
-    private static Token ReadChunk(string text, ref int i)
+    /// <summary>
+    /// A field term written with spaces around its operator (<c>sent &gt; 2022-07-14</c>, as Microsoft's docs write
+    /// one); null, leaving <paramref name="i"/> alone, for anything else.
+    /// </summary>
+    private static Token? ReadSpacedTerm(string text, ref int i, IReadOnlyDictionary<string, SearchField> fields)
+    {
+        var j = i;
+        while (j < text.Length && char.IsAsciiLetter(text[j]))
+        {
+            j++;
+        }
+
+        if (j == i || !fields.ContainsKey(text[i..j]))
+        {
+            return null;
+        }
+
+        var name = text[i..j];
+        var spaced = false;
+        while (j < text.Length && char.IsWhiteSpace(text[j]))
+        {
+            j++;
+            spaced = true;
+        }
+
+        var opStart = j;
+        while (j < text.Length && text[j] is ':' or '=' or '<' or '>' && j - opStart < 2)
+        {
+            j++;
+        }
+
+        var op = text[opStart..j];
+        if (op is not (":" or "=" or "<" or ">" or "<=" or ">="))
+        {
+            return null;
+        }
+
+        while (j < text.Length && char.IsWhiteSpace(text[j]))
+        {
+            j++;
+            spaced = true;
+        }
+
+        if (!spaced || j >= text.Length || text[j] is '(' or ')')
+        {
+            return null;
+        }
+
+        string value;
+        if (text[j] == '"')
+        {
+            value = ReadQuoted(text, ref j);
+        }
+        else
+        {
+            var start = j;
+            while (j < text.Length && !char.IsWhiteSpace(text[j]) && text[j] is not '(' and not ')')
+            {
+                j++;
+            }
+
+            value = text[start..j];
+        }
+
+        if (TryFieldTerm(name + op + value, fields) is not { } term)
+        {
+            return null;
+        }
+
+        i = j;
+        return new Token(TokenKind.Term, name + op + value, term);
+    }
+
+    private static Token ReadChunk(string text, ref int i, IReadOnlyDictionary<string, SearchField> fields)
     {
         var raw = new StringBuilder();
         var quotedValue = false;
@@ -168,7 +265,7 @@ public static class KqlParser
             }
         }
 
-        return TryFieldTerm(chunk) is { } term ? new Token(TokenKind.Term, chunk, term) : FreeText(chunk);
+        return TryFieldTerm(chunk, fields) is { } term ? new Token(TokenKind.Term, chunk, term) : FreeText(chunk);
     }
 
     private static string ReadQuoted(string text, ref int i)
@@ -192,7 +289,7 @@ public static class KqlParser
     private static Token FreeText(string text) =>
         new(TokenKind.Term, text, new SearchTerm(SearchField.Any, SearchOp.Contains, text));
 
-    private static SearchTerm? TryFieldTerm(string chunk)
+    private static SearchTerm? TryFieldTerm(string chunk, IReadOnlyDictionary<string, SearchField> fields)
     {
         var nameEnd = 0;
         while (nameEnd < chunk.Length && char.IsAsciiLetter(chunk[nameEnd]))
@@ -200,7 +297,7 @@ public static class KqlParser
             nameEnd++;
         }
 
-        if (nameEnd == 0 || nameEnd == chunk.Length || !Fields.TryGetValue(chunk[..nameEnd], out var field))
+        if (nameEnd == 0 || nameEnd == chunk.Length || !fields.TryGetValue(chunk[..nameEnd], out var field))
         {
             return null;
         }
@@ -224,13 +321,12 @@ public static class KqlParser
 
         return field switch
         {
-            SearchField.HasAttachments when op is SearchOp.Contains or SearchOp.Equals => ParseBool(value) is { } flag
-                ? new SearchTerm(field, SearchOp.Equals, flag ? "true" : "false")
-                : null,
+            SearchField.HasAttachments or SearchField.IsRead or SearchField.IsMentioned when op is SearchOp.Contains or SearchOp.Equals =>
+                ParseBool(value) is { } flag ? new SearchTerm(field, SearchOp.Equals, flag ? "true" : "false") : null,
             SearchField.Received or SearchField.Sent => NormaliseDate(value) is { } date
                 ? new SearchTerm(field, op == SearchOp.Contains ? SearchOp.Equals : op, date)
                 : null,
-            SearchField.HasAttachments => null,
+            SearchField.HasAttachments or SearchField.IsRead or SearchField.IsMentioned => null,
             _ when op is SearchOp.Contains or SearchOp.Equals => new SearchTerm(field, op, value),
             _ => null,
         };

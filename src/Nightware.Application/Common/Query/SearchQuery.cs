@@ -13,6 +13,15 @@ public enum SearchField
     HasAttachments,
     Received,
     Sent,
+
+    /// <summary>Microsoft Search's <c>IsRead:</c> on Teams messages (a <c>true</c>/<c>false</c> value).</summary>
+    IsRead,
+
+    /// <summary>Microsoft Search's <c>IsMentioned:</c> on Teams messages: the message mentions the caller.</summary>
+    IsMentioned,
+
+    /// <summary>Microsoft Search's <c>mentions:</c> on Teams messages: the message mentions that person.</summary>
+    Mentions,
 }
 
 public enum SearchOp

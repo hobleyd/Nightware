@@ -140,6 +140,17 @@ public sealed class TeamLiveTests
             post["channelIdentity"]!["channelId"]!.GetValue<string>().ShouldBe(channelId);
             var delta = await SendAsync(bob, HttpMethod.Get, $"/v1.0/teams/{teamId}/channels/{channelId}/messages/delta");
             delta["value"]!.AsArray().ShouldContain(m => Id(m) == postId);
+
+            // bob finds the post with Microsoft Search: a channel hit, by a sender Talk filters on and a day range.
+            var since = DateTimeOffset.UtcNow.AddDays(-1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+            var searched = await SendAsync(bob, HttpMethod.Post, "/v1.0/search/query", new
+            {
+                requests = new[] { new { entityTypes = new[] { "chatMessage" }, query = new { queryString = $"Agenda from:{DevStack.Address("alice")} sent >= {since}" } } },
+            });
+            var channelHit = searched["value"]![0]!["hitsContainers"]![0]!["hits"]!.AsArray().Single(h => Id(h!["resource"]!) == postId)!["resource"]!;
+            channelHit["channelIdentity"]!["teamId"]!.GetValue<string>().ShouldBe(teamId);
+            channelHit["channelIdentity"]!["channelId"]!.GetValue<string>().ShouldBe(channelId);
+            channelHit["chatId"].ShouldBeNull();
             var deltaLink = LiveStack.Local(delta["@odata.deltaLink"]!.GetValue<string>());
 
             using (var reply = await bobTalk.PostAsync($"{LiveStack.CloudBase}/ocs/v2.php/apps/spreed/api/v1/chat/{channelId}",

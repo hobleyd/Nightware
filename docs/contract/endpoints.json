@@ -16023,6 +16023,8 @@
       "value[].hitsContainers[].hits[].resource.etag",
       "value[].hitsContainers[].hits[].resource.importance",
       "value[].hitsContainers[].hits[].resource.channelIdentity",
+      "value[].hitsContainers[].hits[].resource.channelIdentity.teamId",
+      "value[].hitsContainers[].hits[].resource.channelIdentity.channelId",
       "value[].hitsContainers[].total",
       "value[].hitsContainers[].moreResultsAvailable"
     ],
@@ -16032,7 +16034,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "search-query",
-    "notes": "Microsoft Search for chatMessage (ADR 0009 D10): the caller's chat messages whose text contains queryString, newest first, over Talk's message search. One request of this type only (Graph can't mix chatMessage with other types either). size defaults to 25 and a larger one is read as 25 (Nextcloud's page cap); from is an offset. Channel messages, the note to self and the changelog are left out, so a window may hold fewer than size hits. The resource is Microsoft Search's trimmed chatMessage (no body: read it through /chats/{chatId}/messages/{id}); from.emailAddress has no address for a guest; webLink opens the message in Talk when Talk:PublicBaseUrl is set. summary is Talk's plain-text excerpt. KQL (from:, sent>, IsMentioned:) isn't interpreted: the whole queryString is matched as text."
+    "notes": "Microsoft Search for chatMessage (ADR 0009 D10): the caller's chat and channel messages, newest first, over Talk's message search. queryString is KQL: free text and \"phrases\" (substrings, case-insensitive), AND/OR/NOT and parentheses, and Microsoft's Teams scope terms from:, to: (the other person, in one-on-one chats only), sent (= : > >= < <=, a UTC day or an instant, spaces around the operator allowed), hasAttachment:, IsRead:, IsMentioned: (the caller or @all) and mentions: (a directory id with or without dashes, or a name); other prop: words are text. Talk applies the longest free-text term, the sent range and a from: the directory knows by id or address; the rest is checked on each match (attachments, mentions and further text read the message). One request of this type only (Graph can't mix chatMessage with other types either). size defaults to 25 and a larger one is read as 25 (Nextcloud's page cap); from is Talk's offset, so a window may hold fewer than size hits, or none with moreResultsAvailable true; total is the hits on the page, as Microsoft Search reports it for Teams messages. The note to self and the changelog are left out. The resource is Microsoft Search's trimmed chatMessage (no body): a chat message has chatId and an empty channelIdentity, a channel message channelIdentity {teamId, channelId} and a null chatId (as the channel messages API writes one); from.emailAddress has no address for a guest; webLink opens the message in Talk when Talk:PublicBaseUrl is set. summary is Talk's plain-text excerpt."
   },
   {
     "id": "files.drive.items.versions",

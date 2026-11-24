@@ -243,6 +243,9 @@ internal sealed record TalkRoom(long Id, string Token, int Type)
     /// <summary>The caller's own attendee id in the room.</summary>
     public long AttendeeId { get; init; }
 
+    /// <summary>The caller as the room knows them (<c>actorType</c>/<c>actorId</c>): for a user, their uid.</summary>
+    public TalkActor? Self { get; init; }
+
     /// <summary>The caller's participant type.</summary>
     public int ParticipantType { get; init; }
 
@@ -268,6 +271,7 @@ internal sealed record TalkRoom(long Id, string Token, int Type)
         ObjectType = TalkJson.String(element, "objectType") ?? string.Empty,
         Description = TalkJson.String(element, "description") ?? string.Empty,
         AttendeeId = TalkJson.Long(element, "attendeeId") ?? 0,
+        Self = TalkJson.String(element, "actorId") is { Length: > 0 } self ? new TalkActor(TalkJson.String(element, "actorType") ?? string.Empty, self, null) : null,
         ParticipantType = (int)(TalkJson.Long(element, "participantType") ?? 0),
         IsArchived = element.TryGetProperty("isArchived", out var archived) && archived.ValueKind == JsonValueKind.True,
         LastActivity = TalkJson.Long(element, "lastActivity") is > 0 and var activity ? TalkJson.Instant(activity) : null,

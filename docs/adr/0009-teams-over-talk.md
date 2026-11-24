@@ -327,30 +327,59 @@ as thin wrappers.
 Talk's OCS API. Phase 26's calls also need the HPB the stack already runs.
 
 ### D10 — Chat messages are searched through Talk's message search
-*Added (phase 28, 2026-11-24).* Microsoft Search `POST /search/query` with
-`entityTypes: ["chatMessage"]` searches the caller's chat messages over Talk's
-unified search provider `talk-message`
-(`GET /ocs/v2.php/search/providers/talk-message/search?term=&cursor=&limit=`):
+*Added (phase 28, 2026-11-24; channels and KQL 2026-11-24).* Microsoft Search
+`POST /search/query` with `entityTypes: ["chatMessage"]` searches the caller's
+chat and channel messages over Talk's unified search provider `talk-message`
+(`GET /ocs/v2.php/search/providers/talk-message/search`):
 
-- Talk matches the whole `queryString` as text in messages and shared-object
-  messages, newest first, across every room of the caller's. KQL operators
-  (`from:`, `sent>`, `IsMentioned:`) are not interpreted.
-- A match is kept only in one of the caller's chats (D3). Channel rooms (D5),
-  the note to self and the changelog are left out, so a window may hold fewer
-  hits than `size`. Graph's search would also return channel messages; they
-  stay out until channels are searchable too.
-- `from` is Talk's offset cursor. `size` defaults to 25, and a larger one is
-  read as 25, Nextcloud's own cap on a page
-  (`unified-search.max-results-per-request`). `moreResultsAvailable` is true
-  when Talk returned a full page.
-- A hit is Microsoft Search's trimmed `chatMessage`: `id`, `chatId`,
-  `createdDateTime` (also `lastModifiedDateTime`, because Talk's search entry
-  has no edit time), `from.emailAddress` (the directory user's name and mail; a
-  guest has only the name from Talk's entry title), `webLink` (the message in
-  Talk, `{Talk:PublicBaseUrl}call/{token}#message_{id}`), `etag` (the id), an
-  empty `channelIdentity`, and no body. `summary` is Talk's plain-text excerpt
-  around the match, with Talk's ellipsis written as `...`. The full message is
-  `/chats/{chatId}/messages/{id}`.
+- `queryString` is KQL, parsed with `KqlParser.ChatMessageFields`: free text
+  and `"phrases"`, `AND`/`OR`/`NOT` and parentheses, and the scope terms
+  Microsoft documents for Teams messages: `from:`, `to:`, `sent` (`:`/`=`, `>`,
+  `>=`, `<`, `<=`; a UTC day or an instant; spaces around the operator as the
+  docs write `sent > 2022-07-14`), `hasAttachment:`, `IsRead:`,
+  `IsMentioned:` and `mentions:`. Any other `prop:` word is text. The
+  `queryString` is taken as given: NightMail's outer-quote quirk is mail's
+  `$search` only.
+- Talk can filter by one substring (`term`, matched on the stored message),
+  a sent range (`since`/`until`, inclusive, sent as unix seconds) and one
+  sender (`person`, a uid that must exist). `ChatSearchPlan` passes it what
+  is safe to: the longest positive top-level free-text term, the narrowest
+  range from positive top-level `sent` terms, and a positive `from:` the
+  directory resolves by id, UPN or address. With nothing to pass, it sends
+  `since=1`, because Nextcloud refuses a search with no filter. What Talk
+  returns is a superset of the matches.
+- `ChatSearchMatcher` then checks the whole query on every candidate. Text is
+  a case-insensitive substring (Graph's word-prefix matching isn't
+  reproduced). `from:` matches the sender's uid, display name, mail or UPN
+  (a guest by the name in Talk's entry title). `to:` is the other person in a
+  one-on-one chat and matches nothing elsewhere, as Microsoft documents it
+  ("partially supported for the one-on-one message"). `IsRead` compares the
+  message id with the room's `lastReadMessage` (the caller's own messages are
+  read). Further free text, negated text, `OR` groups with text,
+  `hasAttachment` (a `file` parameter), `IsMentioned` (a `mention-` parameter
+  naming the caller, or `@all`) and `mentions:` (a directory id with or
+  without dashes, or a name) read each candidate whole through
+  `chat/{token}/{id}/context`, four at a time; the excerpt is cut and can't be
+  used.
+- A match is kept in one of the caller's chats (D3) or channels (D5); the
+  note to self and the changelog are left out. A channel hit has
+  `channelIdentity {teamId, channelId}` (the team's circle id and the room
+  token) and a null `chatId`, as `/teams/{id}/channels/{id}/messages` writes
+  one. Microsoft's page shows no channel hit, so this is the channel messages
+  API's shape, not a captured one.
+- `from` is Talk's offset cursor and is never refilled: a page that fails the
+  checks may hold fewer than `size` hits, or none, with
+  `moreResultsAvailable` true when Talk returned a full page. `size` defaults
+  to 25 and a larger one is read as 25, Nextcloud's own page cap
+  (`unified-search.max-results-per-request`). `total` is the number of hits on
+  the page, as Microsoft documents it for Teams messages.
+- A hit is Microsoft Search's trimmed `chatMessage`: `id`, `chatId` or
+  `channelIdentity`, `createdDateTime` (also `lastModifiedDateTime`, because
+  Talk's search entry has no edit time), `from.emailAddress` (the directory
+  user's name and mail; a guest has only a name), `webLink` (the message in
+  Talk, `{Talk:PublicBaseUrl}call/{token}#message_{id}`), `etag` (the id), and
+  no body. `summary` is Talk's plain-text excerpt around the match, with
+  Talk's ellipsis written as `...`.
 - `chatMessage` can't be mixed with other entity types in one request, as in
   Graph. `driveItem` (ADR 0008) stays its own request, and other types are
   `400 notSupported`.

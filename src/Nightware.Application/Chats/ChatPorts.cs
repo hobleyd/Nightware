@@ -1,3 +1,4 @@
+using Nightware.Application.Common.Query;
 using Nightware.Domain.Chats;
 using Nightware.Domain.Kernel;
 
@@ -102,11 +103,18 @@ public interface IChatPins
 public sealed record ChatSender(string? Name, string? Address);
 
 /// <summary>
-/// A chat message Microsoft Search found (its trimmed <c>chatMessage</c>: no body, which <c>/chats/{id}/messages/{id}</c>
-/// reads). <paramref name="Summary"/> is the backend's plain-text excerpt around the match.
+/// A chat or channel message Microsoft Search found (its trimmed <c>chatMessage</c>: no body, which
+/// <c>/chats/{id}/messages/{id}</c> or <c>/teams/{id}/channels/{id}/messages/{id}</c> reads). <paramref name="Summary"/>
+/// is the backend's plain-text excerpt around the match. Exactly one of <see cref="ChatId"/> and <see cref="Channel"/> is set.
 /// </summary>
-public sealed record ChatMessageHit(string Id, string ChatId, DateTimeOffset CreatedDateTime, string Summary)
+public sealed record ChatMessageHit(string Id, DateTimeOffset CreatedDateTime, string Summary)
 {
+    /// <summary>The chat the message is in; null for a channel message.</summary>
+    public string? ChatId { get; init; }
+
+    /// <summary>The team and channel the message is in; null for a chat message.</summary>
+    public ChannelIdentity? Channel { get; init; }
+
     public ChatSender? From { get; init; }
 
     /// <summary>The message in the backend's web client; null when no public link is configured.</summary>
@@ -117,11 +125,12 @@ public sealed record ChatMessageHit(string Id, string ChatId, DateTimeOffset Cre
 public sealed record ChatSearchHits(IReadOnlyList<ChatMessageHit> Hits, bool MoreAvailable);
 
 /// <summary>
-/// Searches the text of the caller's chat messages (ADR 0009 D10), newest first. <c>from</c> and <c>size</c> are a
-/// window over the backend's matches; a window may hold fewer hits than <c>size</c> where the backend left some out
-/// (channels, the backend's own notes, messages since expired).
+/// Searches the caller's chat and channel messages (ADR 0009 D10), newest first, for a KQL query of the fields
+/// <see cref="SearchChatMessages.Fields"/> lists. <c>from</c> and <c>size</c> are a window over the backend's
+/// candidates; a window may hold fewer hits than <c>size</c>, none at all, where candidates didn't match the parts of
+/// the query the backend can't apply itself (<see cref="ChatSearchMatcher"/>) or the backend left them out.
 /// </summary>
 public interface IChatSearch
 {
-    Task<Result<ChatSearchHits>> SearchAsync(string text, int from, int size, CancellationToken cancellationToken);
+    Task<Result<ChatSearchHits>> SearchAsync(SearchQuery query, int from, int size, CancellationToken cancellationToken);
 }

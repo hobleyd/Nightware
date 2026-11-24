@@ -167,6 +167,56 @@ public sealed class KqlParserTests
         result.Error.Message.ShouldContain("too complex");
     }
 
+    [Fact]
+    public void Chat_messages_read_microsofts_teams_scope_terms()
+    {
+        var query = Chat("from:bob to:alice sent>=2022-07-14 hasAttachment:yes IsRead:false IsMentioned:TRUE mentions:497b7a2a9e1a48d780e82965d2fc3a81 subject:x");
+
+        query.Terms.ShouldBe(
+        [
+            new SearchTerm(SearchField.From, SearchOp.Contains, "bob"),
+            new SearchTerm(SearchField.To, SearchOp.Contains, "alice"),
+            new SearchTerm(SearchField.Sent, SearchOp.GreaterOrEqual, "2022-07-14"),
+            new SearchTerm(SearchField.HasAttachments, SearchOp.Equals, "true"),
+            new SearchTerm(SearchField.IsRead, SearchOp.Equals, "false"),
+            new SearchTerm(SearchField.IsMentioned, SearchOp.Equals, "true"),
+            new SearchTerm(SearchField.Mentions, SearchOp.Contains, "497b7a2a9e1a48d780e82965d2fc3a81"),
+            Any("subject:x"),
+        ]);
+    }
+
+    [Theory]
+    [InlineData("sent > 2022-07-14", SearchOp.GreaterThan)]
+    [InlineData("sent >= 2022-07-14", SearchOp.GreaterOrEqual)]
+    [InlineData("sent <2022-07-14", SearchOp.LessThan)]
+    [InlineData("sent: 2022-07-14", SearchOp.Equals)]
+    public void An_operator_may_have_spaces_around_it(string value, SearchOp op) =>
+        Chat(value).Terms.ShouldBe([new SearchTerm(SearchField.Sent, op, "2022-07-14")]);
+
+    [Fact]
+    public void A_spaced_operator_without_a_valid_value_stays_free_text()
+    {
+        Chat("sent > soon").Terms.ShouldBe([Any("sent"), Any(">"), Any("soon")]);
+        Chat("from").Terms.ShouldBe([Any("from")]);
+        Parse("\"to be or not\"").Terms.ShouldBe([Any("to"), Any("be"), Any("or"), Any("not")]);
+    }
+
+    [Fact]
+    public void A_chat_query_keeps_its_quotes_and_names_its_own_target()
+    {
+        Chat("\"q3 budget\"").Terms.ShouldBe([Any("q3 budget")]);
+        KqlParser.Parse("  ", KqlParser.ChatMessageFields, "query.queryString").Error!.Target.ShouldBe("query.queryString");
+        // Mail's vocabulary has no IsRead.
+        Parse("\"IsRead:true\"").Terms.ShouldBe([Any("IsRead:true")]);
+    }
+
+    private static SearchQuery Chat(string value)
+    {
+        var result = KqlParser.Parse(value, KqlParser.ChatMessageFields, "query.queryString");
+        result.IsSuccess.ShouldBeTrue(result.Error?.Message);
+        return result.Value;
+    }
+
     private static SearchTerm Any(string word) => new(SearchField.Any, SearchOp.Contains, word);
 
     private static SearchQuery Parse(string value)

@@ -10,6 +10,12 @@ namespace Nightware.Adapters.Dav.Chats.Talk;
 
 /// <summary>One page of Talk's chat history, newest first, and the id to read on from (<c>X-Chat-Last-Given</c>).</summary>
 /// <param name="LastGiven">Null when the history has nothing older (Talk's 304).</param>
+/// <summary>
+/// What Talk's message search filters by: a substring of the message (<c>term</c>), a sent-time range
+/// (<c>since</c>/<c>until</c>, inclusive, to the second) and one sender's uid (<c>person</c>, who must exist).
+/// </summary>
+internal sealed record TalkSearchFilter(string? Term, DateTimeOffset? Since = null, DateTimeOffset? Until = null, string? Person = null);
+
 internal sealed record TalkHistoryPage(IReadOnlyList<TalkMessage> Messages, long? LastGiven);
 
 /// <summary>A message to post: Markdown, optionally replying, in a thread, or starting one (a channel post).</summary>
@@ -405,17 +411,42 @@ internal sealed class TalkChatClient(IDavClient dav)
     /// <summary>
     /// Talk's message search (the unified search provider <c>talk-message</c>, <see cref="SearchPath"/>), newest first:
     /// a window of <paramref name="limit"/> matches from <paramref name="offset"/> over every conversation of the
-    /// caller's. Nextcloud caps a page (25 by default).
+    /// caller's. Nextcloud caps a page (25 by default). With nothing to filter by, every message is a match.
     /// </summary>
-    public async Task<Result<TalkSearchPage>> SearchMessagesAsync(string term, int offset, int limit, CancellationToken cancellationToken)
+    public async Task<Result<TalkSearchPage>> SearchMessagesAsync(TalkSearchFilter filter, int offset, int limit, CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(term);
+        ArgumentNullException.ThrowIfNull(filter);
         var query = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["term"] = term,
             ["limit"] = limit.ToString(CultureInfo.InvariantCulture),
             ["cursor"] = offset.ToString(CultureInfo.InvariantCulture),
         };
+        if (!string.IsNullOrWhiteSpace(filter.Term))
+        {
+            query["term"] = filter.Term;
+        }
+
+        if (filter.Since is { } since)
+        {
+            query["since"] = UnixSeconds(since);
+        }
+
+        if (filter.Until is { } until)
+        {
+            query["until"] = UnixSeconds(until);
+        }
+
+        if (!string.IsNullOrEmpty(filter.Person))
+        {
+            query["person"] = filter.Person;
+        }
+
+        if (query.Count == 2)
+        {
+            // Nextcloud refuses a search with no filter; the first second of 1970 matches every message.
+            query["since"] = "1";
+        }
+
         var read = await dav.OcsGetAsync(SearchPath, query, cancellationToken).ConfigureAwait(false);
         if (!read.IsSuccess)
         {
@@ -426,6 +457,10 @@ internal sealed class TalkChatClient(IDavClient dav)
             ? TalkSearchPage.Parse(entries)
             : Unexpected("search result");
     }
+
+    /// <summary>Nextcloud reads a whole number as a unix time (<c>@…</c>), whatever the server's time zone.</summary>
+    private static string UnixSeconds(DateTimeOffset instant) =>
+        Math.Max(1, instant.ToUnixTimeSeconds()).ToString(CultureInfo.InvariantCulture);
 
     internal static Error NoConversation() => Error.NotFound("The chat was not found, or you are not a member of it.");
 
