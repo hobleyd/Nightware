@@ -317,6 +317,22 @@ public sealed class NextcloudDriveStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task Recent_is_the_newest_files_by_modification_time()
+    {
+        _nc.ServeAliceHome();
+        _nc.Serve("SEARCH", DavRoot, 207, Recorded("search-by-id.xml"), bodyContains: "<d:is-collection");
+
+        var items = (await Store.RecentAsync(5, Ct)).Value;
+
+        items.Single().Id.ShouldBe("1748");
+        var body = _nc.Requests("SEARCH").First(e => e.RequestMessage!.Body!.Contains("is-collection", StringComparison.Ordinal)).RequestMessage!.Body!;
+        body.ShouldContain("<d:not><d:is-collection /></d:not>");
+        body.ShouldContain("<d:getlastmodified />");
+        body.ShouldContain("<d:descending />");
+        body.ShouldContain("<d:nresults>5</d:nresults>");
+    }
+
+    [Fact]
     public async Task Special_folders_are_made_on_demand()
     {
         _nc.Status("MKCOL", Home + "Apps/", 405);

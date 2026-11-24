@@ -197,6 +197,23 @@ public sealed class SearchDrive(IDriveStore store)
     }
 }
 
+/// <summary>Graph <c>GET /me/drive/recent</c>: the drive's recently modified files, newest first.</summary>
+public sealed class ListRecentDriveItems(IDriveStore store)
+{
+    /// <summary>Graph's <c>recent</c> isn't paged; this is how many it lists.</summary>
+    public const int Limit = 100;
+
+    public Task<Result<IReadOnlyList<DriveItem>>> ExecuteAsync(CancellationToken cancellationToken) =>
+        store.RecentAsync(Limit, cancellationToken);
+}
+
+/// <summary>Graph <c>GET /me/drive/sharedWithMe</c>: what other users shared with the caller.</summary>
+public sealed class ListSharedWithMe(IDriveSharing sharing)
+{
+    public Task<Result<IReadOnlyList<DriveItem>>> ExecuteAsync(CancellationToken cancellationToken) =>
+        sharing.SharedWithMeAsync(cancellationToken);
+}
+
 /// <summary>Graph <c>GET /me/drive/special/{name}</c>.</summary>
 public sealed class GetSpecialFolder(IDriveStore store)
 {

@@ -336,8 +336,8 @@ operation:
 | Phase 24 — Teams and channels over Nextcloud Teams and Talk (Graph parity, ADR 0009) | 34 |
 | Phase 25 — Presence over Nextcloud user status (Graph parity, ADR 0009) | 8 |
 | Phase 26 — Online meetings and calls over Talk (Graph parity, ADR 0009) | 14 |
-| Phase 27 — OneDrive, calendar, directory and settings gaps | 2 |
-| **Total** | **402** |
+| Phase 27 — OneDrive, calendar, directory and settings gaps | 4 |
+| **Total** | **404** |
 
 ### Phase 2 — Mail, read side
 
@@ -4608,6 +4608,8 @@ operation:
 |---|---|---|---|---|
 | [`files.drive.root.children`](#filesdriverootchildren) | GET | v1.0 | `{mailbox}/drive/root/children` | nextLink |
 | [`files.drives.items.get`](#filesdrivesitemsget) | GET | v1.0 | `/drives/{driveId}/items/{itemId}` | none |
+| [`files.drive.shared-with-me`](#filesdriveshared-with-me) | GET | v1.0 | `{mailbox}/drive/sharedWithMe` | nextLink |
+| [`files.drive.recent`](#filesdriverecent) | GET | v1.0 | `{mailbox}/drive/recent` | none |
 
 #### `files.drive.root.children`
 
@@ -4630,5 +4632,25 @@ operation:
 - Call sites: `…/remote/graph_drive_datasource_impl.dart:222`
 - Notes: The cloud picker addresses an item through the drive its parentReference.driveId names (_itemPath), and every Nightware item names the caller's own drive, so its children, content and createLink go to /drives/{driveId}/items/{itemId}/… too (the same handlers as /me/drive). Another drive's id is 404 itemNotFound (ADR 0008 D1).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drives.items.get.json`
+
+#### `files.drive.shared-with-me`
+
+**GET v1.0 `{mailbox}/drive/sharedWithMe`** — forms: me, users; success: 200; paging: nextLink
+
+- Query: `$top`: `200`
+- Client reads: `value[].id`, `value[].name`, `value[].remoteItem.id`, `value[].remoteItem.parentReference.driveId`, `value[].remoteItem.file`, `value[].remoteItem.folder`, `value[].remoteItem.size`, `value[].remoteItem.lastModifiedDateTime`, `value[].remoteItem.webUrl`, `@odata.nextLink`
+- On error: Any non-2xx → _mapException: 401 → AuthException (after AuthInterceptor's one refresh+retry), a connection error or timeout → NetworkException, else ServerException(error.message, status).
+- Call sites: `…/remote/graph_drive_datasource_impl.dart:236`
+- Notes: The cloud picker's "Shared with me" (it asks Microsoft 365 accounts only; NightMail Server accounts use the nextcloud provider, which has no such collection). Nextcloud's OCS shares with the caller (user and group shares), each item once; an entry is the item with remoteItem pointing at it, remoteItem.parentReference.driveId the caller's own drive (Nextcloud mounts shared items in the caller's home with the owner's file id) and remoteItem.shared.owner the owner. Not paged: Nextcloud lists every share at once.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.shared-with-me.json`
+
+#### `files.drive.recent`
+
+**GET v1.0 `{mailbox}/drive/recent`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].remoteItem`
+- Graph parity (ADR 0006); reference: drive-recent
+- Notes: The caller's 100 most recently modified files (no folders), newest first, from a Nextcloud SEARCH ordered by getlastmodified, as its own Recent view; each entry carries remoteItem pointing at the item, as Graph's do. Microsoft is retiring this API; it is here for clients that still call it.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.recent.json`
 
 <!-- END GENERATED -->

@@ -390,6 +390,26 @@ internal sealed class NextcloudDriveStore(IDavClient dav, DriveItemLocator locat
         return new Page<DriveItem>(mapped.Value, next);
     }
 
+    public async Task<Result<IReadOnlyList<DriveItem>>> RecentAsync(int top, CancellationToken cancellationToken)
+    {
+        var home = await homes.CurrentAsync(cancellationToken).ConfigureAwait(false);
+        if (!home.IsSuccess)
+        {
+            return home.Error;
+        }
+
+        // As Nextcloud's own "Recent" view: files only (no collections), by modification time, newest first.
+        var found = await locator.SearchAsync(
+            home.Value, DriveItemLocator.NotFolder(), top, 0, DriveItemLocator.OrderBy(DriveSortKey.LastModifiedDateTime, descending: true), cancellationToken)
+            .ConfigureAwait(false);
+        if (!found.IsSuccess)
+        {
+            return found.Error;
+        }
+
+        return await locator.ToItemsAsync(home.Value, found.Value, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<Result<DriveItem>> GetSpecialFolderAsync(SpecialFolder folder, string? appName, CancellationToken cancellationToken)
     {
         var home = await homes.CurrentAsync(cancellationToken).ConfigureAwait(false);

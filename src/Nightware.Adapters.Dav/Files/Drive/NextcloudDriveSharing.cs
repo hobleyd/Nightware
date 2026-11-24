@@ -215,6 +215,65 @@ internal sealed class NextcloudDriveSharing(IDavClient dav, DriveItemLocator loc
         return Error.Validation($"'{address}' is not a user of this server.", "recipients");
     }
 
+    public async Task<Result<IReadOnlyList<DriveItem>>> SharedWithMeAsync(CancellationToken cancellationToken)
+    {
+        var home = await locator.HomeAsync(DriveItemRef.Root, cancellationToken).ConfigureAwait(false);
+        if (!home.IsSuccess)
+        {
+            return home.Error;
+        }
+
+        var shares = await dav.OcsGetAsync(Shares, new Dictionary<string, string>(StringComparer.Ordinal) { ["shared_with_me"] = "true" }, cancellationToken)
+            .ConfigureAwait(false);
+        if (!shares.IsSuccess)
+        {
+            return shares.Error;
+        }
+
+        // One item may reach the caller through several shares (to them and to a group of theirs): list it once, as
+        // the earliest share.
+        return Array(shares.Value)
+            .Select(s => ToSharedItem(s, home.Value.DriveId))
+            .Where(static i => i is not null)
+            .Select(static i => i!)
+            .GroupBy(static i => i.Id, StringComparer.Ordinal)
+            .Select(static g => g.OrderBy(static i => i.SharedBy!.SharedDateTime).First())
+            .OrderBy(static i => i.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>
+    /// A share with the caller as the item it reaches. Nextcloud mounts it in the caller's home at <c>file_target</c>,
+    /// with the owner's file id, so it is addressed through the caller's own drive.
+    /// </summary>
+    internal static DriveItem? ToSharedItem(JsonElement share, string driveId)
+    {
+        var id = Text(share, "file_source") ?? Text(share, "item_source");
+        var target = Text(share, "file_target");
+        if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(target))
+        {
+            return null;
+        }
+
+        var trimmed = target.TrimEnd('/');
+        var slash = trimmed.LastIndexOf('/');
+        var isFolder = Text(share, "item_type") == "folder";
+        var modified = Long(share, "item_mtime") is { } mtime ? DateTimeOffset.FromUnixTimeSeconds(mtime) : (DateTimeOffset?)null;
+        var shared = Long(share, "stime") is { } stime ? DateTimeOffset.FromUnixTimeSeconds(stime) : (DateTimeOffset?)null;
+        return new DriveItem(id, trimmed[(slash + 1)..])
+        {
+            DriveId = driveId,
+            IsFolder = isFolder,
+            Size = Long(share, "item_size") ?? 0,
+            MimeType = isFolder ? null : Text(share, "mimetype"),
+            CreatedDateTime = shared,
+            LastModifiedDateTime = modified,
+            ParentPath = slash <= 0 ? "/" : trimmed[..slash],
+            IsShared = true,
+            SharedBy = new DriveItemSharer(Text(share, "uid_owner") ?? string.Empty, Text(share, "displayname_owner"), shared),
+        };
+    }
+
     internal static DriveShare ToShare(JsonElement share, string? inheritedFrom)
     {
         var permissions = (int)(Long(share, "permissions") ?? Read);

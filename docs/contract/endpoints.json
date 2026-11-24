@@ -15862,5 +15862,82 @@
     ],
     "docs": "driveitem-get",
     "notes": "The cloud picker addresses an item through the drive its parentReference.driveId names (_itemPath), and every Nightware item names the caller's own drive, so its children, content and createLink go to /drives/{driveId}/items/{itemId}/… too (the same handlers as /me/drive). Another drive's id is 404 itemNotFound (ADR 0008 D1)."
+  },
+  {
+    "id": "files.drive.shared-with-me",
+    "phase": 27,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/sharedWithMe",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [
+        "200"
+      ],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].name",
+      "value[].remoteItem.id",
+      "value[].remoteItem.parentReference.driveId",
+      "value[].remoteItem.file",
+      "value[].remoteItem.folder",
+      "value[].remoteItem.size",
+      "value[].remoteItem.lastModifiedDateTime",
+      "value[].remoteItem.webUrl",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "Any non-2xx → _mapException: 401 → AuthException (after AuthInterceptor's one refresh+retry), a connection error or timeout → NetworkException, else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_drive_datasource_impl.dart:236"
+    ],
+    "docs": "drive-sharedwithme",
+    "notes": "The cloud picker's \"Shared with me\" (it asks Microsoft 365 accounts only; NightMail Server accounts use the nextcloud provider, which has no such collection). Nextcloud's OCS shares with the caller (user and group shares), each item once; an entry is the item with remoteItem pointing at it, remoteItem.parentReference.driveId the caller's own drive (Nextcloud mounts shared items in the caller's home with the owner's file id) and remoteItem.shared.owner the owner. Not paged: Nextcloud lists every share at once."
+  },
+  {
+    "id": "files.drive.recent",
+    "phase": 27,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/recent",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value[].id",
+      "value[].remoteItem"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "drive-recent",
+    "notes": "The caller's 100 most recently modified files (no folders), newest first, from a Nextcloud SEARCH ordered by getlastmodified, as its own Recent view; each entry carries remoteItem pointing at the item, as Graph's do. Microsoft is retiring this API; it is here for clients that still call it."
   }
 ]

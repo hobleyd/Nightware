@@ -350,6 +350,10 @@ internal sealed class DriveItemLocator(IDavClient dav, DavPaths paths, DriveHome
             })),
             new XElement(DavNs.Dav + (descending ? "descending" : "ascending")));
 
+    /// <summary><c>NOT is-collection</c>: files only.</summary>
+    public static XElement NotFolder() =>
+        new(DavNs.Dav + "not", new XElement(DavNs.Dav + "is-collection"));
+
     /// <summary><c>displayname LIKE pattern</c>.</summary>
     public static XElement NameLike(string pattern) =>
         new(DavNs.Dav + "like", new XElement(DavNames.Prop, new XElement(DavNames.DisplayName)), new XElement(DavNs.Dav + "literal", pattern));

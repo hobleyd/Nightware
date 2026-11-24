@@ -22998,7 +22998,7 @@
           "Files"
         ],
         "summary": "Files drive items: create link",
-        "description": "A Nextcloud public share: view (read) or edit; scope anonymous only (organization and other types are 400 notSupported). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-createlink",
+        "description": "A Nextcloud public share: view (read), edit, or blocksDownload (read with Nextcloud's hide-download; link.preventsDownload true); scope anonymous only (organization, embed and other types are 400 notSupported). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-createlink",
         "parameters": [
           {
             "name": "itemId",
@@ -23066,7 +23066,7 @@
           "Files"
         ],
         "summary": "Files drive items: create link",
-        "description": "A Nextcloud public share: view (read) or edit; scope anonymous only (organization and other types are 400 notSupported). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-createlink",
+        "description": "A Nextcloud public share: view (read), edit, or blocksDownload (read with Nextcloud's hide-download; link.preventsDownload true); scope anonymous only (organization, embed and other types are 400 notSupported). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-createlink",
         "parameters": [
           {
             "name": "userId",
@@ -23366,7 +23366,7 @@
           "Files"
         ],
         "summary": "Files drive items: get",
-        "description": "An item by its Nextcloud file id. $expand=children carries a folder's first 200 children; no @microsoft.graph.downloadUrl (…/content redirects to one). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-get",
+        "description": "An item by its Nextcloud file id. $expand=children carries a folder's first 200 children; a file carries @microsoft.graph.downloadUrl (the five-minute self-authorising URL …/content redirects to) and, when Nextcloud stored one, file.hashes.sha1Hash/sha256Hash. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-get",
         "parameters": [
           {
             "name": "itemId",
@@ -23407,9 +23407,14 @@
                   "properties": {
                     "id": {},
                     "name": {},
-                    "file": {},
+                    "file": {
+                      "properties": {
+                        "hashes": {}
+                      }
+                    },
                     "folder": {},
-                    "parentReference": {}
+                    "parentReference": {},
+                    "@microsoft.graph.downloadUrl": {}
                   }
                 }
               }
@@ -23555,7 +23560,7 @@
           "Files"
         ],
         "summary": "Files drive items: get",
-        "description": "An item by its Nextcloud file id. $expand=children carries a folder's first 200 children; no @microsoft.graph.downloadUrl (…/content redirects to one). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-get",
+        "description": "An item by its Nextcloud file id. $expand=children carries a folder's first 200 children; a file carries @microsoft.graph.downloadUrl (the five-minute self-authorising URL …/content redirects to) and, when Nextcloud stored one, file.hashes.sha1Hash/sha256Hash. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-get",
         "parameters": [
           {
             "name": "userId",
@@ -23604,9 +23609,14 @@
                   "properties": {
                     "id": {},
                     "name": {},
-                    "file": {},
+                    "file": {
+                      "properties": {
+                        "hashes": {}
+                      }
+                    },
                     "folder": {},
-                    "parentReference": {}
+                    "parentReference": {},
+                    "@microsoft.graph.downloadUrl": {}
                   }
                 }
               }
@@ -24418,7 +24428,7 @@
           "Files"
         ],
         "summary": "Files drive items: upload",
-        "description": "Simple upload, streamed into WebDAV; conflictBehavior (query) replace by default, fail, rename. Bounded by Limits:MaxRequestBodyBytes (about 67 MB by default) as well as Graph's 250 MB. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-put-content",
+        "description": "Simple upload, streamed into WebDAV; conflictBehavior (query) replace by default, fail, rename. Up to Graph's 250 MB (Limits:MaxLargeUploadBytes on this route only), with a 15-minute budget. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-put-content",
         "parameters": [
           {
             "name": "parentId",
@@ -24491,7 +24501,7 @@
           "Files"
         ],
         "summary": "Files drive items: upload",
-        "description": "Simple upload, streamed into WebDAV; conflictBehavior (query) replace by default, fail, rename. Bounded by Limits:MaxRequestBodyBytes (about 67 MB by default) as well as Graph's 250 MB. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-put-content",
+        "description": "Simple upload, streamed into WebDAV; conflictBehavior (query) replace by default, fail, rename. Up to Graph's 250 MB (Limits:MaxLargeUploadBytes on this route only), with a 15-minute budget. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-put-content",
         "parameters": [
           {
             "name": "userId",
@@ -24542,6 +24552,269 @@
                     "id": {},
                     "name": {},
                     "size": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/drive/recent": {
+      "get": {
+        "operationId": "files.drive.recent",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Files drive: recent",
+        "description": "The caller's 100 most recently modified files (no folders), newest first, from a Nextcloud SEARCH ordered by getlastmodified, as its own Recent view; each entry carries remoteItem pointing at the item, as Graph's do. Microsoft is retiring this API; it is here for clients that still call it.\n\nGraph reference: drive-recent",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {},
+                          "remoteItem": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/drive/recent": {
+      "get": {
+        "operationId": "files.drive.recent.users",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Files drive: recent",
+        "description": "The caller's 100 most recently modified files (no folders), newest first, from a Nextcloud SEARCH ordered by getlastmodified, as its own Recent view; each entry carries remoteItem pointing at the item, as Graph's do. Microsoft is retiring this API; it is here for clients that still call it.\n\nGraph reference: drive-recent",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {},
+                          "remoteItem": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/drive/root/children": {
+      "get": {
+        "operationId": "files.drive.root.children",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Files drive root: children",
+        "description": "Behaves as Microsoft Graph's operation on the same route.\n\nGraph reference: driveitem-list-children",
+        "parameters": [
+          {
+            "name": "$select",
+            "in": "query",
+            "required": false,
+            "description": "Properties to return, comma-separated.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "*"
+          },
+          {
+            "name": "$orderby",
+            "in": "query",
+            "required": false,
+            "description": "Sort order.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "name"
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "required": false,
+            "description": "Page size.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": "1-1000"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {},
+                    "@odata.nextLink": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/drive/root/children": {
+      "get": {
+        "operationId": "files.drive.root.children.users",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Files drive root: children",
+        "description": "Behaves as Microsoft Graph's operation on the same route.\n\nGraph reference: driveitem-list-children",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "required": false,
+            "description": "Properties to return, comma-separated.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "*"
+          },
+          {
+            "name": "$orderby",
+            "in": "query",
+            "required": false,
+            "description": "Sort order.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "name"
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "required": false,
+            "description": "Page size.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": "1-1000"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {},
+                    "@odata.nextLink": {}
                   }
                 }
               }
@@ -24862,7 +25135,7 @@
           "Files"
         ],
         "summary": "Files drive root: search",
-        "description": "Names containing q, anywhere in the drive (Nextcloud SEARCH); also drive/search(q=…).\n\nGraph reference: driveitem-search",
+        "description": "Behaves as Microsoft Graph's operation on the same route.",
         "parameters": [
           {
             "name": "q",
@@ -24943,7 +25216,7 @@
           "Files"
         ],
         "summary": "Files drive root: search",
-        "description": "Names containing q, anywhere in the drive (Nextcloud SEARCH); also drive/search(q=…).\n\nGraph reference: driveitem-search",
+        "description": "Behaves as Microsoft Graph's operation on the same route.",
         "parameters": [
           {
             "name": "userId",
@@ -25001,6 +25274,172 @@
                   "type": "object",
                   "properties": {
                     "value": {},
+                    "@odata.nextLink": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/drive/sharedWithMe": {
+      "get": {
+        "operationId": "files.drive.shared-with-me",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Files drive: shared with me",
+        "description": "Behaves as Microsoft Graph's operation on the same route.\n\nGraph reference: drive-sharedwithme",
+        "parameters": [
+          {
+            "name": "$top",
+            "in": "query",
+            "required": false,
+            "description": "Page size.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": "200"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {},
+                          "name": {},
+                          "remoteItem": {
+                            "type": "object",
+                            "properties": {
+                              "id": {},
+                              "parentReference": {
+                                "type": "object",
+                                "properties": {
+                                  "driveId": {}
+                                }
+                              },
+                              "file": {},
+                              "folder": {},
+                              "size": {},
+                              "lastModifiedDateTime": {},
+                              "webUrl": {}
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "@odata.nextLink": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/drive/sharedWithMe": {
+      "get": {
+        "operationId": "files.drive.shared-with-me.users",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Files drive: shared with me",
+        "description": "Behaves as Microsoft Graph's operation on the same route.\n\nGraph reference: drive-sharedwithme",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "required": false,
+            "description": "Page size.",
+            "schema": {
+              "type": "integer"
+            },
+            "example": "200"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success. Paged by @odata.nextLink.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {},
+                          "name": {},
+                          "remoteItem": {
+                            "type": "object",
+                            "properties": {
+                              "id": {},
+                              "parentReference": {
+                                "type": "object",
+                                "properties": {
+                                  "driveId": {}
+                                }
+                              },
+                              "file": {},
+                              "folder": {},
+                              "size": {},
+                              "lastModifiedDateTime": {},
+                              "webUrl": {}
+                            }
+                          }
+                        }
+                      }
+                    },
                     "@odata.nextLink": {}
                   }
                 }
@@ -25164,6 +25603,93 @@
                   "type": "object",
                   "properties": {
                     "id": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/drives/{driveId}/items/{itemId}": {
+      "get": {
+        "operationId": "files.drives.items.get",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Files drives items: get",
+        "description": "Behaves as Microsoft Graph's operation on the same route.\n\nGraph reference: driveitem-get",
+        "parameters": [
+          {
+            "name": "driveId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "required": false,
+            "description": "Properties to return, comma-separated.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "*"
+          },
+          {
+            "name": "$expand",
+            "in": "query",
+            "required": false,
+            "description": "Related entities to include.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "children"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {},
+                    "name": {},
+                    "file": {
+                      "properties": {
+                        "hashes": {}
+                      }
+                    },
+                    "folder": {},
+                    "parentReference": {},
+                    "@microsoft.graph.downloadUrl": {}
                   }
                 }
               }

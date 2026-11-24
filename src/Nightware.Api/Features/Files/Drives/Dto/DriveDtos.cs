@@ -135,6 +135,13 @@ public sealed record DriveItemResourceDto
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DeletedFacetDto? Deleted { get; init; }
 
+    /// <summary>
+    /// On <c>sharedWithMe</c> and <c>recent</c> entries: the item itself (Graph's pointer to an item that may live in
+    /// another drive; here always the caller's).
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public RemoteItemDto? RemoteItem { get; init; }
+
     /// <summary>The folder's children, when asked for with <c>$expand=children</c>.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<DriveItemResourceDto>? Children { get; init; }
@@ -177,6 +184,78 @@ public sealed record DriveItemResourceDto
             Shared = item.IsShared ? new SharedFacetDto() : null,
         };
     }
+}
+
+/// <summary>Graph <c>remoteItem</c>: the item an entry points at.</summary>
+public sealed record RemoteItemDto
+{
+    public required string Id { get; init; }
+
+    public required string Name { get; init; }
+
+    public long Size { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? WebUrl { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonConverter(typeof(PreciseInstantConverter))]
+    public DateTimeOffset? CreatedDateTime { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonConverter(typeof(PreciseInstantConverter))]
+    public DateTimeOffset? LastModifiedDateTime { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ItemReferenceDto? ParentReference { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DriveFileFacetDto? File { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DriveFolderFacetDto? Folder { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public RemoteSharedDto? Shared { get; init; }
+
+    /// <summary>An entry of <c>sharedWithMe</c> or <c>recent</c>: the item, and a <c>remoteItem</c> pointing at it.</summary>
+    public static DriveItemResourceDto Entry(DriveItem item, string? filesBaseUrl)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        var dto = DriveItemResourceDto.From(item, filesBaseUrl);
+        return dto with
+        {
+            RemoteItem = new RemoteItemDto
+            {
+                Id = item.Id,
+                Name = item.Name,
+                Size = item.Size,
+                WebUrl = dto.WebUrl,
+                CreatedDateTime = item.CreatedDateTime,
+                LastModifiedDateTime = item.LastModifiedDateTime,
+                ParentReference = new ItemReferenceDto { DriveId = item.DriveId, Id = item.ParentId },
+                File = dto.File,
+                Folder = dto.Folder,
+                Shared = item.SharedBy is { } by
+                    ? new RemoteSharedDto
+                    {
+                        SharedDateTime = by.SharedDateTime,
+                        Owner = new IdentitySetDto { User = new IdentityDto { Id = by.Id, DisplayName = by.DisplayName } },
+                    }
+                    : null,
+            },
+        };
+    }
+}
+
+public sealed record RemoteSharedDto
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IdentitySetDto? Owner { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonConverter(typeof(PreciseInstantConverter))]
+    public DateTimeOffset? SharedDateTime { get; init; }
 }
 
 public sealed record ItemReferenceDto

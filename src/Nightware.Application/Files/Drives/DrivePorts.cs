@@ -60,6 +60,9 @@ public interface IDriveStore
     /// <summary>Items anywhere in the drive whose name contains <paramref name="text"/>.</summary>
     Task<Result<Page<DriveItem>>> SearchAsync(string text, DriveListQuery query, CancellationToken cancellationToken);
 
+    /// <summary>The drive's most recently modified files (no folders), newest first, at most <paramref name="top"/>.</summary>
+    Task<Result<IReadOnlyList<DriveItem>>> RecentAsync(int top, CancellationToken cancellationToken);
+
     /// <summary>A special folder, created on first use as Graph creates them.</summary>
     /// <param name="appName">For <see cref="SpecialFolder.AppRoot"/>: the calling application's name.</param>
     Task<Result<DriveItem>> GetSpecialFolderAsync(SpecialFolder folder, string? appName, CancellationToken cancellationToken);
@@ -112,4 +115,10 @@ public interface IDriveSharing
 
     /// <summary>Removes one of the item's own permissions; an inherited one is <see cref="ErrorKind.Forbidden"/>.</summary>
     Task<Result> DeletePermissionAsync(DriveItemRef item, string permissionId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Items other users shared with the caller (each once, however many shares reach it), with
+    /// <see cref="DriveItem.SharedBy"/> set. They are reachable through the caller's own drive by their ids.
+    /// </summary>
+    Task<Result<IReadOnlyList<DriveItem>>> SharedWithMeAsync(CancellationToken cancellationToken);
 }

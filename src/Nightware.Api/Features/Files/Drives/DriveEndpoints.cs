@@ -79,6 +79,8 @@ internal static class DriveEndpoints
         }
 
         group.MapGet(drive + "/root/delta", DeltaAsync);
+        group.MapGet(drive + "/sharedWithMe", SharedWithMeAsync);
+        group.MapGet(drive + "/recent", RecentAsync);
         group.MapGet(drive + "/root/search(q='{q}')", SearchAsync);
         group.MapGet(drive + "/search(q='{q}')", SearchAsync);
     }
@@ -661,6 +663,50 @@ internal static class DriveEndpoints
         return DriveRequests.Match(
             await useCase.ExecuteAsync(text, query.Value, cancellationToken).ConfigureAwait(false),
             page => GraphResults.Page(page, i => ItemDto(i, discovery), "Collection(driveItem)", odata.Query));
+    }
+
+    private static async Task<IResult> SharedWithMeAsync(
+        Mailbox mailbox, DriveAddress at, IUserContext caller, IOptions<DiscoveryOptions> discovery, ODataQuery odata,
+        GetDrive drives, ListSharedWithMe useCase, CancellationToken cancellationToken)
+    {
+        if (await OwnDriveAsync(mailbox, at, caller, drives, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return denied;
+        }
+
+        return DriveRequests.Match(
+            await useCase.ExecuteAsync(cancellationToken).ConfigureAwait(false),
+            items => GraphResults.Collection(items.Select(i => RemoteItemDto.Entry(i, FilesBase(discovery))), "Collection(driveItem)", odata.Query));
+    }
+
+    private static async Task<IResult> RecentAsync(
+        Mailbox mailbox, DriveAddress at, IUserContext caller, IOptions<DiscoveryOptions> discovery, ODataQuery odata,
+        GetDrive drives, ListRecentDriveItems useCase, CancellationToken cancellationToken)
+    {
+        if (await OwnDriveAsync(mailbox, at, caller, drives, cancellationToken).ConfigureAwait(false) is { } denied)
+        {
+            return denied;
+        }
+
+        return DriveRequests.Match(
+            await useCase.ExecuteAsync(cancellationToken).ConfigureAwait(false),
+            items => GraphResults.Collection(items.Select(i => RemoteItemDto.Entry(i, FilesBase(discovery))), "Collection(driveItem)", odata.Query));
+    }
+
+    /// <summary>Null when the route names the caller's own drive; otherwise the error to answer.</summary>
+    private static async Task<IResult?> OwnDriveAsync(Mailbox mailbox, DriveAddress at, IUserContext caller, GetDrive drives, CancellationToken cancellationToken)
+    {
+        if (DriveRequests.OwnDrive(mailbox, caller) is { } denied)
+        {
+            return DriveRequests.Fail(denied);
+        }
+
+        if (at.DriveId is not null && await drives.ExecuteAsync(at.DriveId, cancellationToken).ConfigureAwait(false) is { IsSuccess: false } missing)
+        {
+            return DriveRequests.Fail(missing.Error);
+        }
+
+        return null;
     }
 
     private static Result<DriveItemRef> Target(Mailbox mailbox, IUserContext caller, DriveAddress at) =>

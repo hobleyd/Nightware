@@ -39,6 +39,19 @@ public sealed class DriveArrangements : IConformanceArrangements
         OwnerId = "me", OwnerDisplayName = "Me Example", LastModifiedDateTime = Modified, Quota = new DriveQuota(5, 1073741819, 1073741824),
     };
 
+    private static readonly DateTimeOffset SharedAt = new(2026, 11, 24, 5, 35, 47, TimeSpan.Zero);
+
+    private static readonly DriveItem SharedPlan = new("557", "plan.txt")
+    {
+        DriveId = DriveId, Size = 15, MimeType = "text/plain", ParentPath = "/", IsShared = true, CreatedDateTime = SharedAt,
+        LastModifiedDateTime = new DateTimeOffset(2026, 11, 24, 5, 35, 35, TimeSpan.Zero), SharedBy = new DriveItemSharer("bob", "Bob Brown", SharedAt),
+    };
+
+    private static readonly DriveItem Recent = Notes with
+    {
+        Name = "notes.txt", Size = 15, CreatedDateTime = SharedAt, LastModifiedDateTime = new DateTimeOffset(2026, 11, 24, 5, 35, 35, TimeSpan.Zero), ETag = null, CTag = null,
+    };
+
     private static readonly DriveShare Link = new("41", ["read"]) { Link = new SharingLink("view", "anonymous", "https://cloud.example.com/s/AbCdEfGh") };
     private static readonly DriveShare Invite = new("43", ["write"]) { GrantedTo = new EmailAddress("bob@example.com", "Bob Brown") };
 
@@ -65,6 +78,10 @@ public sealed class DriveArrangements : IConformanceArrangements
         {
             Normalise = SealedDownloadUrl,
         };
+        yield return Arrange("files.drive.shared-with-me", static f =>
+            f.For<IDriveSharing>().SharedWithMeAsync(Any).Returns(Result<IReadOnlyList<DriveItem>>.Success([SharedPlan])));
+        yield return Arrange("files.drive.recent", static f =>
+            f.For<IDriveStore>().RecentAsync(100, Any).Returns(Result<IReadOnlyList<DriveItem>>.Success([Recent])));
         yield return Arrange("files.drive.items.children", static f =>
             f.For<IDriveStore>().ListChildrenAsync(Is(DriveItemRef.ById("7")), new DriveListQuery(1, null), Any).Returns(new Page<DriveItem>([Notes], "1")));
         yield return Arrange("files.drive.items.create-folder", static f =>

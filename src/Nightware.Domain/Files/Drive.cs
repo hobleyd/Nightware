@@ -87,11 +87,20 @@ public sealed record DriveItem(string Id, string Name)
     /// <summary>Shared with someone, or shared with the caller by someone else.</summary>
     public bool IsShared { get; init; }
 
+    /// <summary>
+    /// For an item someone else shared with the caller (<c>sharedWithMe</c>): who owns it and when they shared it
+    /// (Graph <c>remoteItem.shared</c>); null otherwise.
+    /// </summary>
+    public DriveItemSharer? SharedBy { get; init; }
+
     /// <summary>A delta entry for an item that no longer exists (Graph's <c>deleted</c> facet); only <see cref="Id"/> is known.</summary>
     public bool IsDeleted { get; init; }
 
     public static DriveItem Deleted(string id) => new(id, string.Empty) { IsDeleted = true };
 }
+
+/// <summary>Who shared an item with the caller, and when.</summary>
+public sealed record DriveItemSharer(string Id, string? DisplayName, DateTimeOffset? SharedDateTime);
 
 /// <summary>Where an item is: an anchor (an item id, or the root when null) and, optionally, a path below it.</summary>
 /// <param name="ItemId">The anchor item's id; null for the drive's root.</param>

@@ -171,4 +171,34 @@ public sealed class NextcloudDriveSharingTests : IDisposable
 
         NextcloudDriveSharing.ToShare(hidden.RootElement, null).Link!.Type.ShouldBe(SharingLinkTypes.BlocksDownload);
     }
+
+    [Fact]
+    public async Task Shared_with_me_lists_each_item_once_with_its_owner_in_the_callers_drive()
+    {
+        Json("GET", Shares, Recorded("shared-with-me.json"), "shared_with_me", "true");
+
+        var items = (await Sharing.SharedWithMeAsync(Ct)).Value;
+
+        items.Select(static i => i.Name).ShouldBe(["probe27.txt", "Projects"]);
+        var file = items[0];
+        file.Id.ShouldBe("557");
+        file.DriveId.ShouldStartWith("nc!");
+        file.MimeType.ShouldBe("text/plain");
+        file.Size.ShouldBe(15);
+        file.ParentPath.ShouldBe("/");
+        file.SharedBy.ShouldBe(new DriveItemSharer("alice", "Alice Anderson", DateTimeOffset.FromUnixTimeSeconds(1795498547)));
+        var folder = items[1];
+        folder.IsFolder.ShouldBeTrue();
+        folder.MimeType.ShouldBeNull();
+        folder.ParentPath.ShouldBe("/Shared");
+        folder.SharedBy!.DisplayName.ShouldBe("Carol Chen");
+    }
+
+    [Fact]
+    public void A_share_without_a_target_is_no_item()
+    {
+        using var share = JsonDocument.Parse("""{"id":"1","file_source":5}""");
+
+        NextcloudDriveSharing.ToSharedItem(share.RootElement, "nc!x").ShouldBeNull();
+    }
 }

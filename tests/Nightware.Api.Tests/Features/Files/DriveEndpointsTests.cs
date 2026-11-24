@@ -437,6 +437,47 @@ public sealed class DriveEndpointsTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Shared_with_me_points_at_each_item_with_its_owner()
+    {
+        var shared = File with { Id = "557", Name = "plan.txt", ParentId = null, ParentPath = "/", SharedBy = new DriveItemSharer("bob", "Bob Brown", new DateTimeOffset(2026, 11, 24, 5, 0, 0, TimeSpan.Zero)) };
+        _sharing.SharedWithMeAsync(Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<DriveItem>>.Success([shared]));
+
+        var entry = (await GetAsync("/v1.0/me/drive/sharedWithMe"))["value"]![0]!.AsObject();
+
+        entry.Str("id").ShouldBe("557");
+        entry.Str("remoteItem.id").ShouldBe("557");
+        entry.Str("remoteItem.name").ShouldBe("plan.txt");
+        entry.Str("remoteItem.parentReference.driveId").ShouldBe(DriveId);
+        entry.Str("remoteItem.file.mimeType").ShouldBe("text/plain");
+        entry.Str("remoteItem.shared.owner.user.displayName").ShouldBe("Bob Brown");
+        entry.Str("remoteItem.shared.sharedDateTime").ShouldBe("2026-11-24T05:00:00Z");
+        entry.Str("remoteItem.webUrl").ShouldBe(Site + "/f/557");
+    }
+
+    [Fact]
+    public async Task Recent_lists_files_as_remote_items_without_an_owner()
+    {
+        _store.RecentAsync(100, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<DriveItem>>.Success([File]));
+
+        var entry = (await GetAsync("/v1.0/me/drive/recent"))["value"]![0]!.AsObject();
+
+        entry.Str("remoteItem.id").ShouldBe("42");
+        entry["remoteItem"]!.AsObject().ContainsKey("shared").ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Someone_elses_shared_with_me_and_recent_are_refused()
+    {
+        using var shared = await Client.GetAsync("/v1.0/users/bob@example.com/drive/sharedWithMe", Ct);
+        using var recent = await Client.GetAsync("/v1.0/drives/nc!Ym9i/recent", Ct);
+
+        shared.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        recent.StatusCode.ShouldNotBe(HttpStatusCode.OK);
+        await _sharing.DidNotReceiveWithAnyArgs().SharedWithMeAsync(Ct);
+        await _store.DidNotReceiveWithAnyArgs().RecentAsync(default, Ct);
+    }
+
+    [Fact]
     public async Task Delta_lists_items_and_deletions_and_hands_out_a_delta_link()
     {
         _delta.ChangesAsync(null, Arg.Any<int>(), false, Arg.Any<CancellationToken>())

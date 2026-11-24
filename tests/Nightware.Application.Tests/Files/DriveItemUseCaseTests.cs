@@ -180,6 +180,24 @@ public sealed class DriveItemUseCaseTests
         (await new SearchDrive(_store).ExecuteAsync("notes", new DriveListQuery(0, null), Ct)).Error!.Target.ShouldBe("$top");
     }
 
+    [Fact]
+    public async Task Recent_asks_the_store_for_a_hundred_files()
+    {
+        _store.RecentAsync(ListRecentDriveItems.Limit, Ct).Returns(Result<IReadOnlyList<DriveItem>>.Success([File]));
+
+        (await new ListRecentDriveItems(_store).ExecuteAsync(Ct)).Value.ShouldBe([File]);
+        ListRecentDriveItems.Limit.ShouldBe(100);
+    }
+
+    [Fact]
+    public async Task Shared_with_me_passes_the_sharing_store_through()
+    {
+        var sharing = Substitute.For<IDriveSharing>();
+        sharing.SharedWithMeAsync(Ct).Returns(Result<IReadOnlyList<DriveItem>>.Success([Folder]));
+
+        (await new ListSharedWithMe(sharing).ExecuteAsync(Ct)).Value.ShouldBe([Folder]);
+    }
+
     [Theory]
     [InlineData("documents", SpecialFolder.Documents)]
     [InlineData("Photos", SpecialFolder.Photos)]

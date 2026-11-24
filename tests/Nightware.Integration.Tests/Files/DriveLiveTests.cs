@@ -230,6 +230,17 @@ public sealed class DriveLiveTests
                 new { recipients = new[] { new { email = bobAddress } }, roles = new[] { "write" }, requireSignIn = true, sendInvitation = false });
             invited["value"]!.AsArray().ShouldHaveSingleItem()!["roles"]![0]!.GetValue<string>().ShouldBe("write");
 
+            // Bob finds it under sharedWithMe and opens it the way the cloud picker does: through the drive its
+            // remoteItem names. Alice finds her new file at the top of recent.
+            using var bob = await stack.GraphClientAsync("bob", Ct);
+            var entry = (await SendAsync(bob, HttpMethod.Get, "/v1.0/me/drive/sharedWithMe"))["value"]!.AsArray()
+                .Single(e => e!["remoteItem"]!["id"]!.GetValue<string>() == fileId)!;
+            entry["remoteItem"]!["shared"]!["owner"]!["user"]!["id"]!.GetValue<string>().ShouldBe("alice");
+            var bobDrive = entry["remoteItem"]!["parentReference"]!["driveId"]!.GetValue<string>();
+            (await SendAsync(bob, HttpMethod.Get, $"/v1.0/drives/{Uri.EscapeDataString(bobDrive)}/items/{fileId}"))["name"]!.GetValue<string>()
+                .ShouldBe(entry["remoteItem"]!["name"]!.GetValue<string>());
+            (await SendAsync(alice, HttpMethod.Get, "/v1.0/me/drive/recent"))["value"]![0]!["remoteItem"]!["id"]!.GetValue<string>().ShouldBe(fileId);
+
             var permissions = (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/drive/items/{fileId}/permissions"))["value"]!.AsArray();
             permissions.Count.ShouldBe(3);
             permissions.Count(p => p!["link"]?["type"]?.GetValue<string>() == "blocksDownload").ShouldBe(1);

@@ -26,6 +26,8 @@ public static class FilesServiceCollectionExtensions
         services.TryAddScoped<DeleteDriveItem>();
         services.TryAddScoped<CopyDriveItem>();
         services.TryAddScoped<SearchDrive>();
+        services.TryAddScoped<ListRecentDriveItems>();
+        services.TryAddScoped<ListSharedWithMe>();
         services.TryAddScoped<GetSpecialFolder>();
         services.TryAddScoped<GetDriveDelta>();
         services.TryAddScoped<OpenDriveThumbnail>();

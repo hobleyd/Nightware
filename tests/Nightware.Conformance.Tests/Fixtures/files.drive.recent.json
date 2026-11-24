@@ -1,0 +1,62 @@
+{
+  "operationId": "files.drive.recent",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/drive-recent); constructed with example.com data and Nextcloud-shaped ids (ADR 0008 D2), no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/drive/recent",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(driveItem)",
+      "value": [
+        {
+          "id": "42",
+          "name": "notes.txt",
+          "size": 15,
+          "createdDateTime": "2026-11-24T05:35:47Z",
+          "lastModifiedDateTime": "2026-11-24T05:35:35Z",
+          "webUrl": "https://cloud.example.com/f/42",
+          "parentReference": {
+            "driveId": "nc!bWU",
+            "driveType": "personal",
+            "id": "7",
+            "path": "/drive/root:/Documents"
+          },
+          "fileSystemInfo": {
+            "createdDateTime": "2026-11-24T05:35:47Z",
+            "lastModifiedDateTime": "2026-11-24T05:35:35Z"
+          },
+          "file": {
+            "mimeType": "text/plain"
+          },
+          "remoteItem": {
+            "id": "42",
+            "name": "notes.txt",
+            "size": 15,
+            "webUrl": "https://cloud.example.com/f/42",
+            "createdDateTime": "2026-11-24T05:35:47Z",
+            "lastModifiedDateTime": "2026-11-24T05:35:35Z",
+            "parentReference": {
+              "driveId": "nc!bWU",
+              "driveType": "personal",
+              "id": "7"
+            },
+            "file": {
+              "mimeType": "text/plain"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "operationId": "files.drive.shared-with-me",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/drive-sharedwithme); constructed with example.com data and Nextcloud-shaped ids (ADR 0008 D2), no tenant capture yet",
+  "request": {
+    "method": "GET",
+    "path": "/v1.0/me/drive/sharedWithMe",
+    "query": {
+      "$top": "200"
+    },
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json;odata.metadata=minimal;odata.streaming=true;IEEE754Compatible=false;charset=utf-8"
+    },
+    "body": {
+      "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(driveItem)",
+      "value": [
+        {
+          "id": "557",
+          "name": "plan.txt",
+          "size": 15,
+          "createdDateTime": "2026-11-24T05:35:47Z",
+          "lastModifiedDateTime": "2026-11-24T05:35:35Z",
+          "webUrl": "https://cloud.example.com/f/557",
+          "parentReference": {
+            "driveId": "nc!bWU",
+            "driveType": "personal"
+          },
+          "fileSystemInfo": {
+            "createdDateTime": "2026-11-24T05:35:47Z",
+            "lastModifiedDateTime": "2026-11-24T05:35:35Z"
+          },
+          "shared": {
+            "scope": "users"
+          },
+          "file": {
+            "mimeType": "text/plain"
+          },
+          "remoteItem": {
+            "id": "557",
+            "name": "plan.txt",
+            "size": 15,
+            "webUrl": "https://cloud.example.com/f/557",
+            "createdDateTime": "2026-11-24T05:35:47Z",
+            "lastModifiedDateTime": "2026-11-24T05:35:35Z",
+            "parentReference": {
+              "driveId": "nc!bWU",
+              "driveType": "personal"
+            },
+            "file": {
+              "mimeType": "text/plain"
+            },
+            "shared": {
+              "owner": {
+                "user": {
+                  "id": "bob",
+                  "displayName": "Bob Brown"
+                }
+              },
+              "sharedDateTime": "2026-11-24T05:35:47Z"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

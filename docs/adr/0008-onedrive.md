@@ -98,10 +98,22 @@ changes others make to items shared with the caller.
   preview has no thumbnail set.
 
 ### D7 — Out of scope
-SharePoint (`/sites`, document libraries), `sharedWithMe` and `recent`
-(Microsoft is retiring both), versions, `follow`, `checkin`/`checkout`,
+SharePoint (`/sites`, document libraries), versions, `follow`, `checkin`/`checkout`,
 `preview` (embed URLs), item activities and analytics. These stay
 `501 notImplemented`.
+
+### D8 — Shared with me and recent *(phase 27)*
+- `sharedWithMe` reads Nextcloud's shares with the caller (OCS
+  `shared_with_me`, user and group shares; an item reached by several is
+  listed once, as its earliest share). Nextcloud mounts a shared item in the
+  caller's home with the owner's file id, so each entry's `remoteItem` names
+  the caller's own drive, and every item route (the cloud picker's
+  `/drives/{driveId}/items/{id}/…`) reaches it. `remoteItem.shared.owner` is the
+  owner. It isn't paged.
+- `recent` is a `SEARCH` for files (not collections) ordered by
+  `getlastmodified` descending, the 100 newest, as Nextcloud's own Recent
+  view; entries carry `remoteItem` as Graph's do.
+- D7 no longer excludes either.
 
 ## Consequences
 - The contract gains the phase 20 operations, all `"source": "graph-parity"`.
