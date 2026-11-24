@@ -11,9 +11,11 @@ namespace Nightware.Adapters.Dav.Calendar;
 /// <summary>
 /// <see cref="ICalendarReader"/> over CalDAV. <c>calendarView</c> reads the default calendar
 /// (<see cref="DavCalendarScopes.DefaultAsync"/>, remembered) with Sabre's server-side expansion: one REPORT when warm; single events, masters and occurrences are read from their resource.
+/// A follow-up page of a window reads the first page's expansion (<see cref="CalendarViewSnapshots"/>) when it is still kept.
 /// </summary>
 internal sealed class DavCalendarReader(
-    DavCalendarScopes scopes, DavEventResources resources, IDavClient dav, DavPaths paths, IcalNetCalendarCodec codec, IcsEditor editor)
+    DavCalendarScopes scopes, DavEventResources resources, IDavClient dav, DavPaths paths, IcalNetCalendarCodec codec, IcsEditor editor,
+    CalendarViewSnapshots? snapshots = null, Core.Discovery.IDavPrincipalDiscovery? discovery = null)
     : ICalendarReader
 {
     /// <summary>Graph's default page size for events and calendarView.</summary>
@@ -67,6 +69,12 @@ internal sealed class DavCalendarReader(
             return unsupported;
         }
 
+        var key = await SnapshotKeyAsync(calendarHref, start, end, cancellationToken).ConfigureAwait(false);
+        if (key is not null && query.SkipToken is not null && snapshots!.Get(key) is { } kept)
+        {
+            return OffsetPaging.Slice(kept, query, DefaultPageSize);
+        }
+
         var range = new DavTimeRange(start, end);
         var report = DavRequestBodies.CalendarQuery(new CalendarQuery("VEVENT") { TimeRange = range, Expand = range });
         var expanded = await dav.ReportAsync(calendarHref, DavDepth.One, report, cancellationToken).ConfigureAwait(false);
@@ -91,7 +99,24 @@ internal sealed class DavCalendarReader(
             .OrderBy(e => GraphTimeZone.ToInstant(e.Start.DateTime, e.Start.TimeZone))
             .ThenBy(e => e.Subject, StringComparer.Ordinal)
             .ToList();
+        if (key is not null)
+        {
+            snapshots!.Put(key, view);
+        }
+
         return OffsetPaging.Slice(view, query, DefaultPageSize);
+    }
+
+    /// <summary>The snapshot key for the caller's view of a window; null when there is no cache or no known caller.</summary>
+    private async Task<string?> SnapshotKeyAsync(string calendarHref, DateTimeOffset start, DateTimeOffset end, CancellationToken cancellationToken)
+    {
+        if (snapshots is null || discovery is null)
+        {
+            return null;
+        }
+
+        var caller = await discovery.CurrentUserAsync(cancellationToken).ConfigureAwait(false);
+        return caller.IsSuccess ? CalendarViewSnapshots.KeyFor(caller.Value.Href, calendarHref, start, end) : null;
     }
 
     public async Task<Result<CalendarEvent>> GetAsync(MailboxRef mailbox, EventId id, CancellationToken cancellationToken)

@@ -71,6 +71,25 @@ public sealed class DavCalendarReaderTests : IDisposable
     }
 
     [Fact]
+    public async Task A_follow_up_page_reads_the_first_pages_expansion_and_a_new_walk_reads_afresh()
+    {
+        ServeView();
+        int Expansions() => _h.Requests("REPORT").Count(r => BodyOf(r).Contains("calendar-query", StringComparison.Ordinal));
+
+        var first = (await _h.Reader.CalendarViewAsync(AliceMailbox, Window, Window.AddMonths(1), new ItemQuery { Top = 3 }, Ct)).Value;
+        await _h.Reader.CalendarViewAsync(AliceMailbox, Window, Window.AddMonths(1), new ItemQuery { Top = 3, SkipToken = first.SkipToken }, Ct);
+        Expansions().ShouldBe(1);
+
+        await _h.Reader.CalendarViewAsync(AliceMailbox, Window, Window.AddMonths(1), new ItemQuery { Top = 3 }, Ct);
+        Expansions().ShouldBe(2);
+
+        // A minute on, the kept expansion is gone and the page expands again.
+        _h.Dav.Time.Advance(Nightware.Adapters.Dav.Calendar.CalendarViewSnapshots.Lifetime + TimeSpan.FromSeconds(1));
+        await _h.Reader.CalendarViewAsync(AliceMailbox, Window, Window.AddMonths(1), new ItemQuery { Top = 3, SkipToken = first.SkipToken }, Ct);
+        Expansions().ShouldBe(3);
+    }
+
+    [Fact]
     public async Task Calendar_view_without_recurring_events_needs_no_multiget()
     {
         _h.Serve("REPORT", AlicePersonal, 207, Read("../Recorded/03-calendar-query-timerange.response.xml"));

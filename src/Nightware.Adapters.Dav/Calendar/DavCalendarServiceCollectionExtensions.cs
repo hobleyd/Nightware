@@ -13,6 +13,7 @@ internal static class DavCalendarServiceCollectionExtensions
     {
         services.TryAddScoped<DavCalendarScopes>();
         services.TryAddScoped<DavEventResources>();
+        services.TryAddSingleton<CalendarViewSnapshots>();
         services.TryAddScoped<DavCalendarReader>();
         services.TryAddScoped<ICalendarReader>(sp => sp.GetRequiredService<DavCalendarReader>());
         services.TryAddScoped<DavCalendarWriter>();

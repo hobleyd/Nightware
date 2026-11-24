@@ -43,7 +43,8 @@ internal sealed class CalendarAdapterHarness : IDisposable
         Editor = new IcsEditor(Dav.Time);
         Scopes = new DavCalendarScopes(Discovery, Catalog, Dav.Paths, Cache, Microsoft.Extensions.Options.Options.Create(new DavOptions()));
         Resources = new DavEventResources(Dav.Client, Scopes);
-        Reader = new DavCalendarReader(Scopes, Resources, Dav.Client, Dav.Paths, Codec, Editor);
+        Snapshots = new CalendarViewSnapshots(Dav.Time);
+        Reader = new DavCalendarReader(Scopes, Resources, Dav.Client, Dav.Paths, Codec, Editor, Snapshots, Discovery);
         Writer = new DavCalendarWriter(Scopes, Resources, Reader, Dav.Client, Dav.Paths, Codec, Editor, Dav.Time);
         Scheduling = new DavSchedulingActions(Resources, Reader, Editor, Discovery);
         FreeBusy = new DavFreeBusyReader(Discovery, Dav.Client, new FreeBusyCodec(Dav.Time));
@@ -128,8 +129,11 @@ internal sealed class CalendarAdapterHarness : IDisposable
     public static string? Header(ILogEntry entry, string name) =>
         entry.RequestMessage!.Headers!.TryGetValue(name, out var values) ? values[0] : null;
 
+    public CalendarViewSnapshots Snapshots { get; }
+
     public void Dispose()
     {
+        Snapshots.Dispose();
         Cache.Dispose();
         Dav.Dispose();
     }

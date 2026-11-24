@@ -32,14 +32,11 @@ what a fix needs. Ordered by impact within each section.
   would never get later updates. Phase 27 tried the second-mail approach and
   reverted it. `sendResponse: false` works for both. Inbound COUNTERs from
   external organizers do work.
-- **Every `calendarView` page re-expands the whole window.** The CalDAV
-  expand REPORT has no paging, so each `$skiptoken` page expands, materialises
-  and sorts every occurrence in the window again before slicing. The window is
-  capped at ten years (`GetCalendarView.MaxWindow`), which bounds one request
-  (20 daily series over ten years is ~73,000 instances), and NightMail never
-  pages this route (one request, `$top` 100), so only another client walking
-  many pages pays it repeatedly. Fix if one does: cache the sorted expansion
-  per credential + calendar + window (+ the calendar's CTag) for a minute.
+- **A `calendarView` walk is a snapshot for a minute.** The CalDAV expand
+  REPORT can't page, so a follow-up page (`$skiptoken`) reads the first
+  page's sorted expansion, kept per caller, calendar and window for a minute
+  (at most 200,000 instances held; a window over 50,000 isn't kept and pages
+  expand again). An event changed mid-walk shows up on the next first page.
 
 ### OneDrive (phases 20, 27)
 - **Delta needs Nextcloud's activity app.** A default install enables it; without it `root/delta` is

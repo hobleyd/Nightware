@@ -36,3 +36,4 @@
 | `checkout`/`checkin` over Nextcloud user locks, with the `publication` facet; a check-in comment labels the current version — verified live | 1.75.0 |
 | `preview`: the large rendered preview behind a self-authorising URL (never the file inline) — verified live | 1.76.0 |
 | An outside organizer's invitation is imported into the default calendar when `messages/{id}/event` finds no copy (idempotent by UID; Sabre silent until the RSVP) — verified live | 1.77.0 |
+| A `calendarView` walk expands once: follow-up pages read a one-minute, size-bounded snapshot of the first page's expansion | 1.77.2 |
