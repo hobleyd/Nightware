@@ -83,10 +83,16 @@ public sealed class DavCalendarReaderTests : IDisposable
         await _h.Reader.CalendarViewAsync(AliceMailbox, Window, Window.AddMonths(1), new ItemQuery { Top = 3 }, Ct);
         Expansions().ShouldBe(2);
 
+        // A single page (no continuation) isn't kept: a later page of that window expands again.
+        await _h.Reader.CalendarViewAsync(AliceMailbox, Window.AddDays(1), Window.AddMonths(1), new ItemQuery { Top = 100 }, Ct);
+        await _h.Reader.CalendarViewAsync(AliceMailbox, Window.AddDays(1), Window.AddMonths(1), new ItemQuery { Top = 100, SkipToken = "1" }, Ct);
+        Expansions().ShouldBe(4);
+        var before = Expansions();
+
         // A minute on, the kept expansion is gone and the page expands again.
         _h.Dav.Time.Advance(Nightware.Adapters.Dav.Calendar.CalendarViewSnapshots.Lifetime + TimeSpan.FromSeconds(1));
         await _h.Reader.CalendarViewAsync(AliceMailbox, Window, Window.AddMonths(1), new ItemQuery { Top = 3, SkipToken = first.SkipToken }, Ct);
-        Expansions().ShouldBe(3);
+        Expansions().ShouldBe(before + 1);
     }
 
     [Fact]

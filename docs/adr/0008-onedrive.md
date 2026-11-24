@@ -122,8 +122,10 @@ D8–D11.)*
 
 ### D9 — Versions *(phase 27)*
 - `…/versions` lists Nextcloud's `files_versions` of the file
-  (`versions/{uid}/versions/{fileid}/`), newest first; the newest is the
-  current content. A version's id is Nextcloud's timestamp (seconds), so two
+  (`versions/{uid}/versions/{fileid}/`): the current version first, the rest
+  newest first. The current one is the version named by the file's
+  modification time, not the newest: a restore gives the file the restored
+  version's time and leaves the listing as it was. A version's id is Nextcloud's timestamp (seconds), so two
   writes in one second leave one version. `lastModifiedBy.user.id` is the
   writer's uid (`nc:version-author`).
 - `…/versions/{id}/content` streams the bytes with 200 (Graph redirects; a

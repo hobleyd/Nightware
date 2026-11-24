@@ -13,6 +13,11 @@ namespace Nightware.Adapters.Dav.Files.Drive;
 /// a file's versions (the current content among them), each named by its timestamp; a GET reads one, and a MOVE to
 /// <c>versions/{uid}/restore/target</c> restores it (Nextcloud keeps the replaced content as a version).
 /// </summary>
+/// <remarks>
+/// The current version is the one named by the file's modification time, not the newest: a restore gives the file the
+/// restored version's time and leaves the listing as it was (verified 2026-11-24). It is listed first, the rest newest
+/// first, as Graph lists the current version first.
+/// </remarks>
 internal sealed class NextcloudDriveVersions(IDavClient dav, DriveItemLocator locator, DavPaths paths) : IDriveVersions
 {
     internal static readonly XName Label = DriveItemMapping.FilesNs + "version-label";
@@ -28,17 +33,19 @@ internal sealed class NextcloudDriveVersions(IDavClient dav, DriveItemLocator lo
             return folder.Error;
         }
 
-        var listed = await dav.PropFindAsync(folder.Value, DavDepth.One, Properties, cancellationToken).ConfigureAwait(false);
+        var listed = await dav.PropFindAsync(folder.Value.Href, DavDepth.One, Properties, cancellationToken).ConfigureAwait(false);
         if (!listed.IsSuccess)
         {
             return listed.Error;
         }
 
+        var current = folder.Value.CurrentId;
         return listed.Value.Responses
             .Where(static r => r.IsFound)
             .Select(r => ToVersion(paths.ToRelative(r.Href) ?? r.Href, r))
             .OfType<DriveItemVersion>()
-            .OrderByDescending(static v => long.Parse(v.Id, NumberStyles.None, CultureInfo.InvariantCulture))
+            .OrderByDescending(v => v.Id == current)
+            .ThenByDescending(static v => long.Parse(v.Id, NumberStyles.None, CultureInfo.InvariantCulture))
             .ToList();
     }
 
@@ -112,7 +119,7 @@ internal sealed class NextcloudDriveVersions(IDavClient dav, DriveItemLocator lo
             return Result.Success();
         }
 
-        // The comment labels the version being checked in: the newest, which is the current content.
+        // The comment labels the version being checked in: the current one, listed first.
         var versions = await ListAsync(item, cancellationToken).ConfigureAwait(false);
         if (!versions.IsSuccess || versions.Value.Count == 0)
         {
@@ -141,8 +148,14 @@ internal sealed class NextcloudDriveVersions(IDavClient dav, DriveItemLocator lo
             return located.Error;
         }
 
-        return located.Value.IsFolder || located.Value.FileId is not { Length: > 0 } fileId
-            ? DriveErrors.NotSupported("A folder can't be checked out or in.")
+        if (located.Value.IsFolder || located.Value.FileId is not { Length: > 0 } fileId)
+        {
+            return DriveErrors.NotSupported("A folder can't be checked out or in.");
+        }
+
+        // Without files_lock (shipped and enabled by default) Nextcloud reports nc:lock as unknown, and has no user locks.
+        return located.Value.Response.StatusOf(DriveItemMapping.Lock) == 404
+            ? new Error(ErrorKind.Unsupported, DriveErrors.NotSupportedCode, "Check-out needs Nextcloud's files_lock app, which is not enabled.")
             : (located.Value.Href, home.Value.Uid, fileId);
     }
 
@@ -179,11 +192,14 @@ internal sealed class NextcloudDriveVersions(IDavClient dav, DriveItemLocator lo
         }
 
         var folder = await VersionsOfAsync(item, cancellationToken).ConfigureAwait(false);
-        return folder.IsSuccess ? folder.Value + versionId : folder.Error;
+        return folder.IsSuccess ? folder.Value.Href + versionId : folder.Error;
     }
 
-    /// <summary>The file's versions folder, <c>versions/{uid}/versions/{fileid}/</c>.</summary>
-    private async Task<Result<string>> VersionsOfAsync(DriveItemRef item, CancellationToken cancellationToken)
+    /// <summary>
+    /// The file's versions folder, <c>versions/{uid}/versions/{fileid}/</c>, and the id of its current version (its
+    /// modification time in Unix seconds; null when unknown).
+    /// </summary>
+    private async Task<Result<(string Href, string? CurrentId)>> VersionsOfAsync(DriveItemRef item, CancellationToken cancellationToken)
     {
         var home = await locator.HomeAsync(item, cancellationToken).ConfigureAwait(false);
         if (!home.IsSuccess)
@@ -202,6 +218,9 @@ internal sealed class NextcloudDriveVersions(IDavClient dav, DriveItemLocator lo
             return DriveErrors.NotSupported("A folder has no versions.");
         }
 
-        return $"versions/{home.Value.Uid}/versions/{fileId}/";
+        var modified = DateTimeOffset.TryParse(located.Value.Response.Text(DavNames.GetLastModified), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var m)
+            ? m.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture)
+            : null;
+        return ($"versions/{home.Value.Uid}/versions/{fileId}/", modified);
     }
 }

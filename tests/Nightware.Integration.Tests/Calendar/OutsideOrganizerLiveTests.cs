@@ -112,6 +112,20 @@ public sealed class OutsideOrganizerLiveTests
             var window = $"startDateTime={day:yyyy-MM-dd}T00:00:00Z&endDateTime={day.AddDays(1):yyyy-MM-dd}T00:00:00Z";
             (await alice.GetFromJsonAsync<JsonObject>($"/v1.0/me/calendarView?{window}&$select=id,iCalUId", Ct))!["value"]!.AsArray()
                 .Count(e => e!["iCalUId"]?.GetValue<string>() == uid).ShouldBe(1);
+
+            // Answering from the invitation reaches Dana: the façade mails the REPLY with the comment.
+            using var accepted = await alice.PostAsJsonAsync($"/v1.0/me/messages/e.{jmapId}/accept", new { sendResponse = true, comment = "Count me in" }, Ct);
+            accepted.StatusCode.ShouldBe(HttpStatusCode.Accepted, await accepted.Content.ReadAsStringAsync(Ct));
+            JsonObject? sent = null;
+            for (var attempt = 0; attempt < 20 && sent is null; attempt++)
+            {
+                await Task.Delay(500, Ct);
+                sent = (await alice.GetFromJsonAsync<JsonObject>("/v1.0/me/mailFolders/sentitems/messages?$top=10&$select=id,subject", Ct))!["value"]!.AsArray()
+                    .Select(m => m!.AsObject()).FirstOrDefault(m => m["subject"]!.GetValue<string>() == $"Accepted: {subject}");
+            }
+
+            sent.ShouldNotBeNull("the REPLY to the outside organizer is in Sent Items");
+            (await alice.GetFromJsonAsync<JsonObject>($"/v1.0/me/events/{eventId}?$select=responseStatus", Ct))!["responseStatus"]!["response"]!.GetValue<string>().ShouldBe("accepted");
         }
         finally
         {

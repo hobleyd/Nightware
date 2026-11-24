@@ -99,12 +99,14 @@ internal sealed class DavCalendarReader(
             .OrderBy(e => GraphTimeZone.ToInstant(e.Start.DateTime, e.Start.TimeZone))
             .ThenBy(e => e.Subject, StringComparer.Ordinal)
             .ToList();
-        if (key is not null)
+        // Kept only for a walk that has more pages: a single-page poll (NightMail's) never reads it back.
+        var page = OffsetPaging.Slice(view, query, DefaultPageSize);
+        if (key is not null && page is { IsSuccess: true, Value.SkipToken: not null })
         {
             snapshots!.Put(key, view);
         }
 
-        return OffsetPaging.Slice(view, query, DefaultPageSize);
+        return page;
     }
 
     /// <summary>The snapshot key for the caller's view of a window; null when there is no cache or no known caller.</summary>

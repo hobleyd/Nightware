@@ -183,6 +183,31 @@ public sealed class DriveLiveTests
     }
 
     [Fact]
+    public async Task A_simple_upload_larger_than_the_ordinary_body_limit_arrives_whole()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
+        await using var stack = LiveStack.Start();
+        using var alice = await stack.GraphClientAsync("alice", Ct);
+        alice.Timeout = TimeSpan.FromMinutes(10);
+
+        // 80 MB: over Limits:MaxRequestBodyBytes (about 67 MB), under Graph's 250 MB for a simple upload.
+        var bytes = new byte[80 * 1024 * 1024];
+        Random.Shared.NextBytes(bytes);
+        var name = "nw-large-" + Guid.NewGuid().ToString("N")[..8] + ".bin";
+        var file = await PutBytesAsync(alice, $"/v1.0/me/drive/root:/{name}:/content", bytes, HttpStatusCode.Created, "application/octet-stream");
+        try
+        {
+            file["size"]!.GetValue<long>().ShouldBe(bytes.Length);
+            var back = await DownloadAsync(stack, alice, $"/v1.0/me/drive/items/{Id(file)}/content");
+            SHA256.HashData(back).ShouldBe(SHA256.HashData(bytes));
+        }
+        finally
+        {
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/drive/items/{Id(file)}", expected: HttpStatusCode.NoContent);
+        }
+    }
+
+    [Fact]
     public async Task Delta_reports_what_changed_since_its_link_including_deletions()
     {
         Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
@@ -293,6 +318,11 @@ public sealed class DriveLiveTests
 
             await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/drive/items/{fileId}/versions/{oldest}/restoreVersion", expected: HttpStatusCode.NoContent);
             Encoding.UTF8.GetString(await DownloadAsync(stack, alice, $"/v1.0/me/drive/items/{fileId}/content")).ShouldBe("first\n");
+
+            // The restored version is the current one now, and is listed first.
+            var current = (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/drive/items/{fileId}/versions"))["value"]![0]!;
+            current["id"]!.GetValue<string>().ShouldBe(oldest);
+            current["size"]!.GetValue<long>().ShouldBe(6);
         }
         finally
         {

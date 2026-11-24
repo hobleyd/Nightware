@@ -41,6 +41,21 @@ public sealed class NextcloudDriveVersionsTests : IDisposable
     }
 
     [Fact]
+    public async Task After_a_restore_the_version_named_by_the_files_time_is_current_and_listed_first()
+    {
+        // Restoring 1795498534 gave the file that version's time; the listing itself doesn't change.
+        _nc.Serve("SEARCH", DavRoot, 207,
+            Recorded("search-by-id.xml").Replace("<oc:fileid>1748<", "<oc:fileid>1749<", StringComparison.Ordinal)
+                .Replace("Sun, 22 Nov 2026 10:51:54 GMT", "Tue, 24 Nov 2026 05:35:34 GMT", StringComparison.Ordinal),
+            bodyContains: "<d:literal>1749</d:literal>");
+        _nc.Serve("PROPFIND", DavRoot + "versions/alice/versions/1749/", 207, Recorded("versions.propfind.xml").Replace("/1748/", "/1749/", StringComparison.Ordinal), "1");
+
+        var versions = (await Store.ListAsync(DriveItemRef.ById("1749"), Ct)).Value;
+
+        versions.Select(static v => v.Id).ShouldBe(["1795498534", "1795498535"]);
+    }
+
+    [Fact]
     public async Task A_folder_has_no_versions()
     {
         (await Store.ListAsync(new DriveItemRef(null, ["nwfix"]), Ct)).Error!.Code.ShouldBe(DriveErrors.NotSupportedCode);
@@ -133,6 +148,22 @@ public sealed class NextcloudDriveVersionsTests : IDisposable
         _nc.Status("UNLOCK", Home + "nwfix/a.txt", status);
 
         (await Store.CheckInAsync(File, null, Ct)).Error!.Kind.ShouldBe(kind);
+    }
+
+    [Fact]
+    public async Task Without_files_lock_checking_out_is_not_supported()
+    {
+        // files_lock off: Nextcloud answers nc:lock as an unknown property (404 propstat).
+        _nc.Serve("SEARCH", DavRoot, 207,
+            Recorded("search-by-id.xml").Replace("<oc:fileid>1748<", "<oc:fileid>1750<", StringComparison.Ordinal)
+                .Replace("</d:multistatus>", string.Empty, StringComparison.Ordinal)
+                .Replace("</d:response>", "<d:propstat><d:prop><nc:lock/></d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat></d:response></d:multistatus>", StringComparison.Ordinal),
+            bodyContains: "<d:literal>1750</d:literal>");
+
+        var error = (await Store.CheckOutAsync(DriveItemRef.ById("1750"), Ct)).Error!;
+
+        (error.Kind, error.Code).ShouldBe((ErrorKind.Unsupported, DriveErrors.NotSupportedCode));
+        _nc.Requests("LOCK").ShouldBeEmpty();
     }
 
     [Fact]

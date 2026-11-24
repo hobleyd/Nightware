@@ -35,7 +35,8 @@ what a fix needs. Ordered by impact within each section.
 - **A `calendarView` walk is a snapshot for a minute.** The CalDAV expand
   REPORT can't page, so a follow-up page (`$skiptoken`) reads the first
   page's sorted expansion, kept per caller, calendar and window for a minute
-  (at most 200,000 instances held; a window over 50,000 isn't kept and pages
+  when that first page has more to come (a single-page poll keeps nothing; at
+  most 200,000 instances held; a window over 50,000 isn't kept and its pages
   expand again). An event changed mid-walk shows up on the next first page.
 
 ### OneDrive (phases 20, 27)

@@ -4678,7 +4678,7 @@ operation:
 
 - Client reads: `value[].id`, `value[].lastModifiedDateTime`, `value[].size`, `value[].lastModifiedBy`
 - Graph parity (ADR 0006); reference: driveitem-list-versions
-- Notes: A file's versions from Nextcloud's files_versions (versions/{uid}/versions/{fileid}/), newest first; the newest is the current content. A version's id is Nextcloud's timestamp; lastModifiedBy.user.id the user who wrote it. A folder is 400 notSupported. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Notes: A file's versions from Nextcloud's files_versions (versions/{uid}/versions/{fileid}/), the current version (the one named by the file's modification time, which a restore sets) first, the rest newest first. A version's id is Nextcloud's timestamp; lastModifiedBy.user.id the user who wrote it. A folder is 400 notSupported. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.versions.json`
 
 #### `files.drive.items.versions.get`
@@ -4720,7 +4720,7 @@ operation:
 
 - Request body: `comment`; `checkInAs`
 - Graph parity (ADR 0006); reference: driveitem-checkin
-- Notes: Releases the caller's lock (UNLOCK with X-User-Lock: 1); comment (at most 250 characters, one line) labels the current version (nc:version-label). checkInAs is accepted and ignored (SharePoint publishing levels). A file that isn't checked out is 400; one someone else has is 403 resourceLocked. 204. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Notes: Releases the caller's lock (UNLOCK with X-User-Lock: 1); comment (at most 250 characters, one line) labels the current version (the one named by the file's modification time) (nc:version-label). checkInAs is accepted and ignored (SharePoint publishing levels). A file that isn't checked out is 400; one someone else has is 403 resourceLocked. 204. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.checkin.json`
 
 #### `files.drive.items.preview`
