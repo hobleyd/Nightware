@@ -327,7 +327,10 @@ public interface ISharedCalendars
     /// <summary>NotFound when the mailbox has no Nextcloud user.</summary>
     Task<Result<SharedCalendarAccount>> FindAsync(MailAddress address, CancellationToken cancellationToken);
 
-    /// <summary>Creates or repairs the user, its calendar and the calendar's share with <paramref name="groupId"/>. Idempotent.</summary>
+    /// <summary>
+    /// Creates or repairs the user, its calendar and address book, and their shares with <paramref name="groupId"/>.
+    /// Idempotent.
+    /// </summary>
     Task<Result> EnsureAsync(MailAddress address, string displayName, string groupId, CancellationToken cancellationToken);
 
     /// <summary>Deletes the user and so the calendar and its events. NotFound when already gone.</summary>

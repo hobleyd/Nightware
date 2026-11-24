@@ -56,6 +56,12 @@ internal sealed class DavContactFolderStore(DavContactStore contacts, IDavPrinci
             return principal.Error;
         }
 
+        // Another mailbox's home isn't the caller's to add books to (its shared books are listed, not made).
+        if (!principal.Value.IsCurrentUser)
+        {
+            return Error.Forbidden($"Address books can't be added to {mailbox.Address}.");
+        }
+
         if (principal.Value.AddressBookHomeSet is not { } home || paths.ToRelative(home) is not { } homePath)
         {
             return Error.Forbidden("The mailbox has no address books.");

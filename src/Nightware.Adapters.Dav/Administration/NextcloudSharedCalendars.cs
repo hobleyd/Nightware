@@ -20,6 +20,7 @@ internal sealed partial class NextcloudSharedCalendars(NextcloudProvisioningClie
 {
     private const string UsersPath = "ocs/v1.php/cloud/users";
     private const string Calendar = "personal";
+    private const string AddressBook = "contacts";
     private const string Propfind = """<?xml version="1.0"?><d:propfind xmlns:d="DAV:" xmlns:cs="http://calendarserver.org/ns/"><d:prop><d:resourcetype/><cs:invite/></d:prop></d:propfind>""";
 
     internal static string Uid(MailAddress address) => "mbx-" + address.Value.ToLowerInvariant();
@@ -123,9 +124,34 @@ internal sealed partial class NextcloudSharedCalendars(NextcloudProvisioningClie
             return shared.Error;
         }
 
-        return shared.Value.Status is >= 200 and < 300
+        if (shared.Value.Status is < 200 or >= 300)
+        {
+            return Error.BackendUnavailable($"Nextcloud answered {shared.Value.Status} when sharing {uid}'s calendar.");
+        }
+
+        // Phase 27: the address book too. The user's first CardDAV request makes its "contacts" book; the same share
+        // gives the members it as "Contacts ({name})", which /users/{address}/contacts reads.
+        var book = $"remote.php/dav/addressbooks/users/{Uri.EscapeDataString(uid)}/{AddressBook}/";
+        var touched = await client.SendDavAsync(new HttpMethod("PROPFIND"), book, uid, password, Propfind, "0", cancellationToken).ConfigureAwait(false);
+        if (!touched.IsSuccess)
+        {
+            return touched.Error;
+        }
+
+        if (touched.Value.Status != 207)
+        {
+            return Error.BackendUnavailable($"Nextcloud answered {touched.Value.Status} for {uid}'s address book.");
+        }
+
+        var sharedBook = await client.SendDavAsync(HttpMethod.Post, book, uid, password, share, null, cancellationToken).ConfigureAwait(false);
+        if (!sharedBook.IsSuccess)
+        {
+            return sharedBook.Error;
+        }
+
+        return sharedBook.Value.Status is >= 200 and < 300
             ? Result.Success()
-            : Error.BackendUnavailable($"Nextcloud answered {shared.Value.Status} when sharing {uid}'s calendar.");
+            : Error.BackendUnavailable($"Nextcloud answered {sharedBook.Value.Status} when sharing {uid}'s address book.");
     }
 
     public async Task<Result> DeleteAsync(MailAddress address, CancellationToken cancellationToken)

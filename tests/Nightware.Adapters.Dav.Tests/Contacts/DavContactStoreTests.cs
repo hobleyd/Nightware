@@ -363,4 +363,50 @@ public sealed class DavContactStoreTests : IDisposable
     [InlineData("/remote.php/dav/addressbooks/users/alice/my-z-server-generated--x/", false)]
     public void Recognises_generated_address_books(string href, bool generated) =>
         DavContactStore.IsGenerated(new DavAddressBook(href, "x")).ShouldBe(generated);
+
+    private static readonly MailboxRef Desk = new("desk@nightware.localhost");
+    private const string DeskBook = Home + "contacts_shared_by_desk/";
+
+    private void GivenDesk(params DavAddressBook[] books)
+    {
+        _discovery.DiscoverAsync(Desk, Arg.Any<CancellationToken>()).Returns(new DavPrincipal("/remote.php/dav/principals/users/desk/", false)
+        {
+            AddressBookHomeSet = "/remote.php/dav/addressbooks/users/desk/",
+        });
+        _discovery.CurrentUserAsync(Arg.Any<CancellationToken>()).Returns(Principal);
+        GivenBooks(books);
+    }
+
+    [Fact]
+    public async Task Another_mailboxs_contacts_are_the_books_it_shared_with_the_caller()
+    {
+        GivenDesk(
+            new DavAddressBook(Book, "Contacts"),
+            new DavAddressBook(Team, "Team") { IsShared = true, OwnerPrincipal = "principals/users/bob" },
+            new DavAddressBook(DeskBook, "Contacts (Desk)") { IsShared = true, OwnerPrincipal = "principals/users/desk" });
+
+        var books = (await Store.AddressBooksAsync(Desk, Ct)).Value;
+
+        books.Select(static b => b.Href).ShouldBe([DeskBook]);
+        (await Store.BookAsync(Desk, null, Ct)).Value.Href.ShouldBe(DeskBook, "a new contact goes into the shared book");
+    }
+
+    [Fact]
+    public async Task A_card_of_another_mailbox_must_be_in_a_book_it_shared()
+    {
+        GivenDesk(new DavAddressBook(DeskBook, "Contacts (Desk)") { IsShared = true, OwnerPrincipal = "principals/users/desk" });
+        _dav.Server.Given(Request.Create().WithPath(DeskBook + "c1.vcf").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "text/vcard").WithBody("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Sam Supplier\r\nEND:VCARD\r\n"));
+
+        (await Store.GetAsync(Desk, DavItemId.Resource("addressbooks/users/alice/contacts_shared_by_desk/c1.vcf").ToContactId(), Ct)).Value.DisplayName.ShouldBe("Sam Supplier");
+        (await Store.GetAsync(Desk, DavItemId.Resource("addressbooks/users/alice/contacts/b-pat.vcf").ToContactId(), Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task A_mailbox_that_shared_nothing_with_the_caller_is_403()
+    {
+        GivenDesk(new DavAddressBook(Book, "Contacts"));
+
+        (await Store.ListAsync(Desk, ItemQuery.Default, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
+    }
 }

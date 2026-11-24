@@ -115,6 +115,13 @@ public sealed class SharedMailboxesLiveTests : IAsyncDisposable
                 using HttpResponseMessage inbox = await graph.GetAsync($"/v1.0/users/{address}/mailFolders/inbox?$select=id", Ct);
                 inbox.StatusCode.ShouldBe(HttpStatusCode.OK);
 
+                // Its address book (phase 27): shared with the members like its calendar, so she adds a contact and sees it.
+                using HttpResponseMessage contact = await graph.PostAsJsonAsync($"/v1.0/users/{address}/contacts",
+                    new JsonObject { ["givenName"] = "Sam", ["surname"] = "Supplier", ["emailAddresses"] = new JsonArray(new JsonObject { ["address"] = "sam@supplier.example" }) }, Ct);
+                contact.StatusCode.ShouldBe(HttpStatusCode.Created, await contact.Content.ReadAsStringAsync(Ct));
+                JsonObject contacts = (await graph.GetFromJsonAsync<JsonObject>($"/v1.0/users/{address}/contacts?$select=id,displayName", Ct))!;
+                contacts["value"]!.AsArray().Select(c => c!["displayName"]!.GetValue<string>()).ShouldContain("Sam Supplier");
+
                 // She sends as it (the group account's own identity, her exchanged token), and it arrives from its address.
                 string subject = "shared " + local;
                 var message = new JsonObject

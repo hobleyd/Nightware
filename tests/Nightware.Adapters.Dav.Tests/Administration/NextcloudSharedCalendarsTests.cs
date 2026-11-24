@@ -14,6 +14,7 @@ public sealed class NextcloudSharedCalendarsTests : IDisposable
     private const string Users = "/ocs/v1.php/cloud/users";
     private const string User = "/ocs/v1.php/cloud/users/mbx-desk@acme.example";
     private const string Personal = "/remote.php/dav/calendars/mbx-desk@acme.example/personal/";
+    private const string Contacts = "/remote.php/dav/addressbooks/users/mbx-desk@acme.example/contacts/";
 
     private static readonly MailAddress Desk = MailAddress.TryParse("desk@acme.example", out var desk) ? desk! : throw new InvalidOperationException();
 
@@ -33,6 +34,12 @@ public sealed class NextcloudSharedCalendarsTests : IDisposable
             $"""<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>/cloud{Personal}</d:href></d:response>{string.Concat(resources.Select(r => $"<d:response><d:href>/cloud{Personal}{r}</d:href></d:response>"))}</d:multistatus>""",
             "application/xml; charset=utf-8");
 
+    private void AddressBook()
+    {
+        _nextcloud.AnswerRaw("PROPFIND", Contacts, 207, $"""<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>/cloud{Contacts}</d:href></d:response></d:multistatus>""", "application/xml; charset=utf-8");
+        _nextcloud.AnswerRaw("POST", Contacts, 200, "");
+    }
+
     private static string? BasicUser(WireMock.RequestMessage request) =>
         request.Headers!["Authorization"].Single() is var header && header.StartsWith("Basic ", StringComparison.Ordinal)
             ? Encoding.UTF8.GetString(Convert.FromBase64String(header[6..])).Split(':')[0]
@@ -50,6 +57,7 @@ public sealed class NextcloudSharedCalendarsTests : IDisposable
         Calendar("sample.ics");
         _nextcloud.AnswerRaw("DELETE", Personal + "sample.ics", 204, "");
         _nextcloud.AnswerRaw("POST", Personal, 200, "");
+        AddressBook();
 
         (await Calendars.EnsureAsync(Desk, "Help desk", "mbx-desk@acme.example", Ct)).IsSuccess.ShouldBeTrue();
 
@@ -62,6 +70,8 @@ public sealed class NextcloudSharedCalendarsTests : IDisposable
         BasicUser(Sent("PROPFIND", Personal).Single()).ShouldBe("mbx-desk@acme.example", "the calendar is touched as its owner");
         Sent("DELETE", Personal + "sample.ics").ShouldHaveSingleItem();
         Sent("POST", Personal).Single().Body!.ShouldContain("principal:principals/groups/mbx-desk%40acme.example</d:href><o:read-write/>");
+        BasicUser(Sent("PROPFIND", Contacts).Single()).ShouldBe("mbx-desk@acme.example", "the address book is made by its owner's first CardDAV request");
+        Sent("POST", Contacts).Single().Body!.ShouldContain("principal:principals/groups/mbx-desk%40acme.example</d:href><o:read-write/>");
     }
 
     [Fact]
@@ -71,12 +81,27 @@ public sealed class NextcloudSharedCalendarsTests : IDisposable
         _nextcloud.Answer("PUT", User, 200, 100);
         Calendar("rota.ics");
         _nextcloud.AnswerRaw("POST", Personal, 200, "");
+        AddressBook();
 
         (await Calendars.EnsureAsync(Desk, "Help desk", "mbx-desk@acme.example", Ct)).IsSuccess.ShouldBeTrue();
 
         Sent("PUT", User).Select(r => JsonNode.Parse(r.Body!)!["key"]!.GetValue<string>()).ShouldBe(["password", "email", "displayname"]);
         Sent("DELETE", Personal + "rota.ics").ShouldBeEmpty();
         Sent("POST", Personal).ShouldHaveSingleItem();
+        Sent("POST", Contacts).ShouldHaveSingleItem("an existing mailbox's Repair shares its address book too");
+    }
+
+    [Fact]
+    public async Task An_address_book_nextcloud_will_not_list_is_an_error_and_is_not_shared()
+    {
+        _nextcloud.Answer("GET", User, 200, 100, """{"id":"mbx-desk@acme.example"}""");
+        _nextcloud.Answer("PUT", User, 200, 100);
+        Calendar();
+        _nextcloud.AnswerRaw("POST", Personal, 200, "");
+        _nextcloud.AnswerRaw("PROPFIND", Contacts, 404, "");
+
+        (await Calendars.EnsureAsync(Desk, "Help desk", "mbx-desk@acme.example", Ct)).Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+        Sent("POST", Contacts).ShouldBeEmpty();
     }
 
     [Fact]

@@ -94,6 +94,16 @@ added a moment ago reaches the mailbox at once.
   fresh strong sign-in, and the address typed again. The adapter takes every
   member out first, then destroys the account; the record goes last.
 
+### D7 — An address book of its own (added 2026-11-24, phase 27)
+The mailbox's Nextcloud user (D6) also has an address book: its `contacts`
+book, made by the user's first CardDAV request, shared read-write with the
+same group in the same repair. Members get it as "Contacts ({name})"
+(`contacts_shared_by_mbx-…` in their home, `owner-principal` the mailbox
+user). The façade reads `/users/{address}/contacts` (and any other mailbox's)
+as the books that mailbox shared with the caller, as it reads calendars; none
+is 403. New contacts go into that book; a member can't add address books to
+it. Existing shared mailboxes get the book from Repair.
+
 ### D6 — A calendar of its own (added 2026-11-21, phase 17)
 A shared mailbox has a calendar in Nextcloud. Nextcloud keeps calendars for its
 own users only, so the mailbox gets one: a local Nextcloud user

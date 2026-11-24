@@ -106,9 +106,10 @@ what a fix needs. Ordered by impact within each section.
   JMAP session doesn't know makes the façade fetch the session again, at most
   every 30 seconds per caller (phase 27). Removal is immediate (the mail server
   refuses).
-- A shared mailbox has a calendar (ADR 0004 D6) but no contacts or files:
-  those routes answer as for any address Nextcloud does not know. Shared
-  mailboxes created before v1.39 get their calendar from the console's Repair.
+- A shared mailbox has a calendar and an address book (ADR 0004 D6, D7) but no
+  files: those routes answer as for any address Nextcloud does not know. Shared
+  mailboxes created before v1.39 get their calendar, and those before v1.79 their
+  address book, from the console's Repair.
 - Graph-only profile fields (`jobTitle`, `department`, `companyName`,
   `officeLocation`, `businessPhones`, `mobilePhone`) are set on the console's
   user page ("Profile"). `keycloak/configure.sh` declares their attributes;

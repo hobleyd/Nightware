@@ -21,6 +21,9 @@ namespace Nightware.Adapters.Dav.Contacts;
 /// (<c>z-server-generated--system</c>, every account — the directory, already served by <c>/users</c>) and
 /// app books such as Contacts Interaction's "Recently contacted" (<c>z-app-generated--…</c>). They are not
 /// personal contacts and are skipped.</para>
+/// <para>Another mailbox's contacts (<c>/users/{x}</c>: a shared mailbox, or a colleague) are the address books
+/// <c>x</c> shared with the caller, which Nextcloud mounts in the caller's home with <c>owner-principal</c> = <c>x</c>;
+/// <c>x</c>'s own home is not readable by others. None is 403, as for calendars (phase 27).</para>
 /// <para>Paging is stateless: each page lists every card's href (an <c>addressbook-query</c> without data per
 /// book), orders them by (book, card) href, slices at the offset in the <c>$skiptoken</c> and fetches only
 /// that slice with <c>addressbook-multiget</c>. A card that cannot be parsed or vanished in between is left
@@ -241,16 +244,18 @@ internal sealed partial class DavContactStore(
             return NotFound();
         }
 
-        var principal = await discovery.DiscoverAsync(mailbox, cancellationToken).ConfigureAwait(false);
-        if (!principal.IsSuccess)
+        var scope = await ScopeAsync(mailbox, cancellationToken).ConfigureAwait(false);
+        if (!scope.IsSuccess)
         {
-            return principal.Error;
+            return scope.Error;
         }
 
-        // An id only proves its href is inside the DAV root; it must also be this mailbox's card.
-        return principal.Value.AddressBookHomeSet is { } home && paths.ToRelative(home) is { } homePath && item.Value.IsWithin(homePath)
-            ? item.Value
-            : NotFound();
+        // An id only proves its href is inside the DAV root; it must also be this mailbox's card: in its home, or (for
+        // another mailbox) in one of the books it shared with the caller.
+        var within = scope.Value.Own
+            ? scope.Value.Owner.AddressBookHomeSet is { } home && paths.ToRelative(home) is { } homePath && item.Value.IsWithin(homePath)
+            : scope.Value.Books.Any(b => paths.ToRelative(b.Href) is { } bookPath && item.Value.IsWithin(bookPath));
+        return within ? item.Value : NotFound();
     }
 
     private async Task<Result<Contact>> ReadAsync(DavItemId item, CancellationToken cancellationToken)
@@ -304,7 +309,7 @@ internal sealed partial class DavContactStore(
 
         var match = folder is { } wanted
             ? books.Value.FirstOrDefault(b => paths.ToRelative(b.Href) is { } path && FolderOf(path) == wanted)
-            : DefaultBook(books.Value);
+            : DefaultBook(books.Value) ?? books.Value.FirstOrDefault(static b => b.IsShared && !b.IsReadOnly);
         return match is null ? Error.NotFound("The specified folder was not found in the store.", "id") : match;
     }
 
@@ -322,17 +327,55 @@ internal sealed partial class DavContactStore(
 
     internal async Task<Result<IReadOnlyList<DavAddressBook>>> AddressBooksAsync(MailboxRef mailbox, CancellationToken cancellationToken)
     {
+        var scope = await ScopeAsync(mailbox, cancellationToken).ConfigureAwait(false);
+        return scope.IsSuccess ? Result<IReadOnlyList<DavAddressBook>>.Success(scope.Value.Books) : scope.Error;
+    }
+
+    /// <summary>
+    /// The mailbox's address books as the caller sees them: its own home's (its own and those shared with it), or, for
+    /// another mailbox, the books that mailbox shared with the caller.
+    /// </summary>
+    internal async Task<Result<(DavPrincipal Owner, bool Own, IReadOnlyList<DavAddressBook> Books)>> ScopeAsync(MailboxRef mailbox, CancellationToken cancellationToken)
+    {
         var principal = await discovery.DiscoverAsync(mailbox, cancellationToken).ConfigureAwait(false);
         if (!principal.IsSuccess)
         {
             return principal.Error;
         }
 
-        var books = await catalog.ListAddressBooksAsync(principal.Value, cancellationToken).ConfigureAwait(false);
-        return books.IsSuccess
-            ? Result<IReadOnlyList<DavAddressBook>>.Success([.. books.Value.Where(static b => !IsGenerated(b)).OrderBy(static b => b.Href, StringComparer.Ordinal)])
-            : books.Error;
+        var reader = principal.Value;
+        if (!principal.Value.IsCurrentUser)
+        {
+            var self = await discovery.CurrentUserAsync(cancellationToken).ConfigureAwait(false);
+            if (!self.IsSuccess)
+            {
+                return self.Error;
+            }
+
+            reader = self.Value;
+        }
+
+        var books = await catalog.ListAddressBooksAsync(reader, cancellationToken).ConfigureAwait(false);
+        if (!books.IsSuccess)
+        {
+            return books.Error;
+        }
+
+        var listed = books.Value.Where(b => !IsGenerated(b) && (principal.Value.IsCurrentUser || (b.IsShared && IsOwnedBy(b, principal.Value))))
+            .OrderBy(static b => b.Href, StringComparer.Ordinal)
+            .ToList();
+        return !principal.Value.IsCurrentUser && listed.Count == 0
+            ? NoBooks(mailbox)
+            : (principal.Value, principal.Value.IsCurrentUser, listed);
     }
+
+    /// <summary>Nextcloud reports <c>owner-principal</c> relative to the DAV root (<c>principals/users/bob</c>).</summary>
+    private static bool IsOwnedBy(DavAddressBook book, DavPrincipal owner) =>
+        book.OwnerPrincipal is { Length: > 0 } principal
+        && owner.Href.TrimEnd('/').EndsWith("/" + principal.Trim('/'), StringComparison.Ordinal);
+
+    private static Error NoBooks(MailboxRef mailbox) =>
+        Error.Forbidden($"No address book of {mailbox.Address} is available to you.");
 
     private Contact? Parse(string vcf, string href)
     {

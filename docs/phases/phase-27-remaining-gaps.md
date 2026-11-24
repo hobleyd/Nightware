@@ -39,3 +39,4 @@
 | A `calendarView` walk expands once: follow-up pages read a one-minute, size-bounded snapshot of the first page's expansion | 1.77.2 |
 | Photos: any image is turned upright (EXIF), centre-cropped and re-encoded to a square JPEG/PNG for Nextcloud (SkiaSharp 4.156.2, MIT, NoDependencies native build; verified in the Linux SDK and aspnet images) — verified live | 1.78.0 |
 | Shared mailboxes: a console rename renames the identities (`/users/{shared}` shows it, verified live); a member added a moment ago reaches the mailbox at once (the session is fetched again for an unknown address, at most every 30 s per caller) | 1.78.1 |
+| Shared mailboxes have an address book: the console shares its Nextcloud user's `contacts` book with the members' group (Repair adds it to existing ones), and `/users/{x}/contacts` reads the books `x` shared with the caller (ADR 0004 D7) — verified live | 1.79.0 |
