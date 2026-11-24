@@ -64,4 +64,55 @@ public sealed class DavResilienceTests
 
         calls.ShouldBe(20);
     }
+
+    [Fact]
+    public void Only_a_streamed_body_is_an_upload()
+    {
+        using var stream = new HttpRequestMessage(HttpMethod.Put, "https://nc.test/f") { Content = new StreamContent(new MemoryStream()) };
+        using var text = new HttpRequestMessage(HttpMethod.Put, "https://nc.test/f") { Content = new StringContent("x") };
+        using var none = new HttpRequestMessage(HttpMethod.Get, "https://nc.test/f");
+
+        DavResilience.IsStreamedUpload(stream).ShouldBeTrue();
+        DavResilience.IsStreamedUpload(text).ShouldBeFalse();
+        DavResilience.IsStreamedUpload(none).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task A_streamed_upload_outlives_the_attempt_timeout_and_other_requests_do_not()
+    {
+        var builder = new ResiliencePipelineBuilder<HttpResponseMessage>();
+        DavResilience.Configure(builder, new DavOptions
+        {
+            MaxRetryAttempts = 0,
+            AttemptTimeout = TimeSpan.FromMilliseconds(50),
+            TotalTimeout = TimeSpan.FromMilliseconds(50),
+            TransferTimeout = TimeSpan.FromSeconds(30),
+        });
+        var pipeline = builder.Build();
+
+        async Task<HttpResponseMessage> RunAsync(HttpRequestMessage request)
+        {
+            var context = ResilienceContextPool.Shared.Get(TestContext.Current.CancellationToken);
+            context.SetRequestMessage(request);
+            try
+            {
+                return await pipeline.ExecuteAsync(async c =>
+                {
+                    await Task.Delay(200, c.CancellationToken);
+                    return new HttpResponseMessage(HttpStatusCode.Created);
+                }, context);
+            }
+            finally
+            {
+                ResilienceContextPool.Shared.Return(context);
+            }
+        }
+
+        using var upload = new HttpRequestMessage(HttpMethod.Put, "https://nc.test/f") { Content = new StreamContent(new MemoryStream()) };
+        using var ordinary = new HttpRequestMessage(HttpMethod.Put, "https://nc.test/f") { Content = new StringContent("x") };
+
+        using var uploaded = await RunAsync(upload);
+        uploaded.StatusCode.ShouldBe(HttpStatusCode.Created);
+        await Should.ThrowAsync<TimeoutRejectedException>(() => RunAsync(ordinary));
+    }
 }

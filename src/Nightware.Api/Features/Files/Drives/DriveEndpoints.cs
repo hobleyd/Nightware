@@ -15,6 +15,7 @@ using Nightware.Api.Graph;
 using Nightware.Api.Graph.Json;
 using Nightware.Api.Graph.OData;
 using Nightware.Api.Graph.Routing;
+using Nightware.Api.Hosting;
 using Nightware.Application.Common.Identity;
 using Nightware.Application.Files.Drives;
 using Nightware.Application.Mail.Write;
@@ -66,7 +67,7 @@ internal static class DriveEndpoints
             group.MapGet(at + "/children", ListChildrenAsync);
             group.MapPost(at + "/children", CreateFolderAsync);
             group.MapGet(at + "/content", RedirectToContentAsync);
-            group.MapPut(at + "/content", UploadAsync);
+            group.MapPut(at + "/content", UploadAsync).WithMetadata(LargeUpload.Instance);
             group.MapPost(at + "/copy", CopyAsync);
             group.MapPost(at + "/createUploadSession", BeginUploadAsync);
             group.MapGet(at + "/thumbnails", ThumbnailsAsync);

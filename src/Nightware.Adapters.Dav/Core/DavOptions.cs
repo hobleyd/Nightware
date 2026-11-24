@@ -22,6 +22,12 @@ public sealed class DavOptions
     /// <summary>Time allowed for a whole request including retries.</summary>
     public TimeSpan TotalTimeout { get; set; } = TimeSpan.FromSeconds(90);
 
+    /// <summary>
+    /// Time allowed for a request whose body is streamed from the caller (a drive upload, an upload session's chunk): it
+    /// lasts as long as the caller takes to send it, so the attempt and total timeouts don't apply.
+    /// </summary>
+    public TimeSpan TransferTimeout { get; set; } = TimeSpan.FromMinutes(15);
+
     /// <summary>Retries for safe methods (GET, HEAD, OPTIONS, PROPFIND, REPORT) only.</summary>
     public int MaxRetryAttempts { get; set; } = 2;
 
@@ -57,6 +63,7 @@ internal sealed class DavOptionsValidator : IValidateOptions<DavOptions>
         ValidatePath(options.OcsRoot, "Dav:OcsRoot", failures);
         ValidatePositive(options.AttemptTimeout, "Dav:AttemptTimeout", failures);
         ValidatePositive(options.TotalTimeout, "Dav:TotalTimeout", failures);
+        ValidatePositive(options.TransferTimeout, "Dav:TransferTimeout", failures);
         ValidatePositive(options.DiscoveryCacheDuration, "Dav:DiscoveryCacheDuration", failures);
         ValidatePositive(options.HealthCheckTimeout, "Dav:HealthCheckTimeout", failures);
         if (options.TotalTimeout < options.AttemptTimeout)

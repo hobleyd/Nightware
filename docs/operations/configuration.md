@@ -44,6 +44,7 @@ process with a message naming the key, instead of failing on the first request.
 | `Dav:BaseUrl` | `https://nightware.localhost/cloud/` | Nextcloud root, path included (internal `http://nextcloud/` in compose, where Nextcloud's `/cloud` overwrite does not apply). |
 | `Dav:DavRoot` / `OcsRoot` | `/remote.php/dav` / `/ocs/v2.php` | Paths under the base URL. |
 | `Dav:AttemptTimeout` / `TotalTimeout` | `00:00:30` / `00:01:30` | Per attempt / with retries. |
+| `Dav:TransferTimeout` | `00:15:00` | Both timeouts for a body streamed from the caller (drive upload, upload session chunk). |
 | `Dav:MaxRetryAttempts` | `2` | GET/HEAD/OPTIONS/PROPFIND/REPORT only. |
 | `Dav:DiscoveryCacheDuration` | `00:10:00` | Principal discovery cache. |
 | `Dav:HealthCheckTimeout` | `00:00:05` | `/healthz` probe. |
@@ -77,8 +78,10 @@ senders remain subject to it — see the [runbook](runbook.md#mail-sent-but-neve
 | `RateLimiting:ConcurrentRequestLimit` | `32` | In-flight requests per user; `0` disables. |
 | `RequestTimeouts:Default` | `00:00:25` | Budget per request; overrun → 503 + `Retry-After` (reads) or 504 (writes). |
 | `RequestTimeouts:Transfer` | `00:02:00` | Budget for attachments, `$value`, `content`, upload sessions, sendMail, and large bodies. |
+| `RequestTimeouts:LargeUpload` | `00:15:00` | Budget for a drive item's simple upload (`PUT …/content`, up to 250 MB). |
 | `RequestTimeouts:TransferBodyThresholdBytes` | `1000000` | A body larger than this gets the transfer budget on any route. |
 | `Limits:MaxRequestBodyBytes` | `67666666` | Largest body: Stalwart's `maxSizeUpload` (50 MB) × 4/3 for base64 + 1 MB. Raise with Stalwart's limit. |
+| `Limits:MaxLargeUploadBytes` | `262144000` | Largest body of a drive item's simple upload (Graph's 250 MB); streamed, never buffered. |
 | `Kestrel:Limits:*` | see `appsettings.json` | Kestrel's own limits (`MaxRequestHeadersTotalSize` 32 KB, `MaxRequestHeaderCount` 100, `MaxRequestLineSize` 8 KB, `KeepAliveTimeout` 2 min, `RequestHeadersTimeout` 30 s). `Kestrel:AddServerHeader` defaults to `false`. |
 | `ForwardedHeaders:KnownProxies:N` | none | Proxy IPs allowed to set `X-Forwarded-*`. |
 | `ForwardedHeaders:KnownNetworks:N` | none | Proxy networks (CIDR). Both empty → loopback only. Compose: the stack subnet. |

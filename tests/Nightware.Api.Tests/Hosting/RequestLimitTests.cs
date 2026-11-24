@@ -39,6 +39,58 @@ public sealed class RequestLimitTests
         reached.Value.ShouldBeFalse();
     }
 
+    private static readonly Dictionary<string, string?> SmallLimits = new()
+    {
+        ["Limits:MaxRequestBodyBytes"] = "1000",
+        ["Limits:MaxLargeUploadBytes"] = "3000",
+    };
+
+    private static void LargeUploadProbe(IServiceCollection services, StrongBox<bool> reached) =>
+        services.AddGraphProbes(g => g.MapPut("/big", async (HttpRequest request) =>
+        {
+            reached.Value = true;
+            await request.Body.CopyToAsync(Stream.Null, request.HttpContext.RequestAborted);
+            return Results.Ok();
+        }).WithMetadata(LargeUpload.Instance));
+
+    [Fact]
+    public async Task A_large_upload_route_takes_bodies_up_to_its_own_limit()
+    {
+        var reached = new StrongBox<bool>();
+        await using var host = await TestHost.StartAsync(s => LargeUploadProbe(s, reached), configuration: SmallLimits);
+        var client = host.AuthorizedClient();
+
+        (await client.PutAsync("/v1.0/big", new ByteArrayContent(new byte[3000]), Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        var refused = await client.PutAsync("/v1.0/big", new ByteArrayContent(new byte[3001]), Ct);
+
+        refused.StatusCode.ShouldBe(HttpStatusCode.RequestEntityTooLarge);
+        (await refused.ReadObjectAsync()).Str("error.message")!.ShouldContain("3000 bytes");
+    }
+
+    [Fact]
+    public async Task A_chunked_large_upload_is_counted_against_its_own_limit_on_kestrel()
+    {
+        var reached = new StrongBox<bool>();
+        await using var host = await KestrelTestHost.StartAsync(SmallLimits, s => LargeUploadProbe(s, reached));
+
+        async Task<HttpStatusCode> SendAsync(int size)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Put, "/v1.0/big") { Content = new StreamContent(new NonSeekableStream(new byte[size])) };
+            request.Headers.Authorization = new("Bearer", TestHost.Token());
+            return (await host.Client.SendAsync(request, Ct)).StatusCode;
+        }
+
+        (await SendAsync(2500)).ShouldBe(HttpStatusCode.OK);
+        (await SendAsync(5000)).ShouldBe(HttpStatusCode.RequestEntityTooLarge);
+    }
+
+    [Fact]
+    public void The_default_large_upload_limit_is_graphs_simple_upload_limit()
+    {
+        new RequestLimitOptions().MaxLargeUploadBytes.ShouldBe(Nightware.Domain.Files.DriveLimits.SimpleUploadMaxBytes);
+        new RequestLimitOptionsValidator().Validate(null, new RequestLimitOptions { MaxLargeUploadBytes = 10 }).Failed.ShouldBeTrue();
+    }
+
     [Fact]
     public async Task A_body_at_the_limit_is_accepted()
     {

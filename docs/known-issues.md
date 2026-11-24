@@ -35,8 +35,6 @@ what a fix needs. Ordered by impact within each section.
   per credential + calendar + window (+ the calendar's CTag) for a minute.
 
 ### OneDrive (phase 20)
-- **Simple upload is bounded by the request size limit**, `Limits:MaxRequestBodyBytes` (about 67 MB by default), not
-  Graph's 250 MB; larger files need an upload session (up to 10 GB, chunks under 60 MiB).
 - **Delta needs Nextcloud's activity app.** A default install enables it; without it `root/delta` is
   `501 notSupported`. An item moved out of the caller's view (an unshare) is reported as deleted, which is what a client
   should do with it anyway. The initial listing pages by offset over a name ordering: an item renamed during a long

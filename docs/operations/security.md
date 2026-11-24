@@ -56,7 +56,8 @@ taken effect (a duplicate sendMail is worse than an error the user sees).
 ## Request size and Kestrel limits
 
 `Limits:MaxRequestBodyBytes` (≈ 67 MB, from Stalwart's 50 MB `maxSizeUpload` as base64) is enforced
-on every request: a declared oversize `Content-Length` is refused before the body is read, and a
+on every request (a drive item's simple upload, `PUT …/content`, has its own
+`Limits:MaxLargeUploadBytes`, Graph's 250 MB): a declared oversize `Content-Length` is refused before the body is read, and a
 chunked body is cut off by Kestrel; both answer Graph's `413 requestEntityTooLarge`. Header size,
 header count, request line and keep-alive limits come from `Kestrel:Limits`.
 

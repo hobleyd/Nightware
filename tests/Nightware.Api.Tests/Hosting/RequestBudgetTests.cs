@@ -277,6 +277,39 @@ public sealed class RequestBudgetTests
         RequestBudgetMiddleware.BudgetFor(context, new RequestBudgetOptions()).ShouldBe(Timeout.InfiniteTimeSpan);
     }
 
+    [Fact]
+    public void A_large_upload_route_gets_its_own_budget()
+    {
+        var context = new DefaultHttpContext();
+        context.SetEndpoint(new RouteEndpoint(
+            static _ => Task.CompletedTask,
+            Microsoft.AspNetCore.Routing.Patterns.RoutePatternFactory.Parse("/v1.0/me/drive/items/{id}/content"),
+            0,
+            new EndpointMetadataCollection(LargeUpload.Instance),
+            "upload"));
+
+        RequestBudgetMiddleware.BudgetFor(context, new RequestBudgetOptions { LargeUpload = TimeSpan.FromMinutes(7) }).ShouldBe(TimeSpan.FromMinutes(7));
+    }
+
+    [Fact]
+    public async Task Every_drive_content_upload_is_a_large_upload()
+    {
+        await using var host = await TestHost.StartAsync();
+        var uploads = host.App.Services.GetRequiredService<EndpointDataSource>().Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(static e => e.RoutePattern.RawText!.Contains("drive", StringComparison.OrdinalIgnoreCase)
+                && e.RoutePattern.RawText.EndsWith("/content", StringComparison.Ordinal)
+                && e.Metadata.GetMetadata<Microsoft.AspNetCore.Routing.HttpMethodMetadata>()?.HttpMethods.Contains("PUT") == true)
+            .ToList();
+
+        uploads.ShouldNotBeEmpty();
+        uploads.ShouldAllBe(static e => e.Metadata.GetMetadata<LargeUpload>() != null);
+    }
+
+    [Fact]
+    public void A_large_upload_budget_shorter_than_transfer_is_rejected() =>
+        new RequestBudgetOptionsValidator().Validate(null, new RequestBudgetOptions { LargeUpload = TimeSpan.FromSeconds(1) }).Failed.ShouldBeTrue();
+
     private static DefaultHttpContext Context(string? routeTemplate, long? contentLength = null)
     {
         var context = new DefaultHttpContext();

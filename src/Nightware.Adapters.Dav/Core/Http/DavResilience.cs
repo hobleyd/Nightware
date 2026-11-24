@@ -68,12 +68,18 @@ public static class DavResilience
         ShouldHandle = static args => ValueTask.FromResult(IsServerFailure(args.Outcome)),
     };
 
-    /// <summary>Total timeout → retry (safe methods) → circuit breaker → per-attempt timeout.</summary>
+    /// <summary>True for a request whose body streams from the caller, which takes <see cref="DavOptions.TransferTimeout"/>.</summary>
+    public static bool IsStreamedUpload(HttpRequestMessage? request) => request?.Content is StreamContent;
+
+    /// <summary>
+    /// Total timeout → retry (safe methods) → circuit breaker → per-attempt timeout. A streamed upload has
+    /// <see cref="DavOptions.TransferTimeout"/> for both timeouts.
+    /// </summary>
     public static void Configure(ResiliencePipelineBuilder<HttpResponseMessage> builder, DavOptions options)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(options);
-        builder.AddTimeout(options.TotalTimeout);
+        builder.AddTimeout(Timeout(options.TotalTimeout, options.TransferTimeout));
         if (options.MaxRetryAttempts > 0)
         {
             builder.AddRetry(new HttpRetryStrategyOptions
@@ -88,6 +94,12 @@ public static class DavResilience
         }
 
         builder.AddCircuitBreaker(CircuitBreaker());
-        builder.AddTimeout(options.AttemptTimeout);
+        builder.AddTimeout(Timeout(options.AttemptTimeout, options.TransferTimeout));
     }
+
+    private static TimeoutStrategyOptions Timeout(TimeSpan ordinary, TimeSpan transfer) => new()
+    {
+        Timeout = ordinary,
+        TimeoutGenerator = args => ValueTask.FromResult(IsStreamedUpload(args.Context.GetRequestMessage()) ? transfer : ordinary),
+    };
 }

@@ -24,3 +24,8 @@
 | Directory: shared mailbox has no contacts or files | new provisioning | As its calendar (ADR 0004 D6): the shared mailbox's Nextcloud user shares its address book and a folder with the group; console Repair for existing ones. |
 | Directory: shared mailbox rename not reflected; new member waits for the JMAP session cache | existing route | Rename updates the identity name; an unknown account refreshes the cached session once. |
 | Settings: automatic replies `contactsOnly` means internal only | existing route | The mailbox's contacts' addresses join the internal domains in the Sieve script, frozen at save time and refreshed when the façade writes a contact. |
+
+## Done
+| Gap | Version |
+|---|---|
+| OneDrive simple upload up to Graph's 250 MB (`Limits:MaxLargeUploadBytes` and a 15-minute budget on the drive `PUT …/content` routes only); a body streamed into Nextcloud gets `Dav:TransferTimeout` instead of the 30 s attempt timeout | 1.70.0 |

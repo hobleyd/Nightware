@@ -3482,7 +3482,7 @@ operation:
 - Request body: `(raw bytes)`
 - Client reads: `id`, `name`, `size`
 - Graph parity (ADR 0006); reference: driveitem-put-content
-- Notes: Simple upload, streamed into WebDAV; conflictBehavior (query) replace by default, fail, rename. Bounded by Limits:MaxRequestBodyBytes (about 67 MB by default) as well as Graph's 250 MB. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Notes: Simple upload, streamed into WebDAV; conflictBehavior (query) replace by default, fail, rename. Up to Graph's 250 MB (Limits:MaxLargeUploadBytes on this route only), with a 15-minute budget. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.upload.json`
 
 #### `files.drive.items.replace-content`

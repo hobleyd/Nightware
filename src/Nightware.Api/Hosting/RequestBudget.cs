@@ -30,6 +30,12 @@ public sealed class RequestBudgetOptions
     /// </summary>
     public TimeSpan Transfer { get; set; } = TimeSpan.FromMinutes(2);
 
+    /// <summary>
+    /// Budget for a <see cref="LargeUpload"/> route: a 250 MB simple upload needs about 2 MB/s to arrive within
+    /// <see cref="Transfer"/>, so it gets longer.
+    /// </summary>
+    public TimeSpan LargeUpload { get; set; } = TimeSpan.FromMinutes(15);
+
     /// <summary>A body larger than this gets the <see cref="Transfer"/> budget whatever the route.</summary>
     public long TransferBodyThresholdBytes { get; set; } = 1_000_000;
 }
@@ -48,6 +54,11 @@ internal sealed class RequestBudgetOptionsValidator : IValidateOptions<RequestBu
         if (options.Transfer < options.Default)
         {
             failures.Add("RequestTimeouts:Transfer must be at least RequestTimeouts:Default.");
+        }
+
+        if (options.LargeUpload < options.Transfer)
+        {
+            failures.Add("RequestTimeouts:LargeUpload must be at least RequestTimeouts:Transfer.");
         }
 
         if (options.TransferBodyThresholdBytes < 0)
@@ -126,6 +137,7 @@ public sealed partial class RequestBudgetMiddleware(
 
     /// <summary>
     /// The budget for this request: transfer-shaped routes and large bodies get the long one, a
+    /// <see cref="LargeUpload"/> route its own, a
     /// <see cref="LongLivedRequest"/> none.
     /// </summary>
     public static TimeSpan BudgetFor(HttpContext context, RequestBudgetOptions options)
@@ -135,6 +147,11 @@ public sealed partial class RequestBudgetMiddleware(
         if (context.GetEndpoint()?.Metadata.GetMetadata<LongLivedRequest>() is not null)
         {
             return Timeout.InfiniteTimeSpan;
+        }
+
+        if (context.GetEndpoint()?.Metadata.GetMetadata<LargeUpload>() is not null)
+        {
+            return options.LargeUpload;
         }
 
         var route = (context.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText;

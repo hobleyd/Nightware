@@ -33,7 +33,7 @@ public static class HostingServiceCollectionExtensions
         services.Configure<KestrelServerOptions>(configuration.GetSection(KestrelSectionName));
         services.AddOptions<KestrelServerOptions>()
             .Configure<IOptions<RequestLimitOptions>>(static (kestrel, limits) =>
-                kestrel.Limits.MaxRequestBodySize = limits.Value.MaxRequestBodyBytes);
+                kestrel.Limits.MaxRequestBodySize = Math.Max(limits.Value.MaxRequestBodyBytes, limits.Value.MaxLargeUploadBytes));
 
         // Pooled primary handlers are shared across users: no client may keep cookies.
         services.AddCookielessHttpClients();
