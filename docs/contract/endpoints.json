@@ -15980,7 +15980,59 @@
       "lib/data/datasources/remote/graph_drive_datasource_impl.dart:272"
     ],
     "docs": "search-query",
-    "notes": "Microsoft Search, driveItem only: the cloud picker's search for Microsoft 365 accounts (entityTypes [driveItem], from 0, size 50), which falls back to root/search on any error. One request; the caller's drive searched by name as root/search is; each hit's resource is the driveItem with @odata.type. total counts the hits up to this window; moreResultsAvailable says whether more match. Other entity types are 400 notSupported."
+    "notes": "Microsoft Search for driveItem: the cloud picker's search for Microsoft 365 accounts (entityTypes [driveItem], from 0, size 50), which falls back to root/search on any error. One request; the caller's drive searched by name as root/search is; each hit's resource is the driveItem with @odata.type. total counts the hits up to this window; moreResultsAvailable says whether more match. chatMessage is search.query.chat-messages; other entity types, and types mixed in one request, are 400 notSupported."
+  },
+  {
+    "id": "search.query.chat-messages",
+    "phase": 28,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/search/query",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "requests[].entityTypes",
+        "requests[].query.queryString",
+        "requests[].from",
+        "requests[].size"
+      ]
+    },
+    "responseFields": [
+      "value[].searchTerms",
+      "value[].hitsContainers[].hits[].hitId",
+      "value[].hitsContainers[].hits[].rank",
+      "value[].hitsContainers[].hits[].summary",
+      "value[].hitsContainers[].hits[].resource.id",
+      "value[].hitsContainers[].hits[].resource.chatId",
+      "value[].hitsContainers[].hits[].resource.createdDateTime",
+      "value[].hitsContainers[].hits[].resource.lastModifiedDateTime",
+      "value[].hitsContainers[].hits[].resource.from.emailAddress",
+      "value[].hitsContainers[].hits[].resource.webLink",
+      "value[].hitsContainers[].hits[].resource.etag",
+      "value[].hitsContainers[].hits[].resource.importance",
+      "value[].hitsContainers[].hits[].resource.channelIdentity",
+      "value[].hitsContainers[].total",
+      "value[].hitsContainers[].moreResultsAvailable"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "search-query",
+    "notes": "Microsoft Search for chatMessage (ADR 0009 D10): the caller's chat messages whose text contains queryString, newest first, over Talk's message search. One request of this type only (Graph can't mix chatMessage with other types either). size defaults to 25 and a larger one is read as 25 (Nextcloud's page cap); from is an offset. Channel messages, the note to self and the changelog are left out, so a window may hold fewer than size hits. The resource is Microsoft Search's trimmed chatMessage (no body: read it through /chats/{chatId}/messages/{id}); from.emailAddress has no address for a guest; webLink opens the message in Talk when Talk:PublicBaseUrl is set. summary is Talk's plain-text excerpt. KQL (from:, sent>, IsMentioned:) isn't interpreted: the whole queryString is matched as text."
   },
   {
     "id": "files.drive.items.versions",

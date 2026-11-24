@@ -163,3 +163,44 @@ public sealed class UnpinChatMessage(IChatPins pins)
     public Task<Result> ExecuteAsync(string chatId, string pinnedMessageId, CancellationToken cancellationToken) =>
         pins.UnpinAsync(chatId, pinnedMessageId, cancellationToken);
 }
+
+/// <summary>Microsoft Search (<c>POST /search/query</c>) for <c>chatMessage</c>: the caller's chat messages by text.</summary>
+public sealed class SearchChatMessages(IChatSearch search)
+{
+    /// <summary>
+    /// The most hits one request returns: Graph's default for <c>chatMessage</c>, and Nextcloud's own cap on a unified
+    /// search page. A larger <c>size</c> is read as this, with <c>moreResultsAvailable</c> saying whether more match.
+    /// </summary>
+    public const int MaxSize = 25;
+
+    public const int DefaultSize = MaxSize;
+
+    /// <summary>The longest search text taken (Talk matches it as one phrase).</summary>
+    public const int MaxTextLength = 256;
+
+    public Task<Result<ChatSearchHits>> ExecuteAsync(string? text, int from, int size, CancellationToken cancellationToken)
+    {
+        var term = text?.Trim();
+        if (string.IsNullOrEmpty(term))
+        {
+            return Task.FromResult<Result<ChatSearchHits>>(Error.Validation("query.queryString is required.", "query.queryString"));
+        }
+
+        if (term.Length > MaxTextLength)
+        {
+            return Task.FromResult<Result<ChatSearchHits>>(Error.Validation($"query.queryString has at most {MaxTextLength} characters.", "query.queryString"));
+        }
+
+        if (from < 0)
+        {
+            return Task.FromResult<Result<ChatSearchHits>>(Error.Validation("from cannot be negative.", "from"));
+        }
+
+        if (size < 1)
+        {
+            return Task.FromResult<Result<ChatSearchHits>>(Error.Validation("size must be at least 1.", "size"));
+        }
+
+        return search.SearchAsync(term, from, Math.Min(size, MaxSize), cancellationToken);
+    }
+}

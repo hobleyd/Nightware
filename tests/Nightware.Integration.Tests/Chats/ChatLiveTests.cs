@@ -231,4 +231,51 @@ public sealed class ChatLiveTests
             }
         }
     }
+
+    [Fact]
+    public async Task Bob_finds_alices_message_with_microsoft_search()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
+        await using var stack = Start();
+        using var alice = await stack.GraphClientAsync("alice", Ct);
+        using var bob = await stack.GraphClientAsync("bob", Ct);
+        var aliceId = await UserIdAsync(alice, "alice");
+        var bobId = await UserIdAsync(alice, "bob");
+        var chatId = Id(await SendAsync(alice, HttpMethod.Post, "/v1.0/chats",
+            new Dictionary<string, object> { ["chatType"] = "oneOnOne", ["members"] = new[] { UserBind(aliceId), UserBind(bobId) } }, HttpStatusCode.Created));
+
+        var tag = "nwsearch" + Guid.NewGuid().ToString("N")[..8];
+        var messageId = Id(await SendAsync(alice, HttpMethod.Post, $"/v1.0/chats/{chatId}/messages",
+            new { body = new { contentType = "text", content = $"The budget {tag} is done" } }, HttpStatusCode.Created));
+        try
+        {
+            var found = await SendAsync(bob, HttpMethod.Post, "/v1.0/search/query", new
+            {
+                requests = new[] { new { entityTypes = new[] { "chatMessage" }, query = new { queryString = tag }, from = 0, size = 25 } },
+            });
+
+            var container = found["value"]![0]!["hitsContainers"]![0]!;
+            container["moreResultsAvailable"]!.GetValue<bool>().ShouldBeFalse();
+            var hit = container["hits"]!.AsArray().ShouldHaveSingleItem()!;
+            hit["summary"]!.GetValue<string>().ShouldContain(tag);
+            var resource = hit["resource"]!;
+            resource["@odata.type"]!.GetValue<string>().ShouldBe("#microsoft.graph.chatMessage");
+            Id(resource).ShouldBe(messageId);
+            resource["chatId"]!.GetValue<string>().ShouldBe(chatId);
+            resource["from"]!["emailAddress"]!["address"]!.GetValue<string>().ShouldBe(DevStack.Address("alice"));
+            resource["webLink"]!.GetValue<string>().ShouldBe($"{LiveStack.CloudBase}/call/{chatId}#message_{messageId}");
+
+            // The hit's ids read the whole message.
+            (await SendAsync(bob, HttpMethod.Get, $"/v1.0/chats/{chatId}/messages/{messageId}"))["body"]!["content"]!.GetValue<string>().ShouldContain(tag);
+        }
+        finally
+        {
+            await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/chats/{chatId}/messages/{messageId}/softDelete", expected: HttpStatusCode.NoContent);
+        }
+
+        // A deleted message is no longer found.
+        var gone = await SendAsync(bob, HttpMethod.Post, "/v1.0/search/query",
+            new { requests = new[] { new { entityTypes = new[] { "chatMessage" }, query = new { queryString = tag } } } });
+        gone["value"]![0]!["hitsContainers"]![0]!["hits"]!.AsArray().ShouldBeEmpty();
+    }
 }

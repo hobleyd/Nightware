@@ -96,3 +96,32 @@ public interface IChatPins
 
     Task<Result> UnpinAsync(string chatId, string pinnedMessageId, CancellationToken cancellationToken);
 }
+
+/// <summary>Who sent a found message, as Microsoft Search names them (<c>from.emailAddress</c>).</summary>
+/// <param name="Address">The sender's address; null for someone the directory doesn't know (a guest, a bot).</param>
+public sealed record ChatSender(string? Name, string? Address);
+
+/// <summary>
+/// A chat message Microsoft Search found (its trimmed <c>chatMessage</c>: no body, which <c>/chats/{id}/messages/{id}</c>
+/// reads). <paramref name="Summary"/> is the backend's plain-text excerpt around the match.
+/// </summary>
+public sealed record ChatMessageHit(string Id, string ChatId, DateTimeOffset CreatedDateTime, string Summary)
+{
+    public ChatSender? From { get; init; }
+
+    /// <summary>The message in the backend's web client; null when no public link is configured.</summary>
+    public string? WebUrl { get; init; }
+}
+
+/// <param name="MoreAvailable">More messages may match after this window.</param>
+public sealed record ChatSearchHits(IReadOnlyList<ChatMessageHit> Hits, bool MoreAvailable);
+
+/// <summary>
+/// Searches the text of the caller's chat messages (ADR 0009 D10), newest first. <c>from</c> and <c>size</c> are a
+/// window over the backend's matches; a window may hold fewer hits than <c>size</c> where the backend left some out
+/// (channels, the backend's own notes, messages since expired).
+/// </summary>
+public interface IChatSearch
+{
+    Task<Result<ChatSearchHits>> SearchAsync(string text, int from, int size, CancellationToken cancellationToken);
+}

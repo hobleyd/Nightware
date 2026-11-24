@@ -30,6 +30,7 @@ internal static class DavChatsServiceCollectionExtensions
         services.TryAddScoped<IChatMembers, TalkChatMembers>();
         services.TryAddScoped<IChatMessages, TalkChatMessages>();
         services.TryAddScoped<IChatPins, TalkChatPins>();
+        services.TryAddScoped<IChatSearch, TalkChatSearch>();
         return services;
     }
 }

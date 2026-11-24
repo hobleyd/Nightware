@@ -41,7 +41,7 @@ REQUIRED_KEYS = {
     "id", "phase", "method", "version", "path", "forms", "query", "headers",
     "requestBody", "responseFields", "paging", "clientCallSites", "notes",
 }
-VALID_PHASES = {2, 3, 4, 5, "5A", "5B", 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 23, 24, 25, 26, 27}
+VALID_PHASES = {2, 3, 4, 5, "5A", "5B", 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 23, 24, 25, 26, 27, 28}
 # ADR 0006 D1: operations NightMail does not call, added for Graph parity.
 GRAPH_PARITY = "graph-parity"
 VALID_FORMS = {"me", "users", "root", "external"}

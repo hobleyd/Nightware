@@ -81,6 +81,9 @@ public sealed class ChatArrangements : IConformanceArrangements
         yield return Arrange("chats.list", static f => f.For<IChatStore>()
             .ListAsync(Arg.Is<ChatPageQuery>(q => q.Top == 2 && q.SkipToken == null && !q.WithLastMessage), Any)
             .Returns(new Page<Chat>([Group, OneOnOne], "2")));
+        yield return Arrange("search.query.chat-messages", static f => f.For<IChatSearch>().SearchAsync("budget", 0, 25, Any).Returns(new ChatSearchHits(
+            [new ChatMessageHit("61", OneOnOneId, Later, "...the budget is done") { From = new ChatSender("Bob Brown", "bob@example.com"), WebUrl = Web + OneOnOneId + "#message_61" }],
+            false)));
         yield return Arrange("chats.get", static f => f.For<IChatStore>().GetAsync(GroupId, Any).Returns(Group));
         yield return Arrange("chats.create", static f => f.For<IChatStore>()
             .CreateAsync(Arg.Is<ChatCreation>(c => c.ChatType == ChatType.Group && c.Topic == "Project review" && c.Members.Count == 1 && c.Members[0].User == BobId && c.Members[0].IsOwner), Any)

@@ -326,6 +326,35 @@ as thin wrappers.
 `notifications` alongside `spreed` and `groupfolders`. Phases 23–25 need only
 Talk's OCS API. Phase 26's calls also need the HPB the stack already runs.
 
+### D10 — Chat messages are searched through Talk's message search
+*Added (phase 28, 2026-11-24).* Microsoft Search `POST /search/query` with
+`entityTypes: ["chatMessage"]` searches the caller's chat messages over Talk's
+unified search provider `talk-message`
+(`GET /ocs/v2.php/search/providers/talk-message/search?term=&cursor=&limit=`):
+
+- Talk matches the whole `queryString` as text in messages and shared-object
+  messages, newest first, across every room of the caller's. KQL operators
+  (`from:`, `sent>`, `IsMentioned:`) are not interpreted.
+- A match is kept only in one of the caller's chats (D3). Channel rooms (D5),
+  the note to self and the changelog are left out, so a window may hold fewer
+  hits than `size`. Graph's search would also return channel messages; they
+  stay out until channels are searchable too.
+- `from` is Talk's offset cursor. `size` defaults to 25, and a larger one is
+  read as 25, Nextcloud's own cap on a page
+  (`unified-search.max-results-per-request`). `moreResultsAvailable` is true
+  when Talk returned a full page.
+- A hit is Microsoft Search's trimmed `chatMessage`: `id`, `chatId`,
+  `createdDateTime` (also `lastModifiedDateTime`, because Talk's search entry
+  has no edit time), `from.emailAddress` (the directory user's name and mail; a
+  guest has only the name from Talk's entry title), `webLink` (the message in
+  Talk, `{Talk:PublicBaseUrl}call/{token}#message_{id}`), `etag` (the id), an
+  empty `channelIdentity`, and no body. `summary` is Talk's plain-text excerpt
+  around the match, with Talk's ellipsis written as `...`. The full message is
+  `/chats/{chatId}/messages/{id}`.
+- `chatMessage` can't be mixed with other entity types in one request, as in
+  Graph. `driveItem` (ADR 0008) stays its own request, and other types are
+  `400 notSupported`.
+
 ## Consequences
 - The contract gains phases 23–26, with every fixture constructed from
   Microsoft's reference pages, as phase 20's were. Capture scenarios need a

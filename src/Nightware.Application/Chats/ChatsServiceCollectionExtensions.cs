@@ -30,6 +30,7 @@ public static class ChatsServiceCollectionExtensions
         services.TryAddScoped<ListPinnedChatMessages>();
         services.TryAddScoped<PinChatMessage>();
         services.TryAddScoped<UnpinChatMessage>();
+        services.TryAddScoped<SearchChatMessages>();
         return services;
     }
 }

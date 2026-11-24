@@ -34,6 +34,7 @@ internal sealed class TalkChatClient(IDavClient dav)
     internal const string RoomsPath = "apps/spreed/api/v4/room";
     internal const string ChatPath = "apps/spreed/api/v1/chat";
     internal const string ReactionPath = "apps/spreed/api/v1/reaction";
+    internal const string SearchPath = "search/providers/talk-message/search";
 
     /// <summary>Talk's largest history page.</summary>
     internal const int MaxHistoryPage = 200;
@@ -400,6 +401,31 @@ internal sealed class TalkChatClient(IDavClient dav)
 
     public Task<Result> UnpinAsync(string token, long messageId, CancellationToken cancellationToken) =>
         SendAsync(HttpMethod.Delete, token, $"{ChatPath}/{token}/{TalkIds.Decimal(messageId)}/pin", null, cancellationToken, NoMessage());
+
+    /// <summary>
+    /// Talk's message search (the unified search provider <c>talk-message</c>, <see cref="SearchPath"/>), newest first:
+    /// a window of <paramref name="limit"/> matches from <paramref name="offset"/> over every conversation of the
+    /// caller's. Nextcloud caps a page (25 by default).
+    /// </summary>
+    public async Task<Result<TalkSearchPage>> SearchMessagesAsync(string term, int offset, int limit, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(term);
+        var query = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["term"] = term,
+            ["limit"] = limit.ToString(CultureInfo.InvariantCulture),
+            ["cursor"] = offset.ToString(CultureInfo.InvariantCulture),
+        };
+        var read = await dav.OcsGetAsync(SearchPath, query, cancellationToken).ConfigureAwait(false);
+        if (!read.IsSuccess)
+        {
+            return read.Error;
+        }
+
+        return read.Value.ValueKind == JsonValueKind.Object && read.Value.TryGetProperty("entries", out var entries) && entries.ValueKind == JsonValueKind.Array
+            ? TalkSearchPage.Parse(entries)
+            : Unexpected("search result");
+    }
 
     internal static Error NoConversation() => Error.NotFound("The chat was not found, or you are not a member of it.");
 

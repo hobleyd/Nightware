@@ -18,6 +18,7 @@ using Nightware.Api.Discovery;
 using Nightware.Api.Features.Calendar;
 using Nightware.Api.Features.Contacts;
 using Nightware.Api.Features.Directory;
+using Nightware.Api.Features.Search;
 using Nightware.Api.Features.Files;
 using Nightware.Api.Features.Files.Drives;
 using Nightware.Api.Features.Mail;
@@ -170,6 +171,7 @@ public static class NightwareComposition
                 .MapSubscriptionsEndpoints()
                 .MapBatchEndpoints()
                 .MapChatsEndpoints()
+                .MapSearchEndpoints()
                 .MapTeamsEndpoints()
                 .MapPresenceEndpoints()
                 .MapOnlineMeetingsEndpoints()

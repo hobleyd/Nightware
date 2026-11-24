@@ -287,3 +287,43 @@ internal sealed record TalkParticipant(long AttendeeId, TalkActor Actor, int Par
         new TalkActor(TalkJson.String(element, "actorType") ?? string.Empty, TalkJson.String(element, "actorId") ?? string.Empty, TalkJson.String(element, "displayName")),
         (int)(TalkJson.Long(element, "participantType") ?? 0));
 }
+
+/// <summary>
+/// One match of Talk's message search (a unified search entry): <c>attributes</c> name the conversation, message and
+/// sender; <c>title</c> is "{sender} in {conversation}" (just the sender in a one-to-one); <c>subline</c> the message's
+/// text around the match, mentions as <c>@name</c>.
+/// </summary>
+internal sealed record TalkSearchEntry(string Token, long MessageId, TalkActor Actor, DateTimeOffset Timestamp)
+{
+    public string Title { get; init; } = string.Empty;
+
+    public string Excerpt { get; init; } = string.Empty;
+
+    public static TalkSearchEntry? Parse(JsonElement entry)
+    {
+        if (entry.ValueKind != JsonValueKind.Object || !entry.TryGetProperty("attributes", out var attributes)
+            || TalkJson.String(attributes, "conversation") is not { } token || !TalkIds.IsToken(token)
+            || TalkJson.Long(attributes, "messageId") is not { } id || id <= 0
+            || TalkJson.Long(attributes, "timestamp") is not { } timestamp)
+        {
+            return null;
+        }
+
+        var actor = new TalkActor(TalkJson.String(attributes, "actorType") ?? string.Empty, TalkJson.String(attributes, "actorId") ?? string.Empty, null);
+        return new TalkSearchEntry(token, id, actor, TalkJson.Instant(timestamp))
+        {
+            Title = TalkJson.String(entry, "title") ?? string.Empty,
+            Excerpt = TalkJson.String(entry, "subline") ?? string.Empty,
+        };
+    }
+}
+
+/// <param name="Read">How many entries Talk returned, readable or not: a full page means more may match.</param>
+internal sealed record TalkSearchPage(IReadOnlyList<TalkSearchEntry> Entries, int Read)
+{
+    public static TalkSearchPage Parse(JsonElement entries)
+    {
+        var all = TalkJson.Items(entries).ToList();
+        return new TalkSearchPage(all.Select(TalkSearchEntry.Parse).OfType<TalkSearchEntry>().ToList(), all.Count);
+    }
+}

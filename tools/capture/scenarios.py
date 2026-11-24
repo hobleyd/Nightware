@@ -621,6 +621,12 @@ DRIVE_MORE = [
     setup("DELETE", "/v1.0/me/drive/items/${folderId}", always=True),
 ]
 
+# Phase 28: Microsoft Search over chat messages (ADR 0009 D10); a tenant with Teams chats finds some for "meeting".
+CHAT_SEARCH = [
+    step("search.query.chat-messages", "POST", "/v1.0/search/query",
+         body={"requests": [{"entityTypes": ["chatMessage"], "query": {"queryString": "meeting"}, "from": 0, "size": 25}]}),
+]
+
 PHASES = {
     11: [("batch", BATCH)],
     12: [("mail", MAIL)],
@@ -633,4 +639,5 @@ PHASES = {
     20: [("drive", DRIVE)],
     21: [("directory", DIRECTORY)],
     27: [("drive more", DRIVE_MORE)],
+    28: [("chat search", CHAT_SEARCH)],
 }
