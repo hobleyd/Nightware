@@ -104,6 +104,11 @@ as the books that mailbox shared with the caller, as it reads calendars; none
 is 403. New contacts go into that book; a member can't add address books to
 it. Existing shared mailboxes get the book from Repair.
 
+The same repair gives the mailbox files: a folder in its user's home, named
+after the mailbox, shared read-write with the group (a share already made to
+the group is kept, whatever the folder is called now). Members reach it as
+`/users/{address}/drive` (ADR 0008 D12).
+
 ### D6 — A calendar of its own (added 2026-11-21, phase 17)
 A shared mailbox has a calendar in Nextcloud. Nextcloud keeps calendars for its
 own users only, so the mailbox gets one: a local Nextcloud user

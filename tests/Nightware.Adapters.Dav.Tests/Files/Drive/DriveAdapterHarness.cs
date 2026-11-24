@@ -29,7 +29,7 @@ internal sealed class DriveAdapterHarness : IDisposable
 
     public DriveAdapterHarness()
     {
-        var discovery = Substitute.For<IDavPrincipalDiscovery>();
+        var discovery = Discovery;
         discovery.CurrentUserAsync(Arg.Any<CancellationToken>()).Returns(new DavPrincipal(DavRoot + "principals/users/alice/", true));
         var credentials = Substitute.For<IBackendCredentials>();
         credentials.ForAsync(Backend.Groupware, Arg.Any<CancellationToken>()).Returns(new BackendCredential("Bearer", "nc-token", CredentialStrategy.TokenExchange));
@@ -52,6 +52,8 @@ internal sealed class DriveAdapterHarness : IDisposable
     }
 
     public WireMockServer Server { get; } = WireMockServer.Start();
+
+    public IDavPrincipalDiscovery Discovery { get; } = Substitute.For<IDavPrincipalDiscovery>();
 
     public FakeTimeProvider Time { get; } = new(new DateTimeOffset(2026, 11, 22, 0, 0, 0, TimeSpan.Zero));
 

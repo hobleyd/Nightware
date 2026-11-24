@@ -97,26 +97,23 @@ internal static class DriveEndpoints
         Mailbox mailbox, DriveAddress at, IUserContext caller, IOptions<DiscoveryOptions> discovery, ODataQuery odata, GetDrive useCase,
         CancellationToken cancellationToken)
     {
-        if (DriveRequests.OwnDrive(mailbox, caller) is { } denied)
-        {
-            return DriveRequests.Fail(denied);
-        }
-
+        // Another mailbox's drive: a shared mailbox's, for its members (phase 27); the store refuses anyone else's.
+        var drive = DriveRequests.OwnDrive(mailbox, caller) is null
+            ? await useCase.ExecuteAsync(at.DriveId, cancellationToken).ConfigureAwait(false)
+            : await useCase.ExecuteAsync(mailbox.Ref.Address, at.DriveId, cancellationToken).ConfigureAwait(false);
         return DriveRequests.Match(
-            await useCase.ExecuteAsync(at.DriveId, cancellationToken).ConfigureAwait(false),
+            drive,
             drive => GraphResults.Entity(DriveDto.From(drive, FilesBase(discovery)), at.DriveId is null ? DriveRequests.Context(mailbox, string.Empty) : "drives", odata.Query.Select));
     }
 
     private static async Task<IResult> ListDrivesAsync(
         Mailbox mailbox, IUserContext caller, IOptions<DiscoveryOptions> discovery, ODataQuery odata, GetDrive useCase, CancellationToken cancellationToken)
     {
-        if (DriveRequests.OwnDrive(mailbox, caller) is { } denied)
-        {
-            return DriveRequests.Fail(denied);
-        }
-
+        var drive = DriveRequests.OwnDrive(mailbox, caller) is null
+            ? await useCase.ExecuteAsync(null, cancellationToken).ConfigureAwait(false)
+            : await useCase.ExecuteAsync(mailbox.Ref.Address, null, cancellationToken).ConfigureAwait(false);
         return DriveRequests.Match(
-            await useCase.ExecuteAsync(null, cancellationToken).ConfigureAwait(false),
+            drive,
             drive => GraphResults.Collection([DriveDto.From(drive, FilesBase(discovery))], "drives", odata.Query));
     }
 
@@ -651,9 +648,9 @@ internal static class DriveEndpoints
         {
             // /drives/{id}/root/delta: only the caller's own drive has one.
             var drive = await drives.ExecuteAsync(at.DriveId, cancellationToken).ConfigureAwait(false);
-            if (!drive.IsSuccess)
+            if (!drive.IsSuccess || drive.Value.IsShared)
             {
-                return DriveRequests.Fail(drive.Error);
+                return DriveRequests.Fail(drive.IsSuccess ? SharedDriveOnly("delta") : drive.Error);
             }
         }
 
@@ -686,9 +683,9 @@ internal static class DriveEndpoints
         if (at.DriveId is not null)
         {
             var drive = await drives.ExecuteAsync(at.DriveId, cancellationToken).ConfigureAwait(false);
-            if (!drive.IsSuccess)
+            if (!drive.IsSuccess || drive.Value.IsShared)
             {
-                return DriveRequests.Fail(drive.Error);
+                return DriveRequests.Fail(drive.IsSuccess ? SharedDriveOnly("search") : drive.Error);
             }
         }
 
@@ -823,16 +820,22 @@ internal static class DriveEndpoints
             return DriveRequests.Fail(denied);
         }
 
-        if (at.DriveId is not null && await drives.ExecuteAsync(at.DriveId, cancellationToken).ConfigureAwait(false) is { IsSuccess: false } missing)
+        if (at.DriveId is not null && await drives.ExecuteAsync(at.DriveId, cancellationToken).ConfigureAwait(false) is { } drive && (!drive.IsSuccess || drive.Value.IsShared))
         {
-            return DriveRequests.Fail(missing.Error);
+            return DriveRequests.Fail(drive.IsSuccess ? SharedDriveOnly("this") : drive.Error);
         }
 
         return null;
     }
 
+    /// <summary>A route the caller's own drive answers that a shared mailbox's drive doesn't (phase 27).</summary>
+    private static Error SharedDriveOnly(string what) =>
+        new(ErrorKind.Unsupported, DriveErrors.NotSupportedCode, $"A shared mailbox's drive has no {what}; it is answered for your own drive.");
+
     private static Result<DriveItemRef> Target(Mailbox mailbox, IUserContext caller, DriveAddress at) =>
-        DriveRequests.OwnDrive(mailbox, caller) is { } denied ? denied : DriveRequests.ItemRef(at.ItemId, at.ItemPath, at.DriveId);
+        DriveRequests.OwnDrive(mailbox, caller) is null
+            ? DriveRequests.ItemRef(at.ItemId, at.ItemPath, at.DriveId)
+            : DriveRequests.ItemRef(at.ItemId, at.ItemPath, at.DriveId).Map(r => r with { Owner = mailbox.Ref.Address });
 
     private static DriveItemResourceDto ItemDto(DriveItem item, IOptions<DiscoveryOptions> discovery) =>
         DriveItemResourceDto.From(item, FilesBase(discovery));

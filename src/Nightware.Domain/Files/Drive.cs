@@ -17,6 +17,9 @@ public sealed record Drive(string Id, string Name)
     public DateTimeOffset? LastModifiedDateTime { get; init; }
 
     public DriveQuota? Quota { get; init; }
+
+    /// <summary>A shared mailbox's drive the caller reaches as a member, not the caller's own (phase 27).</summary>
+    public bool IsShared { get; init; }
 }
 
 /// <summary>
@@ -141,6 +144,12 @@ public sealed record DriveItemRef(string? ItemId, IReadOnlyList<string> Path)
     /// but the caller's own.
     /// </summary>
     public string? DriveId { get; init; }
+
+    /// <summary>
+    /// The mailbox (address) whose drive the route named (<c>/users/{x}/drive</c>) when it isn't the caller's: a shared
+    /// mailbox's drive is reachable to its members (phase 27); anyone else's is refused by the store.
+    /// </summary>
+    public string? Owner { get; init; }
 
     public static DriveItemRef ById(string itemId) => new(itemId, []);
 

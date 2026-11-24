@@ -15,9 +15,14 @@ namespace Nightware.Adapters.Dav.Files.Drive;
 /// </summary>
 internal sealed class NextcloudDriveStore(IDavClient dav, DriveItemLocator locator, DriveHomeLocator homes, NextcloudAppRequests app) : IDriveStore
 {
-    public async Task<Result<Domain.Files.Drive>> GetDriveAsync(string? driveId, CancellationToken cancellationToken)
+    public async Task<Result<Domain.Files.Drive>> GetDriveAsync(string? driveId, CancellationToken cancellationToken) =>
+        await DriveAsync(await homes.ForDriveAsync(driveId, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+
+    public async Task<Result<Domain.Files.Drive>> GetDriveOfAsync(string owner, string? driveId, CancellationToken cancellationToken) =>
+        await DriveAsync(await homes.ForOwnerAsync(owner, driveId, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+
+    private async Task<Result<Domain.Files.Drive>> DriveAsync(Result<DriveHome> home, CancellationToken cancellationToken)
     {
-        var home = await homes.ForDriveAsync(driveId, cancellationToken).ConfigureAwait(false);
         if (!home.IsSuccess)
         {
             return home.Error;
@@ -36,9 +41,10 @@ internal sealed class NextcloudDriveStore(IDavClient dav, DriveItemLocator locat
 
         // Nextcloud reports "unlimited" (and "not computed") as negative values: no total, nothing remaining to report.
         var remaining = available is >= 0 ? available : null;
-        var uid = Uri.UnescapeDataString(home.Value.Uid);
-        return new Domain.Files.Drive(home.Value.DriveId, "OneDrive")
+        var uid = home.Value.OwnerUid ?? Uri.UnescapeDataString(home.Value.Uid);
+        return new Domain.Files.Drive(home.Value.DriveId, home.Value.IsShared ? root?.Text(DavNames.DisplayName) ?? "Files" : "OneDrive")
         {
+            IsShared = home.Value.IsShared,
             OwnerId = uid,
             OwnerDisplayName = root?.Text(DavNames.DisplayName) ?? uid,
             LastModifiedDateTime = DateTimeOffset.TryParse(root?.Text(DavNames.GetLastModified), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var modified)

@@ -34,7 +34,7 @@ internal sealed class DriveItemLocator(IDavClient dav, DavPaths paths, DriveHome
     public Task<Result<DriveHome>> HomeAsync(DriveItemRef item, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(item);
-        return homes.ForDriveAsync(item.DriveId, cancellationToken);
+        return item.Owner is { } owner ? homes.ForOwnerAsync(owner, item.DriveId, cancellationToken) : homes.ForDriveAsync(item.DriveId, cancellationToken);
     }
 
     /// <summary>The item <paramref name="item"/> names; NotFound when it doesn't exist (or lies outside the home).</summary>
@@ -318,7 +318,8 @@ internal sealed class DriveItemLocator(IDavClient dav, DavPaths paths, DriveHome
             new XElement(DavNs.Dav + "select", new XElement(DavNames.Prop, DriveItemMapping.Properties.Select(static p => new XElement(p)))),
             new XElement(DavNs.Dav + "from",
                 new XElement(DavNs.Dav + "scope",
-                    new XElement(DavNames.Href, "/" + home.Href.TrimEnd('/')),
+                    // Nextcloud resolves the scope as a decoded path: "/files/alice/sp%20ace" is "not located".
+                    new XElement(DavNames.Href, ScopeOf(home)),
                     new XElement(DavNs.Dav + "depth", "infinity"))),
             new XElement(DavNs.Dav + "where", where),
             new XElement(DavNs.Dav + "orderby", orderBy));
@@ -338,6 +339,10 @@ internal sealed class DriveItemLocator(IDavClient dav, DavPaths paths, DriveHome
                 new XAttribute(XNamespace.Xmlns + "ns", SearchDav),
                 basic));
     }
+
+    /// <summary>The <c>SEARCH</c> scope for the drive's root: its href as a decoded path (a uid or folder may need escaping).</summary>
+    internal static string ScopeOf(DriveHome home) =>
+        "/" + string.Join('/', home.Href.TrimEnd('/').Split('/').Select(Uri.UnescapeDataString));
 
     /// <summary>An <c>orderby</c> on <paramref name="key"/>.</summary>
     public static XElement OrderBy(DriveSortKey key, bool descending) =>

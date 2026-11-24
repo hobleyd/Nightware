@@ -105,12 +105,40 @@ public sealed class DriveEndpointsTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Another_users_drive_is_access_denied_and_ones_own_by_address_is_served()
+    public async Task Another_users_drive_is_asked_of_the_store_and_ones_own_by_address_is_served()
     {
         _store.GetDriveAsync(null, Arg.Any<CancellationToken>()).Returns(new Drive(DriveId, "OneDrive"));
+        _store.GetDriveOfAsync("bob@example.com", null, Arg.Any<CancellationToken>()).Returns(Error.Forbidden("not a shared mailbox"));
 
         (await GetAsync("/v1.0/users/bob@example.com/drive", HttpStatusCode.Forbidden)).Str("error.code").ShouldBe("accessDenied");
         (await GetAsync($"/v1.0/users/{TestHost.UserEmail}/drive")).Str("id").ShouldBe(DriveId);
+    }
+
+    [Fact]
+    public async Task A_shared_mailboxs_drive_is_its_members_and_its_items_name_it()
+    {
+        const string DeskDrive = "nc!bWJ4LWRlc2s";
+        _store.GetDriveOfAsync("desk@example.com", null, Arg.Any<CancellationToken>()).Returns(new Drive(DeskDrive, "Help desk") { IsShared = true });
+        _store.ListChildrenAsync(Arg.Is<DriveItemRef>(r => r.Owner == "desk@example.com" && r.ItemId == null), Arg.Any<DriveListQuery>(), Arg.Any<CancellationToken>())
+            .Returns(new Page<DriveItem>([File with { DriveId = DeskDrive }], null));
+
+        (await GetAsync("/v1.0/users/desk@example.com/drive")).Str("id").ShouldBe(DeskDrive);
+        (await GetAsync("/v1.0/users/desk@example.com/drive/root/children"))["value"]![0]!.Str("parentReference.driveId").ShouldBe(DeskDrive);
+    }
+
+    [Fact]
+    public async Task Routes_only_the_callers_own_drive_answers_refuse_a_shared_drive()
+    {
+        const string DeskDrive = "nc!bWJ4LWRlc2s";
+        _store.GetDriveAsync(DeskDrive, Arg.Any<CancellationToken>()).Returns(new Drive(DeskDrive, "Help desk") { IsShared = true });
+
+        foreach (var route in new[] { "root/delta", "root/search(q='x')", "sharedWithMe", "recent" })
+        {
+            using var response = await Client.GetAsync($"/v1.0/drives/{DeskDrive}/{route}", Ct);
+            response.StatusCode.ShouldBe(HttpStatusCode.NotImplemented, route);
+        }
+
+        (await GetAsync("/v1.0/users/desk@example.com/drive/special/documents", HttpStatusCode.Forbidden)).Str("error.code").ShouldBe("accessDenied");
     }
 
     [Fact]

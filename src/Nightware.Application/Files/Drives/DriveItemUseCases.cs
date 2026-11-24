@@ -24,6 +24,10 @@ public sealed class GetDrive(IDriveStore store)
 {
     public Task<Result<Drive>> ExecuteAsync(string? driveId, CancellationToken cancellationToken) =>
         store.GetDriveAsync(driveId, cancellationToken);
+
+    /// <summary>Another mailbox's drive (<c>/users/{x}/drive</c>): a shared mailbox's, for its members.</summary>
+    public Task<Result<Drive>> ExecuteAsync(string owner, string? driveId, CancellationToken cancellationToken) =>
+        store.GetDriveOfAsync(owner, driveId, cancellationToken);
 }
 
 /// <summary>Graph <c>GET …/items/{id}</c> (and <c>root</c>, and path addressing).</summary>

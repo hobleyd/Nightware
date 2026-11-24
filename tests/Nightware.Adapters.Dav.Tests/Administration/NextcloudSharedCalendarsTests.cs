@@ -34,6 +34,16 @@ public sealed class NextcloudSharedCalendarsTests : IDisposable
             $"""<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>/cloud{Personal}</d:href></d:response>{string.Concat(resources.Select(r => $"<d:response><d:href>/cloud{Personal}{r}</d:href></d:response>"))}</d:multistatus>""",
             "application/xml; charset=utf-8");
 
+    private const string FileShares = "/ocs/v2.php/apps/files_sharing/api/v1/shares";
+    private const string HelpDeskFolder = "/remote.php/dav/files/mbx-desk@acme.example/Help desk/";
+
+    private void Files(string existingShares = "[]")
+    {
+        _nextcloud.AnswerRaw("GET", FileShares, 200, "{\"ocs\":{\"meta\":{\"statuscode\":200},\"data\":" + existingShares + "}}");
+        _nextcloud.AnswerRaw("MKCOL", HelpDeskFolder, 201, "");
+        _nextcloud.AnswerRaw("POST", FileShares, 200, """{"ocs":{"meta":{"statuscode":200},"data":{"id":"7"}}}""");
+    }
+
     private void AddressBook()
     {
         _nextcloud.AnswerRaw("PROPFIND", Contacts, 207, $"""<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>/cloud{Contacts}</d:href></d:response></d:multistatus>""", "application/xml; charset=utf-8");
@@ -58,6 +68,7 @@ public sealed class NextcloudSharedCalendarsTests : IDisposable
         _nextcloud.AnswerRaw("DELETE", Personal + "sample.ics", 204, "");
         _nextcloud.AnswerRaw("POST", Personal, 200, "");
         AddressBook();
+        Files();
 
         (await Calendars.EnsureAsync(Desk, "Help desk", "mbx-desk@acme.example", Ct)).IsSuccess.ShouldBeTrue();
 
@@ -72,7 +83,36 @@ public sealed class NextcloudSharedCalendarsTests : IDisposable
         Sent("POST", Personal).Single().Body!.ShouldContain("principal:principals/groups/mbx-desk%40acme.example</d:href><o:read-write/>");
         BasicUser(Sent("PROPFIND", Contacts).Single()).ShouldBe("mbx-desk@acme.example", "the address book is made by its owner's first CardDAV request");
         Sent("POST", Contacts).Single().Body!.ShouldContain("principal:principals/groups/mbx-desk%40acme.example</d:href><o:read-write/>");
+        BasicUser(Sent("MKCOL", HelpDeskFolder).Single()).ShouldBe("mbx-desk@acme.example");
+        var share = Sent("POST", FileShares).Single();
+        share.Query!["path"].Single().ShouldBe("/Help desk");
+        share.Query["shareType"].Single().ShouldBe("1");
+        share.Query["shareWith"].Single().ShouldBe("mbx-desk@acme.example");
+        share.Query["permissions"].Single().ShouldBe("31");
     }
+
+    [Fact]
+    public async Task A_files_folder_already_shared_with_the_group_is_left_alone()
+    {
+        _nextcloud.Answer("GET", User, 200, 100, """{"id":"mbx-desk@acme.example"}""");
+        _nextcloud.Answer("PUT", User, 200, 100);
+        Calendar();
+        _nextcloud.AnswerRaw("POST", Personal, 200, "");
+        AddressBook();
+        Files("""[{"id":"7","share_type":1,"share_with":"mbx-desk@acme.example","item_type":"folder","path":"/Renamed by someone"}]""");
+
+        (await Calendars.EnsureAsync(Desk, "Help desk", "mbx-desk@acme.example", Ct)).IsSuccess.ShouldBeTrue();
+
+        Sent("MKCOL", HelpDeskFolder).ShouldBeEmpty();
+        Sent("POST", FileShares).ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("Help desk", "Help desk")]
+    [InlineData("A/B\\C", "ABC")]
+    [InlineData("  ..  ", "Files")]
+    public void A_folder_is_named_after_the_mailbox_without_separators(string name, string folder) =>
+        NextcloudSharedCalendars.FolderName(name).ShouldBe(folder);
 
     [Fact]
     public async Task An_existing_mailbox_gets_a_fresh_password_and_its_events_are_left_alone()
@@ -82,6 +122,7 @@ public sealed class NextcloudSharedCalendarsTests : IDisposable
         Calendar("rota.ics");
         _nextcloud.AnswerRaw("POST", Personal, 200, "");
         AddressBook();
+        Files();
 
         (await Calendars.EnsureAsync(Desk, "Help desk", "mbx-desk@acme.example", Ct)).IsSuccess.ShouldBeTrue();
 

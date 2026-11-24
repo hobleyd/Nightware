@@ -3381,7 +3381,7 @@ operation:
 
 - Client reads: `id`, `driveType`, `owner`, `quota`
 - Graph parity (ADR 0006); reference: drive-get
-- Notes: The caller's Nextcloud home as a personal drive. /users/{x}/drive only for the caller (403 otherwise). Quota from Nextcloud; total and remaining are left out when unlimited.
+- Notes: The caller's Nextcloud home as a personal drive. /users/{x}/drive only for the caller (403 otherwise). Quota from Nextcloud; total and remaining are left out when unlimited. /users/{x}/drive for a shared mailbox the caller is a member of is that mailbox's drive (the folder it shares with its members, ADR 0008 D12); anyone else's is 403.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.get.json`
 
 #### `files.drives.list`

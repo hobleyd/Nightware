@@ -37,6 +37,9 @@ public interface IDriveStore
     /// <param name="driveId">The drive the route named; null for the caller's own.</param>
     Task<Result<Drive>> GetDriveAsync(string? driveId, CancellationToken cancellationToken);
 
+    /// <summary>The drive of the mailbox <paramref name="owner"/> (a shared mailbox the caller is a member of).</summary>
+    Task<Result<Drive>> GetDriveOfAsync(string owner, string? driveId, CancellationToken cancellationToken);
+
     Task<Result<DriveItem>> GetItemAsync(DriveItemRef item, CancellationToken cancellationToken);
 
     Task<Result<Page<DriveItem>>> ListChildrenAsync(DriveItemRef folder, DriveListQuery query, CancellationToken cancellationToken);

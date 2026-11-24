@@ -122,6 +122,23 @@ public sealed class SharedMailboxesLiveTests : IAsyncDisposable
                 JsonObject contacts = (await graph.GetFromJsonAsync<JsonObject>($"/v1.0/users/{address}/contacts?$select=id,displayName", Ct))!;
                 contacts["value"]!.AsArray().Select(c => c!["displayName"]!.GetValue<string>()).ShouldContain("Sam Supplier");
 
+                // Its files (phase 27): a folder the mailbox shares with its members, reached as its drive.
+                JsonObject drive = (await graph.GetFromJsonAsync<JsonObject>($"/v1.0/users/{address}/drive", Ct))!;
+                string driveId = drive["id"]!.GetValue<string>();
+                using (var upload = new ByteArrayContent("rota\n"u8.ToArray()))
+                {
+                    upload.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/plain");
+                    using HttpResponseMessage put = await graph.PutAsync($"/v1.0/users/{address}/drive/root:/rota.txt:/content", upload, Ct);
+                    put.StatusCode.ShouldBe(HttpStatusCode.Created, await put.Content.ReadAsStringAsync(Ct));
+                    JsonObject file = (await put.Content.ReadFromJsonAsync<JsonObject>(Ct))!;
+                    file["parentReference"]!["driveId"]!.GetValue<string>().ShouldBe(driveId);
+                    JsonObject byDrive = (await graph.GetFromJsonAsync<JsonObject>($"/v1.0/drives/{Uri.EscapeDataString(driveId)}/items/{file["id"]!.GetValue<string>()}", Ct))!;
+                    byDrive["name"]!.GetValue<string>().ShouldBe("rota.txt");
+                }
+
+                JsonObject children = (await graph.GetFromJsonAsync<JsonObject>($"/v1.0/users/{address}/drive/root/children?$select=name", Ct))!;
+                children["value"]!.AsArray().Select(c => c!["name"]!.GetValue<string>()).ShouldContain("rota.txt");
+
                 // She sends as it (the group account's own identity, her exchanged token), and it arrives from its address.
                 string subject = "shared " + local;
                 var message = new JsonObject

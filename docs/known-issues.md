@@ -44,8 +44,9 @@ what a fix needs. Ordered by impact within each section.
   `501 notSupported`. An item moved out of the caller's view (an unshare) is reported as deleted, which is what a client
   should do with it anyway. The initial listing pages by offset over a name ordering: an item renamed during a long
   first sync may be listed twice, never missed (the activity stream reports it again afterwards).
-- **Only the caller's own drive.** `/users/{x}/drive` for anyone else is 403, `/drives/{id}` for another drive 404: the
-  façade reads files as the caller and Nextcloud has no way to open another user's home.
+- **Only the caller's own drive, or a shared mailbox's.** `/users/{x}/drive` for any other person is 403, `/drives/{id}`
+  for their drive 404: the façade reads files as the caller and Nextcloud has no way to open another user's home. A
+  shared mailbox's drive is the folder it shares with its members (ADR 0008 D12).
 - **`createLink` and `invite`** create Nextcloud shares; Nextcloud sends its own notification for an invitation, and
   Graph's `message`/`sendInvitation` aren't used. `organization` links, `embed` links (Nextcloud's share pages refuse
   to be framed by other sites) and roles other than `read`/`write` are `400 notSupported`.
@@ -106,10 +107,11 @@ what a fix needs. Ordered by impact within each section.
   JMAP session doesn't know makes the façade fetch the session again, at most
   every 30 seconds per caller (phase 27). Removal is immediate (the mail server
   refuses).
-- A shared mailbox has a calendar and an address book (ADR 0004 D6, D7) but no
-  files: those routes answer as for any address Nextcloud does not know. Shared
-  mailboxes created before v1.39 get their calendar, and those before v1.79 their
-  address book, from the console's Repair.
+- A shared mailbox has a calendar, an address book and files (ADR 0004 D6, D7).
+  Shared mailboxes created before v1.39 get their calendar, and those before
+  v1.80 their address book and files, from the console's Repair. Its drive
+  answers items, uploads, sharing and versions; `root/delta`, `search`,
+  `sharedWithMe` and `recent` are your own drive's only (501 on its drive).
 - Graph-only profile fields (`jobTitle`, `department`, `companyName`,
   `officeLocation`, `businessPhones`, `mobilePhone`) are set on the console's
   user page ("Profile"). `keycloak/configure.sh` declares their attributes;

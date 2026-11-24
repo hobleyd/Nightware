@@ -149,9 +149,88 @@ internal sealed partial class NextcloudSharedCalendars(NextcloudProvisioningClie
             return sharedBook.Error;
         }
 
-        return sharedBook.Value.Status is >= 200 and < 300
+        if (sharedBook.Value.Status is < 200 or >= 300)
+        {
+            return Error.BackendUnavailable($"Nextcloud answered {sharedBook.Value.Status} when sharing {uid}'s address book.");
+        }
+
+        return await EnsureFilesAsync(uid, password, displayName, groupId, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Phase 27: the mailbox's files, a folder in its user's home shared read-write with the group, which members
+    /// reach as <c>/users/{address}/drive</c>. An existing share to the group is kept as it is (the folder may have been
+    /// renamed); otherwise the folder, named after the mailbox, is made (or reused) and shared.
+    /// </summary>
+    private async Task<Result> EnsureFilesAsync(string uid, string password, string displayName, string groupId, CancellationToken cancellationToken)
+    {
+        const string Shares = "ocs/v2.php/apps/files_sharing/api/v1/shares";
+        var listed = await client.SendDavAsync(HttpMethod.Get, Shares + "?format=json", uid, password, null, null, cancellationToken).ConfigureAwait(false);
+        if (!listed.IsSuccess)
+        {
+            return listed.Error;
+        }
+
+        if (listed.Value.Status != 200)
+        {
+            return Error.BackendUnavailable($"Nextcloud answered {listed.Value.Status} when listing {uid}'s shares.");
+        }
+
+        if (SharesFolderWith(listed.Value.Body, groupId))
+        {
+            return Result.Success();
+        }
+
+        var folder = FolderName(displayName);
+        var made = await client.SendDavAsync(new HttpMethod("MKCOL"), $"remote.php/dav/files/{Uri.EscapeDataString(uid)}/{Uri.EscapeDataString(folder)}/", uid, password, null, null, cancellationToken)
+            .ConfigureAwait(false);
+        if (!made.IsSuccess)
+        {
+            return made.Error;
+        }
+
+        // 405: the folder is already there (an earlier repair made it, and its share went).
+        if (made.Value.Status is not (201 or 405))
+        {
+            return Error.BackendUnavailable($"Nextcloud answered {made.Value.Status} when making {uid}'s files folder.");
+        }
+
+        var query = $"?path={Uri.EscapeDataString("/" + folder)}&shareType=1&shareWith={Uri.EscapeDataString(groupId)}&permissions=31&format=json";
+        var shared = await client.SendDavAsync(HttpMethod.Post, Shares + query, uid, password, null, null, cancellationToken).ConfigureAwait(false);
+        if (!shared.IsSuccess)
+        {
+            return shared.Error;
+        }
+
+        return shared.Value.Status == 200
             ? Result.Success()
-            : Error.BackendUnavailable($"Nextcloud answered {sharedBook.Value.Status} when sharing {uid}'s address book.");
+            : Error.BackendUnavailable($"Nextcloud answered {shared.Value.Status} when sharing {uid}'s files.");
+    }
+
+    /// <summary>True when the user's shares (OCS JSON) include a folder shared with the group.</summary>
+    internal static bool SharesFolderWith(string body, string groupId)
+    {
+        try
+        {
+            using var json = System.Text.Json.JsonDocument.Parse(body);
+            return json.RootElement.TryGetProperty("ocs", out var ocs) && ocs.TryGetProperty("data", out var data)
+                && data.ValueKind == System.Text.Json.JsonValueKind.Array
+                && data.EnumerateArray().Any(s =>
+                    s.TryGetProperty("share_type", out var type) && type.ValueKind == System.Text.Json.JsonValueKind.Number && type.GetInt32() == 1
+                    && s.TryGetProperty("share_with", out var with) && string.Equals(with.GetString(), groupId, StringComparison.Ordinal)
+                    && s.TryGetProperty("item_type", out var item) && item.GetString() == "folder");
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>The mailbox's name as a folder name: no separators or control characters, never empty.</summary>
+    internal static string FolderName(string displayName)
+    {
+        var cleaned = new string([.. displayName.Where(static c => c is not ('/' or '\\') && !char.IsControl(c))]).Trim().Trim('.');
+        return cleaned.Length == 0 ? "Files" : cleaned;
     }
 
     public async Task<Result> DeleteAsync(MailAddress address, CancellationToken cancellationToken)

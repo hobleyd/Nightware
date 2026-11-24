@@ -152,6 +152,21 @@ images, PDFs, office documents and text. It is never the file itself: served
 inline from the façade's origin, an HTML or SVG file would run script there.
 An item with no preview is `400 notSupported`.
 
+### D12 — A shared mailbox's drive *(phase 27)*
+- D1 holds for people: only the caller's own drive. A shared mailbox's
+  Nextcloud user (`mbx-{address}`, ADR 0004 D6) shares a folder with the
+  members' group; `/users/{address}/drive` and `/drives/{its id}` are that
+  folder as mounted in the caller's home. It is found by the share (owner uid,
+  a folder), never by name, so a member renaming or moving the mount changes
+  nothing. Its drive id names the mailbox's user; no one else's id resolves.
+- The drive's root is the mount: items, children, uploads (staged in the
+  caller's own uploads), copies, links and versions work as on one's own
+  drive. `root/delta` (the activity stream is the caller's), `search`,
+  `sharedWithMe` and `recent` are the caller's own drive's: on the shared
+  drive they are `501 notSupported`.
+- A `SEARCH` scope is the decoded path: Nextcloud reports a percent-encoded
+  one (`/files/alice/sp%20ace`) as not found.
+
 ## Consequences
 - The contract gains the phase 20 operations, all `"source": "graph-parity"`.
 - Delta needs Nextcloud's activity app, which a default install enables.
