@@ -25,8 +25,12 @@ public sealed class MessageEventUseCaseTests
     private readonly IICalendarCodec _codec = Substitute.For<IICalendarCodec>();
     private readonly ICalendarReader _calendar = Substitute.For<ICalendarReader>();
     private readonly ISchedulingActions _scheduling = Substitute.For<ISchedulingActions>();
+    private readonly IInvitationImporter _importer = Substitute.For<IInvitationImporter>();
 
-    private GetMessageEvent Resolve() => new(_mail, _codec, _calendar);
+    public MessageEventUseCaseTests() =>
+        _importer.ImportAsync(Arg.Any<MailboxRef>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Error.NotFound("organizer inside"));
+
+    private GetMessageEvent Resolve() => new(_mail, _codec, _calendar, _importer);
 
     private static CalendarEvent Meeting(string id, EventType type = EventType.SeriesMaster) =>
         new(new EventId(id), "Weekly", DateTimeTimeZone.Utc(Original), DateTimeTimeZone.Utc(Original.AddMinutes(30))) { ICalUId = Uid, Type = type };
@@ -36,7 +40,7 @@ public sealed class MessageEventUseCaseTests
         _mail.GetAsync(Me, Message, MessageFetch.Default, Ct).Returns(new MailMessage(Message) { CalendarPart = new CalendarPart(method, Part) });
         var bytes = Encoding.UTF8.GetBytes(ics);
         _mail.GetAttachmentContentAsync(Me, Message, Part, Ct).Returns(new BlobContent("text/calendar", bytes.Length, _ => Task.FromResult<Stream>(new MemoryStream(bytes))));
-        _codec.Parse(ics).Returns(new CalendarDocument("REQUEST", [invitation]));
+        _codec.Parse(ics).Returns(new CalendarDocument(method, [invitation]));
     }
 
     private void ArrangeCopies(params CalendarEvent[] copies) =>
@@ -131,6 +135,31 @@ public sealed class MessageEventUseCaseTests
         ArrangeInvitation(Meeting(string.Empty));
         ArrangeCopies();
         (await Resolve().ExecuteAsync(Me, Message, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task An_invitation_missing_from_the_calendar_is_imported_then_resolved()
+    {
+        ArrangeInvitation(Meeting(string.Empty, EventType.SingleInstance));
+        _calendar.ListAsync(Me, Arg.Is<ItemQuery>(q => IsUidFilter(q)), Ct)
+            .Returns(new Page<CalendarEvent>([]), new Page<CalendarEvent>([Meeting("imported", EventType.SingleInstance)]));
+        _importer.ImportAsync(Me, Ics, Ct).Returns(Result.Success());
+
+        (await Resolve().ExecuteAsync(Me, Message, Ct)).Value.Id.ShouldBe(new EventId("imported"));
+        await _importer.Received(1).ImportAsync(Me, Ics, Ct);
+    }
+
+    [Fact]
+    public async Task Only_an_invitation_is_imported_and_an_import_failure_passes_through()
+    {
+        ArrangeInvitation(Meeting(string.Empty), method: "CANCEL");
+        ArrangeCopies();
+        (await Resolve().ExecuteAsync(Me, Message, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        await _importer.DidNotReceiveWithAnyArgs().ImportAsync(default!, default!, Ct);
+
+        ArrangeInvitation(Meeting(string.Empty));
+        _importer.ImportAsync(Me, Ics, Ct).Returns(Error.Forbidden("no calendar"));
+        (await Resolve().ExecuteAsync(Me, Message, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
     }
 
     [Fact]

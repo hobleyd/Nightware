@@ -158,6 +158,7 @@ Only per-user credentials are supported: token exchange with audience `nextcloud
 | `DavRoot` | `/remote.php/dav` | |
 | `OcsRoot` | `/ocs/v2.php` | |
 | `AttemptTimeout` / `TotalTimeout` | 30 s / 90 s | |
+| `TransferTimeout` | 15 min | Both timeouts for a body streamed from the caller (a drive upload, an upload session's chunk) |
 | `MaxRetryAttempts` | 2 | Applies only to GET, HEAD, OPTIONS, PROPFIND and REPORT, with short exponential backoff (Retry-After is not slept on). Unsafe methods (PUT, DELETE, POST, MKCOL, MKCALENDAR, MOVE, PROPPATCH) are never replayed, and 429 is never retried: it is surfaced as `Throttled` with `RetryAfterSeconds` |
 | `DiscoveryCacheDuration` | 10 min | Principal cache. The key is a SHA-256 of the credential and never contains the token |
 | `HealthCheckTimeout` | 5 s | |
@@ -319,6 +320,7 @@ Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf,
 - **Rooms** are the `principals/calendar-rooms/` principals of `calendar_resource_management`: `building` = `room-building-name` (else the address), `floorLabel` = `room-building-story`, `floorNumber` = the number in it, wheelchair access from `room-features`.
 - **RSVPs (phase 17).** `sendResponse: false` marks the organizer `SCHEDULE-AGENT=CLIENT` on the attendee's copy, so Sabre sends no REPLY (RFC 6638 §7.1); a later answer clears the mark. Sabre's REPLY carries no comment and it has no COUNTER, so a comment or `proposedNewTime` for an organizer no Nextcloud principal has is also kept from Sabre and returned as an `ItipMessage`: the Jmap adapter's `JmapItipMail` imports it as a draft (`multipart/alternative` with `text/calendar; method=REPLY|COUNTER`) and sends it like any draft. For an organizer inside Nextcloud the comment and proposal stay on the stored copy: Sabre puts the answer straight into their calendar, which a mail would not.
 - **Not carried by Sabre's iMIP** (accepted, kept on the stored copy at most): cancel comments and forward comments.
+- **Outside invitations (phase 27).** Nextcloud never puts an invitation from an organizer outside it into the calendar (it doesn't process inbound iMIP), so `messages/{id}/event` found no copy. `DavInvitationImporter` (`IInvitationImporter`) puts a `METHOD:REQUEST` from such an organizer into the default calendar as `imported-{sha256(uid)}.ics`, without METHOD and with the organizer `SCHEDULE-AGENT=CLIENT` so Sabre sends nothing; `If-None-Match: *` makes a repeat (or a race) a no-op. An RSVP clears the mark, and Sabre then mails the answer. An organizer Nextcloud knows is never imported: its invitations are delivered, so a missing copy means the mailbox wasn't invited.
 - `VTIMEZONE`s are generated from today when the event is more than a year ahead: Ical.Net throws for a later "earliest date" (`ZoneWriter.SupportedFrom`).
 
 ## Tasks and task attachments (phase 5B)

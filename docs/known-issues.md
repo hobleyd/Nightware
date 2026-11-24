@@ -14,10 +14,10 @@ what a fix needs. Ordered by impact within each section.
   an `.ics` and an image.
 
 ### Calendar
-- **External invitations Nextcloud never delivered to the calendar** resolve to
-  404 on `messages/{id}/event` (the client falls back to its other lookups).
-  Fix: an `ICalendarWriter.ImportAsync(MailboxRef, string ics)` port, or
-  `NewEvent.ICalUId`.
+- **An outside invitation reaches the calendar when its event is first asked
+  for** (`messages/{id}/event`, which NightMail does when it shows the
+  invitation), not when it arrives: Nextcloud doesn't process inbound iMIP.
+  An update or cancellation from the outside organizer doesn't change the copy.
 - **RSVP comments and proposed times reach outside organizers only.** For an
   organizer outside Nextcloud the façade mails the answer itself (an iTIP
   REPLY, or COUNTER with the proposed time) and keeps Nextcloud quiet. For an

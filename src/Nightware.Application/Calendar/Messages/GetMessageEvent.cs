@@ -13,11 +13,12 @@ namespace Nightware.Application.Calendar.Messages;
 /// </summary>
 /// <remarks>
 /// Everything that cannot be resolved is <see cref="ErrorKind.NotFound"/>, never a 5xx: NightMail tries
-/// the next cast spelling, then an iCalUId lookup, then a calendarView search on 400/404. A meeting
-/// that is not in the calendar (an external organizer's invitation the backend never delivered) is
-/// also NotFound: its parsed iCalendar has no id the client could act on afterwards.
+/// the next cast spelling, then an iCalUId lookup, then a calendarView search on 400/404. An invitation
+/// (<c>METHOD:REQUEST</c>) from an organizer outside the calendar server, which the server never delivers, is
+/// imported into the default calendar first, as Exchange puts an arriving invitation in the calendar; the import is
+/// idempotent by UID, so this GET writes at most once per meeting.
 /// </remarks>
-public sealed class GetMessageEvent(IMailMessageReader mail, IICalendarCodec codec, ICalendarReader calendar)
+public sealed class GetMessageEvent(IMailMessageReader mail, IICalendarCodec codec, ICalendarReader calendar, IInvitationImporter importer)
 {
     /// <summary>Larger calendar parts are not meeting messages anyone sends; refusing them bounds memory.</summary>
     internal const int MaxCalendarPartBytes = 1024 * 1024;
@@ -32,20 +33,32 @@ public sealed class GetMessageEvent(IMailMessageReader mail, IICalendarCodec cod
             return invitation.Error;
         }
 
-        var meeting = invitation.Value;
+        var (meeting, text, method) = invitation.Value;
         var uid = meeting.ICalUId!;
-        var query = new ItemQuery
-        {
-            Filter = new FilterNode.Compare("iCalUId", CompareOp.Eq, new FilterValue.Text(uid)),
-            Top = UidMatchLimit,
-        };
-        var copies = await calendar.ListAsync(mailbox, query, cancellationToken).ConfigureAwait(false);
+        var copies = await CopiesAsync(mailbox, uid, cancellationToken).ConfigureAwait(false);
         if (!copies.IsSuccess)
         {
             return copies.Error;
         }
 
-        var series = copies.Value.Items.FirstOrDefault(e => string.Equals(e.ICalUId, uid, StringComparison.Ordinal));
+        var series = copies.Value.FirstOrDefault(e => string.Equals(e.ICalUId, uid, StringComparison.Ordinal));
+        if (series is null && string.Equals(method, "REQUEST", StringComparison.OrdinalIgnoreCase))
+        {
+            var imported = await importer.ImportAsync(mailbox, text, cancellationToken).ConfigureAwait(false);
+            if (!imported.IsSuccess)
+            {
+                return imported.Error.Kind == ErrorKind.NotFound ? NotInCalendar() : imported.Error;
+            }
+
+            copies = await CopiesAsync(mailbox, uid, cancellationToken).ConfigureAwait(false);
+            if (!copies.IsSuccess)
+            {
+                return copies.Error;
+            }
+
+            series = copies.Value.FirstOrDefault(e => string.Equals(e.ICalUId, uid, StringComparison.Ordinal));
+        }
+
         if (series is null)
         {
             return NotInCalendar();
@@ -57,11 +70,23 @@ public sealed class GetMessageEvent(IMailMessageReader mail, IICalendarCodec cod
         }
 
         // Invited to one occurrence only: the copy may be just that exception, without a master.
-        var exception = copies.Value.Items.FirstOrDefault(e => string.Equals(e.ICalUId, uid, StringComparison.Ordinal) && e.OriginalStart == occurrence);
+        var exception = copies.Value.FirstOrDefault(e => string.Equals(e.ICalUId, uid, StringComparison.Ordinal) && e.OriginalStart == occurrence);
         return exception ?? await FindOccurrenceAsync(mailbox, meeting, uid, occurrence, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<Result<CalendarEvent>> ReadInvitationAsync(MailboxRef mailbox, MessageId messageId, CancellationToken cancellationToken)
+    private async Task<Result<IReadOnlyList<CalendarEvent>>> CopiesAsync(MailboxRef mailbox, string uid, CancellationToken cancellationToken)
+    {
+        var query = new ItemQuery
+        {
+            Filter = new FilterNode.Compare("iCalUId", CompareOp.Eq, new FilterValue.Text(uid)),
+            Top = UidMatchLimit,
+        };
+        var copies = await calendar.ListAsync(mailbox, query, cancellationToken).ConfigureAwait(false);
+        return copies.IsSuccess ? Result<IReadOnlyList<CalendarEvent>>.Success(copies.Value.Items) : copies.Error;
+    }
+
+    /// <summary>The message's meeting, the iCalendar text it came from and its iTIP method.</summary>
+    private async Task<Result<(CalendarEvent Meeting, string Text, string? Method)>> ReadInvitationAsync(MailboxRef mailbox, MessageId messageId, CancellationToken cancellationToken)
     {
         var message = await mail.GetAsync(mailbox, messageId, MessageFetch.Default, cancellationToken).ConfigureAwait(false);
         if (!message.IsSuccess)
@@ -90,7 +115,7 @@ public sealed class GetMessageEvent(IMailMessageReader mail, IICalendarCodec cod
         var meeting = document.IsSuccess
             ? document.Value.Events.FirstOrDefault(e => !string.IsNullOrWhiteSpace(e.ICalUId))
             : null;
-        return meeting is null ? Unreadable() : meeting;
+        return meeting is null ? Unreadable() : (meeting, text, document.Value.Method);
     }
 
     /// <summary>

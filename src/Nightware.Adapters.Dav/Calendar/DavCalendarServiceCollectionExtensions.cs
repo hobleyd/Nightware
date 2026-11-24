@@ -17,6 +17,7 @@ internal static class DavCalendarServiceCollectionExtensions
         services.TryAddScoped<ICalendarReader>(sp => sp.GetRequiredService<DavCalendarReader>());
         services.TryAddScoped<DavCalendarWriter>();
         services.TryAddScoped<ICalendarWriter>(sp => sp.GetRequiredService<DavCalendarWriter>());
+        services.TryAddScoped<IInvitationImporter, DavInvitationImporter>();
         services.TryAddScoped<DavCalendarStore>();
         services.TryAddScoped<Application.Calendar.Calendars.ICalendarStore>(sp => sp.GetRequiredService<DavCalendarStore>());
         services.TryAddScoped<Application.Calendar.Calendars.ICalendarEventsIn>(sp => sp.GetRequiredService<DavCalendarStore>());

@@ -200,6 +200,32 @@ public sealed partial class IcsEditor
             return changed ? Result.Success() : Error.NotFound("The mailbox is not an attendee of this event.");
         });
 
+    /// <summary>
+    /// An invitation (iTIP REQUEST) made storable as the attendee's copy: no METHOD (a stored object must not carry one),
+    /// and the ORGANIZER marked <c>SCHEDULE-AGENT=CLIENT</c> so Sabre sends nothing for it. An RSVP later clears the
+    /// mark (<see cref="SetParticipation"/>), and Sabre then sends the answer.
+    /// </summary>
+    public static Result<string> ForImport(string ics) =>
+        Edit(ics, calendar =>
+        {
+            if (calendar.Events.Count == 0)
+            {
+                return Error.Validation("The invitation holds no event.");
+            }
+
+            calendar.Method = null;
+            foreach (var vevent in calendar.Events)
+            {
+                if (vevent.Organizer is { } organizer)
+                {
+                    organizer.Parameters.Remove(ScheduleAgent);
+                    organizer.Parameters.Add(ScheduleAgent, "CLIENT");
+                }
+            }
+
+            return Result.Success();
+        });
+
     /// <summary>Organizer cancel: STATUS:CANCELLED and SEQUENCE+1 on every component, so Sabre sends iTIP CANCEL.</summary>
     public Result<string> Cancel(string ics) =>
         Edit(ics, calendar =>

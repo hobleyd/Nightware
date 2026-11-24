@@ -75,4 +75,53 @@ public sealed class OutsideOrganizerLiveTests
             using var _ = await stack.Backchannel.SendAsync(delete, Ct);
         }
     }
+
+    [Fact]
+    public async Task An_outside_invitation_in_the_inbox_is_put_in_the_calendar_once_when_its_event_is_asked_for()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Live integration tests run only with NIGHTWARE_INTEGRATION=1.");
+        await using var host = Mail.Read.MailLiveHost.Start();
+        using var alice = await host.GraphAsync(Ct);
+        var (account, roles) = await host.MailboxesAsync(Ct);
+        var uid = "p27-import-" + Guid.NewGuid().ToString("N");
+        var day = DateTime.UtcNow.Date.AddDays(45);
+        var subject = $"Supplier sync {uid[^6..]}";
+        var mime = string.Join("\r\n",
+            "From: Dana <dana@example.com>", $"To: Alice Anderson <{DevStack.Address("alice")}>", $"Subject: {subject}",
+            $"Date: {DateTimeOffset.UtcNow:R}", $"Message-ID: <{uid}@example.com>", "MIME-Version: 1.0",
+            "Content-Type: multipart/alternative; boundary=\"alt\"", string.Empty,
+            "--alt", "Content-Type: text/plain; charset=utf-8", string.Empty, "You are invited.",
+            "--alt", "Content-Type: text/calendar; method=REQUEST; charset=utf-8", string.Empty,
+            "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Contoso//Calendar//EN", "METHOD:REQUEST", "BEGIN:VEVENT",
+            $"UID:{uid}", $"DTSTAMP:{DateTime.UtcNow:yyyyMMdd'T'HHmmss'Z'}", $"DTSTART:{day.AddHours(9):yyyyMMdd'T'HHmmss'Z'}", $"DTEND:{day.AddHours(10):yyyyMMdd'T'HHmmss'Z'}",
+            $"SUMMARY:{subject}", "SEQUENCE:0", "ORGANIZER;CN=Dana:mailto:dana@example.com",
+            $"ATTENDEE;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=Alice:mailto:{DevStack.Address("alice")}", "END:VEVENT", "END:VCALENDAR",
+            "--alt--", string.Empty);
+        var jmapId = await host.ImportAsync(account, roles["inbox"], mime, Ct);
+        string? eventId = null;
+        try
+        {
+            var first = (await alice.GetFromJsonAsync<JsonObject>($"/v1.0/me/messages/e.{jmapId}/event", Ct))!;
+            first["subject"]!.GetValue<string>().ShouldBe(subject);
+            first["iCalUId"]!.GetValue<string>().ShouldBe(uid);
+            first["organizer"]!["emailAddress"]!["address"]!.GetValue<string>().ShouldBe("dana@example.com");
+            eventId = first["id"]!.GetValue<string>();
+
+            // Asked again, it is the same copy: the import happened once.
+            (await alice.GetFromJsonAsync<JsonObject>($"/v1.0/me/messages/e.{jmapId}/event", Ct))!["id"]!.GetValue<string>().ShouldBe(eventId);
+            var window = $"startDateTime={day:yyyy-MM-dd}T00:00:00Z&endDateTime={day.AddDays(1):yyyy-MM-dd}T00:00:00Z";
+            (await alice.GetFromJsonAsync<JsonObject>($"/v1.0/me/calendarView?{window}&$select=id,iCalUId", Ct))!["value"]!.AsArray()
+                .Count(e => e!["iCalUId"]?.GetValue<string>() == uid).ShouldBe(1);
+        }
+        finally
+        {
+            // The copy still has the organizer client-scheduled, so deleting it sends Dana nothing.
+            if (eventId is not null)
+            {
+                using var deleted = await alice.DeleteAsync($"/v1.0/me/events/{eventId}", Ct);
+            }
+
+            await host.SetAsync(account, jmapId, null, Ct);
+        }
+    }
 }

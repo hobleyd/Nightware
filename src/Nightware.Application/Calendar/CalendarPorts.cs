@@ -27,6 +27,18 @@ public interface ICalendarWriter
 }
 
 /// <summary>
+/// Puts an invitation (iTIP <c>REQUEST</c>) from an organizer outside the calendar server into the mailbox's default
+/// calendar: the server only delivers invitations its own users send, so one that arrived by mail is otherwise in the
+/// inbox alone. The copy tells the server not to schedule on the organizer's behalf (no message is sent). Importing the
+/// same meeting again changes nothing. An organizer inside the server is <see cref="ErrorKind.NotFound"/>: their
+/// invitations are delivered, so a missing copy means the mailbox wasn't invited.
+/// </summary>
+public interface IInvitationImporter
+{
+    Task<Result> ImportAsync(MailboxRef mailbox, string ics, CancellationToken cancellationToken);
+}
+
+/// <summary>
 /// An iTIP message (RFC 5546) the façade sends itself by mail (iMIP, RFC 6047) because the calendar server can't say
 /// it: a reply with a comment, or a counter-proposal, to an organizer outside the server.
 /// </summary>
