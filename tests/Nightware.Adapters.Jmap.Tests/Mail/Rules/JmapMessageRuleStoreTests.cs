@@ -149,7 +149,7 @@ public sealed class JmapMessageRuleStoreTests : IAsyncLifetime
         read.Status.ShouldBe(AutoReplyStatus.AlwaysEnabled);
         read.InternalReplyMessage.ShouldBe("<p>Out</p>");
 
-        var written = (await Replies().SetAsync(Alice, new AutoReplySetting(AutoReplyStatus.Disabled), ["example.com"], Ct)).Value;
+        var written = (await Replies().SetAsync(Alice, new AutoReplySetting(AutoReplyStatus.Disabled), ["example.com"], null, Ct)).Value;
         written.Status.ShouldBe(AutoReplyStatus.Disabled);
         Uploaded().ShouldNotContain("vacation :mime");
         Uploaded().ShouldContain("invoice");
@@ -180,7 +180,7 @@ public sealed class JmapMessageRuleStoreTests : IAsyncLifetime
             ExternalReplyMessage = "<p>Out of the office</p>",
         };
 
-        var written = (await Replies().SetAsync(Alice, setting, ["acme.example", "nightware.localhost"], Ct)).Value;
+        var written = (await Replies().SetAsync(Alice, setting, ["acme.example", "nightware.localhost"], null, Ct)).Value;
 
         (written.InternalReplyMessage, written.ExternalReplyMessage, written.ExternalAudience).ShouldBe(("<p>Back Monday, ping me on chat</p>", "<p>Out of the office</p>", ExternalAudience.All));
         Uploaded().ShouldContain("if envelope :domain :is \"from\" [\"acme.example\", \"nightware.localhost\"] {");
@@ -211,7 +211,7 @@ public sealed class JmapMessageRuleStoreTests : IAsyncLifetime
         _jmap.On("VacationResponse/set", """{"accountId":"c","oldState":"1","newState":"2","updated":{"singleton":null}}""");
         Vacation("\"isEnabled\":true,\"htmlBody\":\"<p>Away</p>\"");
 
-        await Replies().SetAsync(Alice, new AutoReplySetting(AutoReplyStatus.AlwaysEnabled) { InternalReplyMessage = "<p>Away</p>", ExternalReplyMessage = "<p>Away</p>" }, ["acme.example"], Ct);
+        await Replies().SetAsync(Alice, new AutoReplySetting(AutoReplyStatus.AlwaysEnabled) { InternalReplyMessage = "<p>Away</p>", ExternalReplyMessage = "<p>Away</p>" }, ["acme.example"], null, Ct);
 
         _jmap.Calls().ShouldNotContain(c => c.Method == "SieveScript/set");
         _jmap.Calls().ShouldContain(c => c.Method == "VacationResponse/set");

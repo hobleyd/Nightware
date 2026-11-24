@@ -59,7 +59,8 @@ internal sealed class JmapAutoReplyStore(IJmapClient jmap, NightwareSieve sieve)
         return response.Bind(r => r.Get(get)).Map(ToDomain);
     }
 
-    public async Task<Result<AutoReplySetting>> SetAsync(MailboxRef mailbox, AutoReplySetting setting, IReadOnlyList<string> internalDomains, CancellationToken cancellationToken)
+    public async Task<Result<AutoReplySetting>> SetAsync(
+        MailboxRef mailbox, AutoReplySetting setting, IReadOnlyList<string> internalDomains, IReadOnlyList<string>? knownSenders, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(setting);
         ArgumentNullException.ThrowIfNull(internalDomains);
@@ -86,7 +87,7 @@ internal sealed class JmapAutoReplyStore(IJmapClient jmap, NightwareSieve sieve)
         if (filter.Value is { } script && (script.Exists || (SieveScriptWriter.Splits(kept) && script.ForeignActiveScript is null)))
         {
             // Writing here also makes the script active again if vacation was switched on elsewhere.
-            var state = script.State with { AutoReply = kept, InternalDomains = internalDomains };
+            var state = script.State with { AutoReply = kept, InternalDomains = internalDomains, KnownSenders = knownSenders ?? script.State.KnownSenders };
             var saved = await sieve.SaveAsync(account.Value, script, state, cancellationToken).ConfigureAwait(false);
             return saved.IsSuccess ? kept : saved.Error;
         }

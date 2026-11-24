@@ -14,8 +14,9 @@ namespace Nightware.Adapters.Jmap.Mail.Rules;
 /// <c>VacationResponse</c> script so replies behave as before, then each enabled rule in sequence order. A reply
 /// whose internal and external parts differ tests the envelope sender's domain (where the reply goes) against the entity's
 /// (<see cref="FilterState.InternalDomains"/>): those get the internal message, everyone else the external one when
-/// the audience is <c>all</c> and nothing otherwise (<c>contactsOnly</c> too: contacts live in Nextcloud, out of
-/// Sieve's reach, so the safe reading is "no strangers").
+/// the audience is <c>all</c>; for <c>contactsOnly</c>, the outside senders listed in
+/// <see cref="FilterState.KnownSenders"/> (the mailbox's contacts as of the last write: contacts live in Nextcloud, out
+/// of Sieve's reach) get the external one, and nobody else outside does.
 /// Client text only ever appears inside quoted strings (escaped) or a dot-stuffed <c>text:</c> block.
 /// </summary>
 internal static class SieveScriptWriter
@@ -34,7 +35,7 @@ internal static class SieveScriptWriter
         script.Append(state.ToComment()).Append('\n');
         if (state.AutoReply is { Status: not AutoReplyStatus.Disabled } reply)
         {
-            WriteVacation(script, reply, state.InternalDomains);
+            WriteVacation(script, reply, state.InternalDomains, state.KnownSenders);
         }
 
         foreach (var rule in state.Rules.Where(static r => r.IsEnabled).OrderBy(static r => r.Sequence))
@@ -60,7 +61,7 @@ internal static class SieveScriptWriter
     public static string ExternalMessage(AutoReplySetting reply) =>
         (string.IsNullOrEmpty(reply.ExternalReplyMessage) ? reply.InternalReplyMessage : reply.ExternalReplyMessage) ?? string.Empty;
 
-    private static void WriteVacation(StringBuilder script, AutoReplySetting reply, IReadOnlyList<string> internalDomains)
+    private static void WriteVacation(StringBuilder script, AutoReplySetting reply, IReadOnlyList<string> internalDomains, IReadOnlyList<string> knownSenders)
     {
         var opened = 0;
         if (reply.Status == AutoReplyStatus.Scheduled)
@@ -75,7 +76,8 @@ internal static class SieveScriptWriter
             }
         }
 
-        if (!Splits(reply) || internalDomains.Count == 0)
+        var contacts = reply.ExternalAudience == ExternalAudience.ContactsOnly ? knownSenders : [];
+        if (!Splits(reply) || (internalDomains.Count == 0 && contacts.Count == 0))
         {
             WriteVacationAction(script, ExternalMessage(reply));
         }
@@ -83,9 +85,22 @@ internal static class SieveScriptWriter
         {
             // The envelope sender, not the From header: vacation replies to the envelope sender (RFC 5230 §4.4), so a
             // forged From can't steer the internal message to a stranger.
-            script.Append("if envelope :domain :is \"from\" ").Append(List(internalDomains)).Append(" {\n");
-            WriteVacationAction(script, InternalMessage(reply));
-            script.Append('}');
+            var branch = "if";
+            if (internalDomains.Count > 0)
+            {
+                script.Append("if envelope :domain :is \"from\" ").Append(List(internalDomains)).Append(" {\n");
+                WriteVacationAction(script, InternalMessage(reply));
+                script.Append('}');
+                branch = " elsif";
+            }
+
+            if (contacts.Count > 0)
+            {
+                script.Append(branch).Append(" envelope :all :comparator \"i;ascii-casemap\" :is \"from\" ").Append(List(contacts)).Append(" {\n");
+                WriteVacationAction(script, ExternalMessage(reply));
+                script.Append('}');
+            }
+
             if (reply.ExternalAudience == ExternalAudience.All)
             {
                 script.Append(" else {\n");

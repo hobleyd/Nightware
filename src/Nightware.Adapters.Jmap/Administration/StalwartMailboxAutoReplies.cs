@@ -37,7 +37,7 @@ internal sealed class StalwartMailboxAutoReplies(IStalwartManagementClient manag
     {
         ArgumentNullException.ThrowIfNull(address);
         var store = await StoreAsync(mailAccountId, address, cancellationToken).ConfigureAwait(false);
-        return store.IsSuccess ? await store.Value.SetAsync(new MailboxRef(address.Value), setting, internalDomains, cancellationToken).ConfigureAwait(false) : store.Error;
+        return store.IsSuccess ? await store.Value.SetAsync(new MailboxRef(address.Value), setting, internalDomains, null, cancellationToken).ConfigureAwait(false) : store.Error;
     }
 
     private async Task<Result<JmapAutoReplyStore>> StoreAsync(string mailAccountId, MailAddress address, CancellationToken cancellationToken)

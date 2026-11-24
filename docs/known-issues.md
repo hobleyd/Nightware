@@ -68,11 +68,16 @@ what a fix needs. Ordered by impact within each section.
   megapixels is refused (400) before decoding.
 
 ### Tasks and settings
-- **Automatic replies: `contactsOnly` means internal senders only.** Contacts
-  live in Nextcloud, out of the mail filter's reach, so nobody outside the
-  entity's domains is answered. It reads back as `contactsOnly`. "Internal"
-  means a sender from one of the domains of the entity that owns the mailbox's
-  domain, looked up when the reply is saved.
+- **Automatic replies: `contactsOnly` answers the contacts as of the last
+  write.** Contacts live in Nextcloud, out of the mail filter's reach, so their
+  addresses (outside the entity's domains, at most 1,000, each checked to be a
+  plain address) are written into the filter when the reply is saved and again
+  when the façade creates, changes or deletes a contact. A contact changed in
+  Nextcloud directly reaches the filter at the next such write. The admin
+  console can't read contacts, so a reply it saves keeps the last list (and its
+  form offers everyone or internal only). "Internal" means a sender from one of
+  the domains of the entity that owns the mailbox's domain, looked up when the
+  reply is saved.
 - **Upload URLs can be replayed until they expire** (≤ 15 min); each replay adds
   another attachment of exactly the declared size to the same task.
 - `ATTACH` values carry the configured `Dav:BaseUrl` host (`http://nextcloud/`

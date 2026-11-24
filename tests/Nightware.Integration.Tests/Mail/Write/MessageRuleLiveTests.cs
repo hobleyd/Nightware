@@ -127,6 +127,52 @@ public sealed class MessageRuleLiveTests : IAsyncLifetime
         }
     }
 
+    [Fact]
+    public async Task A_contacts_only_reply_answers_the_mailboxs_contacts_and_follows_their_changes()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
+        var alice = await _stack.GraphClientAsync(Alice, Ct);
+        var sam = $"sam.{_run}@supplier.example";
+        var pat = $"pat.{_run}@client.example";
+        var ids = new List<string>();
+        try
+        {
+            var (created, contact) = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/contacts", $$$"""{"givenName":"Sam","emailAddresses":[{"address":"{{{sam}}}"}]}""");
+            created.ShouldBe(HttpStatusCode.Created);
+            ids.Add(contact!["id"]!.GetValue<string>());
+
+            var (set, _) = await SendAsync(alice, HttpMethod.Patch, "/v1.0/me/mailboxSettings",
+                """{"automaticRepliesSetting":{"status":"alwaysEnabled","externalAudience":"contactsOnly","internalReplyMessage":"<p>in</p>","externalReplyMessage":"<p>out</p>"}}""");
+            set.ShouldBe(HttpStatusCode.OK);
+            (await ScriptAsync()).ShouldContain($"\"{sam}\"");
+
+            // A contact added afterwards through the façade joins the list.
+            var (added, second) = await SendAsync(alice, HttpMethod.Post, "/v1.0/me/contacts", $$$"""{"givenName":"Pat","emailAddresses":[{"address":"{{{pat}}}"}]}""");
+            added.ShouldBe(HttpStatusCode.Created);
+            ids.Add(second!["id"]!.GetValue<string>());
+            var script = await ScriptAsync();
+            script.ShouldContain($"\"{pat}\"");
+            script.ShouldContain($"\"{sam}\"");
+        }
+        finally
+        {
+            await SendAsync(alice, HttpMethod.Patch, "/v1.0/me/mailboxSettings", """{"automaticRepliesSetting":{"status":"disabled"}}""");
+            foreach (var id in ids)
+            {
+                await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/contacts/{id}");
+            }
+
+            await RemoveScriptAsync();
+        }
+    }
+
+    private async Task<string> ScriptAsync()
+    {
+        var scripts = await _probe.CallAsync(Alice, """[["SieveScript/get",{"accountId":"$account"},"g"]]""", Ct, Sieve);
+        var blobId = scripts[0]![1]!["list"]!.AsArray().Single(s => s!["name"]!.GetValue<string>() == "nightware-rules")!["blobId"]!.GetValue<string>();
+        return await _probe.DownloadTextAsync(Alice, blobId, Ct);
+    }
+
     private static async Task<JsonObject> WaitForReplyAsync(HttpClient bob, string from)
     {
         for (var attempt = 0; attempt < 30; attempt++)

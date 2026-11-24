@@ -128,6 +128,31 @@ public sealed class SieveScriptWriterTests
         SieveScriptWriter.Splits(new AutoReplySetting(AutoReplyStatus.AlwaysEnabled) { ExternalAudience = audience, InternalReplyMessage = inside, ExternalReplyMessage = outside }).ShouldBe(splits);
 
     [Fact]
+    public void Contacts_only_answers_internal_senders_and_the_known_contacts_and_nobody_else()
+    {
+        var reply = new AutoReplySetting(AutoReplyStatus.AlwaysEnabled) { ExternalAudience = ExternalAudience.ContactsOnly, InternalReplyMessage = "<p>in</p>", ExternalReplyMessage = "<p>out</p>" };
+
+        var script = SieveScriptWriter.Write(new FilterState([], reply) { InternalDomains = ["acme.example"], KnownSenders = ["sam@supplier.example", "pat@client.example"] }, null);
+
+        script.ShouldContain("if envelope :domain :is \"from\" [\"acme.example\"] {");
+        script.ShouldContain("} elsif envelope :all :comparator \"i;ascii-casemap\" :is \"from\" [\"sam@supplier.example\", \"pat@client.example\"] {");
+        script.ShouldContain("<p>out</p>");
+        script.ShouldNotContain("else {");
+    }
+
+    [Fact]
+    public void Known_senders_matter_only_for_contacts_only_and_ride_along_in_the_state()
+    {
+        var everyone = new AutoReplySetting(AutoReplyStatus.AlwaysEnabled) { ExternalAudience = ExternalAudience.None, InternalReplyMessage = "<p>in</p>", ExternalReplyMessage = "<p>out</p>" };
+        var state = new FilterState([], everyone) { InternalDomains = ["acme.example"], KnownSenders = ["sam@supplier.example"] };
+
+        var script = SieveScriptWriter.Write(state, null);
+
+        script.ShouldNotContain("sam@supplier.example\"] {");
+        FilterState.FromScript(script)!.KnownSenders.ShouldBe(["sam@supplier.example"]);
+    }
+
+    [Fact]
     public void Contacts_only_answers_internal_senders_alone()
     {
         var reply = new AutoReplySetting(AutoReplyStatus.AlwaysEnabled) { ExternalAudience = ExternalAudience.ContactsOnly, InternalReplyMessage = "<p>in</p>", ExternalReplyMessage = "<p>out</p>" };

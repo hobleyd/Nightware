@@ -16,7 +16,8 @@ namespace Nightware.Application.MailboxSettings;
 /// façade's service account, so it may only be changed for the caller's own mailbox — otherwise
 /// any user could rewrite anyone's zone.
 /// </remarks>
-public sealed class UpdateMailboxSettings(IMailboxSettingsAccess access, IAutoReplyStore replies, IUserPreferencesStore preferences, IUserContext caller, IInternalDomains domains)
+public sealed class UpdateMailboxSettings(
+    IMailboxSettingsAccess access, IAutoReplyStore replies, IUserPreferencesStore preferences, IUserContext caller, IInternalDomains domains, AutoReplyKnownSenders senders)
 {
     public async Task<Result<MailboxSettingsSnapshot>> ExecuteAsync(MailboxRef mailbox, MailboxSettingsPatch patch, CancellationToken cancellationToken)
     {
@@ -33,7 +34,7 @@ public sealed class UpdateMailboxSettings(IMailboxSettingsAccess access, IAutoRe
         }
 
         var written = patch.AutomaticReplies is { } setting
-            ? await replies.SetAsync(mailbox, setting, await domains.ForAsync(mailbox, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false)
+            ? await SetRepliesAsync(mailbox, setting, cancellationToken).ConfigureAwait(false)
             : await replies.GetAsync(mailbox, cancellationToken).ConfigureAwait(false);
         if (!written.IsSuccess)
         {
@@ -45,6 +46,23 @@ public sealed class UpdateMailboxSettings(IMailboxSettingsAccess access, IAutoRe
                 mailbox, new UserPreferencesPatch { TimeZone = GraphTimeZone.ToIanaId(zone) }, cancellationToken).ConfigureAwait(false))
             : MailboxSettingsComposer.OrNone(await preferences.GetAsync(mailbox, cancellationToken).ConfigureAwait(false));
         return stored.Map(p => MailboxSettingsComposer.Compose(written.Value, p));
+    }
+
+    /// <summary>
+    /// <c>contactsOnly</c> answers outside senders who are the mailbox's contacts, so their addresses go with it. Contacts
+    /// that can't be read leave the reply to internal senders, as before phase 27, rather than failing the change.
+    /// </summary>
+    private async Task<Result<AutoReplySetting>> SetRepliesAsync(MailboxRef mailbox, AutoReplySetting setting, CancellationToken cancellationToken)
+    {
+        var internalDomains = await domains.ForAsync(mailbox, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<string> known = [];
+        if (setting.ExternalAudience == ExternalAudience.ContactsOnly && setting.Status != AutoReplyStatus.Disabled
+            && await senders.ForAsync(mailbox, internalDomains, cancellationToken).ConfigureAwait(false) is { IsSuccess: true } listed)
+        {
+            known = listed.Value;
+        }
+
+        return await replies.SetAsync(mailbox, setting, internalDomains, known, cancellationToken).ConfigureAwait(false);
     }
 
     private Error? Validate(MailboxRef mailbox, MailboxSettingsPatch patch)

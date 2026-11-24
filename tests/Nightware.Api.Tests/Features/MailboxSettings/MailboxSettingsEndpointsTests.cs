@@ -92,7 +92,7 @@ public sealed class MailboxSettingsEndpointsTests : IAsyncLifetime
         var bob = new MailboxRef("bob@example.com");
         _access.CheckAsync(bob, Arg.Any<CancellationToken>()).Returns(Error.Forbidden("no"));
         _replies.GetAsync(bob, Arg.Any<CancellationToken>()).Returns(Stored);
-        _replies.SetAsync(bob, Arg.Any<AutoReplySetting>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>()).Returns(Stored);
+        _replies.SetAsync(bob, Arg.Any<AutoReplySetting>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<IReadOnlyList<string>?>(), Arg.Any<CancellationToken>()).Returns(Stored);
         _preferences.GetAsync(bob, Arg.Any<CancellationToken>()).Returns(new UserPreferences("Australia/Sydney", "en"));
         using var request = new HttpRequestMessage(new HttpMethod(method), "/v1.0/users/bob@example.com/mailboxSettings")
         {
@@ -115,7 +115,7 @@ public sealed class MailboxSettingsEndpointsTests : IAsyncLifetime
                 && s.ExternalAudience == ExternalAudience.ContactsOnly
                 && s.InternalReplyMessage == "<div>Away.</div>" && s.ExternalReplyMessage == "<div>Out.</div>"
                 && s.ScheduledStartDateTime == new DateTimeTimeZone(new DateTime(2026, 9, 20), "AUS Eastern Standard Time")
-                && s.ScheduledEndDateTime == null), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+                && s.ScheduledEndDateTime == null), Arg.Any<IReadOnlyList<string>>(), Arg.Any<IReadOnlyList<string>?>(), Arg.Any<CancellationToken>())
             .Returns(Stored);
         _preferences.GetAsync(Arg.Any<MailboxRef>(), Arg.Any<CancellationToken>()).Returns(new UserPreferences("Australia/Sydney", null));
 
@@ -133,7 +133,7 @@ public sealed class MailboxSettingsEndpointsTests : IAsyncLifetime
     [Fact]
     public async Task Graphs_unset_schedule_is_read_as_none()
     {
-        _replies.SetAsync(Arg.Any<MailboxRef>(), Arg.Is<AutoReplySetting>(s => s.ScheduledStartDateTime == null), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+        _replies.SetAsync(Arg.Any<MailboxRef>(), Arg.Is<AutoReplySetting>(s => s.ScheduledStartDateTime == null), Arg.Any<IReadOnlyList<string>>(), Arg.Any<IReadOnlyList<string>?>(), Arg.Any<CancellationToken>())
             .Returns(new AutoReplySetting(AutoReplyStatus.Disabled));
         _preferences.GetAsync(Arg.Any<MailboxRef>(), Arg.Any<CancellationToken>()).Returns(new UserPreferences(null, null));
 
@@ -181,13 +181,13 @@ public sealed class MailboxSettingsEndpointsTests : IAsyncLifetime
         var response = await _host.AuthorizedClient().PatchAsync("/v1.0/me/mailboxSettings", Json(json), Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        await _replies.DidNotReceiveWithAnyArgs().SetAsync(default, null!, null!, Ct);
+        await _replies.DidNotReceiveWithAnyArgs().SetAsync(default, null!, null!, null, Ct);
     }
 
     [Fact]
     public async Task OData_annotations_in_the_body_are_ignored()
     {
-        _replies.SetAsync(Arg.Any<MailboxRef>(), Arg.Any<AutoReplySetting>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>()).Returns(new AutoReplySetting(AutoReplyStatus.Disabled));
+        _replies.SetAsync(Arg.Any<MailboxRef>(), Arg.Any<AutoReplySetting>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<IReadOnlyList<string>?>(), Arg.Any<CancellationToken>()).Returns(new AutoReplySetting(AutoReplyStatus.Disabled));
         _preferences.GetAsync(Arg.Any<MailboxRef>(), Arg.Any<CancellationToken>()).Returns(new UserPreferences(null, null));
 
         var response = await _host.AuthorizedClient().PatchAsync("/v1.0/me/mailboxSettings", Json("""{"@odata.context":"x","automaticRepliesSetting":{"status":"disabled"}}"""), Ct);

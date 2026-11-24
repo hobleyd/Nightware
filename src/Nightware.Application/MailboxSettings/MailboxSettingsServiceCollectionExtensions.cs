@@ -10,6 +10,8 @@ public static class MailboxSettingsServiceCollectionExtensions
     {
         services.TryAddScoped<GetMailboxSettings>();
         services.TryAddScoped<UpdateMailboxSettings>();
+        services.TryAddScoped<AutoReplyKnownSenders>();
+        services.TryAddScoped<RefreshAutoReplyKnownSenders>();
         services.TryAddScoped<GetSupportedTimeZones>();
         services.TryAddScoped<GetSupportedLanguages>();
         return services;

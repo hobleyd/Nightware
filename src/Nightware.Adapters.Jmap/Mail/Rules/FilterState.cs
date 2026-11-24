@@ -17,11 +17,18 @@ internal sealed record FilterState(IReadOnlyList<MessageRule> Rules, AutoReplySe
     /// <summary>Senders from these domains get the internal automatic reply; empty for one reply to everyone.</summary>
     public IReadOnlyList<string> InternalDomains { get; init; } = [];
 
+    /// <summary>For a <c>contactsOnly</c> reply: outside senders (the mailbox's contacts) who get the external reply.</summary>
+    public IReadOnlyList<string> KnownSenders { get; init; } = [];
+
     private const string Marker = "# nightware-state: ";
 
     public string ToComment()
     {
-        var json = JsonSerializer.SerializeToUtf8Bytes(new FilterStateDocument(1, Rules, AutoReply) { InternalDomains = InternalDomains.Count == 0 ? null : InternalDomains }, FilterStateJsonContext.Default.FilterStateDocument);
+        var json = JsonSerializer.SerializeToUtf8Bytes(new FilterStateDocument(1, Rules, AutoReply)
+        {
+            InternalDomains = InternalDomains.Count == 0 ? null : InternalDomains,
+            KnownSenders = KnownSenders.Count == 0 ? null : KnownSenders,
+        }, FilterStateJsonContext.Default.FilterStateDocument);
         return Marker + Convert.ToBase64String(json);
     }
 
@@ -38,7 +45,11 @@ internal sealed record FilterState(IReadOnlyList<MessageRule> Rules, AutoReplySe
         try
         {
             var document = JsonSerializer.Deserialize(Convert.FromBase64String(line[Marker.Length..]), FilterStateJsonContext.Default.FilterStateDocument);
-            return document is { V: 1 } ? new FilterState(document.Rules ?? [], document.AutoReply) { InternalDomains = document.InternalDomains ?? [] } : null;
+            return document is { V: 1 } ? new FilterState(document.Rules ?? [], document.AutoReply)
+            {
+                InternalDomains = document.InternalDomains ?? [],
+                KnownSenders = document.KnownSenders ?? [],
+            } : null;
         }
         catch (Exception ex) when (ex is FormatException or JsonException)
         {
@@ -52,6 +63,8 @@ internal sealed record FilterState(IReadOnlyList<MessageRule> Rules, AutoReplySe
 internal sealed record FilterStateDocument(int V, IReadOnlyList<MessageRule>? Rules, AutoReplySetting? AutoReply)
 {
     public IReadOnlyList<string>? InternalDomains { get; init; }
+
+    public IReadOnlyList<string>? KnownSenders { get; init; }
 }
 
 [JsonSourceGenerationOptions(

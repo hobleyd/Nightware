@@ -32,6 +32,17 @@ internal sealed class StalwartProbe(LiveStack stack)
         return (await response.Content.ReadFromJsonAsync<JsonObject>(cancellationToken))!["methodResponses"]!.AsArray();
     }
 
+    /// <summary>A blob's bytes as text (e.g. a Sieve script), through the session's download URL.</summary>
+    public async Task<string> DownloadTextAsync(string user, string blobId, CancellationToken cancellationToken)
+    {
+        var (token, account) = await SessionAsync(user, cancellationToken);
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{MailUrl}/jmap/download/{Uri.EscapeDataString(account)}/{Uri.EscapeDataString(blobId)}/blob?accept=text/plain");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var response = await stack.Backchannel.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync(cancellationToken);
+    }
+
     /// <summary>The newest messages of a role mailbox (inbox, sent, drafts …), with the given properties.</summary>
     public async Task<IReadOnlyList<JsonObject>> RecentAsync(string user, string role, string properties, CancellationToken cancellationToken)
     {

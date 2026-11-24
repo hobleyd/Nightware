@@ -106,6 +106,11 @@ into the phase doc before contracting operations (as phase 10 did).
     (`envelope :domain "from"`, where `vacation` sends the reply; not the
     forgeable From header) against the domains of the entity that owns the mailbox's domain,
     stored in the script's state. `contactsOnly` answers internal senders only.
+    *(Amended, phase 27.)* `contactsOnly` also answers the mailbox's contacts:
+    their addresses outside the internal domains (validated, at most 1,000) go
+    into the script (`envelope :all :is "from"`) and its state when the reply is
+    saved and when the façade writes a contact (`RefreshAutoReplyKnownSenders`).
+    A writer without contacts (the console) keeps the last list.
   - A rule using an unsupported condition or action gets `400 notSupported`
     naming the field.
 - **Large attachments.** `createUploadSession` returns a self-authorising URL
