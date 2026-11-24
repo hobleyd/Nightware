@@ -18,7 +18,7 @@
 | OneDrive: delta without the activity app | backend can't | Nextcloud Files has no other change feed. Stays. |
 | Calendar: online-meeting fields ignored | already fixed | Phase 22 (1.59.0); the known-issues line was stale. |
 | Calendar: undelivered external invitation is 404 on `messages/{id}/event` | existing route | Import the invitation into the default calendar, idempotent by UID, with `SCHEDULE-AGENT=CLIENT` so Sabre sends nothing. |
-| Calendar: RSVP comment/proposal to organizers inside Nextcloud; cancel and forward comments | existing route | Sabre still updates calendars inside Nextcloud; the façade mails the iTIP message carrying the text, and suppresses Sabre's iMIP for outside recipients so they get one message. |
+| Calendar: RSVP comment/proposal to organizers inside Nextcloud; cancel and forward comments | backend can't | Tried and reverted: Nextcloud mails every recipient inside it its own iMIP notice (no comment), so a façade mail is a duplicate; silencing Sabre stops the calendar update, and taking an outside attendee over makes Sabre cancel them (Broker::parseEventForOrganizer) or cuts them off from later updates. Recorded in known-issues. |
 | Calendar: every `calendarView` page re-expands the window | existing route | A disposable, bounded in-memory cache of the sorted expansion per credential, calendar, window and CTag, one minute. |
 | Directory: photo must be a square JPEG/PNG | existing route | Centre-crop and re-encode in the façade (new image package). |
 | Directory: shared mailbox has no contacts or files | new provisioning | As its calendar (ADR 0004 D6): the shared mailbox's Nextcloud user shares its address book and a folder with the group; console Repair for existing ones. |

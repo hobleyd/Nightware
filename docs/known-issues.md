@@ -18,13 +18,20 @@ what a fix needs. Ordered by impact within each section.
   for** (`messages/{id}/event`, which NightMail does when it shows the
   invitation), not when it arrives: Nextcloud doesn't process inbound iMIP.
   An update or cancellation from the outside organizer doesn't change the copy.
-- **RSVP comments and proposed times reach outside organizers only.** For an
-  organizer outside Nextcloud the façade mails the answer itself (an iTIP
-  REPLY, or COUNTER with the proposed time) and keeps Nextcloud quiet. For an
-  organizer inside Nextcloud, Sabre delivers the answer straight to their
-  calendar and can't carry either, so they stay on the attendee's copy.
-  `sendResponse: false` works for both. Cancel and forward comments are still
-  not carried. Inbound COUNTERs from external organizers do work.
+- **RSVP comments and proposed times reach outside organizers only; cancel and
+  forward comments reach nobody.** For an organizer outside Nextcloud the
+  façade mails the answer itself (an iTIP REPLY, or COUNTER with the proposed
+  time) and keeps Nextcloud quiet. Everyone inside Nextcloud already gets
+  Nextcloud's own iMIP mail ("Invitation:", "Re:", "Cancelled:", verified
+  2026-11-24), which carries no comment: Sabre's REPLY and CANCEL drop COMMENT.
+  A façade mail beside it would be a second notice of the same answer, and
+  silencing Nextcloud (`SCHEDULE-AGENT=CLIENT`) also stops the calendar
+  update. For outside attendees of a cancellation or forward, taking over from
+  Sabre doesn't work either: marking an existing attendee client-scheduled
+  makes Sabre send them a CANCEL at once, and a forwarded attendee marked so
+  would never get later updates. Phase 27 tried the second-mail approach and
+  reverted it. `sendResponse: false` works for both. Inbound COUNTERs from
+  external organizers do work.
 - **Every `calendarView` page re-expands the whole window.** The CalDAV
   expand REPORT has no paging, so each `$skiptoken` page expands, materialises
   and sorts every occurrence in the window again before slicing. The window is
