@@ -148,6 +148,22 @@ public sealed class MailboxPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task Behind_the_console_prefix_the_dashboard_s_repair_posts_to_the_root_with_its_slash()
+    {
+        GivenSupport();
+        using HttpClient client = _host.ClientAs(ConsoleHost.EntityAdmin);
+        client.DefaultRequestHeaders.Add("X-Forwarded-Prefix", "/console");
+
+        string html = await client.GetStringAsync(new Uri("/", UriKind.Relative), Ct);
+
+        // The proxy redirects /console to /console/, and a browser follows that as a GET: the repair would be lost.
+        string form = System.Text.RegularExpressions.Regex.Match(html, "<form[^>]*handler=RepairMailbox.*?</form>").Value;
+        form.ShouldStartWith("<form method=\"post\" action=\"/console/?handler=RepairMailbox\"");
+        form.ShouldContain("name=\"__RequestVerificationToken\"");
+        html.ShouldNotContain("action=\"/console?");
+    }
+
+    [Fact]
     public async Task A_mailbox_a_system_failed_for_is_on_the_dashboard_and_the_systems_chip_names_it()
     {
         GivenSupport();

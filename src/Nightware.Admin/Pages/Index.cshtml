@@ -57,13 +57,13 @@
                             @switch (a.Status)
                             {
                                 case Nightware.Application.Administration.Users.UserStatus.OffboardingIncomplete:
-                                    <form method="post" asp-page-handler="FinishOffboarding" class="inline"><input type="hidden" name="userId" value="@identity.Id"><button type="submit" class="secondary">Finish offboarding</button></form>
+                                    <form method="post" action="@Model.PostTo("FinishOffboarding")" asp-antiforgery="true" class="inline"><input type="hidden" name="userId" value="@identity.Id"><button type="submit" class="secondary">Finish offboarding</button></form>
                                     break;
                                 case Nightware.Application.Administration.Users.UserStatus.EmailNotVerified:
-                                    <form method="post" asp-page-handler="VerifyEmail" class="inline"><input type="hidden" name="userId" value="@identity.Id"><button type="submit" class="secondary">Mark email verified</button></form>
+                                    <form method="post" action="@Model.PostTo("VerifyEmail")" asp-antiforgery="true" class="inline"><input type="hidden" name="userId" value="@identity.Id"><button type="submit" class="secondary">Mark email verified</button></form>
                                     break;
                                 case Nightware.Application.Administration.Users.UserStatus.NeedsRepair:
-                                    <form method="post" asp-page-handler="RepairUser" class="inline"><input type="hidden" name="userId" value="@identity.Id"><button type="submit" class="secondary">Repair</button></form>
+                                    <form method="post" action="@Model.PostTo("RepairUser")" asp-antiforgery="true" class="inline"><input type="hidden" name="userId" value="@identity.Id"><button type="submit" class="secondary">Repair</button></form>
                                     break;
                                 default:
                                     <a class="button secondary" asp-page="/Users/Detail" asp-route-id="@identity.Id">Resolve on their page</a>
@@ -94,7 +94,7 @@
                         }
                         @if (d.NeedsRepair && Model.Actor.IsGlobal)
                         {
-                            <form method="post" asp-page-handler="RepairDomain" class="inline"><input type="hidden" name="entityId" value="@d.Entity.Id"><input type="hidden" name="domain" value="@d.Domain.Domain.Name"><button type="submit" class="secondary">Repair</button></form>
+                            <form method="post" action="@Model.PostTo("RepairDomain")" asp-antiforgery="true" class="inline"><input type="hidden" name="entityId" value="@d.Entity.Id"><input type="hidden" name="domain" value="@d.Domain.Domain.Name"><button type="submit" class="secondary">Repair</button></form>
                         }
                         else if (!Model.Actor.IsGlobal)
                         {
@@ -125,7 +125,7 @@
                         {
                             <span class="hint">@Systems.TellOperator</span>
                         }
-                        <form method="post" asp-page-handler="RepairMailbox" class="inline"><input type="hidden" name="entityId" value="@m.Entity.Id"><input type="hidden" name="mailboxId" value="@mailbox.Id"><button type="submit" class="secondary">Repair</button></form>
+                        <form method="post" action="@Model.PostTo("RepairMailbox")" asp-antiforgery="true" class="inline"><input type="hidden" name="entityId" value="@m.Entity.Id"><input type="hidden" name="mailboxId" value="@mailbox.Id"><button type="submit" class="secondary">Repair</button></form>
                     </li>
                 }
             </ul>
@@ -147,7 +147,7 @@
                         {
                             <span class="hint">@Systems.TellOperator</span>
                         }
-                        <form method="post" asp-page-handler="RepairGroup" class="inline"><input type="hidden" name="entityId" value="@ga.Entity.Id"><input type="hidden" name="groupId" value="@group.Id"><button type="submit" class="secondary">Repair</button></form>
+                        <form method="post" action="@Model.PostTo("RepairGroup")" asp-antiforgery="true" class="inline"><input type="hidden" name="entityId" value="@ga.Entity.Id"><input type="hidden" name="groupId" value="@group.Id"><button type="submit" class="secondary">Repair</button></form>
                     </li>
                 }
             </ul>
