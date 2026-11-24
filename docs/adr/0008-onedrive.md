@@ -116,9 +116,9 @@ D8–D11.)*
   view; entries carry `remoteItem` as Graph's do.
 - D7 no longer excludes either.
 - *(Phase 27.)* Microsoft Search (`POST /search/query`) answers `driveItem`
-  requests only, as `root/search` searches (by name, the caller's drive), so
+  requests as `root/search` searches (by name, the caller's drive), so
   NightMail's cloud picker, which tries it first for Microsoft 365 accounts,
-  gets results instead of an error. Other entity types are `400 notSupported`.
+  gets results instead of an error. `chatMessage` is searched too (ADR 0009 D10, phase 28); other entity types are `400 notSupported`.
 
 ### D9 — Versions *(phase 27)*
 - `…/versions` lists Nextcloud's `files_versions` of the file
