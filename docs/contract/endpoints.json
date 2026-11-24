@@ -15939,5 +15939,47 @@
     "source": "graph-parity",
     "docs": "drive-recent",
     "notes": "The caller's 100 most recently modified files (no folders), newest first, from a Nextcloud SEARCH ordered by getlastmodified, as its own Recent view; each entry carries remoteItem pointing at the item, as Graph's do. Microsoft is retiring this API; it is here for clients that still call it."
+  },
+  {
+    "id": "search.query",
+    "phase": 27,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "/search/query",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "requests[].entityTypes",
+        "requests[].query.queryString",
+        "requests[].from",
+        "requests[].size"
+      ]
+    },
+    "responseFields": [
+      "value[].hitsContainers[].hits[].resource",
+      "value[].hitsContainers[].hits[].resource.id",
+      "value[].hitsContainers[].hits[].resource.name",
+      "value[].hitsContainers[].hits[].resource.parentReference.driveId"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapException: 401 → AuthException (after AuthInterceptor's one refresh+retry), a connection error or timeout → NetworkException, else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_drive_datasource_impl.dart:272"
+    ],
+    "docs": "search-query",
+    "notes": "Microsoft Search, driveItem only: the cloud picker's search for Microsoft 365 accounts (entityTypes [driveItem], from 0, size 50), which falls back to root/search on any error. One request; the caller's drive searched by name as root/search is; each hit's resource is the driveItem with @odata.type. total counts the hits up to this window; moreResultsAvailable says whether more match. Other entity types are 400 notSupported."
   }
 ]

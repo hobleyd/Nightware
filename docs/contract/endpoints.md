@@ -336,8 +336,8 @@ operation:
 | Phase 24 — Teams and channels over Nextcloud Teams and Talk (Graph parity, ADR 0009) | 34 |
 | Phase 25 — Presence over Nextcloud user status (Graph parity, ADR 0009) | 8 |
 | Phase 26 — Online meetings and calls over Talk (Graph parity, ADR 0009) | 14 |
-| Phase 27 — OneDrive, calendar, directory and settings gaps | 4 |
-| **Total** | **404** |
+| Phase 27 — OneDrive, calendar, directory and settings gaps | 5 |
+| **Total** | **405** |
 
 ### Phase 2 — Mail, read side
 
@@ -4610,6 +4610,7 @@ operation:
 | [`files.drives.items.get`](#filesdrivesitemsget) | GET | v1.0 | `/drives/{driveId}/items/{itemId}` | none |
 | [`files.drive.shared-with-me`](#filesdriveshared-with-me) | GET | v1.0 | `{mailbox}/drive/sharedWithMe` | nextLink |
 | [`files.drive.recent`](#filesdriverecent) | GET | v1.0 | `{mailbox}/drive/recent` | none |
+| [`search.query`](#searchquery) | POST | v1.0 | `/search/query` | none |
 
 #### `files.drive.root.children`
 
@@ -4652,5 +4653,16 @@ operation:
 - Graph parity (ADR 0006); reference: drive-recent
 - Notes: The caller's 100 most recently modified files (no folders), newest first, from a Nextcloud SEARCH ordered by getlastmodified, as its own Recent view; each entry carries remoteItem pointing at the item, as Graph's do. Microsoft is retiring this API; it is here for clients that still call it.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.recent.json`
+
+#### `search.query`
+
+**POST v1.0 `/search/query`** — forms: root; success: 200; paging: none
+
+- Request body: `requests[].entityTypes`; `requests[].query.queryString`; `requests[].from`; `requests[].size`
+- Client reads: `value[].hitsContainers[].hits[].resource`, `value[].hitsContainers[].hits[].resource.id`, `value[].hitsContainers[].hits[].resource.name`, `value[].hitsContainers[].hits[].resource.parentReference.driveId`
+- On error: Any non-2xx → _mapException: 401 → AuthException (after AuthInterceptor's one refresh+retry), a connection error or timeout → NetworkException, else ServerException(error.message, status).
+- Call sites: `…/remote/graph_drive_datasource_impl.dart:272`
+- Notes: Microsoft Search, driveItem only: the cloud picker's search for Microsoft 365 accounts (entityTypes [driveItem], from 0, size 50), which falls back to root/search on any error. One request; the caller's drive searched by name as root/search is; each hit's resource is the driveItem with @odata.type. total counts the hits up to this window; moreResultsAvailable says whether more match. Other entity types are 400 notSupported.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/search.query.json`
 
 <!-- END GENERATED -->

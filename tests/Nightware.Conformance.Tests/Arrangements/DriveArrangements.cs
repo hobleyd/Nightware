@@ -82,6 +82,8 @@ public sealed class DriveArrangements : IConformanceArrangements
             f.For<IDriveSharing>().SharedWithMeAsync(Any).Returns(Result<IReadOnlyList<DriveItem>>.Success([SharedPlan])));
         yield return Arrange("files.drive.recent", static f =>
             f.For<IDriveStore>().RecentAsync(100, Any).Returns(Result<IReadOnlyList<DriveItem>>.Success([Recent])));
+        yield return Arrange("search.query", static f =>
+            f.For<IDriveStore>().SearchAsync("notes", new DriveListQuery(50, null), Any).Returns(new Page<DriveItem>([Notes], null)));
         yield return Arrange("files.drive.items.children", static f =>
             f.For<IDriveStore>().ListChildrenAsync(Is(DriveItemRef.ById("7")), new DriveListQuery(1, null), Any).Returns(new Page<DriveItem>([Notes], "1")));
         yield return Arrange("files.drive.items.create-folder", static f =>

@@ -66,6 +66,9 @@
       "name": "Rooms"
     },
     {
+      "name": "Search"
+    },
+    {
       "name": "Security"
     },
     {
@@ -40542,6 +40545,111 @@
                           "displayName": {},
                           "capacity": {},
                           "building": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/search/query": {
+      "post": {
+        "operationId": "search.query",
+        "tags": [
+          "Search"
+        ],
+        "summary": "Search: query",
+        "description": "Behaves as Microsoft Graph's operation on the same route.\n\nGraph reference: search-query",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "requests": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "entityTypes": {},
+                        "query": {
+                          "type": "object",
+                          "properties": {
+                            "queryString": {}
+                          }
+                        },
+                        "from": {},
+                        "size": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "hitsContainers": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "hits": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "resource": {
+                                        "properties": {
+                                          "id": {},
+                                          "name": {},
+                                          "parentReference": {
+                                            "type": "object",
+                                            "properties": {
+                                              "driveId": {}
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
                         }
                       }
                     }

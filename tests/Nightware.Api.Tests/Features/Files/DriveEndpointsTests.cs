@@ -478,6 +478,43 @@ public sealed class DriveEndpointsTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Microsoft_search_finds_drive_items_by_name()
+    {
+        _store.SearchAsync("notes", new DriveListQuery(50, null), Arg.Any<CancellationToken>()).Returns(new Page<DriveItem>([File], null));
+
+        using var response = await Client.PostAsJsonAsync("/v1.0/search/query",
+            new { requests = new[] { new { entityTypes = new[] { "driveItem" }, query = new { queryString = "notes" }, from = 0, size = 50 } } }, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var result = (await response.ReadObjectAsync())["value"]![0]!;
+        result["searchTerms"]![0]!.GetValue<string>().ShouldBe("notes");
+        var container = result["hitsContainers"]![0]!;
+        container["moreResultsAvailable"]!.GetValue<bool>().ShouldBeFalse();
+        var hit = container["hits"]![0]!;
+        hit["hitId"]!.GetValue<string>().ShouldBe("42");
+        hit["rank"]!.GetValue<int>().ShouldBe(1);
+        hit["resource"]!["@odata.type"]!.GetValue<string>().ShouldBe("#microsoft.graph.driveItem");
+        hit["resource"]!["name"]!.GetValue<string>().ShouldBe("notes.txt");
+        hit["resource"]!["parentReference"]!["driveId"]!.GetValue<string>().ShouldBe(DriveId);
+    }
+
+    [Theory]
+    [InlineData("""{"requests":[{"entityTypes":["message"],"query":{"queryString":"x"}}]}""", "notSupported")]
+    [InlineData("""{"requests":[{"entityTypes":["driveItem","listItem"],"query":{"queryString":"x"}}]}""", "notSupported")]
+    [InlineData("""{"requests":[{"entityTypes":["driveItem"],"query":{}}]}""", "invalidRequest")]
+    [InlineData("""{"requests":[]}""", "invalidRequest")]
+    [InlineData("""{"requests":[{"entityTypes":["driveItem"],"query":{"queryString":"x"},"size":"ten"}]}""", "invalidRequest")]
+    public async Task Microsoft_search_takes_one_drive_item_request(string body, string code)
+    {
+        using var content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+        using var response = await Client.PostAsync("/v1.0/search/query", content, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.ReadObjectAsync()).Str("error.code").ShouldBe(code);
+        await _store.DidNotReceiveWithAnyArgs().SearchAsync(default!, default!, Ct);
+    }
+
+    [Fact]
     public async Task Delta_lists_items_and_deletions_and_hands_out_a_delta_link()
     {
         _delta.ChangesAsync(null, Arg.Any<int>(), false, Arg.Any<CancellationToken>())

@@ -197,6 +197,46 @@ public sealed class SearchDrive(IDriveStore store)
     }
 }
 
+/// <summary>One window of a drive search for Microsoft Search (<c>POST /search/query</c>).</summary>
+/// <param name="MoreAvailable">More items match after this window.</param>
+public sealed record DriveSearchHits(IReadOnlyList<DriveItem> Items, bool MoreAvailable);
+
+/// <summary>
+/// Microsoft Search's <c>driveItem</c> search (<c>POST /search/query</c>) over the drive: the items whose name contains
+/// the text, <paramref name="from"/> and <paramref name="size"/> as Graph's request names them.
+/// </summary>
+public sealed class QueryDriveItems(SearchDrive search)
+{
+    /// <summary>Graph's largest <c>size</c> for <c>driveItem</c>.</summary>
+    public const int MaxSize = 500;
+
+    /// <summary>Graph's <c>size</c> when the request leaves it out.</summary>
+    public const int DefaultSize = 25;
+
+    public async Task<Result<DriveSearchHits>> ExecuteAsync(string? text, int from, int size, CancellationToken cancellationToken)
+    {
+        if (from < 0)
+        {
+            return Error.Validation("from cannot be negative.", "from");
+        }
+
+        if (size is < 1 or > MaxSize)
+        {
+            return Error.Validation($"size must be between 1 and {MaxSize}.", "size");
+        }
+
+        if (from + size > DriveLimits.MaxPageSize)
+        {
+            return Error.Validation($"from + size can't exceed {DriveLimits.MaxPageSize}.", "from");
+        }
+
+        var page = await search.ExecuteAsync(text, new DriveListQuery(from + size, null), cancellationToken).ConfigureAwait(false);
+        return page.IsSuccess
+            ? new DriveSearchHits(page.Value.Items.Skip(from).ToList(), page.Value.SkipToken is not null)
+            : page.Error;
+    }
+}
+
 /// <summary>Graph <c>GET /me/drive/recent</c>: the drive's recently modified files, newest first.</summary>
 public sealed class ListRecentDriveItems(IDriveStore store)
 {

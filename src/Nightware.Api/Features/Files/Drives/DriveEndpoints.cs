@@ -46,6 +46,7 @@ internal static class DriveEndpoints
 
         graph.MapGet("/drives/{driveId}", GetDriveAsync);
         MapDrive(graph, "/drives/{driveId}");
+        DriveSearchQueryEndpoint.Map(graph);
 
         // Fetched without a bearer; the sealed URL recovers the caller's token (DriveUrls).
         graph.MapGet(DriveUrls.DownloadPattern, DownloadAsync).AuthorisedBy(DriveUrls.Download);

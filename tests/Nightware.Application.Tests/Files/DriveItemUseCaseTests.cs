@@ -181,6 +181,29 @@ public sealed class DriveItemUseCaseTests
     }
 
     [Fact]
+    public async Task A_search_query_window_skips_from_and_says_whether_more_match()
+    {
+        var other = File with { Id = "43" };
+        _store.SearchAsync("notes", new DriveListQuery(2, null), Ct).Returns(new Page<DriveItem>([File, other], "2"));
+
+        var hits = (await new QueryDriveItems(new SearchDrive(_store)).ExecuteAsync("notes", 1, 1, Ct)).Value;
+
+        hits.Items.ShouldBe([other]);
+        hits.MoreAvailable.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(-1, 10, "from")]
+    [InlineData(0, 0, "size")]
+    [InlineData(0, 501, "size")]
+    [InlineData(900, 200, "from")]
+    public async Task A_search_query_window_must_be_in_range(int from, int size, string target)
+    {
+        (await new QueryDriveItems(new SearchDrive(_store)).ExecuteAsync("notes", from, size, Ct)).Error!.Target.ShouldBe(target);
+        await _store.DidNotReceiveWithAnyArgs().SearchAsync(default!, default!, Ct);
+    }
+
+    [Fact]
     public async Task Recent_asks_the_store_for_a_hundred_files()
     {
         _store.RecentAsync(ListRecentDriveItems.Limit, Ct).Returns(Result<IReadOnlyList<DriveItem>>.Success([File]));

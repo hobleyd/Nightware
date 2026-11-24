@@ -114,6 +114,10 @@ SharePoint (`/sites`, document libraries), versions, `follow`, `checkin`/`checko
   `getlastmodified` descending, the 100 newest, as Nextcloud's own Recent
   view; entries carry `remoteItem` as Graph's do.
 - D7 no longer excludes either.
+- *(Phase 27.)* Microsoft Search (`POST /search/query`) answers `driveItem`
+  requests only, as `root/search` searches (by name, the caller's drive), so
+  NightMail's cloud picker, which tries it first for Microsoft 365 accounts,
+  gets results instead of an error. Other entity types are `400 notSupported`.
 
 ## Consequences
 - The contract gains the phase 20 operations, all `"source": "graph-parity"`.

@@ -78,6 +78,11 @@ public sealed class DriveLiveTests
             var file = await PutBytesAsync(alice, $"/v1.0/me/drive/root:/{folderName}/notes.txt:/content", bytes, HttpStatusCode.Created);
             file["size"]!.GetValue<long>().ShouldBe(bytes.Length);
             file["parentReference"]!["path"]!.GetValue<string>().ShouldBe($"/drive/root:/{folderName}");
+
+            // Microsoft Search's driveItem search, as the cloud picker asks it, finds the new folder by name.
+            var searched = await SendAsync(alice, HttpMethod.Post, "/v1.0/search/query",
+                new { requests = new[] { new { entityTypes = new[] { "driveItem" }, query = new { queryString = folderName }, from = 0, size = 50 } } });
+            searched["value"]![0]!["hitsContainers"]![0]!["hits"]!.AsArray().Select(h => h!["resource"]!["id"]!.GetValue<string>()).ShouldContain(folderId);
             var fileId = Id(file);
             Id(await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/drive/root:/{folderName}/notes.txt")).ShouldBe(fileId);
             Id(await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/drive/items/{folderId}:/notes.txt:")).ShouldBe(fileId);
