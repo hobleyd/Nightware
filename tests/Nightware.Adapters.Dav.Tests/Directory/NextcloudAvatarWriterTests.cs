@@ -20,7 +20,16 @@ public sealed class NextcloudAvatarWriterTests : IDisposable
 {
     private const string AvatarPath = "/nc/index.php/avatar/";
     private static readonly MailboxRef Bob = new("bob@nightware.localhost");
-    private static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    /// <summary>A real 16 × 16 PNG: square, so it goes to Nextcloud untouched.</summary>
+    private static readonly byte[] Png = SquarePng();
+
+    private static byte[] SquarePng()
+    {
+        using var bitmap = new SkiaSharp.SKBitmap(16, 16);
+        bitmap.Erase(SkiaSharp.SKColors.Teal);
+        using var data = bitmap.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+        return data.ToArray();
+    }
 
     private readonly WireMockServer _server = WireMockServer.Start();
     private readonly IBackendCredentials _credentials = Substitute.For<IBackendCredentials>();
@@ -63,7 +72,7 @@ public sealed class NextcloudAvatarWriterTests : IDisposable
     {
         Given("POST", 200, """{"status":"success"}""");
 
-        (await Writer.SetAsync(Bob, Png, ImageInfo.Png, Ct)).IsSuccess.ShouldBeTrue();
+        (await Writer.SetAsync(Bob, Png, Ct)).IsSuccess.ShouldBeTrue();
 
         var request = _server.LogEntries.ShouldHaveSingleItem().RequestMessage!;
         request.Headers!["Authorization"].ShouldBe(["Bearer nc-token"]);
@@ -80,7 +89,7 @@ public sealed class NextcloudAvatarWriterTests : IDisposable
     {
         Given("POST", 200, """{"data":"notsquare","image":"data:image/png;base64,AAAA"}""");
 
-        (await Writer.SetAsync(Bob, Png, ImageInfo.Png, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await Writer.SetAsync(Bob, Png, Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
     }
 
     [Theory]
@@ -90,7 +99,7 @@ public sealed class NextcloudAvatarWriterTests : IDisposable
     {
         Given("POST", status, body);
 
-        var error = (await Writer.SetAsync(Bob, Png, ImageInfo.Jpeg, Ct)).Error!;
+        var error = (await Writer.SetAsync(Bob, Png, Ct)).Error!;
 
         error.Kind.ShouldBe(ErrorKind.Validation);
         error.Message.ShouldContain(body.Contains("big", StringComparison.Ordinal) ? "File is too big" : "Unknown filetype");
@@ -106,7 +115,7 @@ public sealed class NextcloudAvatarWriterTests : IDisposable
     {
         Given("POST", status, body);
 
-        (await Writer.SetAsync(Bob, Png, ImageInfo.Png, Ct)).Error!.Kind.ShouldBe(kind);
+        (await Writer.SetAsync(Bob, Png, Ct)).Error!.Kind.ShouldBe(kind);
     }
 
     [Fact]
@@ -129,4 +138,26 @@ public sealed class NextcloudAvatarWriterTests : IDisposable
     [Fact]
     public void Outcome_reads_success_only_from_the_status_body() =>
         NextcloudAvatarWriter.Outcome(HttpStatusCode.OK, """{"status":"failure"}""", isDelete: false).Error!.Kind.ShouldBe(ErrorKind.BackendUnavailable);
+
+    [Fact]
+    public async Task A_non_square_photo_is_cropped_before_it_is_sent()
+    {
+        Given("POST", 200, """{"status":"success"}""");
+        using var wide = new SkiaSharp.SKBitmap(40, 20);
+        wide.Erase(SkiaSharp.SKColors.Teal);
+        using var encoded = wide.Encode(SkiaSharp.SKEncodedImageFormat.Jpeg, 90);
+
+        (await Writer.SetAsync(Bob, encoded.ToArray(), Ct)).IsSuccess.ShouldBeTrue();
+
+        var sent = _server.LogEntries.ShouldHaveSingleItem().RequestMessage!;
+        (sent.Body ?? System.Text.Encoding.Latin1.GetString(sent.BodyAsBytes!)).ShouldContain("filename=photo.jpg");
+    }
+
+    [Fact]
+    public async Task Bytes_that_are_no_image_never_reach_nextcloud()
+    {
+        (await Writer.SetAsync(Bob, "GIF89a"u8.ToArray(), Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+
+        _server.LogEntries.ShouldBeEmpty();
+    }
 }

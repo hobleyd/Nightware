@@ -20,7 +20,7 @@ public sealed class PhotoWriteTests
         _resolver.ResolveAsync("id-me", Arg.Any<CancellationToken>()).Returns(new MailboxRef("ME@example.com"));
         _resolver.ResolveAsync("sam@example.com", Arg.Any<CancellationToken>()).Returns(new MailboxRef("sam@example.com"));
         _resolver.ResolveAsync("nobody", Arg.Any<CancellationToken>()).Returns(Error.Validation("unknown"));
-        _writer.SetAsync(default, default, null!, default).ReturnsForAnyArgs(Result.Success());
+        _writer.SetAsync(default, default, default).ReturnsForAnyArgs(Result.Success());
         _writer.DeleteAsync(default, default).ReturnsForAnyArgs(Result.Success());
     }
 
@@ -32,19 +32,21 @@ public sealed class PhotoWriteTests
     [InlineData(null)]
     [InlineData("Me@Example.com")]
     [InlineData("id-me")]
-    public async Task The_caller_sets_their_own_square_photo_typed_by_its_bytes(string? user)
+    public async Task The_caller_sets_their_own_photo(string? user)
     {
         (await Set.ExecuteAsync(user, TestImages.Png(16, 16), Ct)).IsSuccess.ShouldBeTrue();
 
-        await _writer.Received(1).SetAsync(Me, Arg.Any<ReadOnlyMemory<byte>>(), ImageInfo.Png, Arg.Any<CancellationToken>());
+        await _writer.Received(1).SetAsync(Me, Arg.Any<ReadOnlyMemory<byte>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task A_jpeg_goes_as_a_jpeg()
+    public async Task Any_image_goes_to_the_writer_which_makes_it_what_the_store_keeps()
     {
-        await Set.ExecuteAsync(null, TestImages.Jpeg8, Ct);
+        // Non-square, and not a JPEG or PNG: the writer crops and converts (phase 27).
+        (await Set.ExecuteAsync(null, TestImages.Png(40, 20), Ct)).IsSuccess.ShouldBeTrue();
+        (await Set.ExecuteAsync(null, "GIF89a"u8.ToArray(), Ct)).IsSuccess.ShouldBeTrue();
 
-        await _writer.Received(1).SetAsync(Me, Arg.Any<ReadOnlyMemory<byte>>(), ImageInfo.Jpeg, Arg.Any<CancellationToken>());
+        await _writer.Received(2).SetAsync(Me, Arg.Any<ReadOnlyMemory<byte>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -53,25 +55,16 @@ public sealed class PhotoWriteTests
         (await Set.ExecuteAsync("sam@example.com", TestImages.Jpeg8, Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
         (await Set.ExecuteAsync("nobody", TestImages.Jpeg8, Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
         (await new DeleteUserPhoto(_resolver, _writer).ExecuteAsync("sam@example.com", Ct)).Error!.Kind.ShouldBe(ErrorKind.Forbidden);
-        await _writer.DidNotReceiveWithAnyArgs().SetAsync(default, default, null!, Ct);
+        await _writer.DidNotReceiveWithAnyArgs().SetAsync(default, default, Ct);
         await _writer.DidNotReceiveWithAnyArgs().DeleteAsync(default, Ct);
     }
 
     [Fact]
-    public async Task A_non_square_image_is_400_naming_its_size()
+    public async Task Nothing_is_400_and_over_4MB_is_413()
     {
-        var error = (await Set.ExecuteAsync(null, TestImages.Png(40, 20), Ct)).Error!;
-
-        error.Kind.ShouldBe(ErrorKind.Validation);
-        error.Message.ShouldContain("40x20");
-    }
-
-    [Fact]
-    public async Task Not_an_image_is_400_and_over_4MB_is_413()
-    {
-        (await Set.ExecuteAsync(null, "GIF89a"u8.ToArray(), Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
+        (await Set.ExecuteAsync(null, Array.Empty<byte>(), Ct)).Error!.Kind.ShouldBe(ErrorKind.Validation);
         (await Set.ExecuteAsync(null, new byte[UserPhotos.MaxUploadBytes + 1], Ct)).Error!.Kind.ShouldBe(ErrorKind.PayloadTooLarge);
-        await _writer.DidNotReceiveWithAnyArgs().SetAsync(default, default, null!, Ct);
+        await _writer.DidNotReceiveWithAnyArgs().SetAsync(default, default, Ct);
     }
 
     [Fact]

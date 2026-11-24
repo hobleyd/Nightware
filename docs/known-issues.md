@@ -59,10 +59,12 @@ what a fix needs. Ordered by impact within each section.
   Nextcloud's desktop client does): `sha1Hash`/`sha256Hash`, never `quickXorHash`. The façade never hashes content.
 
 ### Directory
-- **A photo upload must be a square JPEG or PNG.** Nextcloud keeps nothing
-  else (its web UI crops in the browser) and the façade has no image library,
-  so any other image is a 400 saying why. Graph accepts any image. Fix: crop
-  in the façade, which needs an image library (a new package).
+- **A photo is cropped to its centre square** (phase 27): Nextcloud keeps only
+  a square JPEG or PNG, so the façade turns any other image (JPEG, PNG, GIF,
+  WebP, BMP, ICO; HEIC only where the platform has a codec) upright by its
+  EXIF orientation, crops the centre square and re-encodes it at most 1024 px
+  a side (SkiaSharp). There is no way to choose the crop. An image over 50
+  megapixels is refused (400) before decoding.
 
 ### Tasks and settings
 - **Automatic replies: `contactsOnly` means internal senders only.** Contacts

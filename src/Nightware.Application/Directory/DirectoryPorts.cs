@@ -40,8 +40,11 @@ public interface IUserPhotoReader
 /// <summary>Sets or removes the signed-in user's own photo (phase 19). The store acts as the caller, so it can't reach anyone else's.</summary>
 public interface IUserPhotoWriter
 {
-    /// <param name="image">A square JPEG or PNG (checked by the use case).</param>
-    Task<Result> SetAsync(MailboxRef owner, ReadOnlyMemory<byte> image, string contentType, CancellationToken cancellationToken);
+    /// <param name="image">
+    /// An image of at most <see cref="UserPhotos.MaxUploadBytes"/>, any format and shape: the writer makes it what the
+    /// store keeps (Nextcloud: centre-cropped to a square JPEG or PNG). One it can't read is <see cref="ErrorKind.Validation"/>.
+    /// </param>
+    Task<Result> SetAsync(MailboxRef owner, ReadOnlyMemory<byte> image, CancellationToken cancellationToken);
 
     Task<Result> DeleteAsync(MailboxRef owner, CancellationToken cancellationToken);
 }

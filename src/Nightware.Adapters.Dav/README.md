@@ -306,7 +306,7 @@ Use `Parse(vcf, href?)`, `Create(ContactDraft, uid, V3|V4)`, `Apply(existingVcf,
 **`NextcloudAvatarWriter` (`IUserPhotoWriter`, `Directory/`)** sets and removes the signed-in user's own photo (phase 19): `POST {BaseUrl}index.php/avatar/` with the image as multipart `files[]`, and `DELETE {BaseUrl}index.php/avatar/`, both with the caller's Groupware credential.
 
 - A bearer-token request passes Nextcloud's CSRF check only with `OCS-APIRequest: true` (verified on Nextcloud 35).
-- Nextcloud answers 200 whatever happened and says what in the body: `{"status":"success"}` stored it; `{"data":"notsquare"}` stored nothing (only a square JPEG or PNG is kept, and NC 35 has no crop route); `{"data":{"message"}}` refused it. Only the first is success; the others are 400 with the reason. The use case refuses a non-square image before it gets here.
+- Nextcloud answers 200 whatever happened and says what in the body: `{"status":"success"}` stored it; `{"data":"notsquare"}` stored nothing (only a square JPEG or PNG is kept, and NC 35 has no crop route); `{"data":{"message"}}` refused it. Only the first is success; the others are 400 with the reason. Since phase 27 the writer never sends a non-square image: `SquarePhoto` (SkiaSharp, MIT; the NoDependencies Linux build) passes a square JPEG or PNG untouched and turns anything else upright (EXIF orientation), centre-crops it and re-encodes it at most 1024 px a side; the header's size is checked (50 megapixels at most) before decoding.
 - No-photo reads now carry Graph's code `ImageNotFound` (`UserPhotos.None()`), so the metadata route can tell "no photo" (a placeholder) from "no such user" (404).
 
 ## Calendar and rooms (Phase 4)

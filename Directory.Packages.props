@@ -9,6 +9,10 @@
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="11.0.0" />
     <PackageVersion Include="Ical.Net" Version="5.2.4" />
     <PackageVersion Include="MimeKit" Version="5.0.0" />
+    <!-- Photos (phase 27): centre-cropping a non-square photo for Nextcloud's avatars. MIT; the NoDependencies native
+         build runs in the Debian aspnet image without fontconfig. -->
+    <PackageVersion Include="SkiaSharp" Version="4.156.2" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.156.2" />
     <PackageVersion Include="Npgsql" Version="8.0.5" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="11.0.0" />

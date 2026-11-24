@@ -26,6 +26,8 @@ namespace Nightware.Adapters.Dav.Directory;
 /// <para>Nextcloud answers 200 for every outcome and tells them apart in the body: <c>{"status":"success"}</c>
 /// stored it; <c>{"data":"notsquare",…}</c> stored nothing (its web UI crops in the browser); <c>{"data":{"message"}}</c>
 /// is a refusal with a reason. Only the first is success.</para>
+/// <para>Nextcloud keeps only a square JPEG or PNG, so <see cref="SquarePhoto"/> makes any other image one first
+/// (phase 27).</para>
 /// </remarks>
 internal sealed partial class NextcloudAvatarWriter(
     HttpClient http,
@@ -33,12 +35,18 @@ internal sealed partial class NextcloudAvatarWriter(
     IOptions<DavOptions> options,
     ILogger<NextcloudAvatarWriter> logger) : IUserPhotoWriter
 {
-    public Task<Result> SetAsync(MailboxRef owner, ReadOnlyMemory<byte> image, string contentType, CancellationToken cancellationToken)
+    public Task<Result> SetAsync(MailboxRef owner, ReadOnlyMemory<byte> image, CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
+        var square = SquarePhoto.From(image);
+        if (!square.IsSuccess)
+        {
+            return Task.FromResult<Result>(square.Error);
+        }
+
+        var (bytes, contentType) = square.Value;
         return SendAsync(HttpMethod.Post, () =>
         {
-            var file = new ReadOnlyMemoryContent(image);
+            var file = new ReadOnlyMemoryContent(bytes);
             file.Headers.ContentType = new MediaTypeHeaderValue(contentType);
             return new MultipartFormDataContent { { file, "files[]", contentType == ImageInfo.Png ? "photo.png" : "photo.jpg" } };
         }, cancellationToken);

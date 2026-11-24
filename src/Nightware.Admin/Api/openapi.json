@@ -21303,7 +21303,7 @@
           "Directory"
         ],
         "summary": "Directory me photo: patch",
-        "description": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and Nightware has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
+        "description": "Sets the signed-in user's own photo in Nextcloud (their avatar). Any image up to 4 MB: Nextcloud keeps only a square JPEG or PNG, so Nightware turns anything else upright (EXIF orientation), crops its centre square and re-encodes it (at most 1024 px a side); an image it can't read or over 50 megapixels is 400, over 4 MB 413. The image's bytes decide its type. 200, no body.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
         "parameters": [
           {
             "name": "Content-Type",
@@ -21342,7 +21342,7 @@
           "Directory"
         ],
         "summary": "Directory me photo: put",
-        "description": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and Nightware has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
+        "description": "Sets the signed-in user's own photo in Nextcloud (their avatar). Any image up to 4 MB: Nextcloud keeps only a square JPEG or PNG, so Nightware turns anything else upright (EXIF orientation), crops its centre square and re-encodes it (at most 1024 px a side); an image it can't read or over 50 megapixels is 400, over 4 MB 413. The image's bytes decide its type. 200, no body.\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
         "parameters": [
           {
             "name": "Content-Type",
@@ -22041,7 +22041,7 @@
           "Directory"
         ],
         "summary": "Directory users photo: patch",
-        "description": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and Nightware has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart).\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
+        "description": "Sets the signed-in user's own photo in Nextcloud (their avatar). Any image up to 4 MB: Nextcloud keeps only a square JPEG or PNG, so Nightware turns anything else upright (EXIF orientation), crops its centre square and re-encodes it (at most 1024 px a side); an image it can't read or over 50 megapixels is 400, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart).\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
         "parameters": [
           {
             "name": "userIdOrUpn",
@@ -22088,7 +22088,7 @@
           "Directory"
         ],
         "summary": "Directory users photo: put",
-        "description": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and Nightware has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart).\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
+        "description": "Sets the signed-in user's own photo in Nextcloud (their avatar). Any image up to 4 MB: Nextcloud keeps only a square JPEG or PNG, so Nightware turns anything else upright (EXIF orientation), crops its centre square and re-encodes it (at most 1024 px a side); an image it can't read or over 50 megapixels is 400, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart).\n\nGraph reference: https://learn.microsoft.com/graph/api/profilephoto-update",
         "parameters": [
           {
             "name": "userIdOrUpn",

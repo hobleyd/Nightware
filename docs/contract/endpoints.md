@@ -2731,7 +2731,7 @@ operation:
 
 - Headers: `Content-Type: image/jpeg`
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-update
-- Notes: Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body.
+- Notes: Sets the signed-in user's own photo in Nextcloud (their avatar). Any image up to 4 MB: Nextcloud keeps only a square JPEG or PNG, so the façade turns anything else upright (EXIF orientation), crops its centre square and re-encodes it (at most 1024 px a side); an image it can't read or over 50 megapixels is 400, over 4 MB 413. The image's bytes decide its type. 200, no body.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.me.photo.put.json`
 
 #### `directory.me.photo.patch`
@@ -2740,7 +2740,7 @@ operation:
 
 - Headers: `Content-Type: image/jpeg`
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-update
-- Notes: Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body.
+- Notes: Sets the signed-in user's own photo in Nextcloud (their avatar). Any image up to 4 MB: Nextcloud keeps only a square JPEG or PNG, so the façade turns anything else upright (EXIF orientation), crops its centre square and re-encodes it (at most 1024 px a side); an image it can't read or over 50 megapixels is 400, over 4 MB 413. The image's bytes decide its type. 200, no body.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.me.photo.patch.json`
 
 #### `directory.users.photo.put`
@@ -2749,7 +2749,7 @@ operation:
 
 - Headers: `Content-Type: image/jpeg`
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-update
-- Notes: Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart).
+- Notes: Sets the signed-in user's own photo in Nextcloud (their avatar). Any image up to 4 MB: Nextcloud keeps only a square JPEG or PNG, so the façade turns anything else upright (EXIF orientation), crops its centre square and re-encodes it (at most 1024 px a side); an image it can't read or over 50 megapixels is 400, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.users.photo.put.json`
 
 #### `directory.users.photo.patch`
@@ -2758,7 +2758,7 @@ operation:
 
 - Headers: `Content-Type: image/jpeg`
 - Graph parity (ADR 0006); reference: https://learn.microsoft.com/graph/api/profilephoto-update
-- Notes: Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart).
+- Notes: Sets the signed-in user's own photo in Nextcloud (their avatar). Any image up to 4 MB: Nextcloud keeps only a square JPEG or PNG, so the façade turns anything else upright (EXIF orientation), crops its centre square and re-encodes it (at most 1024 px a side); an image it can't read or over 50 megapixels is 400, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart).
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/directory.users.photo.patch.json`
 
 #### `directory.me.photo.delete`

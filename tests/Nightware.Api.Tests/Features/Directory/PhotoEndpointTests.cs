@@ -24,7 +24,7 @@ public sealed class PhotoEndpointTests : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        _writer.SetAsync(default, default, null!, default).ReturnsForAnyArgs(Result.Success());
+        _writer.SetAsync(default, default, default).ReturnsForAnyArgs(Result.Success());
         _writer.DeleteAsync(default, default).ReturnsForAnyArgs(Result.Success());
         _host = await TestHost.StartAsync(services => services.AddSingleton(_directory).AddSingleton(_photos).AddSingleton(_writer));
     }
@@ -107,15 +107,15 @@ public sealed class PhotoEndpointTests : IAsyncLifetime
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await response.Content.ReadAsStringAsync(Ct)).ShouldBeEmpty();
-        await _writer.Received(1).SetAsync(new MailboxRef(Me), Arg.Is<ReadOnlyMemory<byte>>(m => m.Length == 33), "image/png", Arg.Any<CancellationToken>());
+        await _writer.Received(1).SetAsync(new MailboxRef(Me), Arg.Is<ReadOnlyMemory<byte>>(m => m.Length == 33), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task A_non_square_photo_is_400_and_someone_elses_403()
+    public async Task A_non_square_photo_goes_to_the_writer_and_someone_elses_is_403()
     {
-        (await PutAsync("/v1.0/me/photo/$value", PngHeader(40, 20))).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await PutAsync("/v1.0/me/photo/$value", PngHeader(40, 20))).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await PutAsync("/v1.0/users/sam@example.com/photo/$value", PngHeader(8, 8))).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        await _writer.DidNotReceiveWithAnyArgs().SetAsync(default, default, null!, Ct);
+        await _writer.Received(1).SetAsync(new MailboxRef(Me), Arg.Any<ReadOnlyMemory<byte>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

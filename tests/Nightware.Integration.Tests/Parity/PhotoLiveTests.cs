@@ -80,4 +80,34 @@ public sealed class PhotoLiveTests
             }
         }
     }
+
+    [Fact]
+    public async Task A_wide_photo_in_another_format_is_cropped_to_a_square_avatar()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
+        await using var stack = LiveStack.Start();
+        using var bob = await stack.GraphClientAsync("bob", Ct);
+        using var before = await bob.GetAsync("/v1.0/me/photo/$value", Ct);
+        var original = before.StatusCode == HttpStatusCode.OK ? await before.Content.ReadAsByteArrayAsync(Ct) : null;
+
+        // 600 x 300 WebP: neither square nor a type Nextcloud keeps (phase 27 crops and converts it).
+        using var bitmap = new SkiaSharp.SKBitmap(600, 300);
+        bitmap.Erase(SkiaSharp.SKColors.Coral);
+        using var webp = bitmap.Encode(SkiaSharp.SKEncodedImageFormat.Webp, 90);
+        try
+        {
+            using (var set = await PutAsync(bob, "/v1.0/me/photo/$value", webp.ToArray()))
+            {
+                set.StatusCode.ShouldBe(HttpStatusCode.OK, await set.Content.ReadAsStringAsync(Ct));
+            }
+
+            var meta = JsonNode.Parse(await bob.GetStringAsync("/v1.0/me/photo", Ct))!;
+            meta["width"]!.GetValue<int>().ShouldBe(meta["height"]!.GetValue<int>());
+            meta["width"]!.GetValue<int>().ShouldBeGreaterThan(1);
+        }
+        finally
+        {
+            using var restored = original is null ? await bob.DeleteAsync("/v1.0/me/photo/$value", Ct) : await PutAsync(bob, "/v1.0/me/photo/$value", original);
+        }
+    }
 }

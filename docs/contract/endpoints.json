@@ -8885,7 +8885,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/profilephoto-update",
-    "notes": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body."
+    "notes": "Sets the signed-in user's own photo in Nextcloud (their avatar). Any image up to 4 MB: Nextcloud keeps only a square JPEG or PNG, so the façade turns anything else upright (EXIF orientation), crops its centre square and re-encodes it (at most 1024 px a side); an image it can't read or over 50 megapixels is 400, over 4 MB 413. The image's bytes decide its type. 200, no body."
   },
   {
     "id": "directory.me.photo.patch",
@@ -8918,7 +8918,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/profilephoto-update",
-    "notes": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body."
+    "notes": "Sets the signed-in user's own photo in Nextcloud (their avatar). Any image up to 4 MB: Nextcloud keeps only a square JPEG or PNG, so the façade turns anything else upright (EXIF orientation), crops its centre square and re-encodes it (at most 1024 px a side); an image it can't read or over 50 megapixels is 400, over 4 MB 413. The image's bytes decide its type. 200, no body."
   },
   {
     "id": "directory.users.photo.put",
@@ -8951,7 +8951,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/profilephoto-update",
-    "notes": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart)."
+    "notes": "Sets the signed-in user's own photo in Nextcloud (their avatar). Any image up to 4 MB: Nextcloud keeps only a square JPEG or PNG, so the façade turns anything else upright (EXIF orientation), crops its centre square and re-encodes it (at most 1024 px a side); an image it can't read or over 50 megapixels is 400, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart)."
   },
   {
     "id": "directory.users.photo.patch",
@@ -8984,7 +8984,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "https://learn.microsoft.com/graph/api/profilephoto-update",
-    "notes": "Sets the signed-in user's own photo in Nextcloud (their avatar). Only a square JPEG or PNG up to 4 MB: Nextcloud stores nothing else and the façade has no image library to crop with, so another image is 400 saying why, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart)."
+    "notes": "Sets the signed-in user's own photo in Nextcloud (their avatar). Any image up to 4 MB: Nextcloud keeps only a square JPEG or PNG, so the façade turns anything else upright (EXIF orientation), crops its centre square and re-encodes it (at most 1024 px a side); an image it can't read or over 50 megapixels is 400, over 4 MB 413. The image's bytes decide its type. 200, no body. On /users/{x} only when x is the caller; anyone else's photo is 403 (Graph's administrator right has no counterpart)."
   },
   {
     "id": "directory.me.photo.delete",

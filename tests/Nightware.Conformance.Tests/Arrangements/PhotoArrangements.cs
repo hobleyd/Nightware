@@ -19,7 +19,7 @@ public sealed class PhotoArrangements : IConformanceArrangements
 
     private static void Writes(PortFakes fakes)
     {
-        fakes.For<IUserPhotoWriter>().SetAsync(Me, Arg.Is<ReadOnlyMemory<byte>>(m => m.Length == Jpeg.Length), ImageInfo.Jpeg, Arg.Any<CancellationToken>())
+        fakes.For<IUserPhotoWriter>().SetAsync(Me, Arg.Is<ReadOnlyMemory<byte>>(m => m.Length == Jpeg.Length), Arg.Any<CancellationToken>())
             .Returns(Result.Success());
         fakes.For<IUserPhotoWriter>().DeleteAsync(Me, Arg.Any<CancellationToken>()).Returns(Result.Success());
     }
