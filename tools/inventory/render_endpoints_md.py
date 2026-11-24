@@ -38,6 +38,7 @@ PHASES = [
     ("24", "Phase 24 — Teams and channels over Nextcloud Teams and Talk (Graph parity, ADR 0009)"),
     ("25", "Phase 25 — Presence over Nextcloud user status (Graph parity, ADR 0009)"),
     ("26", "Phase 26 — Online meetings and calls over Talk (Graph parity, ADR 0009)"),
+    ("27", "Phase 27 — OneDrive, calendar, directory and settings gaps"),
 ]
 
 

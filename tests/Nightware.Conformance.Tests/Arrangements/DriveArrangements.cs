@@ -58,6 +58,13 @@ public sealed class DriveArrangements : IConformanceArrangements
         {
             Normalise = SealedDownloadUrl,
         };
+        yield return Arrange("files.drive.root.children", static f =>
+            f.For<IDriveStore>().ListChildrenAsync(Is(DriveItemRef.Root), new DriveListQuery(200, null), Any).Returns(new Page<DriveItem>([Notes], null)));
+        yield return Arrange("files.drives.items.get", static f =>
+            f.For<IDriveStore>().GetItemAsync(Arg.Is<DriveItemRef>(r => r.ItemId == "42" && r.DriveId == DriveId), Any).Returns(Notes)) with
+        {
+            Normalise = SealedDownloadUrl,
+        };
         yield return Arrange("files.drive.items.children", static f =>
             f.For<IDriveStore>().ListChildrenAsync(Is(DriveItemRef.ById("7")), new DriveListQuery(1, null), Any).Returns(new Page<DriveItem>([Notes], "1")));
         yield return Arrange("files.drive.items.create-folder", static f =>

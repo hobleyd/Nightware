@@ -12611,11 +12611,11 @@
     ],
     "successStatus": 200,
     "paging": "nextLink",
-    "clientErrorHandling": "",
-    "clientCallSites": [],
-    "source": "graph-parity",
-    "docs": "driveitem-search",
-    "notes": "Names containing q, anywhere in the drive (Nextcloud SEARCH); also drive/search(q=…)."
+    "clientErrorHandling": "Any non-2xx → _mapException: 401 → AuthException (after AuthInterceptor's one refresh+retry), a connection error or timeout → NetworkException, else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_drive_datasource_impl.dart:264"
+    ],
+    "notes": "Names containing q, anywhere in the drive (Nextcloud SEARCH); also drive/search(q=…). The cloud picker's search for NightMail Server accounts (up to two pages); Microsoft 365 accounts try /search/query first."
   },
   {
     "id": "files.drive.items.thumbnails",
@@ -15778,5 +15778,89 @@
     "source": "graph-parity",
     "docs": "call-delete",
     "notes": "Leaves the call; ends it for everyone when the caller moderates."
+  },
+  {
+    "id": "files.drive.root.children",
+    "phase": 27,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/root/children",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [
+        "*"
+      ],
+      "filter": [],
+      "orderby": [
+        "name",
+        "lastModifiedDateTime",
+        "size"
+      ],
+      "top": [
+        "1-1000"
+      ],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "value",
+      "@odata.nextLink"
+    ],
+    "successStatus": 200,
+    "paging": "nextLink",
+    "clientErrorHandling": "Any non-2xx → _mapException: 401 → AuthException (after AuthInterceptor's one refresh+retry), a connection error or timeout → NetworkException, else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_drive_datasource_impl.dart:238"
+    ],
+    "docs": "driveitem-list-children",
+    "notes": "The cloud picker's \"My files\" (NightMail Server accounts use the nextcloud provider): the root folder's items with $top=200, following @odata.nextLink. The same handler as items/{id}/children."
+  },
+  {
+    "id": "files.drives.items.get",
+    "phase": 27,
+    "method": "GET",
+    "version": "v1.0",
+    "path": "/drives/{driveId}/items/{itemId}",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [
+        "*"
+      ],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [
+        "children"
+      ],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": null,
+    "responseFields": [
+      "id",
+      "name",
+      "file",
+      "folder",
+      "parentReference",
+      "@microsoft.graph.downloadUrl",
+      "file.hashes"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "Any non-2xx → _mapException: 401 → AuthException (after AuthInterceptor's one refresh+retry), a connection error or timeout → NetworkException, else ServerException(error.message, status).",
+    "clientCallSites": [
+      "lib/data/datasources/remote/graph_drive_datasource_impl.dart:222"
+    ],
+    "docs": "driveitem-get",
+    "notes": "The cloud picker addresses an item through the drive its parentReference.driveId names (_itemPath), and every Nightware item names the caller's own drive, so its children, content and createLink go to /drives/{driveId}/items/{itemId}/… too (the same handlers as /me/drive). Another drive's id is 404 itemNotFound (ADR 0008 D1)."
   }
 ]

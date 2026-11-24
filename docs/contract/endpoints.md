@@ -336,7 +336,8 @@ operation:
 | Phase 24 — Teams and channels over Nextcloud Teams and Talk (Graph parity, ADR 0009) | 34 |
 | Phase 25 — Presence over Nextcloud user status (Graph parity, ADR 0009) | 8 |
 | Phase 26 — Online meetings and calls over Talk (Graph parity, ADR 0009) | 14 |
-| **Total** | **400** |
+| Phase 27 — OneDrive, calendar, directory and settings gaps | 2 |
+| **Total** | **402** |
 
 ### Phase 2 — Mail, read side
 
@@ -3594,8 +3595,9 @@ operation:
 
 - Query: `$select` (always): `*`; `$orderby`: `name`; `$orderby`: `lastModifiedDateTime`; `$orderby`: `size`; `$top`: `1-1000`
 - Client reads: `value`, `@odata.nextLink`
-- Graph parity (ADR 0006); reference: driveitem-search
-- Notes: Names containing q, anywhere in the drive (Nextcloud SEARCH); also drive/search(q=…).
+- On error: Any non-2xx → _mapException: 401 → AuthException (after AuthInterceptor's one refresh+retry), a connection error or timeout → NetworkException, else ServerException(error.message, status).
+- Call sites: `…/remote/graph_drive_datasource_impl.dart:264`
+- Notes: Names containing q, anywhere in the drive (Nextcloud SEARCH); also drive/search(q=…). The cloud picker's search for NightMail Server accounts (up to two pages); Microsoft 365 accounts try /search/query first.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.root.search.json`
 
 #### `files.drive.items.thumbnails`
@@ -4599,5 +4601,34 @@ operation:
 - Graph parity (ADR 0006); reference: call-delete
 - Notes: Leaves the call; ends it for everyone when the caller moderates.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/calls.delete.json`
+
+### Phase 27 — OneDrive, calendar, directory and settings gaps
+
+| Id | Method | Ver | Path | Paging |
+|---|---|---|---|---|
+| [`files.drive.root.children`](#filesdriverootchildren) | GET | v1.0 | `{mailbox}/drive/root/children` | nextLink |
+| [`files.drives.items.get`](#filesdrivesitemsget) | GET | v1.0 | `/drives/{driveId}/items/{itemId}` | none |
+
+#### `files.drive.root.children`
+
+**GET v1.0 `{mailbox}/drive/root/children`** — forms: me, users; success: 200; paging: nextLink
+
+- Query: `$select` (always): `*`; `$orderby`: `name`; `$orderby`: `lastModifiedDateTime`; `$orderby`: `size`; `$top`: `1-1000`
+- Client reads: `value`, `@odata.nextLink`
+- On error: Any non-2xx → _mapException: 401 → AuthException (after AuthInterceptor's one refresh+retry), a connection error or timeout → NetworkException, else ServerException(error.message, status).
+- Call sites: `…/remote/graph_drive_datasource_impl.dart:238`
+- Notes: The cloud picker's "My files" (NightMail Server accounts use the nextcloud provider): the root folder's items with $top=200, following @odata.nextLink. The same handler as items/{id}/children.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.root.children.json`
+
+#### `files.drives.items.get`
+
+**GET v1.0 `/drives/{driveId}/items/{itemId}`** — forms: root; success: 200; paging: none
+
+- Query: `$select` (always): `*`; `$expand`: `children`
+- Client reads: `id`, `name`, `file`, `folder`, `parentReference`, `@microsoft.graph.downloadUrl`, `file.hashes`
+- On error: Any non-2xx → _mapException: 401 → AuthException (after AuthInterceptor's one refresh+retry), a connection error or timeout → NetworkException, else ServerException(error.message, status).
+- Call sites: `…/remote/graph_drive_datasource_impl.dart:222`
+- Notes: The cloud picker addresses an item through the drive its parentReference.driveId names (_itemPath), and every Nightware item names the caller's own drive, so its children, content and createLink go to /drives/{driveId}/items/{itemId}/… too (the same handlers as /me/drive). Another drive's id is 404 itemNotFound (ADR 0008 D1).
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drives.items.get.json`
 
 <!-- END GENERATED -->

@@ -37,6 +37,10 @@ The script exits non-zero if any of these is true:
 - `$_base` and `$mailboxBase` become `{mailbox}`.
 - Every other interpolation becomes a wildcard segment.
 - `?…` is dropped.
+- Adjacent Dart literals split over two lines (`'/drives/$id/items/'` then
+  `'$itemId'`) are joined, as Dart joins them.
+- A placeholder inside an operation's segment (`search(q='{q}')`) matches
+  anything there, including the client's own interpolation.
 - A path held in a named constant is versioned by the root it is joined to.
   For example, `'$_betaBase$_threatSubmissionPath'` makes the constant's path
   beta.

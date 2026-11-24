@@ -41,7 +41,7 @@ REQUIRED_KEYS = {
     "id", "phase", "method", "version", "path", "forms", "query", "headers",
     "requestBody", "responseFields", "paging", "clientCallSites", "notes",
 }
-VALID_PHASES = {2, 3, 4, 5, "5A", "5B", 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 23, 24, 25, 26}
+VALID_PHASES = {2, 3, 4, 5, "5A", "5B", 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 23, 24, 25, 26, 27}
 # ADR 0006 D1: operations NightMail does not call, added for Graph parity.
 GRAPH_PARITY = "graph-parity"
 VALID_FORMS = {"me", "users", "root", "external"}
@@ -214,6 +214,20 @@ def method_near(lines: list[str], idx: int) -> str | None:
     return None
 
 
+def join_adjacent_literals(lines: list[str]) -> list[str]:
+    """Dart concatenates adjacent string literals; a path split over two lines
+    (`'/drives/$id/items/'` then `'$itemId'`) is joined onto the first line, the
+    second left blank so line numbers stay put."""
+    out = list(lines)
+    for i in range(len(out) - 1):
+        head, tail = out[i].rstrip(), out[i + 1].lstrip()
+        if head and tail and head[-1] in "'\"" and tail[0] == head[-1] \
+                and not head.endswith(head[-1] * 3):
+            out[i] = head[:-1] + tail[1:]
+            out[i + 1] = ""
+    return out
+
+
 def extract_calls(src: Source) -> list[tuple[str | None, str, str, str]]:
     """(method, version, path, 'file:line') for every Graph request path."""
     out: list[tuple[str | None, str, str, str]] = []
@@ -224,7 +238,7 @@ def extract_calls(src: Source) -> list[tuple[str | None, str, str, str]]:
                    or GRAPH_CLIENT_CTOR.search(texts[rel])}
     for rel in files:
         full_scan = rel in graph_files
-        lines = texts[rel].splitlines()
+        lines = join_adjacent_literals(texts[rel].splitlines())
         name = rel.rsplit("/", 1)[-1]
         for n, line in enumerate(lines, 1):
             stripped = line.lstrip()
@@ -283,6 +297,11 @@ def seg_match(client_seg: str, op_seg: str) -> bool:
         return True
     if op_seg.startswith("{") and op_seg.endswith("}"):
         return True
+    if "{" in op_seg:
+        # A placeholder inside a segment (`search(q='{q}')`) matches anything,
+        # including the client's own `{}` there.
+        pattern = re.sub(r"\\\{[^}]*\\\}", ".*", re.escape(op_seg))
+        return re.fullmatch(pattern, client_seg) is not None
     return client_seg == op_seg
 
 
