@@ -33,7 +33,6 @@ what a fix needs. Ordered by impact within each section.
   pages this route (one request, `$top` 100), so only another client walking
   many pages pays it repeatedly. Fix if one does: cache the sorted expansion
   per credential + calendar + window (+ the calendar's CTag) for a minute.
-- Online-meeting fields are accepted and ignored.
 
 ### OneDrive (phase 20)
 - **Simple upload is bounded by the request size limit**, `Limits:MaxRequestBodyBytes` (about 67 MB by default), not
