@@ -19,4 +19,37 @@ public sealed class DriveItemMappingTests
     [Fact]
     public void Every_lookup_asks_for_the_stored_checksums() =>
         DriveItemMapping.Properties.ShouldContain(DriveItemMapping.Checksums);
+
+    [Theory]
+    [InlineData("1", "0", "alice", "Alice Anderson", true)]
+    [InlineData("1", null, "alice", null, true)]
+    [InlineData("1", "1", "richdocuments", null, false)]
+    [InlineData("", "0", "alice", null, false)]
+    [InlineData(null, null, null, null, false)]
+    public void Only_a_users_lock_is_a_checkout(string? locked, string? type, string? owner, string? name, bool checkedOut)
+    {
+        var props = new List<System.Xml.Linq.XElement>();
+        void Add(System.Xml.Linq.XName n, string? v)
+        {
+            if (v is not null)
+            {
+                props.Add(new System.Xml.Linq.XElement(n, v));
+            }
+        }
+
+        Add(DriveItemMapping.Lock, locked);
+        Add(DriveItemMapping.LockOwnerType, type);
+        Add(DriveItemMapping.LockOwner, owner);
+        Add(DriveItemMapping.LockOwnerName, name);
+        var response = new Nightware.Adapters.Dav.Core.DavResponse("/f", 200, [new Nightware.Adapters.Dav.Core.DavPropStat(200, props)]);
+
+        var checkout = DriveItemMapping.CheckoutOf(response);
+
+        (checkout is not null).ShouldBe(checkedOut);
+        if (checkedOut)
+        {
+            checkout!.Id.ShouldBe("alice");
+            checkout.DisplayName.ShouldBe(name);
+        }
+    }
 }

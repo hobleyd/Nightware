@@ -44,7 +44,7 @@ what a fix needs. Ordered by impact within each section.
 - **`createLink` and `invite`** create Nextcloud shares; Nextcloud sends its own notification for an invitation, and
   Graph's `message`/`sendInvitation` aren't used. `organization` links, `embed` links (Nextcloud's share pages refuse
   to be framed by other sites) and roles other than `read`/`write` are `400 notSupported`.
-- No item activities, `preview` or `checkin`/`checkout`; SharePoint (`/sites`) stays out of scope (ADR 0008
+- No item activities or `preview`; SharePoint (`/sites`) stays out of scope (ADR 0008
   D7). `sharedWithMe` isn't paged (Nextcloud lists every share at once); `recent` is the 100 newest files.
 - **`@microsoft.graph.downloadUrl` is on a single file's GET only**, not in listings (each URL seals the caller's
   token). **`file.hashes`** is there only when Nextcloud stored a checksum (an uploader sent `OC-Checksum`, as

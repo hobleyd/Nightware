@@ -98,7 +98,7 @@ changes others make to items shared with the caller.
   preview has no thumbnail set.
 
 ### D7 — Out of scope
-SharePoint (`/sites`, document libraries), `follow`, `checkin`/`checkout`,
+SharePoint (`/sites`, document libraries), `follow`,
 `preview` (embed URLs), item activities and analytics. These stay
 `501 notImplemented`.
 
@@ -130,6 +130,17 @@ SharePoint (`/sites`, document libraries), `follow`, `checkin`/`checkout`,
 - `restoreVersion` is a `MOVE` to `versions/{uid}/restore/target`; Nextcloud
   keeps the replaced content as a version, as OneDrive does.
 - A folder has no versions (`400 notSupported`).
+
+### D10 — Check-out and check-in *(phase 27)*
+- `checkout` is a Nextcloud user lock (`files_lock`: `LOCK` with
+  `X-User-Lock: 1`, no timeout). Others can't change the file (their writes
+  are `409`) until `checkin` (`UNLOCK`) releases it. While checked out the item
+  carries `publication: {level: "checkout", checkedOutBy}`; an office editor's
+  own lock (owner type 1) is not a check-out.
+- Someone else's check-out is `409 resourceLocked` on `checkout` and
+  `403 resourceLocked` on `checkin`; checking in what isn't checked out is 400.
+- `checkin`'s `comment` labels the current version (`nc:version-label`);
+  `checkInAs` (SharePoint publishing levels) is ignored.
 
 ## Consequences
 - The contract gains the phase 20 operations, all `"source": "graph-parity"`.

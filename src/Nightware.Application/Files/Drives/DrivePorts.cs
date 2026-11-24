@@ -123,7 +123,10 @@ public interface IDriveSharing
     Task<Result<IReadOnlyList<DriveItem>>> SharedWithMeAsync(CancellationToken cancellationToken);
 }
 
-/// <summary>A file's versions (Graph <c>…/versions</c>), newest first; a folder has none (NotSupported).</summary>
+/// <summary>
+/// A file's versions (Graph <c>…/versions</c>), newest first, and its check-out (<c>checkout</c>/<c>checkin</c>); a folder
+/// has neither (NotSupported).
+/// </summary>
 public interface IDriveVersions
 {
     Task<Result<IReadOnlyList<DriveItemVersion>>> ListAsync(DriveItemRef item, CancellationToken cancellationToken);
@@ -133,4 +136,16 @@ public interface IDriveVersions
 
     /// <summary>Makes the version the file's current content (the content it replaces is kept as a version).</summary>
     Task<Result> RestoreAsync(DriveItemRef item, string versionId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Checks the file out to the caller: nobody else can change it until it is checked in. Checking out again is fine;
+    /// a file someone else has checked out is <see cref="ErrorKind.Conflict"/>.
+    /// </summary>
+    Task<Result> CheckOutAsync(DriveItemRef item, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Checks the file back in, labelling its current version with <paramref name="comment"/> when given. A file that isn't
+    /// checked out is <see cref="ErrorKind.Validation"/>; one someone else has is <see cref="ErrorKind.Forbidden"/>.
+    /// </summary>
+    Task<Result> CheckInAsync(DriveItemRef item, string? comment, CancellationToken cancellationToken);
 }

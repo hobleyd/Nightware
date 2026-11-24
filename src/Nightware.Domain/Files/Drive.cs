@@ -93,6 +93,9 @@ public sealed record DriveItem(string Id, string Name)
     /// </summary>
     public DriveItemSharer? SharedBy { get; init; }
 
+    /// <summary>Who has the file checked out (a user lock), or null when nobody has.</summary>
+    public DriveCheckout? CheckedOutBy { get; init; }
+
     /// <summary>A delta entry for an item that no longer exists (Graph's <c>deleted</c> facet); only <see cref="Id"/> is known.</summary>
     public bool IsDeleted { get; init; }
 
@@ -116,6 +119,9 @@ public sealed record DriveItemVersion(string Id)
     /// <summary>A label the version was given (a check-in comment).</summary>
     public string? Label { get; init; }
 }
+
+/// <summary>The user who has a file checked out.</summary>
+public sealed record DriveCheckout(string Id, string? DisplayName);
 
 /// <summary>Who shared an item with the caller, and when.</summary>
 public sealed record DriveItemSharer(string Id, string? DisplayName, DateTimeOffset? SharedDateTime);

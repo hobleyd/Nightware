@@ -24,6 +24,10 @@ internal static class DriveItemMapping
     public static readonly XName FolderCount = FilesNs + "contained-folder-count";
     public static readonly XName FileCount = FilesNs + "contained-file-count";
     public static readonly XName Checksums = DavNs.OwnCloud + "checksums";
+    public static readonly XName Lock = FilesNs + "lock";
+    public static readonly XName LockOwner = FilesNs + "lock-owner";
+    public static readonly XName LockOwnerName = FilesNs + "lock-owner-displayname";
+    public static readonly XName LockOwnerType = FilesNs + "lock-owner-type";
     public static readonly XName QuotaUsed = DavNs.Dav + "quota-used-bytes";
     public static readonly XName QuotaAvailable = DavNs.Dav + "quota-available-bytes";
 
@@ -32,6 +36,7 @@ internal static class DriveItemMapping
     [
         DavNames.DisplayName, DavNames.GetETag, FileId, Size, DavNames.GetContentLength, DavNames.GetLastModified, CreationTime,
         DavNames.ResourceType, DavNames.GetContentType, HasPreview, ShareTypes, Permissions, FolderCount, FileCount, Checksums,
+        Lock, LockOwner, LockOwnerName, LockOwnerType,
     ];
 
     /// <param name="response">The item's response; its href must lie in <paramref name="home"/>.</param>
@@ -69,8 +74,18 @@ internal static class DriveItemMapping
             IsShared = shareTypes || sharedWithMe,
             Sha1Hash = Checksum(checksums, "SHA1", 40),
             Sha256Hash = Checksum(checksums, "SHA256", 64),
+            CheckedOutBy = isFolder ? null : CheckoutOf(response),
         };
     }
+
+    /// <summary>
+    /// A user lock (<c>files_lock</c>, owner type 0) is a check-out. An app's lock (an office editor's session, type 1)
+    /// or a token's (type 2) is not.
+    /// </summary>
+    internal static DriveCheckout? CheckoutOf(DavResponse response) =>
+        response.Text(Lock) == "1" && (response.Text(LockOwnerType) ?? "0") == "0" && response.Text(LockOwner) is { Length: > 0 } owner
+            ? new DriveCheckout(owner, response.Text(LockOwnerName))
+            : null;
 
     /// <summary>
     /// One algorithm's value from Nextcloud's <c>oc:checksums</c> (<c>SHA1:abc… MD5:def…</c>, set when the uploader sent

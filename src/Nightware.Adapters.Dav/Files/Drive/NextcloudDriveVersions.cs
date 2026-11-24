@@ -74,6 +74,78 @@ internal sealed class NextcloudDriveVersions(IDavClient dav, DriveItemLocator lo
             : home.Error;
     }
 
+    public async Task<Result> CheckOutAsync(DriveItemRef item, CancellationToken cancellationToken)
+    {
+        var file = await FileAsync(item, cancellationToken).ConfigureAwait(false);
+        if (!file.IsSuccess)
+        {
+            return file.Error;
+        }
+
+        var locked = await dav.UserLockAsync(file.Value.Href, locked: true, cancellationToken).ConfigureAwait(false);
+        return locked.IsSuccess || locked.Error.Kind != ErrorKind.Conflict
+            ? locked
+            : new Error(ErrorKind.Conflict, LockedCode, "The item is checked out by someone else.");
+    }
+
+    public async Task<Result> CheckInAsync(DriveItemRef item, string? comment, CancellationToken cancellationToken)
+    {
+        var file = await FileAsync(item, cancellationToken).ConfigureAwait(false);
+        if (!file.IsSuccess)
+        {
+            return file.Error;
+        }
+
+        var unlocked = await dav.UserLockAsync(file.Value.Href, locked: false, cancellationToken).ConfigureAwait(false);
+        if (!unlocked.IsSuccess)
+        {
+            return unlocked.Error.Kind switch
+            {
+                ErrorKind.PreconditionFailed => Error.Validation("The item isn't checked out."),
+                ErrorKind.Conflict => new Error(ErrorKind.Forbidden, LockedCode, "The item is checked out by someone else."),
+                _ => unlocked.Error,
+            };
+        }
+
+        if (comment is null)
+        {
+            return Result.Success();
+        }
+
+        // The comment labels the version being checked in: the newest, which is the current content.
+        var versions = await ListAsync(item, cancellationToken).ConfigureAwait(false);
+        if (!versions.IsSuccess || versions.Value.Count == 0)
+        {
+            return versions.IsSuccess ? Result.Success() : versions.Error;
+        }
+
+        var labelled = await dav.PropPatchAsync($"versions/{file.Value.Uid}/versions/{file.Value.FileId}/{versions.Value[0].Id}", [new XElement(Label, comment)], [], cancellationToken)
+            .ConfigureAwait(false);
+        return labelled.IsSuccess ? Result.Success() : labelled.Error;
+    }
+
+    /// <summary>Graph's code for an item checked out by someone else.</summary>
+    internal const string LockedCode = "resourceLocked";
+
+    private async Task<Result<(string Href, string Uid, string FileId)>> FileAsync(DriveItemRef item, CancellationToken cancellationToken)
+    {
+        var home = await locator.HomeAsync(item, cancellationToken).ConfigureAwait(false);
+        if (!home.IsSuccess)
+        {
+            return home.Error;
+        }
+
+        var located = await locator.LocateAsync(home.Value, item, cancellationToken).ConfigureAwait(false);
+        if (!located.IsSuccess)
+        {
+            return located.Error;
+        }
+
+        return located.Value.IsFolder || located.Value.FileId is not { Length: > 0 } fileId
+            ? DriveErrors.NotSupported("A folder can't be checked out or in.")
+            : (located.Value.Href, home.Value.Uid, fileId);
+    }
+
     /// <summary>A version as Nextcloud lists it; null for the folder's own entry or a name that is no timestamp.</summary>
     internal static DriveItemVersion? ToVersion(string relativeHref, DavResponse response)
     {

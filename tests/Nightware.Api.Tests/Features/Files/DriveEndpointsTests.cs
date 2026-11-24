@@ -539,6 +539,35 @@ public sealed class DriveEndpointsTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_file_is_checked_out_and_back_in_with_a_comment()
+    {
+        _versions.CheckOutAsync(Ref(DriveItemRef.ById("42")), Arg.Any<CancellationToken>()).Returns(Result.Success());
+        _versions.CheckInAsync(Ref(DriveItemRef.ById("42")), "ready", Arg.Any<CancellationToken>()).Returns(Result.Success());
+
+        using var checkedOut = await Client.PostAsync("/v1.0/me/drive/items/42/checkout", null, Ct);
+        using var checkedIn = await Client.PostAsJsonAsync("/v1.0/me/drive/items/42/checkin", new { checkInAs = "published", comment = "ready" }, Ct);
+
+        checkedOut.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        checkedIn.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        await _versions.Received().CheckInAsync(Arg.Any<DriveItemRef>(), "ready", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_file_checked_out_by_someone_else_is_a_conflict_and_shows_who()
+    {
+        _versions.CheckOutAsync(Arg.Any<DriveItemRef>(), Arg.Any<CancellationToken>()).Returns(Result.Failure(new Error(ErrorKind.Conflict, "resourceLocked", "checked out")));
+        _store.GetItemAsync(Ref(DriveItemRef.ById("42")), Arg.Any<CancellationToken>()).Returns(File with { CheckedOutBy = new DriveCheckout("bob", "Bob Brown") });
+
+        using var refused = await Client.PostAsync("/v1.0/me/drive/items/42/checkout", null, Ct);
+        var item = await GetAsync("/v1.0/me/drive/items/42");
+
+        refused.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await refused.ReadObjectAsync()).Str("error.code").ShouldBe("resourceLocked");
+        item.Str("publication.level").ShouldBe("checkout");
+        item.Str("publication.checkedOutBy.user.displayName").ShouldBe("Bob Brown");
+    }
+
+    [Fact]
     public async Task Delta_lists_items_and_deletions_and_hands_out_a_delta_link()
     {
         _delta.ChangesAsync(null, Arg.Any<int>(), false, Arg.Any<CancellationToken>())

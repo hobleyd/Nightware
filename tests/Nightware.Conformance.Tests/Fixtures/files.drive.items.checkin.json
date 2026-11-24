@@ -1,0 +1,23 @@
+{
+  "operationId": "files.drive.items.checkin",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/driveitem-checkin); constructed with example.com data and Nextcloud-shaped ids (ADR 0008 D2), no tenant capture yet",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/drive/items/42/checkin",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "checkInAs": "published",
+      "comment": "Updated the totals"
+    }
+  },
+  "response": {
+    "status": 204,
+    "headers": {},
+    "body": null
+  }
+}

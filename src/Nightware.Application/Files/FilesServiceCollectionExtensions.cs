@@ -32,6 +32,8 @@ public static class FilesServiceCollectionExtensions
         services.TryAddScoped<ListDriveItemVersions>();
         services.TryAddScoped<OpenDriveItemVersion>();
         services.TryAddScoped<RestoreDriveItemVersion>();
+        services.TryAddScoped<CheckOutDriveItem>();
+        services.TryAddScoped<CheckInDriveItem>();
         services.TryAddScoped<GetSpecialFolder>();
         services.TryAddScoped<GetDriveDelta>();
         services.TryAddScoped<OpenDriveThumbnail>();

@@ -76,6 +76,8 @@ internal static class DriveEndpoints
             group.MapPost(at + "/createLink", CreateLinkAsync);
             group.MapPost(at + "/invite", InviteAsync);
             group.MapGet(at + "/permissions", PermissionsAsync);
+            group.MapPost(at + "/checkout", CheckOutAsync);
+            group.MapPost(at + "/checkin", CheckInAsync);
             group.MapGet(at + "/versions", VersionsAsync);
             group.MapGet(at + "/versions/{versionId}", VersionAsync);
             group.MapGet(at + "/versions/{versionId}/content", VersionContentAsync);
@@ -668,6 +670,33 @@ internal static class DriveEndpoints
         return DriveRequests.Match(
             await useCase.ExecuteAsync(text, query.Value, cancellationToken).ConfigureAwait(false),
             page => GraphResults.Page(page, i => ItemDto(i, discovery), "Collection(driveItem)", odata.Query));
+    }
+
+    private static async Task<IResult> CheckOutAsync(
+        Mailbox mailbox, DriveAddress at, IUserContext caller, CheckOutDriveItem useCase, CancellationToken cancellationToken)
+    {
+        var target = Target(mailbox, caller, at);
+        if (!target.IsSuccess)
+        {
+            return DriveRequests.Fail(target.Error);
+        }
+
+        var done = await useCase.ExecuteAsync(target.Value, cancellationToken).ConfigureAwait(false);
+        return done.IsSuccess ? Results.NoContent() : DriveRequests.Fail(done.Error);
+    }
+
+    /// <summary>Graph's <c>checkInAs</c> (SharePoint publishing levels) has no meaning here; only <c>comment</c> is used.</summary>
+    private static async Task<IResult> CheckInAsync(
+        Mailbox mailbox, DriveAddress at, JsonObject? body, IUserContext caller, CheckInDriveItem useCase, CancellationToken cancellationToken)
+    {
+        var target = Target(mailbox, caller, at);
+        if (!target.IsSuccess)
+        {
+            return DriveRequests.Fail(target.Error);
+        }
+
+        var done = await useCase.ExecuteAsync(target.Value, DriveRequests.Text(body, "comment"), cancellationToken).ConfigureAwait(false);
+        return done.IsSuccess ? Results.NoContent() : DriveRequests.Fail(done.Error);
     }
 
     private static async Task<IResult> VersionsAsync(

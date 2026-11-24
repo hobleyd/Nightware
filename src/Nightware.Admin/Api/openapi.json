@@ -22350,6 +22350,210 @@
         }
       }
     },
+    "/me/drive/items/{itemId}/checkin": {
+      "post": {
+        "operationId": "files.drive.items.checkin",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Files drive items: checkin",
+        "description": "Releases the caller's lock (UNLOCK with X-User-Lock: 1); comment (at most 250 characters, one line) labels the current version (nc:version-label). checkInAs is accepted and ignored (SharePoint publishing levels). A file that isn't checked out is 400; one someone else has is 403 resourceLocked. 204. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-checkin",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "comment": {},
+                  "checkInAs": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/drive/items/{itemId}/checkin": {
+      "post": {
+        "operationId": "files.drive.items.checkin.users",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Files drive items: checkin",
+        "description": "Releases the caller's lock (UNLOCK with X-User-Lock: 1); comment (at most 250 characters, one line) labels the current version (nc:version-label). checkInAs is accepted and ignored (SharePoint publishing levels). A file that isn't checked out is 400; one someone else has is 403 resourceLocked. 204. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-checkin",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "comment": {},
+                  "checkInAs": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/me/drive/items/{itemId}/checkout": {
+      "post": {
+        "operationId": "files.drive.items.checkout",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Files drive items: checkout",
+        "description": "A Nextcloud user lock (files_lock: LOCK with X-User-Lock: 1, no timeout): nobody else can change the file (their writes are 409) until it is checked in. Checking out again is 204; a file someone else has checked out is 409 resourceLocked; a folder 400 notSupported. While checked out, the item carries publication {level: checkout, checkedOutBy}. 204. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-checkout",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/drive/items/{itemId}/checkout": {
+      "post": {
+        "operationId": "files.drive.items.checkout.users",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Files drive items: checkout",
+        "description": "A Nextcloud user lock (files_lock: LOCK with X-User-Lock: 1, no timeout): nobody else can change the file (their writes are 409) until it is checked in. Checking out again is 204; a file someone else has checked out is 409 resourceLocked; a folder 400 notSupported. While checked out, the item carries publication {level: checkout, checkedOutBy}. 204. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-checkout",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me/drive/items/{itemId}/children": {
       "get": {
         "operationId": "files.drive.items.children",

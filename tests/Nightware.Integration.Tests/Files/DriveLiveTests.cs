@@ -301,6 +301,49 @@ public sealed class DriveLiveTests
     }
 
     [Fact]
+    public async Task A_checked_out_file_is_alices_alone_until_she_checks_it_in()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
+        await using var stack = LiveStack.Start();
+        using var alice = await stack.GraphClientAsync("alice", Ct);
+        using var bob = await stack.GraphClientAsync("bob", Ct);
+        var bobAddress = (await SendAsync(bob, HttpMethod.Get, "/v1.0/me"))["mail"]!.GetValue<string>();
+
+        var name = "nw-checkout-" + Guid.NewGuid().ToString("N")[..8] + ".txt";
+        var fileId = Id(await PutBytesAsync(alice, $"/v1.0/me/drive/root:/{name}:/content", "draft\n"u8.ToArray(), HttpStatusCode.Created));
+        try
+        {
+            await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/drive/items/{fileId}/invite",
+                new { recipients = new[] { new { email = bobAddress } }, roles = new[] { "write" }, requireSignIn = true, sendInvitation = false });
+            await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/drive/items/{fileId}/checkout", expected: HttpStatusCode.NoContent);
+            await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/drive/items/{fileId}/checkout", expected: HttpStatusCode.NoContent);
+
+            var item = await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/drive/items/{fileId}");
+            item["publication"]!["level"]!.GetValue<string>().ShouldBe("checkout");
+            item["publication"]!["checkedOutBy"]!["user"]!["id"]!.GetValue<string>().ShouldBe("alice");
+
+            // Bob can't change it, check it out or check it in while alice has it.
+            using (var content = new ByteArrayContent("bob\n"u8.ToArray()))
+            {
+                using var write = await bob.PutAsync($"/v1.0/me/drive/items/{fileId}/content", content, Ct);
+                write.IsSuccessStatusCode.ShouldBeFalse();
+            }
+
+            (await SendAsync(bob, HttpMethod.Post, $"/v1.0/me/drive/items/{fileId}/checkout", expected: HttpStatusCode.Conflict))["error"]!["code"]!.GetValue<string>().ShouldBe("resourceLocked");
+            await SendAsync(bob, HttpMethod.Post, $"/v1.0/me/drive/items/{fileId}/checkin", new { comment = "mine" }, HttpStatusCode.Forbidden);
+
+            await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/drive/items/{fileId}/checkin", new { comment = "first draft done" }, HttpStatusCode.NoContent);
+            (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/drive/items/{fileId}")).ContainsKey("publication").ShouldBeFalse();
+            await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/drive/items/{fileId}/checkin", expected: HttpStatusCode.BadRequest);
+            await PutBytesAsync(bob, $"/v1.0/me/drive/items/{fileId}/content", "bob\n"u8.ToArray(), HttpStatusCode.OK);
+        }
+        finally
+        {
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/drive/items/{fileId}", expected: HttpStatusCode.NoContent);
+        }
+    }
+
+    [Fact]
     public async Task An_image_has_thumbnails_and_special_folders_exist_on_demand()
     {
         Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");

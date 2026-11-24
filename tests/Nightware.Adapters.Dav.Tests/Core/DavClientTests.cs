@@ -351,6 +351,28 @@ public sealed class DavClientTests : IDisposable
         Header("Overwrite").ShouldBe("F");
     }
 
+    [Theory]
+    [InlineData(true, "LOCK")]
+    [InlineData(false, "UNLOCK")]
+    public async Task A_user_lock_is_lock_or_unlock_with_the_user_lock_header(bool locked, string method)
+    {
+        Respond(method, "/remote.php/dav/files/alice/a.txt", 200);
+
+        (await _dav.Client.UserLockAsync("files/alice/a.txt", locked, Ct)).IsSuccess.ShouldBeTrue();
+
+        Header("X-User-Lock").ShouldBe("1");
+    }
+
+    [Theory]
+    [InlineData(423, ErrorKind.Conflict)]
+    [InlineData(412, ErrorKind.PreconditionFailed)]
+    public async Task A_refused_user_lock_keeps_its_reason(int status, ErrorKind kind)
+    {
+        Respond("UNLOCK", "/remote.php/dav/files/alice/a.txt", status);
+
+        (await _dav.Client.UserLockAsync("files/alice/a.txt", locked: false, Ct)).Error!.Kind.ShouldBe(kind);
+    }
+
     [Fact]
     public async Task Move_without_overwrite_onto_an_existing_item_is_a_conflict()
     {

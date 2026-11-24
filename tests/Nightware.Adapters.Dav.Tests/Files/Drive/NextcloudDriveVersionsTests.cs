@@ -81,4 +81,64 @@ public sealed class NextcloudDriveVersionsTests : IDisposable
         _nc.Requests("GET").ShouldBeEmpty();
         _nc.Requests("MOVE").ShouldBeEmpty();
     }
+
+    [Fact]
+    public async Task Checking_out_locks_the_file_for_the_caller()
+    {
+        _nc.Status("LOCK", Home + "nwfix/a.txt", 200);
+
+        (await Store.CheckOutAsync(File, Ct)).IsSuccess.ShouldBeTrue();
+
+        _nc.Requests("LOCK").ShouldHaveSingleItem().RequestMessage!.Headers!["X-User-Lock"].Single().ShouldBe("1");
+    }
+
+    [Fact]
+    public async Task A_file_someone_else_checked_out_is_locked()
+    {
+        _nc.Status("LOCK", Home + "nwfix/a.txt", 423);
+
+        var error = (await Store.CheckOutAsync(File, Ct)).Error!;
+
+        error.Kind.ShouldBe(ErrorKind.Conflict);
+        error.Code.ShouldBe(NextcloudDriveVersions.LockedCode);
+    }
+
+    [Fact]
+    public async Task Checking_in_with_a_comment_unlocks_and_labels_the_current_version()
+    {
+        _nc.Status("UNLOCK", Home + "nwfix/a.txt", 200);
+        _nc.Serve("PROPFIND", Versions, 207, Recorded("versions.propfind.xml"), "1");
+        _nc.Serve("PROPPATCH", Versions + "1795498535", 207, "<?xml version=\"1.0\"?><d:multistatus xmlns:d=\"DAV:\"/>");
+
+        (await Store.CheckInAsync(File, "ready for review", Ct)).IsSuccess.ShouldBeTrue();
+
+        _nc.Requests("PROPPATCH").ShouldHaveSingleItem().RequestMessage!.Body!.ShouldContain("ready for review");
+    }
+
+    [Fact]
+    public async Task Checking_in_without_a_comment_only_unlocks()
+    {
+        _nc.Status("UNLOCK", Home + "nwfix/a.txt", 200);
+
+        (await Store.CheckInAsync(File, null, Ct)).IsSuccess.ShouldBeTrue();
+
+        _nc.Requests("PROPFIND", Versions).ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(412, ErrorKind.Validation)]
+    [InlineData(423, ErrorKind.Forbidden)]
+    public async Task Checking_in_what_isnt_checked_out_to_the_caller_is_refused(int status, ErrorKind kind)
+    {
+        _nc.Status("UNLOCK", Home + "nwfix/a.txt", status);
+
+        (await Store.CheckInAsync(File, null, Ct)).Error!.Kind.ShouldBe(kind);
+    }
+
+    [Fact]
+    public async Task A_folder_is_never_checked_out()
+    {
+        (await Store.CheckOutAsync(new DriveItemRef(null, ["nwfix"]), Ct)).Error!.Code.ShouldBe(DriveErrors.NotSupportedCode);
+        _nc.Requests("LOCK").ShouldBeEmpty();
+    }
 }

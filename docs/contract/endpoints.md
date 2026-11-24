@@ -336,8 +336,8 @@ operation:
 | Phase 24 — Teams and channels over Nextcloud Teams and Talk (Graph parity, ADR 0009) | 34 |
 | Phase 25 — Presence over Nextcloud user status (Graph parity, ADR 0009) | 8 |
 | Phase 26 — Online meetings and calls over Talk (Graph parity, ADR 0009) | 14 |
-| Phase 27 — OneDrive, calendar, directory and settings gaps | 9 |
-| **Total** | **409** |
+| Phase 27 — OneDrive, calendar, directory and settings gaps | 11 |
+| **Total** | **411** |
 
 ### Phase 2 — Mail, read side
 
@@ -4615,6 +4615,8 @@ operation:
 | [`files.drive.items.versions.get`](#filesdriveitemsversionsget) | GET | v1.0 | `{mailbox}/drive/items/{itemId}/versions/{versionId}` | none |
 | [`files.drive.items.versions.content`](#filesdriveitemsversionscontent) | GET | v1.0 | `{mailbox}/drive/items/{itemId}/versions/{versionId}/content` | none |
 | [`files.drive.items.versions.restore`](#filesdriveitemsversionsrestore) | POST | v1.0 | `{mailbox}/drive/items/{itemId}/versions/{versionId}/restoreVersion` | none |
+| [`files.drive.items.checkout`](#filesdriveitemscheckout) | POST | v1.0 | `{mailbox}/drive/items/{itemId}/checkout` | none |
+| [`files.drive.items.checkin`](#filesdriveitemscheckin) | POST | v1.0 | `{mailbox}/drive/items/{itemId}/checkin` | none |
 
 #### `files.drive.root.children`
 
@@ -4702,5 +4704,22 @@ operation:
 - Graph parity (ADR 0006); reference: driveitemversion-restore
 - Notes: Makes the version the file's current content (a WebDAV MOVE to versions/{uid}/restore/target); Nextcloud keeps the content it replaces as a version. 204. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.versions.restore.json`
+
+#### `files.drive.items.checkout`
+
+**POST v1.0 `{mailbox}/drive/items/{itemId}/checkout`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: driveitem-checkout
+- Notes: A Nextcloud user lock (files_lock: LOCK with X-User-Lock: 1, no timeout): nobody else can change the file (their writes are 409) until it is checked in. Checking out again is 204; a file someone else has checked out is 409 resourceLocked; a folder 400 notSupported. While checked out, the item carries publication {level: checkout, checkedOutBy}. 204. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.checkout.json`
+
+#### `files.drive.items.checkin`
+
+**POST v1.0 `{mailbox}/drive/items/{itemId}/checkin`** — forms: me, users; success: 204; paging: none
+
+- Request body: `comment`; `checkInAs`
+- Graph parity (ADR 0006); reference: driveitem-checkin
+- Notes: Releases the caller's lock (UNLOCK with X-User-Lock: 1); comment (at most 250 characters, one line) labels the current version (nc:version-label). checkInAs is accepted and ignored (SharePoint publishing levels). A file that isn't checked out is 400; one someone else has is 403 resourceLocked. 204. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.checkin.json`
 
 <!-- END GENERATED -->

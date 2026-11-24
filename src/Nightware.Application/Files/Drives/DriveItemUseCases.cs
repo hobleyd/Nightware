@@ -346,3 +346,35 @@ public sealed class RestoreDriveItemVersion(IDriveVersions versions)
         versions.RestoreAsync(item, versionId, cancellationToken);
 }
 
+/// <summary>Graph <c>POST …/items/{id}/checkout</c>.</summary>
+public sealed class CheckOutDriveItem(IDriveVersions versions)
+{
+    public Task<Result> ExecuteAsync(DriveItemRef item, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        return item.IsRoot
+            ? Task.FromResult<Result>(DriveErrors.NotSupported("A folder can't be checked out."))
+            : versions.CheckOutAsync(item, cancellationToken);
+    }
+}
+
+/// <summary>Graph <c>POST …/items/{id}/checkin</c>: the comment labels the version being checked in.</summary>
+public sealed class CheckInDriveItem(IDriveVersions versions)
+{
+    public const int MaxCommentLength = 250;
+
+    public Task<Result> ExecuteAsync(DriveItemRef item, string? comment, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        if (item.IsRoot)
+        {
+            return Task.FromResult<Result>(DriveErrors.NotSupported("A folder can't be checked in."));
+        }
+
+        var trimmed = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
+        return trimmed is { Length: > MaxCommentLength } || trimmed?.Any(char.IsControl) == true
+            ? Task.FromResult<Result>(Error.Validation($"comment must be at most {MaxCommentLength} characters on one line.", "comment"))
+            : versions.CheckInAsync(item, trimmed, cancellationToken);
+    }
+}
+

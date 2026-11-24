@@ -30,6 +30,8 @@ public sealed class DavClient : IDavClient
     private static readonly HttpMethod CopyMethod = new("COPY");
     private static readonly HttpMethod SearchMethod = new("SEARCH");
     private static readonly HttpMethod PropPatchMethod = new("PROPPATCH");
+    private static readonly HttpMethod LockMethod = new("LOCK");
+    private static readonly HttpMethod UnlockMethod = new("UNLOCK");
 
     private readonly HttpClient _http;
     private readonly IBackendCredentials _credentials;
@@ -203,6 +205,13 @@ public sealed class DavClient : IDavClient
             r.Headers.Add("Destination", destination.AbsoluteUri);
             r.Headers.Add("Overwrite", overwrite ? "T" : "F");
         }, overwrite ? DavRequestIntent.Default : DavRequestIntent.CreateOnly, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
+        return response.ToResult();
+    }
+
+    public async Task<Result> UserLockAsync(string href, bool locked, CancellationToken cancellationToken)
+    {
+        using var response = await SendAsync(locked ? LockMethod : UnlockMethod, href, static r => r.Headers.Add("X-User-Lock", "1"),
+            DavRequestIntent.Default, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
         return response.ToResult();
     }
 

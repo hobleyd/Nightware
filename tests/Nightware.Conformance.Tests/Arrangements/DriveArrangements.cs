@@ -97,6 +97,10 @@ public sealed class DriveArrangements : IConformanceArrangements
             f.For<IDriveVersions>().OpenContentAsync(Is(DriveItemRef.ById("42")), "1795498534", Any).Returns(_ => Blob("text/plain", "hello v1"u8.ToArray())));
         yield return Arrange("files.drive.items.versions.restore", static f =>
             f.For<IDriveVersions>().RestoreAsync(Is(DriveItemRef.ById("42")), "1795498534", Any).Returns(Result.Success()));
+        yield return Arrange("files.drive.items.checkout", static f =>
+            f.For<IDriveVersions>().CheckOutAsync(Is(DriveItemRef.ById("42")), Any).Returns(Result.Success()));
+        yield return Arrange("files.drive.items.checkin", static f =>
+            f.For<IDriveVersions>().CheckInAsync(Is(DriveItemRef.ById("42")), "Updated the totals", Any).Returns(Result.Success()));
         yield return Arrange("files.drive.items.children", static f =>
             f.For<IDriveStore>().ListChildrenAsync(Is(DriveItemRef.ById("7")), new DriveListQuery(1, null), Any).Returns(new Page<DriveItem>([Notes], "1")));
         yield return Arrange("files.drive.items.create-folder", static f =>

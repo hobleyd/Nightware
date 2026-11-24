@@ -132,6 +132,10 @@ public sealed record DriveItemResourceDto
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public SharedFacetDto? Shared { get; init; }
 
+    /// <summary>Graph's <c>publication</c> facet, only while the file is checked out (<c>level: checkout</c>).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PublicationFacetDto? Publication { get; init; }
+
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DeletedFacetDto? Deleted { get; init; }
 
@@ -182,6 +186,9 @@ public sealed record DriveItemResourceDto
             Root = item.IsRoot ? new EmptyFacetDto() : null,
             FileSystemInfo = new FileSystemInfoDto { CreatedDateTime = item.CreatedDateTime, LastModifiedDateTime = item.LastModifiedDateTime },
             Shared = item.IsShared ? new SharedFacetDto() : null,
+            Publication = item.CheckedOutBy is { } by
+                ? new PublicationFacetDto { CheckedOutBy = new IdentitySetDto { User = new IdentityDto { Id = by.Id, DisplayName = by.DisplayName } } }
+                : null,
         };
     }
 }
@@ -301,6 +308,14 @@ public sealed record EmptyFacetDto;
 public sealed record SharedFacetDto
 {
     public string Scope { get; init; } = "users";
+}
+
+public sealed record PublicationFacetDto
+{
+    public string Level { get; init; } = "checkout";
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IdentitySetDto? CheckedOutBy { get; init; }
 }
 
 public sealed record DeletedFacetDto

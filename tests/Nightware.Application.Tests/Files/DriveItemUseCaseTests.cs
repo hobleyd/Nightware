@@ -224,6 +224,33 @@ public sealed class DriveItemUseCaseTests
     }
 
     [Fact]
+    public async Task Check_out_and_check_in_reach_the_port_with_a_trimmed_comment()
+    {
+        var versions = Substitute.For<IDriveVersions>();
+        versions.CheckOutAsync(Item, Ct).Returns(Result.Success());
+        versions.CheckInAsync(Item, Arg.Any<string?>(), Ct).Returns(Result.Success());
+
+        (await new CheckOutDriveItem(versions).ExecuteAsync(Item, Ct)).IsSuccess.ShouldBeTrue();
+        (await new CheckInDriveItem(versions).ExecuteAsync(Item, "  done  ", Ct)).IsSuccess.ShouldBeTrue();
+        (await new CheckInDriveItem(versions).ExecuteAsync(Item, "   ", Ct)).IsSuccess.ShouldBeTrue();
+
+        await versions.Received().CheckInAsync(Item, "done", Ct);
+        await versions.Received().CheckInAsync(Item, null, Ct);
+    }
+
+    [Fact]
+    public async Task A_checkin_comment_is_one_short_line_and_the_root_is_never_checked_out()
+    {
+        var versions = Substitute.For<IDriveVersions>();
+
+        (await new CheckInDriveItem(versions).ExecuteAsync(Item, new string('x', 251), Ct)).Error!.Target.ShouldBe("comment");
+        (await new CheckInDriveItem(versions).ExecuteAsync(Item, "a\nb", Ct)).Error!.Target.ShouldBe("comment");
+        (await new CheckOutDriveItem(versions).ExecuteAsync(DriveItemRef.Root, Ct)).Error!.Code.ShouldBe(DriveErrors.NotSupportedCode);
+        (await new CheckInDriveItem(versions).ExecuteAsync(DriveItemRef.Root, null, Ct)).Error!.Code.ShouldBe(DriveErrors.NotSupportedCode);
+        await versions.DidNotReceiveWithAnyArgs().CheckInAsync(default!, default, Ct);
+    }
+
+    [Fact]
     public async Task Recent_asks_the_store_for_a_hundred_files()
     {
         _store.RecentAsync(ListRecentDriveItems.Limit, Ct).Returns(Result<IReadOnlyList<DriveItem>>.Success([File]));

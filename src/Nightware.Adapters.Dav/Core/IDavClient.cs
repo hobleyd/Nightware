@@ -45,6 +45,12 @@ public interface IDavClient
 
     Task<Result> MoveAsync(string sourceHref, string destinationHref, bool overwrite, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Nextcloud's user lock (<c>files_lock</c>): <c>LOCK</c> or <c>UNLOCK</c> with <c>X-User-Lock: 1</c>. A file locked by
+    /// someone else answers 423 (Conflict); unlocking a file that isn't locked answers 412 (PreconditionFailed).
+    /// </summary>
+    Task<Result> UserLockAsync(string href, bool locked, CancellationToken cancellationToken);
+
     Task<Result<DavMultistatus>> PropPatchAsync(string href, IEnumerable<XElement> set, IEnumerable<XName> remove, CancellationToken cancellationToken);
 
     /// <summary>RFC 6638 POST to a schedule outbox (free-busy VFREEBUSY request); one item per recipient.</summary>
