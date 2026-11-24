@@ -199,6 +199,8 @@ public sealed class KqlParserTests
         Chat("sent > soon").Terms.ShouldBe([Any("sent"), Any(">"), Any("soon")]);
         Chat("from").Terms.ShouldBe([Any("from")]);
         Parse("\"to be or not\"").Terms.ShouldBe([Any("to"), Any("be"), Any("or"), Any("not")]);
+        // Mail's $search keeps a spaced field as words, as it always has.
+        Parse("\"subject: hello\"").Terms.ShouldBe([Any("subject:"), Any("hello")]);
     }
 
     [Fact]

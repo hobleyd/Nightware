@@ -123,6 +123,22 @@ public sealed class TalkChatSearchTests : IDisposable
     }
 
     [Fact]
+    public async Task A_sender_nextcloud_has_no_account_for_is_matched_on_the_hits_instead()
+    {
+        Rooms();
+        Entries(Entry(OneToOne, 71, "users", "bob", "Bob Brown", "hello"), Entry(OneToOne, 72, "users", "alice", "Alice Anderson", "hello"));
+        _talk.Server.Given(WireMock.RequestBuilders.Request.Create().WithPath(Search).WithParam("person").UsingGet()).AtPriority(1)
+            .RespondWith(WireMock.ResponseBuilders.Response.Create().WithStatusCode(400).WithBody("\"User bob not found\""));
+
+        var result = await Searcher().SearchAsync(Q(T(SearchField.From, "bob@example.com")), 0, 25, Ct);
+
+        result.Value.Hits.Select(h => h.Id).ShouldBe(["71"]);
+        var calls = _talk.Requests.Where(r => r.RequestMessage!.Path == Search).ToList();
+        calls.Count.ShouldBe(2);
+        TalkTestServer.Query(calls[1], "person").ShouldBeNull();
+    }
+
+    [Fact]
     public async Task A_sender_by_name_is_matched_on_the_hits_and_nothing_to_filter_by_searches_everything()
     {
         Rooms();
@@ -186,6 +202,26 @@ public sealed class TalkChatSearchTests : IDisposable
         words.Value.Hits.Select(h => h.Id).ShouldBe(["80"]);
         notMarker.Value.Hits.Select(h => h.Id).ShouldBe(["76", "59"]);
         mentioned.Value.Hits.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_mention_of_the_caller_or_of_everyone_is_is_mentioned()
+    {
+        Rooms();
+        _talk.Reply("GET", $"{TalkTestServer.Chat}/{Probe}/90/context", 200,
+            $$$$"""[{"id":90,"token":"{{{{Probe}}}}","actorType":"users","actorId":"bob","actorDisplayName":"Bob Brown","timestamp":1795500000,"messageType":"comment","systemMessage":"","message":"Hi {mention-user1}","messageParameters":{"mention-user1":{"type":"user","id":"alice","name":"Alice Anderson"}}}]""");
+        _talk.Reply("GET", $"{TalkTestServer.Chat}/{Probe}/91/context", 200,
+            $$$$"""[{"id":91,"token":"{{{{Probe}}}}","actorType":"users","actorId":"bob","actorDisplayName":"Bob Brown","timestamp":1795500000,"messageType":"comment","systemMessage":"","message":"All: {mention-call1}","messageParameters":{"mention-call1":{"type":"call","id":"{{{{Probe}}}}","name":"p23 probe renamed"}}}]""");
+        _talk.Reply("GET", $"{TalkTestServer.Chat}/{Probe}/92/context", 200,
+            $$$$"""[{"id":92,"token":"{{{{Probe}}}}","actorType":"users","actorId":"bob","actorDisplayName":"Bob Brown","timestamp":1795500000,"messageType":"comment","systemMessage":"","message":"plain","messageParameters":{"actor":{"type":"user","id":"alice","name":"Alice Anderson"}}}]""");
+        Entries(
+            Entry(Probe, 90, "users", "bob", "Bob Brown in p23 probe renamed", "Hi @Alice Anderson"),
+            Entry(Probe, 91, "users", "bob", "Bob Brown in p23 probe renamed", "All"),
+            Entry(Probe, 92, "users", "bob", "Bob Brown in p23 probe renamed", "plain"));
+
+        var result = await Searcher().SearchAsync(Q(T(SearchField.IsMentioned, "true", SearchOp.Equals)), 0, 25, Ct);
+
+        result.Value.Hits.Select(h => h.Id).ShouldBe(["90", "91"]);
     }
 
     [Fact]

@@ -345,9 +345,14 @@ chat and channel messages over Talk's unified search provider `talk-message`
   sender (`person`, a uid that must exist). `ChatSearchPlan` passes it what
   is safe to: the longest positive top-level free-text term, the narrowest
   range from positive top-level `sent` terms, and a positive `from:` the
-  directory resolves by id, UPN or address. With nothing to pass, it sends
-  `since=1`, because Nextcloud refuses a search with no filter. What Talk
-  returns is a superset of the matches.
+  directory resolves by id, UPN or address (if Talk refuses that uid,
+  because the person has no Nextcloud account yet, the search is repeated
+  without it). With nothing to pass, it sends `since=1`, because Nextcloud
+  refuses a search with no filter. `term` is matched on the stored message
+  (a mention as the `@uid` the client wrote, a shared file as Talk's
+  record), so a word only in a mention's display name or a file's name is
+  missed when it is the term Talk gets; otherwise Talk's matches include
+  every match of the query.
 - `ChatSearchMatcher` then checks the whole query on every candidate. Text is
   a case-insensitive substring (Graph's word-prefix matching isn't
   reproduced). `from:` matches the sender's uid, display name, mail or UPN

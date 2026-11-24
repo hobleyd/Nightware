@@ -28,6 +28,13 @@ internal sealed class TalkChatSearch(TalkChatClient talk, TalkChannelRooms chann
         var plan = ChatSearchPlan.Of(query);
         var filter = new TalkSearchFilter(plan.Text, plan.Since, plan.Until, await PersonAsync(plan.Sender, cancellationToken).ConfigureAwait(false));
         var page = await talk.SearchMessagesAsync(filter, from, size, cancellationToken).ConfigureAwait(false);
+        if (!page.IsSuccess && filter.Person is not null && page.Error.Kind == ErrorKind.Validation)
+        {
+            // Talk refuses a person Nextcloud has no account for (a directory user who never signed in); the sender is
+            // then matched on each hit instead.
+            page = await talk.SearchMessagesAsync(filter with { Person = null }, from, size, cancellationToken).ConfigureAwait(false);
+        }
+
         if (!page.IsSuccess)
         {
             return page.Error;

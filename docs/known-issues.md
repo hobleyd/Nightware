@@ -59,6 +59,24 @@ what a fix needs. Ordered by impact within each section.
   token). **`file.hashes`** is there only when Nextcloud stored a checksum (an uploader sent `OC-Checksum`, as
   Nextcloud's desktop client does): `sha1Hash`/`sha256Hash`, never `quickXorHash`. The façade never hashes content.
 
+### Chat search (phase 28, ADR 0009 D10)
+- **Text matches as a substring, on what Talk stores.** `budget` also finds
+  `budgets`, where Microsoft Search matches word prefixes. Talk matches the
+  query's longest free-text term against the stored message, so a word that
+  appears only in a mention's display name or a shared file's name isn't
+  found when it is that term; other words are checked on the message as
+  clients see it.
+- **Pages can be short or empty.** `from` is Talk's offset over its own
+  matches. A page whose matches fail the rest of the query (`IsMentioned:`,
+  `hasAttachment:`, `NOT`, `OR`, a sender by name) has fewer hits than `size`,
+  possibly none, with `moreResultsAvailable` true while Talk returned a full
+  page. A query Talk can't filter at all (`IsMentioned:true` alone) walks all
+  of the caller's messages 25 at a time. `size` is at most 25.
+- **`to:` matches one-on-one chats only**, as Microsoft documents it.
+- **A channel hit carries its team and channel, not the post a reply belongs
+  to.** Microsoft's page shows no channel hit, so the shape follows the
+  channel messages API (`channelIdentity`, `chatId` null) and isn't captured.
+
 ### Directory
 - **A photo is cropped to its centre square** (phase 27): Nextcloud keeps only
   a square JPEG or PNG, so the façade turns any other image (JPEG, PNG, GIF,

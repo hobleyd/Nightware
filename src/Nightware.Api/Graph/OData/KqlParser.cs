@@ -17,7 +17,7 @@ namespace Nightware.Api.Graph.OData;
 /// (<see cref="MailFields"/>: <c>from: to: cc: participants: subject: body: attachment: hasAttachments: received: sent:</c>;
 /// <see cref="ChatMessageFields"/>: <c>from: to: sent: hasAttachment: IsRead: IsMentioned: mentions:</c>)
 /// (field names case-insensitive; <c>:</c> = contains, <c>=</c> = equals; dates also take
-/// <c>&gt;= &lt;= &gt; &lt;</c>, with or without spaces around the operator), upper-case <c>AND</c>/<c>OR</c>/<c>NOT</c> and parentheses (<c>OR</c> binds tighter than <c>AND</c>/adjacency, as in Outlook search).</para>
+/// <c>&gt;= &lt;= &gt; &lt;</c>; for chat messages also with spaces around the operator), upper-case <c>AND</c>/<c>OR</c>/<c>NOT</c> and parentheses (<c>OR</c> binds tighter than <c>AND</c>/adjacency, as in Outlook search).</para>
 /// <para>Because the text is the user's, the parser is lenient: an unknown <c>prop:value</c>
 /// (<c>re:</c>, <c>10:30</c>, a pasted URL), a malformed date, a stray operator or an unbalanced
 /// quote or parenthesis is read as free text rather than rejected. The boolean structure is
@@ -61,13 +61,17 @@ public static class KqlParser
 
     /// <summary>A mail <c>$search</c> value (NightMail's outer quotes stripped).</summary>
     public static Result<SearchQuery> Parse(string? value) =>
-        Parse(StripOuterQuotes(value ?? string.Empty), MailFields, ODataQueryParser.SearchOption);
+        Parse(StripOuterQuotes(value ?? string.Empty), MailFields, ODataQueryParser.SearchOption, spacedOperators: false);
 
-    /// <summary>KQL over <paramref name="fields"/>; errors name <paramref name="target"/>. The text is taken as given (no quote stripping).</summary>
-    public static Result<SearchQuery> Parse(string? text, IReadOnlyDictionary<string, SearchField> fields, string target)
+    /// <summary>
+    /// KQL over <paramref name="fields"/>; errors name <paramref name="target"/>. The text is taken as given (no quote
+    /// stripping). <paramref name="spacedOperators"/> reads <c>sent &gt; 2022-07-14</c> as one term, as Microsoft's docs
+    /// write Teams scope terms; mail's <c>$search</c> keeps <c>subject: hello</c> as words.
+    /// </summary>
+    public static Result<SearchQuery> Parse(string? text, IReadOnlyDictionary<string, SearchField> fields, string target, bool spacedOperators = true)
     {
         ArgumentNullException.ThrowIfNull(fields);
-        var tokens = Tokenize(text ?? string.Empty, fields);
+        var tokens = Tokenize(text ?? string.Empty, fields, spacedOperators);
         var parser = new Parser(tokens);
         var expression = parser.ParseAll();
         if (expression is null)
@@ -119,7 +123,7 @@ public static class KqlParser
 
     private sealed record Token(TokenKind Kind, string Raw, SearchTerm? Term = null);
 
-    private static List<Token> Tokenize(string text, IReadOnlyDictionary<string, SearchField> fields)
+    private static List<Token> Tokenize(string text, IReadOnlyDictionary<string, SearchField> fields, bool spacedOperators)
     {
         var tokens = new List<Token>();
         var i = 0;
@@ -148,7 +152,7 @@ public static class KqlParser
                     tokens.Add(FreeText(phrase.Trim()));
                 }
             }
-            else if (ReadSpacedTerm(text, ref i, fields) is { } spaced)
+            else if (spacedOperators && ReadSpacedTerm(text, ref i, fields) is { } spaced)
             {
                 tokens.Add(spaced);
             }

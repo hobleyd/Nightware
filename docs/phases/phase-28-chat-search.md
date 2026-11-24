@@ -18,7 +18,7 @@
 - The provider also takes the filters `since`, `until` (inclusive; a unix
   time is read as `@…`), `person` (a uid; an unknown one is a 400) and
   `conversation`. `term` is matched with `ILIKE %term%` on the stored message
-  (mentions as placeholders), and may be left out when another filter is
+  (a mention as the `@uid` the client wrote), and may be left out when another filter is
   given; with no filter at all Nextcloud answers 400.
 - An entry's `attributes` carry `conversation` (the token), `messageId`,
   `actorType`, `actorId` and `timestamp`; `title` is "{sender} in
