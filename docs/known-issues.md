@@ -42,12 +42,13 @@ what a fix needs. Ordered by impact within each section.
 - **Only the caller's own drive.** `/users/{x}/drive` for anyone else is 403, `/drives/{id}` for another drive 404: the
   façade reads files as the caller and Nextcloud has no way to open another user's home.
 - **`createLink` and `invite`** create Nextcloud shares; Nextcloud sends its own notification for an invitation, and
-  Graph's `message`/`sendInvitation` aren't used. `organization` links, `embed`/`blocksDownload` links and roles other
-  than `read`/`write` are `400 notSupported`.
+  Graph's `message`/`sendInvitation` aren't used. `organization` links, `embed` links (Nextcloud's share pages refuse
+  to be framed by other sites) and roles other than `read`/`write` are `400 notSupported`.
 - No `sharedWithMe`, `recent` (Microsoft is retiring both), versions, item activities, `preview` or
   `checkin`/`checkout`; SharePoint (`/sites`) stays out of scope (ADR 0008 D7).
-- `driveItem`s carry no `@microsoft.graph.downloadUrl` or `file.hashes`: `…/content` redirects to a five-minute
-  self-authorising URL, and Nextcloud has no `quickXorHash`.
+- **`@microsoft.graph.downloadUrl` is on a single file's GET only**, not in listings (each URL seals the caller's
+  token). **`file.hashes`** is there only when Nextcloud stored a checksum (an uploader sent `OC-Checksum`, as
+  Nextcloud's desktop client does): `sha1Hash`/`sha256Hash`, never `quickXorHash`. The façade never hashes content.
 
 ### Directory
 - **A photo upload must be a square JPEG or PNG.** Nextcloud keeps nothing

@@ -106,6 +106,14 @@ public sealed record DriveItemResourceDto
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? WebUrl { get; init; }
 
+    /// <summary>
+    /// A short-lived, self-authorising URL for the content (Graph's pre-authenticated download URL); only on a single
+    /// file's GET, as each carries a sealed copy of the caller's token (ADR 0008 D3).
+    /// </summary>
+    [JsonPropertyName("@microsoft.graph.downloadUrl")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? DownloadUrl { get; init; }
+
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ItemReferenceDto? ParentReference { get; init; }
 
@@ -158,7 +166,11 @@ public sealed record DriveItemResourceDto
                     Id = item.ParentId,
                     Path = item.ParentPath is null or "/" ? "/drive/root:" : $"/drive/root:{item.ParentPath}",
                 },
-            File = item.IsFolder ? null : new DriveFileFacetDto { MimeType = item.MimeType ?? "application/octet-stream" },
+            File = item.IsFolder ? null : new DriveFileFacetDto
+            {
+                MimeType = item.MimeType ?? "application/octet-stream",
+                Hashes = item.Sha1Hash is null && item.Sha256Hash is null ? null : new DriveHashesDto { Sha1Hash = item.Sha1Hash, Sha256Hash = item.Sha256Hash },
+            },
             Folder = item.IsFolder ? new DriveFolderFacetDto { ChildCount = item.ChildCount ?? 0 } : null,
             Root = item.IsRoot ? new EmptyFacetDto() : null,
             FileSystemInfo = new FileSystemInfoDto { CreatedDateTime = item.CreatedDateTime, LastModifiedDateTime = item.LastModifiedDateTime },
@@ -184,6 +196,19 @@ public sealed record ItemReferenceDto
 public sealed record DriveFileFacetDto
 {
     public required string MimeType { get; init; }
+
+    /// <summary>Only what the backend stored; absent when it has none (it never hashes content on read).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DriveHashesDto? Hashes { get; init; }
+}
+
+public sealed record DriveHashesDto
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Sha1Hash { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Sha256Hash { get; init; }
 }
 
 public sealed record DriveFolderFacetDto
@@ -244,7 +269,7 @@ public sealed record PermissionDto
         {
             Id = share.Id,
             Roles = share.Roles,
-            Link = share.Link is { } link ? new SharingLinkDto { Type = link.Type, Scope = link.Scope, WebUrl = link.WebUrl } : null,
+            Link = share.Link is { } link ? new SharingLinkDto { Type = link.Type, Scope = link.Scope, WebUrl = link.WebUrl, PreventsDownload = link.PreventsDownload } : null,
             GrantedToV2 = share.GrantedTo is { } who
                 ? new IdentitySetDto { User = new IdentityDto { Email = who.Address, DisplayName = who.Name } }
                 : null,
@@ -262,6 +287,8 @@ public sealed record SharingLinkDto
     public required string Scope { get; init; }
 
     public required string WebUrl { get; init; }
+
+    public bool PreventsDownload { get; init; }
 }
 
 /// <summary>Graph <c>thumbnailSet</c>: one set, <c>id</c> <c>0</c>, with self-authorising URLs.</summary>

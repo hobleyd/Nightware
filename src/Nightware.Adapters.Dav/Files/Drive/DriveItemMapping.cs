@@ -23,6 +23,7 @@ internal static class DriveItemMapping
     public static readonly XName HasPreview = FilesNs + "has-preview";
     public static readonly XName FolderCount = FilesNs + "contained-folder-count";
     public static readonly XName FileCount = FilesNs + "contained-file-count";
+    public static readonly XName Checksums = DavNs.OwnCloud + "checksums";
     public static readonly XName QuotaUsed = DavNs.Dav + "quota-used-bytes";
     public static readonly XName QuotaAvailable = DavNs.Dav + "quota-available-bytes";
 
@@ -30,7 +31,7 @@ internal static class DriveItemMapping
     public static readonly IReadOnlyList<XName> Properties =
     [
         DavNames.DisplayName, DavNames.GetETag, FileId, Size, DavNames.GetContentLength, DavNames.GetLastModified, CreationTime,
-        DavNames.ResourceType, DavNames.GetContentType, HasPreview, ShareTypes, Permissions, FolderCount, FileCount,
+        DavNames.ResourceType, DavNames.GetContentType, HasPreview, ShareTypes, Permissions, FolderCount, FileCount, Checksums,
     ];
 
     /// <param name="response">The item's response; its href must lie in <paramref name="home"/>.</param>
@@ -49,6 +50,7 @@ internal static class DriveItemMapping
             : (DateTimeOffset?)null;
         var shareTypes = response.Find(ShareTypes)?.Elements().Any() == true;
         var sharedWithMe = response.Text(Permissions)?.Contains('S', StringComparison.Ordinal) == true;
+        var checksums = isFolder ? null : response.Find(Checksums)?.Value;
         return new DriveItem(response.Text(FileId) ?? string.Empty, name)
         {
             DriveId = home.DriveId,
@@ -65,7 +67,33 @@ internal static class DriveItemMapping
             ChildCount = isFolder || isRoot ? (int)((Long(response.Text(FolderCount)) ?? 0) + (Long(response.Text(FileCount)) ?? 0)) : null,
             HasThumbnail = !isFolder && string.Equals(response.Text(HasPreview), "true", StringComparison.OrdinalIgnoreCase),
             IsShared = shareTypes || sharedWithMe,
+            Sha1Hash = Checksum(checksums, "SHA1", 40),
+            Sha256Hash = Checksum(checksums, "SHA256", 64),
         };
+    }
+
+    /// <summary>
+    /// One algorithm's value from Nextcloud's <c>oc:checksums</c> (<c>SHA1:abc… MD5:def…</c>, set when the uploader sent
+    /// <c>OC-Checksum</c>), as upper-case hex as Graph writes it; null when absent or malformed.
+    /// </summary>
+    internal static string? Checksum(string? checksums, string algorithm, int hexLength)
+    {
+        if (string.IsNullOrWhiteSpace(checksums))
+        {
+            return null;
+        }
+
+        var prefix = algorithm + ":";
+        foreach (var token in checksums.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (token.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var hex = token[prefix.Length..];
+                return hex.Length == hexLength && hex.All(char.IsAsciiHexDigit) ? hex.ToUpperInvariant() : null;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>The PROPFIND body for <see cref="Properties"/> (and, with <paramref name="quota"/>, the quota).</summary>

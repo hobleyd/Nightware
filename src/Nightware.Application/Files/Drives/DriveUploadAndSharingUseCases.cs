@@ -71,12 +71,19 @@ public sealed class CreateSharingLink(IDriveSharing sharing)
         DriveItemRef item, string? type, string? scope, DateTimeOffset? expiration, string? password, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(item);
-        var linkType = type?.ToLowerInvariant();
-        if (linkType is not ("view" or "edit"))
+        var linkType = type?.ToLowerInvariant() switch
         {
-            return linkType is null
-                ? Error.Validation("type is required ('view' or 'edit').", "type")
-                : DriveErrors.NotSupported($"Link type '{type}' is not supported; use 'view' or 'edit'.", "type");
+            "view" => SharingLinkTypes.View,
+            "edit" => SharingLinkTypes.Edit,
+            "blocksdownload" => SharingLinkTypes.BlocksDownload,
+            _ => null,
+        };
+        if (linkType is null)
+        {
+            // embed: Nextcloud's share pages refuse to be framed by other sites, so an embed link would show nothing.
+            return type is null
+                ? Error.Validation("type is required ('view', 'edit' or 'blocksDownload').", "type")
+                : DriveErrors.NotSupported($"Link type '{type}' is not supported; use 'view', 'edit' or 'blocksDownload'.", "type");
         }
 
         if (scope is not null && !string.Equals(scope, "anonymous", StringComparison.OrdinalIgnoreCase))

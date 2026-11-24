@@ -72,6 +72,15 @@ public sealed record DriveItem(string Id, string Name)
 
     public string? WebUrl { get; init; }
 
+    /// <summary>
+    /// The content's SHA-1 as upper-case hex (Graph <c>file.hashes.sha1Hash</c>), when the backend stored one (an uploader
+    /// sent it); never computed by reading the content.
+    /// </summary>
+    public string? Sha1Hash { get; init; }
+
+    /// <summary>The content's SHA-256 as upper-case hex (Graph <c>file.hashes.sha256Hash</c>), as <see cref="Sha1Hash"/>.</summary>
+    public string? Sha256Hash { get; init; }
+
     /// <summary>The backend can render a preview, so the item has a thumbnail set.</summary>
     public bool HasThumbnail { get; init; }
 
@@ -194,9 +203,21 @@ public sealed record DriveShare(string Id, IReadOnlyList<string> Roles)
     public string? InheritedFromId { get; init; }
 }
 
-/// <param name="Type"><c>view</c> or <c>edit</c>.</param>
+/// <param name="Type"><c>view</c>, <c>edit</c> or <c>blocksDownload</c> (view only, no download).</param>
 /// <param name="Scope">Always <c>anonymous</c>: anyone with the link.</param>
-public sealed record SharingLink(string Type, string Scope, string WebUrl);
+public sealed record SharingLink(string Type, string Scope, string WebUrl)
+{
+    /// <summary>The link opens the item for viewing but doesn't offer it for download (Graph <c>preventsDownload</c>).</summary>
+    public bool PreventsDownload => Type == SharingLinkTypes.BlocksDownload;
+}
+
+/// <summary>The <c>createLink</c> types the drive offers.</summary>
+public static class SharingLinkTypes
+{
+    public const string View = "view";
+    public const string Edit = "edit";
+    public const string BlocksDownload = "blocksDownload";
+}
 
 /// <summary>What <c>createLink</c> asks for.</summary>
 public sealed record SharingLinkRequest(string Type, DateTimeOffset? ExpirationDateTime, string? Password);

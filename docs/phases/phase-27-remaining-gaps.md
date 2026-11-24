@@ -29,3 +29,4 @@
 | Gap | Version |
 |---|---|
 | OneDrive simple upload up to Graph's 250 MB (`Limits:MaxLargeUploadBytes` and a 15-minute budget on the drive `PUT …/content` routes only); a body streamed into Nextcloud gets `Dav:TransferTimeout` instead of the 30 s attempt timeout | 1.70.0 |
+| A file's GET carries `@microsoft.graph.downloadUrl` (listings don't); `file.hashes` from Nextcloud's stored checksums; `createLink` type `blocksDownload` (hide-download); `embed` stays 400 (share pages can't be framed) — verified live | 1.71.0 |

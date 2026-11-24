@@ -29,7 +29,8 @@
       "link": {
         "type": "view",
         "scope": "anonymous",
-        "webUrl": "https://cloud.example.com/s/AbCdEfGh"
+        "webUrl": "https://cloud.example.com/s/AbCdEfGh",
+        "preventsDownload": false
       },
       "hasPassword": false
     }

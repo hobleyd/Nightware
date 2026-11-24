@@ -69,6 +69,34 @@ public sealed class NextcloudDriveSharingTests : IDisposable
     }
 
     [Fact]
+    public async Task A_blocks_download_link_is_a_read_link_then_made_view_only()
+    {
+        Json("POST", Shares, Recorded("share-link.json"));
+        Json("PUT", Shares + "/41", Recorded("share-link.json").Replace("\"hide_download\":0", "\"hide_download\":1", StringComparison.Ordinal));
+
+        var share = (await Sharing.CreateLinkAsync(File, new SharingLinkRequest(SharingLinkTypes.BlocksDownload, null, null), Ct)).Value;
+
+        share.Link!.Type.ShouldBe(SharingLinkTypes.BlocksDownload);
+        share.Link.PreventsDownload.ShouldBeTrue();
+        _nc.Requests("POST", Shares).Single().RequestMessage!.Body!.ShouldContain("permissions=1");
+        _nc.Requests("PUT", Shares + "/41").Single().RequestMessage!.Body!.ShouldContain("hideDownload=true");
+    }
+
+    [Fact]
+    public async Task A_link_that_cant_be_made_view_only_is_removed()
+    {
+        Json("POST", Shares, Recorded("share-link.json"));
+        _nc.Server.Given(Request.Create().WithPath(Shares + "/41").UsingPut())
+            .RespondWith(Response.Create().WithStatusCode(400).WithHeader("Content-Type", "application/json").WithBody("""{"ocs":{"meta":{"statuscode":400,"message":"no"},"data":[]}}"""));
+        Json("DELETE", Shares + "/41", """{"ocs":{"meta":{"statuscode":200},"data":[]}}""");
+
+        var result = await Sharing.CreateLinkAsync(File, new SharingLinkRequest(SharingLinkTypes.BlocksDownload, null, null), Ct);
+
+        result.IsSuccess.ShouldBeFalse();
+        _nc.Requests("DELETE", Shares + "/41").ShouldHaveSingleItem();
+    }
+
+    [Fact]
     public async Task An_invitation_finds_the_user_by_address_and_shares_with_them()
     {
         Json("GET", Ocs + "files_sharing/api/v1/sharees", Recorded("sharees.json"));
@@ -131,7 +159,16 @@ public sealed class NextcloudDriveSharingTests : IDisposable
 
         link.Roles.ShouldBe(["read"]);
         link.HasPassword.ShouldBeTrue();
+        link.Link!.Type.ShouldBe(SharingLinkTypes.View);
         user.Roles.ShouldBe(["write"]);
         user.ExpirationDateTime.ShouldBe(new DateTimeOffset(2026, 12, 24, 0, 0, 0, TimeSpan.Zero));
+    }
+
+    [Fact]
+    public void A_view_only_link_reads_back_as_blocks_download()
+    {
+        using var hidden = JsonDocument.Parse("""{"id":"1","share_type":3,"permissions":1,"url":"https://c/s/x","hide_download":1}""");
+
+        NextcloudDriveSharing.ToShare(hidden.RootElement, null).Link!.Type.ShouldBe(SharingLinkTypes.BlocksDownload);
     }
 }

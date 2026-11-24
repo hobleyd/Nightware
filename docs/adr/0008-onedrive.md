@@ -38,9 +38,16 @@ Teams files stay out of scope.
 
 ### D3 — Content
 - `GET …/content` answers **302** to a self-authorising download URL (ADR
-  0001 §39), as Graph redirects to a pre-authenticated URL. `driveItem`s
-  carry no `@microsoft.graph.downloadUrl`; clients that read it fall back to
-  `/content`.
+  0001 §39), as Graph redirects to a pre-authenticated URL.
+- *(Amended, phase 27.)* A single file's `GET` carries that URL as
+  `@microsoft.graph.downloadUrl` (five minutes, bound to the item). Listings
+  don't: every URL seals a copy of the caller's token, so a 200-item page
+  would carry 200 of them (about 2 KB each). Clients that read it from a
+  listing fall back to `/content`.
+- *(Amended, phase 27.)* `file.hashes` holds `sha1Hash`/`sha256Hash` (upper-case
+  hex) when Nextcloud stored the checksum (`oc:checksums`, set when an uploader
+  sent `OC-Checksum`). The façade never reads content to hash it, and has no
+  `quickXorHash`.
 - Simple upload (`PUT …:/{name}:/content`, `PUT items/{id}/content`) streams
   up to 250 MB into WebDAV. `@microsoft.graph.conflictBehavior` defaults to
   `replace` for uploads and `fail` for new folders, as Graph.
@@ -80,8 +87,12 @@ changes others make to items shared with the caller.
 - `createLink` (`view`/`edit`, `anonymous` scope) and `invite` (directory
   users) create OCS shares. `permissions` lists the item's shares, and
   `DELETE permissions/{id}` removes one. A permission id is the OCS share id.
-  Organization-scoped links, `blocksDownload` and `review` are `400
-  notSupported`.
+  Organization-scoped links, `embed` and `review` are `400 notSupported`.
+  *(Amended, phase 27.)* `blocksDownload` is a read link with Nextcloud's
+  hide-download set (by updating the new share, as Nextcloud ignores it on
+  create; a link it can't make view-only is removed again); its `link` reads
+  back with `preventsDownload: true`. `embed` stays out: Nextcloud's share
+  pages send `frame-ancestors 'self'`, so another site's frame would be empty.
 - `thumbnails` gives one set (`small` 96, `medium` 176, `large` 800 px) whose
   URLs are self-authorising and stream Nextcloud's preview. An item without a
   preview has no thumbnail set.

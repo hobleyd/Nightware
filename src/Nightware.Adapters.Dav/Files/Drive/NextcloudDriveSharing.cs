@@ -39,7 +39,7 @@ internal sealed class NextcloudDriveSharing(IDavClient dav, DriveItemLocator loc
         {
             ["path"] = target.Value.Path,
             ["shareType"] = LinkShare.ToString(CultureInfo.InvariantCulture),
-            ["permissions"] = PermissionsFor(request.Type == "edit", target.Value.IsFolder).ToString(CultureInfo.InvariantCulture),
+            ["permissions"] = PermissionsFor(request.Type == SharingLinkTypes.Edit, target.Value.IsFolder).ToString(CultureInfo.InvariantCulture),
         };
         AddExpiry(form, request.ExpirationDateTime);
         if (request.Password is { } password)
@@ -48,7 +48,28 @@ internal sealed class NextcloudDriveSharing(IDavClient dav, DriveItemLocator loc
         }
 
         var created = await dav.OcsSendAsync(HttpMethod.Post, Shares, form, cancellationToken).ConfigureAwait(false);
-        return created.IsSuccess ? ToShare(created.Value, inheritedFrom: null) : created.Error;
+        if (!created.IsSuccess)
+        {
+            return created.Error;
+        }
+
+        if (request.Type != SharingLinkTypes.BlocksDownload)
+        {
+            return ToShare(created.Value, inheritedFrom: null);
+        }
+
+        // Nextcloud ignores hideDownload when a share is created; it is set by updating the new share. A link that
+        // can't be made view-only must not stay behind as an ordinary one.
+        var id = Text(created.Value, "id") ?? string.Empty;
+        var hidden = await dav.OcsSendAsync(HttpMethod.Put, $"{Shares}/{Uri.EscapeDataString(id)}", new Dictionary<string, string>(StringComparer.Ordinal) { ["hideDownload"] = "true" }, cancellationToken)
+            .ConfigureAwait(false);
+        if (hidden.IsSuccess)
+        {
+            return ToShare(hidden.Value, inheritedFrom: null);
+        }
+
+        _ = await dav.OcsSendAsync(HttpMethod.Delete, $"{Shares}/{Uri.EscapeDataString(id)}", null, cancellationToken).ConfigureAwait(false);
+        return hidden.Error;
     }
 
     public async Task<Result<IReadOnlyList<DriveShare>>> InviteAsync(DriveItemRef item, DriveInvitation invitation, CancellationToken cancellationToken)
@@ -204,7 +225,9 @@ internal sealed class NextcloudDriveSharing(IDavClient dav, DriveItemLocator loc
             : (DateTimeOffset?)null;
         return new DriveShare(Text(share, "id") ?? string.Empty, [write ? "write" : "read"])
         {
-            Link = isLink && Text(share, "url") is { } url ? new SharingLink(write ? "edit" : "view", "anonymous", url) : null,
+            Link = isLink && Text(share, "url") is { } url
+                ? new SharingLink(write ? SharingLinkTypes.Edit : Long(share, "hide_download") == 1 ? SharingLinkTypes.BlocksDownload : SharingLinkTypes.View, "anonymous", url)
+                : null,
             GrantedTo = !isLink && Text(share, "share_with") is { } with
                 ? new EmailAddress(Text(share, "share_with_email") ?? with, Text(share, "share_with_displayname"))
                 : null,

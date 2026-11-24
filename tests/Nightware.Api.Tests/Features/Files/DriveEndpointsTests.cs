@@ -138,7 +138,38 @@ public sealed class DriveEndpointsTests : IAsyncLifetime
         item.Str("parentReference.path").ShouldBe("/drive/root:/Docs");
         item.Str("webUrl").ShouldBe(Site + "/f/42");
         item.ContainsKey("folder").ShouldBeFalse();
-        item.ContainsKey("@microsoft.graph.downloadUrl").ShouldBeFalse();
+        item["file"]!.AsObject().ContainsKey("hashes").ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task A_file_carries_a_download_url_that_works_without_a_bearer_and_a_listing_does_not()
+    {
+        _store.GetItemAsync(Ref(DriveItemRef.ById("42")), Arg.Any<CancellationToken>()).Returns(File);
+        _store.OpenContentAsync(Ref(DriveItemRef.ById("42")), Arg.Any<CancellationToken>())
+            .Returns(new BlobContent("text/plain", 5, _ => Task.FromResult<Stream>(new MemoryStream("hello"u8.ToArray()))) { FileName = "notes.txt" });
+        _store.GetItemAsync(Ref(DriveItemRef.ById("7")), Arg.Any<CancellationToken>()).Returns(Folder);
+        _store.ListChildrenAsync(Arg.Any<DriveItemRef>(), Arg.Any<DriveListQuery>(), Arg.Any<CancellationToken>())
+            .Returns(new Page<DriveItem>([File], null));
+
+        var item = await GetAsync("/v1.0/me/drive/items/42");
+        var url = new Uri(item["@microsoft.graph.downloadUrl"]!.GetValue<string>());
+        url.AbsoluteUri.ShouldStartWith(TestHost.GraphBase + "/me/drive/items/42/$value?authtoken=");
+        using var download = await Anonymous().GetAsync(Local(url), Ct);
+        (await download.Content.ReadAsStringAsync(Ct)).ShouldBe("hello");
+
+        (await GetAsync("/v1.0/me/drive/items/7")).ContainsKey("@microsoft.graph.downloadUrl").ShouldBeFalse();
+        (await GetAsync("/v1.0/me/drive/items/7/children"))["value"]![0]!.AsObject().ContainsKey("@microsoft.graph.downloadUrl").ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task A_files_stored_hashes_are_graphs_hashes()
+    {
+        _store.GetItemAsync(Ref(DriveItemRef.ById("42")), Arg.Any<CancellationToken>()).Returns(File with { Sha1Hash = "AB12" });
+
+        var item = await GetAsync("/v1.0/me/drive/items/42");
+
+        item.Str("file.hashes.sha1Hash").ShouldBe("AB12");
+        item["file"]!["hashes"]!.AsObject().ContainsKey("sha256Hash").ShouldBeFalse();
     }
 
     [Theory]
@@ -392,7 +423,9 @@ public sealed class DriveEndpointsTests : IAsyncLifetime
 
         using var created = await Client.PostAsJsonAsync("/v1.0/me/drive/items/42/createLink", new { type = "view", scope = "anonymous" }, Ct);
         created.StatusCode.ShouldBe(HttpStatusCode.Created);
-        (await created.ReadObjectAsync()).Str("link.webUrl").ShouldBe("https://cloud.example.com/s/abc");
+        var createdLink = await created.ReadObjectAsync();
+        createdLink.Str("link.webUrl").ShouldBe("https://cloud.example.com/s/abc");
+        createdLink["link"]!["preventsDownload"]!.GetValue<bool>().ShouldBeFalse();
 
         using var invited = await Client.PostAsJsonAsync("/v1.0/me/drive/items/42/invite",
             new { recipients = new[] { new { email = "bob@example.com" } }, roles = new[] { "Write" }, sendInvitation = false }, Ct);

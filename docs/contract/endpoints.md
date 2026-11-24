@@ -3425,9 +3425,9 @@ operation:
 **GET v1.0 `{mailbox}/drive/items/{itemId}`** — forms: me, users; success: 200; paging: none
 
 - Query: `$select` (always): `*`; `$expand`: `children`
-- Client reads: `id`, `name`, `file`, `folder`, `parentReference`
+- Client reads: `id`, `name`, `file`, `folder`, `parentReference`, `@microsoft.graph.downloadUrl`, `file.hashes`
 - Graph parity (ADR 0006); reference: driveitem-get
-- Notes: An item by its Nextcloud file id. $expand=children carries a folder's first 200 children; no @microsoft.graph.downloadUrl (…/content redirects to one). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Notes: An item by its Nextcloud file id. $expand=children carries a folder's first 200 children; a file carries @microsoft.graph.downloadUrl (the five-minute self-authorising URL …/content redirects to) and, when Nextcloud stored one, file.hashes.sha1Hash/sha256Hash. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.get.json`
 
 #### `files.drive.items.get-by-path`
@@ -3622,7 +3622,7 @@ operation:
 - Request body: `type`; `scope`; `expirationDateTime`; `password`
 - Client reads: `id`, `roles`, `link`
 - Graph parity (ADR 0006); reference: driveitem-createlink
-- Notes: A Nextcloud public share: view (read) or edit; scope anonymous only (organization and other types are 400 notSupported). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Notes: A Nextcloud public share: view (read), edit, or blocksDownload (read with Nextcloud's hide-download; link.preventsDownload true); scope anonymous only (organization, embed and other types are 400 notSupported). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.create-link.json`
 
 #### `files.drive.items.invite`

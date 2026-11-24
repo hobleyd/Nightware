@@ -77,7 +77,8 @@ public sealed class DriveUploadAndSharingUseCaseTests
     [InlineData(null, null, ErrorKind.Validation, "invalidRequest")]
     [InlineData("embed", null, ErrorKind.Validation, DriveErrors.NotSupportedCode)]
     [InlineData("view", "organization", ErrorKind.Validation, DriveErrors.NotSupportedCode)]
-    public async Task A_link_is_view_or_edit_and_anonymous(string? type, string? scope, ErrorKind kind, string code)
+    [InlineData("review", null, ErrorKind.Validation, DriveErrors.NotSupportedCode)]
+    public async Task A_link_is_view_edit_or_blocks_download_and_anonymous(string? type, string? scope, ErrorKind kind, string code)
     {
         var error = (await new CreateSharingLink(_sharing).ExecuteAsync(Item, type, scope, null, null, Ct)).Error!;
 
@@ -100,6 +101,15 @@ public sealed class DriveUploadAndSharingUseCaseTests
         _sharing.CreateLinkAsync(Item, new SharingLinkRequest("edit", null, null), Ct).Returns(share);
 
         (await new CreateSharingLink(_sharing).ExecuteAsync(Item, "Edit", "anonymous", null, string.Empty, Ct)).Value.ShouldBeSameAs(share);
+    }
+
+    [Fact]
+    public async Task A_blocks_download_link_keeps_graphs_spelling()
+    {
+        var share = new DriveShare("34", ["read"]);
+        _sharing.CreateLinkAsync(Item, new SharingLinkRequest(SharingLinkTypes.BlocksDownload, null, null), Ct).Returns(share);
+
+        (await new CreateSharingLink(_sharing).ExecuteAsync(Item, "BLOCKSDOWNLOAD", null, null, null, Ct)).Value.ShouldBeSameAs(share);
     }
 
     [Fact]

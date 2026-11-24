@@ -49,9 +49,15 @@ public sealed class DriveArrangements : IConformanceArrangements
         yield return Arrange("files.drives.get", static f => f.For<IDriveStore>().GetDriveAsync(DriveId, Any).Returns(Drive));
         yield return Arrange("files.drive.special.get", static f => f.For<IDriveStore>().GetSpecialFolderAsync(SpecialFolder.Documents, Arg.Any<string?>(), Any).Returns(Documents));
         yield return Arrange("files.drive.root.get", static f => f.For<IDriveStore>().GetItemAsync(Is(DriveItemRef.Root), Any).Returns(Root));
-        yield return Arrange("files.drive.items.get", static f => f.For<IDriveStore>().GetItemAsync(Is(DriveItemRef.ById("42")), Any).Returns(Notes));
+        yield return Arrange("files.drive.items.get", static f => f.For<IDriveStore>().GetItemAsync(Is(DriveItemRef.ById("42")), Any).Returns(Notes)) with
+        {
+            Normalise = SealedDownloadUrl,
+        };
         yield return Arrange("files.drive.items.get-by-path", static f =>
-            f.For<IDriveStore>().GetItemAsync(Is(new DriveItemRef(null, ["Documents", "notes.txt"])), Any).Returns(Notes));
+            f.For<IDriveStore>().GetItemAsync(Is(new DriveItemRef(null, ["Documents", "notes.txt"])), Any).Returns(Notes)) with
+        {
+            Normalise = SealedDownloadUrl,
+        };
         yield return Arrange("files.drive.items.children", static f =>
             f.For<IDriveStore>().ListChildrenAsync(Is(DriveItemRef.ById("7")), new DriveListQuery(1, null), Any).Returns(new Page<DriveItem>([Notes], "1")));
         yield return Arrange("files.drive.items.create-folder", static f =>
@@ -179,5 +185,17 @@ public sealed class DriveArrangements : IConformanceArrangements
                 : null;
             return ticket is not null;
         }
+    }
+
+    /// <summary>
+    /// The download URL seals a fresh credential every time: the fixture holds <c>&lt;volatile&gt;</c>, and the actual
+    /// value must be the item's self-authorising <c>$value</c> URL.
+    /// </summary>
+    private static void SealedDownloadUrl(System.Text.Json.Nodes.JsonNode expected, System.Text.Json.Nodes.JsonNode actual)
+    {
+        const string Key = "@microsoft.graph.downloadUrl";
+        var url = actual[Key]!.GetValue<string>();
+        url.ShouldContain("/me/drive/items/42/$value?authtoken=");
+        actual[Key] = ResponseNormaliser.VolatilePlaceholder;
     }
 }

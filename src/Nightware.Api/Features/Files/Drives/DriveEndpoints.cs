@@ -127,7 +127,7 @@ internal static class DriveEndpoints
     }
 
     private static async Task<IResult> GetItemAsync(
-        Mailbox mailbox, DriveAddress at, IUserContext caller,
+        Mailbox mailbox, DriveAddress at, HttpRequest request, IUserContext caller, GraphLinkBuilder links, SelfAuthorisingUrlSealer sealer,
         IOptions<DiscoveryOptions> discovery, ODataQuery odata, GetDriveItem useCase, ListDriveItemChildren children, CancellationToken cancellationToken)
     {
         var target = Target(mailbox, caller, at);
@@ -143,6 +143,11 @@ internal static class DriveEndpoints
         }
 
         var dto = ItemDto(item.Value, discovery);
+        if (!item.Value.IsFolder && DownloadUrl(request, caller, links, sealer, item.Value.Id) is { } downloadUrl)
+        {
+            dto = dto with { DownloadUrl = downloadUrl };
+        }
+
         if (odata.Query.ExpandOf("children") is not null)
         {
             if (!item.Value.IsFolder)
@@ -223,9 +228,15 @@ internal static class DriveEndpoints
             return DriveRequests.Fail(item.Error);
         }
 
+        return DownloadUrl(request, caller, links, sealer, item.Value.Id) is { } url ? SelfAuthorisingUrl.Redirect(url) : TooLongUrl();
+    }
+
+    /// <summary>The five-minute self-authorising download URL for a file; null when it would not fit a request line.</summary>
+    private static string? DownloadUrl(HttpRequest request, IUserContext caller, GraphLinkBuilder links, SelfAuthorisingUrlSealer sealer, string itemId)
+    {
         var ticket = sealer.TicketFor(DriveUrls.Download, caller.BearerToken, request.HttpContext.User);
-        var url = DriveUrls.DownloadUrl(links.VersionRoot(request), item.Value.Id, sealer.Seal(DriveUrls.Download, ticket, [item.Value.Id]));
-        return SelfAuthorisingUrl.FitsRequestLine(url) ? SelfAuthorisingUrl.Redirect(url) : TooLongUrl();
+        var url = DriveUrls.DownloadUrl(links.VersionRoot(request), itemId, sealer.Seal(DriveUrls.Download, ticket, [itemId]));
+        return SelfAuthorisingUrl.FitsRequestLine(url) ? url : null;
     }
 
     private static async Task<IResult> DownloadAsync(string itemId, DownloadDriveItem useCase, CancellationToken cancellationToken)

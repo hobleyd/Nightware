@@ -220,6 +220,10 @@ public sealed class DriveLiveTests
             var link = await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/drive/items/{fileId}/createLink", new { type = "view", scope = "anonymous" }, HttpStatusCode.Created);
             link["link"]!["webUrl"]!.GetValue<string>().ShouldContain("/s/");
             link["roles"]!.AsArray().Select(r => r!.GetValue<string>()).ShouldBe(["read"]);
+            var viewOnly = await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/drive/items/{fileId}/createLink", new { type = "blocksDownload" }, HttpStatusCode.Created);
+            viewOnly["link"]!["type"]!.GetValue<string>().ShouldBe("blocksDownload");
+            viewOnly["link"]!["preventsDownload"]!.GetValue<bool>().ShouldBeTrue();
+            await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/drive/items/{fileId}/createLink", new { type = "embed" }, HttpStatusCode.BadRequest);
 
             var bobAddress = (await SendAsync(await stack.GraphClientAsync("bob", Ct), HttpMethod.Get, "/v1.0/me"))["mail"]!.GetValue<string>();
             var invited = await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/drive/items/{fileId}/invite",
@@ -227,7 +231,15 @@ public sealed class DriveLiveTests
             invited["value"]!.AsArray().ShouldHaveSingleItem()!["roles"]![0]!.GetValue<string>().ShouldBe("write");
 
             var permissions = (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/drive/items/{fileId}/permissions"))["value"]!.AsArray();
-            permissions.Count.ShouldBe(2);
+            permissions.Count.ShouldBe(3);
+            permissions.Count(p => p!["link"]?["type"]?.GetValue<string>() == "blocksDownload").ShouldBe(1);
+
+            // The item's own GET carries a download URL that works without a bearer.
+            var item = await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/drive/items/{fileId}");
+            using var anonymous = await stack.GraphClientAsync("alice", Ct);
+            anonymous.DefaultRequestHeaders.Authorization = null;
+            var downloaded = await anonymous.GetByteArrayAsync(LiveStack.Local(item["@microsoft.graph.downloadUrl"]!.GetValue<string>()), Ct);
+            downloaded.Length.ShouldBe(item["size"]!.GetValue<int>());
             foreach (var permission in permissions)
             {
                 await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/drive/items/{fileId}/permissions/{permission!["id"]!.GetValue<string>()}", expected: HttpStatusCode.NoContent);

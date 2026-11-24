@@ -11969,7 +11969,9 @@
       "name",
       "file",
       "folder",
-      "parentReference"
+      "parentReference",
+      "@microsoft.graph.downloadUrl",
+      "file.hashes"
     ],
     "successStatus": 200,
     "paging": "none",
@@ -11977,7 +11979,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "driveitem-get",
-    "notes": "An item by its Nextcloud file id. $expand=children carries a folder's first 200 children; no @microsoft.graph.downloadUrl (…/content redirects to one). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+    "notes": "An item by its Nextcloud file id. $expand=children carries a folder's first 200 children; a file carries @microsoft.graph.downloadUrl (the five-minute self-authorising URL …/content redirects to) and, when Nextcloud stored one, file.hashes.sha1Hash/sha256Hash. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
   },
   {
     "id": "files.drive.items.get-by-path",
@@ -12716,7 +12718,7 @@
     "clientCallSites": [],
     "source": "graph-parity",
     "docs": "driveitem-createlink",
-    "notes": "A Nextcloud public share: view (read) or edit; scope anonymous only (organization and other types are 400 notSupported). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+    "notes": "A Nextcloud public share: view (read), edit, or blocksDownload (read with Nextcloud's hide-download; link.preventsDownload true); scope anonymous only (organization, embed and other types are 400 notSupported). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
   },
   {
     "id": "files.drive.items.invite",

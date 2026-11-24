@@ -25,6 +25,7 @@
       "createdDateTime": "2026-11-20T09:00:00Z",
       "lastModifiedDateTime": "2026-11-21T10:30:00Z",
       "webUrl": "https://cloud.example.com/f/42",
+      "@microsoft.graph.downloadUrl": "<volatile>",
       "parentReference": {
         "driveId": "nc!bWU",
         "driveType": "personal",
