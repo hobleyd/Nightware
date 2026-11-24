@@ -306,3 +306,43 @@ public sealed class OpenDriveThumbnail(IDriveStore store)
         return store.OpenThumbnailAsync(item, size, cancellationToken);
     }
 }
+
+/// <summary>Graph <c>GET …/items/{id}/versions</c> and <c>…/versions/{versionId}</c>.</summary>
+public sealed class ListDriveItemVersions(IDriveVersions versions)
+{
+    public Task<Result<IReadOnlyList<DriveItemVersion>>> ExecuteAsync(DriveItemRef item, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        return item.IsRoot
+            ? Task.FromResult<Result<IReadOnlyList<DriveItemVersion>>>(DriveErrors.NotSupported("A folder has no versions."))
+            : versions.ListAsync(item, cancellationToken);
+    }
+
+    public async Task<Result<DriveItemVersion>> GetAsync(DriveItemRef item, string versionId, CancellationToken cancellationToken)
+    {
+        var listed = await ExecuteAsync(item, cancellationToken).ConfigureAwait(false);
+        if (!listed.IsSuccess)
+        {
+            return listed.Error;
+        }
+
+        return listed.Value.FirstOrDefault(v => string.Equals(v.Id, versionId, StringComparison.Ordinal)) is { } version
+            ? version
+            : Error.NotFound("The item has no such version.", "versionId");
+    }
+}
+
+/// <summary>Graph <c>GET …/versions/{versionId}/content</c>.</summary>
+public sealed class OpenDriveItemVersion(IDriveVersions versions)
+{
+    public Task<Result<BlobContent>> ExecuteAsync(DriveItemRef item, string versionId, CancellationToken cancellationToken) =>
+        versions.OpenContentAsync(item, versionId, cancellationToken);
+}
+
+/// <summary>Graph <c>POST …/versions/{versionId}/restoreVersion</c>.</summary>
+public sealed class RestoreDriveItemVersion(IDriveVersions versions)
+{
+    public Task<Result> ExecuteAsync(DriveItemRef item, string versionId, CancellationToken cancellationToken) =>
+        versions.RestoreAsync(item, versionId, cancellationToken);
+}
+

@@ -336,8 +336,8 @@ operation:
 | Phase 24 — Teams and channels over Nextcloud Teams and Talk (Graph parity, ADR 0009) | 34 |
 | Phase 25 — Presence over Nextcloud user status (Graph parity, ADR 0009) | 8 |
 | Phase 26 — Online meetings and calls over Talk (Graph parity, ADR 0009) | 14 |
-| Phase 27 — OneDrive, calendar, directory and settings gaps | 5 |
-| **Total** | **405** |
+| Phase 27 — OneDrive, calendar, directory and settings gaps | 9 |
+| **Total** | **409** |
 
 ### Phase 2 — Mail, read side
 
@@ -4611,6 +4611,10 @@ operation:
 | [`files.drive.shared-with-me`](#filesdriveshared-with-me) | GET | v1.0 | `{mailbox}/drive/sharedWithMe` | nextLink |
 | [`files.drive.recent`](#filesdriverecent) | GET | v1.0 | `{mailbox}/drive/recent` | none |
 | [`search.query`](#searchquery) | POST | v1.0 | `/search/query` | none |
+| [`files.drive.items.versions`](#filesdriveitemsversions) | GET | v1.0 | `{mailbox}/drive/items/{itemId}/versions` | none |
+| [`files.drive.items.versions.get`](#filesdriveitemsversionsget) | GET | v1.0 | `{mailbox}/drive/items/{itemId}/versions/{versionId}` | none |
+| [`files.drive.items.versions.content`](#filesdriveitemsversionscontent) | GET | v1.0 | `{mailbox}/drive/items/{itemId}/versions/{versionId}/content` | none |
+| [`files.drive.items.versions.restore`](#filesdriveitemsversionsrestore) | POST | v1.0 | `{mailbox}/drive/items/{itemId}/versions/{versionId}/restoreVersion` | none |
 
 #### `files.drive.root.children`
 
@@ -4664,5 +4668,39 @@ operation:
 - Call sites: `…/remote/graph_drive_datasource_impl.dart:272`
 - Notes: Microsoft Search, driveItem only: the cloud picker's search for Microsoft 365 accounts (entityTypes [driveItem], from 0, size 50), which falls back to root/search on any error. One request; the caller's drive searched by name as root/search is; each hit's resource is the driveItem with @odata.type. total counts the hits up to this window; moreResultsAvailable says whether more match. Other entity types are 400 notSupported.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/search.query.json`
+
+#### `files.drive.items.versions`
+
+**GET v1.0 `{mailbox}/drive/items/{itemId}/versions`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `value[].id`, `value[].lastModifiedDateTime`, `value[].size`, `value[].lastModifiedBy`
+- Graph parity (ADR 0006); reference: driveitem-list-versions
+- Notes: A file's versions from Nextcloud's files_versions (versions/{uid}/versions/{fileid}/), newest first; the newest is the current content. A version's id is Nextcloud's timestamp; lastModifiedBy.user.id the user who wrote it. A folder is 400 notSupported. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.versions.json`
+
+#### `files.drive.items.versions.get`
+
+**GET v1.0 `{mailbox}/drive/items/{itemId}/versions/{versionId}`** — forms: me, users; success: 200; paging: none
+
+- Client reads: `id`, `lastModifiedDateTime`, `size`
+- Graph parity (ADR 0006); reference: driveitemversion-get
+- Notes: One version, by id; an unknown id is 404. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.versions.get.json`
+
+#### `files.drive.items.versions.content`
+
+**GET v1.0 `{mailbox}/drive/items/{itemId}/versions/{versionId}/content`** — forms: me, users; success: 200; paging: none
+
+- Graph parity (ADR 0006); reference: driveitemversion-get-contents
+- Notes: A version's bytes, streamed with 200 (Graph answers 302 to a download URL; a client following the redirect gets the same bytes). Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.versions.content.json`
+
+#### `files.drive.items.versions.restore`
+
+**POST v1.0 `{mailbox}/drive/items/{itemId}/versions/{versionId}/restoreVersion`** — forms: me, users; success: 204; paging: none
+
+- Graph parity (ADR 0006); reference: driveitemversion-restore
+- Notes: Makes the version the file's current content (a WebDAV MOVE to versions/{uid}/restore/target); Nextcloud keeps the content it replaces as a version. 204. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.versions.restore.json`
 
 <!-- END GENERATED -->

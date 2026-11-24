@@ -415,3 +415,30 @@ public sealed record AsyncOperationStatusDto
 
     public string Status { get; init; } = "completed";
 }
+
+/// <summary>Graph <c>driveItemVersion</c>.</summary>
+public sealed record DriveItemVersionDto
+{
+    public required string Id { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonConverter(typeof(PreciseInstantConverter))]
+    public DateTimeOffset? LastModifiedDateTime { get; init; }
+
+    public long Size { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IdentitySetDto? LastModifiedBy { get; init; }
+
+    public static DriveItemVersionDto From(DriveItemVersion version)
+    {
+        ArgumentNullException.ThrowIfNull(version);
+        return new DriveItemVersionDto
+        {
+            Id = version.Id,
+            LastModifiedDateTime = version.LastModifiedDateTime,
+            Size = version.Size,
+            LastModifiedBy = version.ModifiedBy is { } by ? new IdentitySetDto { User = new IdentityDto { Id = by } } : null,
+        };
+    }
+}

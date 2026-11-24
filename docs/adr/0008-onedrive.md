@@ -98,7 +98,7 @@ changes others make to items shared with the caller.
   preview has no thumbnail set.
 
 ### D7 — Out of scope
-SharePoint (`/sites`, document libraries), versions, `follow`, `checkin`/`checkout`,
+SharePoint (`/sites`, document libraries), `follow`, `checkin`/`checkout`,
 `preview` (embed URLs), item activities and analytics. These stay
 `501 notImplemented`.
 
@@ -118,6 +118,18 @@ SharePoint (`/sites`, document libraries), versions, `follow`, `checkin`/`checko
   requests only, as `root/search` searches (by name, the caller's drive), so
   NightMail's cloud picker, which tries it first for Microsoft 365 accounts,
   gets results instead of an error. Other entity types are `400 notSupported`.
+
+### D9 — Versions *(phase 27)*
+- `…/versions` lists Nextcloud's `files_versions` of the file
+  (`versions/{uid}/versions/{fileid}/`), newest first; the newest is the
+  current content. A version's id is Nextcloud's timestamp (seconds), so two
+  writes in one second leave one version. `lastModifiedBy.user.id` is the
+  writer's uid (`nc:version-author`).
+- `…/versions/{id}/content` streams the bytes with 200 (Graph redirects; a
+  client following redirects sees the same bytes).
+- `restoreVersion` is a `MOVE` to `versions/{uid}/restore/target`; Nextcloud
+  keeps the replaced content as a version, as OneDrive does.
+- A folder has no versions (`400 notSupported`).
 
 ## Consequences
 - The contract gains the phase 20 operations, all `"source": "graph-parity"`.

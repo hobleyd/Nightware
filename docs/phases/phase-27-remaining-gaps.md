@@ -32,3 +32,4 @@
 | A file's GET carries `@microsoft.graph.downloadUrl` (listings don't); `file.hashes` from Nextcloud's stored checksums; `createLink` type `blocksDownload` (hide-download); `embed` stays 400 (share pages can't be framed) — verified live | 1.71.0 |
 | `sharedWithMe` (NightMail's cloud picker calls it) and `recent`, with `remoteItem` entries the picker opens through `/drives/{id}/items/{id}`; the contract covers the picker's `root/children`, `/drives/{id}/items/{id}` and `root/search` spellings (1.71.1) — verified live | 1.72.0 |
 | Microsoft Search `POST /search/query` for `driveItem` (the cloud picker's first try); the contract now covers every NightMail call path again — verified live | 1.73.0 |
+| A file's versions: list, get, content and `restoreVersion` over `files_versions` — verified live | 1.74.0 |

@@ -1,0 +1,19 @@
+{
+  "operationId": "files.drive.items.versions.restore",
+  "provenance": "Graph v1.0 reference (https://learn.microsoft.com/graph/api/driveitemversion-restore); constructed with example.com data and Nextcloud-shaped ids (ADR 0008 D2), no tenant capture yet",
+  "request": {
+    "method": "POST",
+    "path": "/v1.0/me/drive/items/42/versions/1795498534/restoreVersion",
+    "query": {},
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {token}"
+    },
+    "body": null
+  },
+  "response": {
+    "status": 204,
+    "headers": {},
+    "body": null
+  }
+}

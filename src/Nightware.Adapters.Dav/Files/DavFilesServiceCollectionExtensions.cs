@@ -49,6 +49,7 @@ internal static class DavFilesServiceCollectionExtensions
         services.TryAddScoped<IDriveDelta, NextcloudDriveDelta>();
         services.TryAddScoped<IDriveUploads, NextcloudDriveUploads>();
         services.TryAddScoped<IDriveSharing, NextcloudDriveSharing>();
+        services.TryAddScoped<IDriveVersions, NextcloudDriveVersions>();
         return services.AddDavOffice(configuration);
     }
 

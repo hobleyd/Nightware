@@ -204,6 +204,26 @@ public sealed class DriveItemUseCaseTests
     }
 
     [Fact]
+    public async Task Versions_are_listed_found_by_id_opened_and_restored_through_the_port()
+    {
+        var versions = Substitute.For<IDriveVersions>();
+        var older = new DriveItemVersion("1") { Size = 2 };
+        var current = new DriveItemVersion("2") { Size = 3 };
+        versions.ListAsync(Item, Ct).Returns(Result<IReadOnlyList<DriveItemVersion>>.Success([current, older]));
+        versions.RestoreAsync(Item, "1", Ct).Returns(Result.Success());
+        var blob = new BlobContent("text/plain", 2, _ => Task.FromResult<Stream>(new MemoryStream()));
+        versions.OpenContentAsync(Item, "1", Ct).Returns(blob);
+        var list = new ListDriveItemVersions(versions);
+
+        (await list.ExecuteAsync(Item, Ct)).Value.ShouldBe([current, older]);
+        (await list.GetAsync(Item, "1", Ct)).Value.ShouldBeSameAs(older);
+        (await list.GetAsync(Item, "9", Ct)).Error!.Kind.ShouldBe(ErrorKind.NotFound);
+        (await list.ExecuteAsync(DriveItemRef.Root, Ct)).Error!.Code.ShouldBe(DriveErrors.NotSupportedCode);
+        (await new OpenDriveItemVersion(versions).ExecuteAsync(Item, "1", Ct)).Value.ShouldBeSameAs(blob);
+        (await new RestoreDriveItemVersion(versions).ExecuteAsync(Item, "1", Ct)).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task Recent_asks_the_store_for_a_hundred_files()
     {
         _store.RecentAsync(ListRecentDriveItems.Limit, Ct).Returns(Result<IReadOnlyList<DriveItem>>.Success([File]));

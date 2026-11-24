@@ -99,6 +99,24 @@ public sealed record DriveItem(string Id, string Name)
     public static DriveItem Deleted(string id) => new(id, string.Empty) { IsDeleted = true };
 }
 
+/// <summary>
+/// An earlier (or the current) content of a file (Graph <c>driveItemVersion</c>). The newest is the file's current
+/// content; restoring another makes it current again.
+/// </summary>
+/// <param name="Id">The backend's version id (Nextcloud: the version's timestamp).</param>
+public sealed record DriveItemVersion(string Id)
+{
+    public DateTimeOffset? LastModifiedDateTime { get; init; }
+
+    public long Size { get; init; }
+
+    /// <summary>The user who wrote this version, by id, when the backend recorded one.</summary>
+    public string? ModifiedBy { get; init; }
+
+    /// <summary>A label the version was given (a check-in comment).</summary>
+    public string? Label { get; init; }
+}
+
 /// <summary>Who shared an item with the caller, and when.</summary>
 public sealed record DriveItemSharer(string Id, string? DisplayName, DateTimeOffset? SharedDateTime);
 

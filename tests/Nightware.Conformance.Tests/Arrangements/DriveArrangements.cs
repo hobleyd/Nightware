@@ -52,6 +52,11 @@ public sealed class DriveArrangements : IConformanceArrangements
         Name = "notes.txt", Size = 15, CreatedDateTime = SharedAt, LastModifiedDateTime = new DateTimeOffset(2026, 11, 24, 5, 35, 35, TimeSpan.Zero), ETag = null, CTag = null,
     };
 
+    private static readonly DriveItemVersion OlderNotes = new("1795498534")
+    {
+        Size = 8, LastModifiedDateTime = new DateTimeOffset(2026, 11, 24, 5, 35, 34, TimeSpan.Zero), ModifiedBy = "me",
+    };
+
     private static readonly DriveShare Link = new("41", ["read"]) { Link = new SharingLink("view", "anonymous", "https://cloud.example.com/s/AbCdEfGh") };
     private static readonly DriveShare Invite = new("43", ["write"]) { GrantedTo = new EmailAddress("bob@example.com", "Bob Brown") };
 
@@ -84,6 +89,14 @@ public sealed class DriveArrangements : IConformanceArrangements
             f.For<IDriveStore>().RecentAsync(100, Any).Returns(Result<IReadOnlyList<DriveItem>>.Success([Recent])));
         yield return Arrange("search.query", static f =>
             f.For<IDriveStore>().SearchAsync("notes", new DriveListQuery(50, null), Any).Returns(new Page<DriveItem>([Notes], null)));
+        yield return Arrange("files.drive.items.versions", static f =>
+            f.For<IDriveVersions>().ListAsync(Is(DriveItemRef.ById("42")), Any).Returns(Result<IReadOnlyList<DriveItemVersion>>.Success([OlderNotes])));
+        yield return Arrange("files.drive.items.versions.get", static f =>
+            f.For<IDriveVersions>().ListAsync(Is(DriveItemRef.ById("42")), Any).Returns(Result<IReadOnlyList<DriveItemVersion>>.Success([OlderNotes])));
+        yield return Arrange("files.drive.items.versions.content", static f =>
+            f.For<IDriveVersions>().OpenContentAsync(Is(DriveItemRef.ById("42")), "1795498534", Any).Returns(_ => Blob("text/plain", "hello v1"u8.ToArray())));
+        yield return Arrange("files.drive.items.versions.restore", static f =>
+            f.For<IDriveVersions>().RestoreAsync(Is(DriveItemRef.ById("42")), "1795498534", Any).Returns(Result.Success()));
         yield return Arrange("files.drive.items.children", static f =>
             f.For<IDriveStore>().ListChildrenAsync(Is(DriveItemRef.ById("7")), new DriveListQuery(1, null), Any).Returns(new Page<DriveItem>([Notes], "1")));
         yield return Arrange("files.drive.items.create-folder", static f =>

@@ -26,6 +26,7 @@ public sealed class DriveEndpointsTests : IAsyncLifetime
     private readonly IDriveDelta _delta = Substitute.For<IDriveDelta>();
     private readonly IDriveUploads _uploads = Substitute.For<IDriveUploads>();
     private readonly IDriveSharing _sharing = Substitute.For<IDriveSharing>();
+    private readonly IDriveVersions _versions = Substitute.For<IDriveVersions>();
     private readonly IMailboxResolver _mailboxes = Substitute.For<IMailboxResolver>();
     private TestHost _host = null!;
 
@@ -44,6 +45,7 @@ public sealed class DriveEndpointsTests : IAsyncLifetime
                 services.AddScoped(_ => _delta);
                 services.AddScoped(_ => _uploads);
                 services.AddScoped(_ => _sharing);
+                services.AddScoped(_ => _versions);
                 services.AddScoped(_ => _mailboxes);
             },
             configuration: new Dictionary<string, string?> { ["Discovery:FilesBaseUrls:0"] = Site });
@@ -512,6 +514,28 @@ public sealed class DriveEndpointsTests : IAsyncLifetime
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await response.ReadObjectAsync()).Str("error.code").ShouldBe(code);
         await _store.DidNotReceiveWithAnyArgs().SearchAsync(default!, default!, Ct);
+    }
+
+    [Fact]
+    public async Task A_files_versions_are_listed_read_and_restored()
+    {
+        var versions = _versions;
+        var older = new DriveItemVersion("1795498534") { Size = 8, LastModifiedDateTime = new DateTimeOffset(2026, 11, 24, 5, 35, 34, TimeSpan.Zero), ModifiedBy = "alice" };
+        versions.ListAsync(Ref(DriveItemRef.ById("42")), Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<DriveItemVersion>>.Success([older]));
+        versions.OpenContentAsync(Ref(DriveItemRef.ById("42")), "1795498534", Arg.Any<CancellationToken>())
+            .Returns(new BlobContent("text/plain", 8, _ => Task.FromResult<Stream>(new MemoryStream("hello v1"u8.ToArray()))));
+        versions.RestoreAsync(Ref(DriveItemRef.ById("42")), "1795498534", Arg.Any<CancellationToken>()).Returns(Result.Success());
+
+        var listed = (await GetAsync("/v1.0/me/drive/items/42/versions"))["value"]![0]!.AsObject();
+        listed.Str("id").ShouldBe("1795498534");
+        listed.Str("lastModifiedBy.user.id").ShouldBe("alice");
+        listed["size"]!.GetValue<long>().ShouldBe(8);
+        (await GetAsync("/v1.0/me/drive/items/42/versions/1795498534")).Str("lastModifiedDateTime").ShouldBe("2026-11-24T05:35:34Z");
+        (await Client.GetStringAsync("/v1.0/me/drive/items/42/versions/1795498534/content", Ct)).ShouldBe("hello v1");
+        using var restored = await Client.PostAsync("/v1.0/me/drive/items/42/versions/1795498534/restoreVersion", null, Ct);
+        restored.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        using var missing = await Client.GetAsync("/v1.0/me/drive/items/42/versions/7", Ct);
+        missing.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     [Fact]

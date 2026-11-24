@@ -76,6 +76,10 @@ internal static class DriveEndpoints
             group.MapPost(at + "/createLink", CreateLinkAsync);
             group.MapPost(at + "/invite", InviteAsync);
             group.MapGet(at + "/permissions", PermissionsAsync);
+            group.MapGet(at + "/versions", VersionsAsync);
+            group.MapGet(at + "/versions/{versionId}", VersionAsync);
+            group.MapGet(at + "/versions/{versionId}/content", VersionContentAsync);
+            group.MapPost(at + "/versions/{versionId}/restoreVersion", RestoreVersionAsync);
             group.MapDelete(at + "/permissions/{permissionId}", DeletePermissionAsync);
         }
 
@@ -664,6 +668,61 @@ internal static class DriveEndpoints
         return DriveRequests.Match(
             await useCase.ExecuteAsync(text, query.Value, cancellationToken).ConfigureAwait(false),
             page => GraphResults.Page(page, i => ItemDto(i, discovery), "Collection(driveItem)", odata.Query));
+    }
+
+    private static async Task<IResult> VersionsAsync(
+        Mailbox mailbox, DriveAddress at, IUserContext caller, ODataQuery odata, ListDriveItemVersions useCase, CancellationToken cancellationToken)
+    {
+        var target = Target(mailbox, caller, at);
+        return !target.IsSuccess
+            ? DriveRequests.Fail(target.Error)
+            : DriveRequests.Match(
+                await useCase.ExecuteAsync(target.Value, cancellationToken).ConfigureAwait(false),
+                versions => GraphResults.Collection(versions.Select(DriveItemVersionDto.From), DriveRequests.Context(mailbox, "/items/versions"), odata.Query));
+    }
+
+    private static async Task<IResult> VersionAsync(
+        Mailbox mailbox, DriveAddress at, string versionId, IUserContext caller, ODataQuery odata, ListDriveItemVersions useCase, CancellationToken cancellationToken)
+    {
+        var target = Target(mailbox, caller, at);
+        return !target.IsSuccess
+            ? DriveRequests.Fail(target.Error)
+            : DriveRequests.Match(
+                await useCase.GetAsync(target.Value, versionId, cancellationToken).ConfigureAwait(false),
+                version => GraphResults.Entity(DriveItemVersionDto.From(version), DriveRequests.Context(mailbox, "/items/versions"), odata.Query.Select));
+    }
+
+    /// <summary>A version's bytes, streamed (Graph redirects to a download URL; a client following redirects sees the same).</summary>
+    private static async Task<IResult> VersionContentAsync(
+        Mailbox mailbox, DriveAddress at, string versionId, IUserContext caller, OpenDriveItemVersion useCase, CancellationToken cancellationToken)
+    {
+        var target = Target(mailbox, caller, at);
+        if (!target.IsSuccess)
+        {
+            return DriveRequests.Fail(target.Error);
+        }
+
+        var content = await useCase.ExecuteAsync(target.Value, versionId, cancellationToken).ConfigureAwait(false);
+        if (!content.IsSuccess)
+        {
+            return DriveRequests.Fail(content.Error);
+        }
+
+        var stream = await content.Value.Open(cancellationToken).ConfigureAwait(false);
+        return Results.Stream(stream, content.Value.ContentType);
+    }
+
+    private static async Task<IResult> RestoreVersionAsync(
+        Mailbox mailbox, DriveAddress at, string versionId, IUserContext caller, RestoreDriveItemVersion useCase, CancellationToken cancellationToken)
+    {
+        var target = Target(mailbox, caller, at);
+        if (!target.IsSuccess)
+        {
+            return DriveRequests.Fail(target.Error);
+        }
+
+        var restored = await useCase.ExecuteAsync(target.Value, versionId, cancellationToken).ConfigureAwait(false);
+        return restored.IsSuccess ? Results.NoContent() : DriveRequests.Fail(restored.Error);
     }
 
     private static async Task<IResult> SharedWithMeAsync(

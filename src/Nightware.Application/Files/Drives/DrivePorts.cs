@@ -122,3 +122,15 @@ public interface IDriveSharing
     /// </summary>
     Task<Result<IReadOnlyList<DriveItem>>> SharedWithMeAsync(CancellationToken cancellationToken);
 }
+
+/// <summary>A file's versions (Graph <c>…/versions</c>), newest first; a folder has none (NotSupported).</summary>
+public interface IDriveVersions
+{
+    Task<Result<IReadOnlyList<DriveItemVersion>>> ListAsync(DriveItemRef item, CancellationToken cancellationToken);
+
+    /// <summary>A version's bytes. The returned stream holds a backend response open: open and dispose it.</summary>
+    Task<Result<BlobContent>> OpenContentAsync(DriveItemRef item, string versionId, CancellationToken cancellationToken);
+
+    /// <summary>Makes the version the file's current content (the content it replaces is kept as a version).</summary>
+    Task<Result> RestoreAsync(DriveItemRef item, string versionId, CancellationToken cancellationToken);
+}

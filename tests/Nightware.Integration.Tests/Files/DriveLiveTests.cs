@@ -270,6 +270,37 @@ public sealed class DriveLiveTests
     }
 
     [Fact]
+    public async Task A_replaced_file_keeps_its_old_content_as_a_version_that_can_be_restored()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
+        await using var stack = LiveStack.Start();
+        using var alice = await stack.GraphClientAsync("alice", Ct);
+
+        var name = "nw-versions-" + Guid.NewGuid().ToString("N")[..8] + ".txt";
+        var file = await PutBytesAsync(alice, $"/v1.0/me/drive/root:/{name}:/content", "first\n"u8.ToArray(), HttpStatusCode.Created);
+        var fileId = Id(file);
+        try
+        {
+            // Nextcloud names versions by second; a replacement within the same second would overwrite the version.
+            await Task.Delay(TimeSpan.FromSeconds(1.2), Ct);
+            await PutBytesAsync(alice, $"/v1.0/me/drive/items/{fileId}/content", "second\n"u8.ToArray(), HttpStatusCode.OK);
+
+            var versions = (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/drive/items/{fileId}/versions"))["value"]!.AsArray();
+            versions.Count.ShouldBeGreaterThanOrEqualTo(2);
+            var oldest = versions[^1]!["id"]!.GetValue<string>();
+            (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/drive/items/{fileId}/versions/{oldest}"))["size"]!.GetValue<long>().ShouldBe(6);
+            (await alice.GetStringAsync($"/v1.0/me/drive/items/{fileId}/versions/{oldest}/content", Ct)).ShouldBe("first\n");
+
+            await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/drive/items/{fileId}/versions/{oldest}/restoreVersion", expected: HttpStatusCode.NoContent);
+            Encoding.UTF8.GetString(await DownloadAsync(stack, alice, $"/v1.0/me/drive/items/{fileId}/content")).ShouldBe("first\n");
+        }
+        finally
+        {
+            await SendAsync(alice, HttpMethod.Delete, $"/v1.0/me/drive/items/{fileId}", expected: HttpStatusCode.NoContent);
+        }
+    }
+
+    [Fact]
     public async Task An_image_has_thumbnails_and_special_folders_exist_on_demand()
     {
         Assert.SkipUnless(DevStack.Enabled, "Set NIGHTWARE_INTEGRATION=1 with the dev stack running.");
