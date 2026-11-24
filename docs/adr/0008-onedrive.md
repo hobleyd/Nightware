@@ -98,9 +98,10 @@ changes others make to items shared with the caller.
   preview has no thumbnail set.
 
 ### D7 — Out of scope
-SharePoint (`/sites`, document libraries), `follow`,
-`preview` (embed URLs), item activities and analytics. These stay
-`501 notImplemented`.
+SharePoint (`/sites`, document libraries), `follow`, item activities (beta
+only) and analytics. These stay `501 notImplemented`. *(Phase 27: versions,
+check-out/in, `preview`, `sharedWithMe` and `recent` moved out of this list;
+D8–D11.)*
 
 ### D8 — Shared with me and recent *(phase 27)*
 - `sharedWithMe` reads Nextcloud's shares with the caller (OCS
@@ -141,6 +142,13 @@ SharePoint (`/sites`, document libraries), `follow`,
   `403 resourceLocked` on `checkin`; checking in what isn't checked out is 400.
 - `checkin`'s `comment` labels the current version (`nc:version-label`);
   `checkInAs` (SharePoint publishing levels) is ignored.
+
+### D11 — Preview *(phase 27)*
+`POST …/preview` answers `getUrl` only: the item's large (800 px) rendered
+preview behind the one-hour self-authorising thumbnail URL. Nextcloud renders
+images, PDFs, office documents and text. It is never the file itself: served
+inline from the façade's origin, an HTML or SVG file would run script there.
+An item with no preview is `400 notSupported`.
 
 ## Consequences
 - The contract gains the phase 20 operations, all `"source": "graph-parity"`.

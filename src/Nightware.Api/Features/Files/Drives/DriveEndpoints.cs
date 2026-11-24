@@ -72,6 +72,7 @@ internal static class DriveEndpoints
             group.MapPost(at + "/copy", CopyAsync);
             group.MapPost(at + "/createUploadSession", BeginUploadAsync);
             group.MapGet(at + "/thumbnails", ThumbnailsAsync);
+            group.MapPost(at + "/preview", PreviewAsync);
             group.MapGet(at + "/thumbnails/{setId}/{size}/content", ThumbnailAsync);
             group.MapPost(at + "/createLink", CreateLinkAsync);
             group.MapPost(at + "/invite", InviteAsync);
@@ -504,6 +505,38 @@ internal static class DriveEndpoints
 
         var set = new ThumbnailSetDto { Small = Thumb(ThumbnailSize.Small), Medium = Thumb(ThumbnailSize.Medium), Large = Thumb(ThumbnailSize.Large) };
         return GraphResults.Collection([set], DriveRequests.Context(mailbox, "/items/thumbnails"), odata.Query);
+    }
+
+    /// <summary>
+    /// Graph <c>POST …/preview</c>: a short-lived URL showing the item. It is the item's large rendered preview (Nextcloud
+    /// renders images, PDFs, office documents and text), never the file itself: served inline from the façade's origin,
+    /// an HTML or SVG file would run script there. An item Nextcloud can't render is 400 notSupported.
+    /// </summary>
+    private static async Task<IResult> PreviewAsync(
+        Mailbox mailbox, DriveAddress at, HttpRequest request, IUserContext caller,
+        GetDriveItem useCase, GraphLinkBuilder links, SelfAuthorisingUrlSealer sealer, CancellationToken cancellationToken)
+    {
+        var target = Target(mailbox, caller, at);
+        if (!target.IsSuccess)
+        {
+            return DriveRequests.Fail(target.Error);
+        }
+
+        var item = await useCase.ExecuteAsync(target.Value, cancellationToken).ConfigureAwait(false);
+        if (!item.IsSuccess)
+        {
+            return DriveRequests.Fail(item.Error);
+        }
+
+        if (item.Value.IsFolder || !item.Value.HasThumbnail)
+        {
+            return DriveRequests.Fail(DriveErrors.NotSupported("The item has no preview."));
+        }
+
+        var ticket = sealer.TicketFor(DriveUrls.Thumbnail, caller.BearerToken, request.HttpContext.User);
+        var url = DriveUrls.ThumbnailUrl(links.VersionRoot(request), item.Value.Id, ThumbnailSize.Large,
+            sealer.Seal(DriveUrls.Thumbnail, ticket, [item.Value.Id, DriveUrls.SizeName(ThumbnailSize.Large)]));
+        return GraphResults.Property(new ItemPreviewInfoDto { GetUrl = url }, "microsoft.graph.itemPreviewInfo");
     }
 
     private static async Task<IResult> ThumbnailAsync(

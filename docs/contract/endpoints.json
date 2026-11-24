@@ -16175,5 +16175,47 @@
     "source": "graph-parity",
     "docs": "driveitem-checkin",
     "notes": "Releases the caller's lock (UNLOCK with X-User-Lock: 1); comment (at most 250 characters, one line) labels the current version (nc:version-label). checkInAs is accepted and ignored (SharePoint publishing levels). A file that isn't checked out is 400; one someone else has is 403 resourceLocked. 204. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
+  },
+  {
+    "id": "files.drive.items.preview",
+    "phase": 27,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "{mailbox}/drive/items/{itemId}/preview",
+    "forms": [
+      "me",
+      "users"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "viewer",
+        "chromeless",
+        "allowEdit",
+        "page",
+        "zoom"
+      ]
+    },
+    "responseFields": [
+      "getUrl",
+      "postUrl",
+      "postParameters"
+    ],
+    "successStatus": 200,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "driveitem-preview",
+    "notes": "getUrl is the item's large (800 px) rendered preview behind a one-hour self-authorising URL (the thumbnail URL): Nextcloud renders images, PDFs, office documents and text. Never the file itself: served inline from the façade's origin an HTML or SVG file would run script there. postUrl and postParameters are null; the body's page, zoom, viewer, chromeless and allowEdit are ignored. An item without a preview, or a folder, is 400 notSupported. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item."
   }
 ]

@@ -412,6 +412,26 @@ public sealed class DriveEndpointsTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_preview_is_the_large_rendered_preview_never_the_file()
+    {
+        _store.GetItemAsync(Ref(DriveItemRef.ById("42")), Arg.Any<CancellationToken>()).Returns(File with { HasThumbnail = true, MimeType = "text/html" });
+        _store.GetItemAsync(Ref(DriveItemRef.ById("43")), Arg.Any<CancellationToken>()).Returns(File with { Id = "43" });
+        _store.OpenThumbnailAsync(Ref(DriveItemRef.ById("42")), ThumbnailSize.Large, Arg.Any<CancellationToken>())
+            .Returns(new BlobContent("image/png", 3, _ => Task.FromResult<Stream>(new MemoryStream([1, 2, 3]))));
+
+        using var created = await Client.PostAsJsonAsync("/v1.0/me/drive/items/42/preview", new { viewer = "onedrive" }, Ct);
+        created.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var url = (await created.ReadObjectAsync()).Str("getUrl")!;
+        using var image = await Anonymous().GetAsync(Local(url), Ct);
+        image.Content.Headers.ContentType!.MediaType.ShouldBe("image/png");
+        await _store.DidNotReceiveWithAnyArgs().OpenContentAsync(default!, Ct);
+
+        using var none = await Client.PostAsync("/v1.0/me/drive/items/43/preview", null, Ct);
+        none.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await none.ReadObjectAsync()).Str("error.code").ShouldBe("notSupported");
+    }
+
+    [Fact]
     public async Task Sharing_creates_links_invites_lists_and_removes_permissions()
     {
         var link = new DriveShare("41", ["read"]) { Link = new SharingLink("view", "anonymous", "https://cloud.example.com/s/abc") };

@@ -336,8 +336,8 @@ operation:
 | Phase 24 — Teams and channels over Nextcloud Teams and Talk (Graph parity, ADR 0009) | 34 |
 | Phase 25 — Presence over Nextcloud user status (Graph parity, ADR 0009) | 8 |
 | Phase 26 — Online meetings and calls over Talk (Graph parity, ADR 0009) | 14 |
-| Phase 27 — OneDrive, calendar, directory and settings gaps | 11 |
-| **Total** | **411** |
+| Phase 27 — OneDrive, calendar, directory and settings gaps | 12 |
+| **Total** | **412** |
 
 ### Phase 2 — Mail, read side
 
@@ -4617,6 +4617,7 @@ operation:
 | [`files.drive.items.versions.restore`](#filesdriveitemsversionsrestore) | POST | v1.0 | `{mailbox}/drive/items/{itemId}/versions/{versionId}/restoreVersion` | none |
 | [`files.drive.items.checkout`](#filesdriveitemscheckout) | POST | v1.0 | `{mailbox}/drive/items/{itemId}/checkout` | none |
 | [`files.drive.items.checkin`](#filesdriveitemscheckin) | POST | v1.0 | `{mailbox}/drive/items/{itemId}/checkin` | none |
+| [`files.drive.items.preview`](#filesdriveitemspreview) | POST | v1.0 | `{mailbox}/drive/items/{itemId}/preview` | none |
 
 #### `files.drive.root.children`
 
@@ -4721,5 +4722,15 @@ operation:
 - Graph parity (ADR 0006); reference: driveitem-checkin
 - Notes: Releases the caller's lock (UNLOCK with X-User-Lock: 1); comment (at most 250 characters, one line) labels the current version (nc:version-label). checkInAs is accepted and ignored (SharePoint publishing levels). A file that isn't checked out is 400; one someone else has is 403 resourceLocked. 204. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.checkin.json`
+
+#### `files.drive.items.preview`
+
+**POST v1.0 `{mailbox}/drive/items/{itemId}/preview`** — forms: me, users; success: 200; paging: none
+
+- Request body: `viewer`; `chromeless`; `allowEdit`; `page`; `zoom`
+- Client reads: `getUrl`, `postUrl`, `postParameters`
+- Graph parity (ADR 0006); reference: driveitem-preview
+- Notes: getUrl is the item's large (800 px) rendered preview behind a one-hour self-authorising URL (the thumbnail URL): Nextcloud renders images, PDFs, office documents and text. Never the file itself: served inline from the façade's origin an HTML or SVG file would run script there. postUrl and postParameters are null; the body's page, zoom, viewer, chromeless and allowEdit are ignored. An item without a preview, or a folder, is 400 notSupported. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.
+- Fixture: `tests/Nightware.Conformance.Tests/Fixtures/files.drive.items.preview.json`
 
 <!-- END GENERATED -->

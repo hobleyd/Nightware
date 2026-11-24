@@ -168,6 +168,16 @@ public sealed class DriveArrangements : IConformanceArrangements
                 }
             },
         };
+        yield return new ConformanceArrangement("files.drive.items.preview", static f =>
+            f.For<IDriveStore>().GetItemAsync(Is(DriveItemRef.ById("42")), Any).Returns(Notes with { HasThumbnail = true }))
+        {
+            Services = FileSite,
+            Normalise = static (expected, actual) =>
+            {
+                actual["getUrl"]!.GetValue<string>().ShouldContain("/me/drive/items/42/thumbnails/0/large/$value?authtoken=");
+                actual["getUrl"] = ResponseNormaliser.VolatilePlaceholder;
+            },
+        };
         yield return Arrange("files.drive.items.thumbnail-content", static f =>
             f.For<IDriveStore>().OpenThumbnailAsync(Is(DriveItemRef.ById("42")), ThumbnailSize.Small, Any).Returns(_ => Blob("image/png", "PNG"u8.ToArray())));
         yield return Arrange("files.drive.items.create-link", static f =>

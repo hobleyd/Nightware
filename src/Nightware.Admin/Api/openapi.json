@@ -24400,6 +24400,152 @@
         }
       }
     },
+    "/me/drive/items/{itemId}/preview": {
+      "post": {
+        "operationId": "files.drive.items.preview",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Files drive items: preview",
+        "description": "getUrl is the item's large (800 px) rendered preview behind a one-hour self-authorising URL (the thumbnail URL): Nextcloud renders images, PDFs, office documents and text. Never the file itself: served inline from Nightware's origin an HTML or SVG file would run script there. postUrl and postParameters are null; the body's page, zoom, viewer, chromeless and allowEdit are ignored. An item without a preview, or a folder, is 400 notSupported. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-preview",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "viewer": {},
+                  "chromeless": {},
+                  "allowEdit": {},
+                  "page": {},
+                  "zoom": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "getUrl": {},
+                    "postUrl": {},
+                    "postParameters": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
+    "/users/{userId}/drive/items/{itemId}/preview": {
+      "post": {
+        "operationId": "files.drive.items.preview.users",
+        "tags": [
+          "Files"
+        ],
+        "summary": "Files drive items: preview",
+        "description": "getUrl is the item's large (800 px) rendered preview behind a one-hour self-authorising URL (the thumbnail URL): Nextcloud renders images, PDFs, office documents and text. Never the file itself: served inline from Nightware's origin an HTML or SVG file would run script there. postUrl and postParameters are null; the body's page, zoom, viewer, chromeless and allowEdit are ignored. An item without a preview, or a folder, is 400 notSupported. Mapped on /me/drive, /users/{caller}/drive and /drives/{driveId}; items/{id}, root and path addressing (root:/a/b:) name the same item.\n\nGraph reference: driveitem-preview",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "viewer": {},
+                  "chromeless": {},
+                  "allowEdit": {},
+                  "page": {},
+                  "zoom": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "getUrl": {},
+                    "postUrl": {},
+                    "postParameters": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Throttled"
+          }
+        }
+      }
+    },
     "/me/drive/items/{itemId}/thumbnails/{thumbId}/{size}/content": {
       "get": {
         "operationId": "files.drive.items.thumbnail-content",

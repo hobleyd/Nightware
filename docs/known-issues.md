@@ -34,7 +34,7 @@ what a fix needs. Ordered by impact within each section.
   many pages pays it repeatedly. Fix if one does: cache the sorted expansion
   per credential + calendar + window (+ the calendar's CTag) for a minute.
 
-### OneDrive (phase 20)
+### OneDrive (phases 20, 27)
 - **Delta needs Nextcloud's activity app.** A default install enables it; without it `root/delta` is
   `501 notSupported`. An item moved out of the caller's view (an unshare) is reported as deleted, which is what a client
   should do with it anyway. The initial listing pages by offset over a name ordering: an item renamed during a long
@@ -44,8 +44,11 @@ what a fix needs. Ordered by impact within each section.
 - **`createLink` and `invite`** create Nextcloud shares; Nextcloud sends its own notification for an invitation, and
   Graph's `message`/`sendInvitation` aren't used. `organization` links, `embed` links (Nextcloud's share pages refuse
   to be framed by other sites) and roles other than `read`/`write` are `400 notSupported`.
-- No item activities or `preview`; SharePoint (`/sites`) stays out of scope (ADR 0008
-  D7). `sharedWithMe` isn't paged (Nextcloud lists every share at once); `recent` is the 100 newest files.
+- **Only the caller's own drive** also means `/users/{x}/drive` can't show what `x` shared: those items are under the
+  caller's `sharedWithMe` instead. Another user's items are listed there and opened through the caller's own drive.
+- No item activities (beta only), `follow` or SharePoint (`/sites`) (ADR 0008 D7). `preview`'s `getUrl` is a rendered
+  image, not an interactive viewer. `sharedWithMe` isn't paged (Nextcloud lists every share at once); `recent` is the
+  100 newest files. Version ids are seconds: two writes in one second leave one version.
 - **`@microsoft.graph.downloadUrl` is on a single file's GET only**, not in listings (each URL seals the caller's
   token). **`file.hashes`** is there only when Nextcloud stored a checksum (an uploader sent `OC-Checksum`, as
   Nextcloud's desktop client does): `sha1Hash`/`sha256Hash`, never `quickXorHash`. The façade never hashes content.

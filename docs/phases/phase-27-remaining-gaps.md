@@ -34,3 +34,4 @@
 | Microsoft Search `POST /search/query` for `driveItem` (the cloud picker's first try); the contract now covers every NightMail call path again — verified live | 1.73.0 |
 | A file's versions: list, get, content and `restoreVersion` over `files_versions` — verified live | 1.74.0 |
 | `checkout`/`checkin` over Nextcloud user locks, with the `publication` facet; a check-in comment labels the current version — verified live | 1.75.0 |
+| `preview`: the large rendered preview behind a self-authorising URL (never the file inline) — verified live | 1.76.0 |

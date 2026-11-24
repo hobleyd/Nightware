@@ -365,5 +365,10 @@ public sealed class DriveLiveTests
         using var thumbnail = await anonymous.GetAsync(LiveStack.Local(small), Ct);
         thumbnail.StatusCode.ShouldBe(HttpStatusCode.OK);
         thumbnail.Content.Headers.ContentType!.MediaType.ShouldStartWith("image/");
+
+        var preview = await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/drive/items/{Id(png!.AsObject())}/preview", new { });
+        using var shown = await anonymous.GetAsync(LiveStack.Local(preview["getUrl"]!.GetValue<string>()), Ct);
+        shown.StatusCode.ShouldBe(HttpStatusCode.OK);
+        shown.Content.Headers.ContentType!.MediaType.ShouldStartWith("image/");
     }
 }

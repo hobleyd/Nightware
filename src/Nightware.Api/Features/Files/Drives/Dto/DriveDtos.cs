@@ -457,3 +457,13 @@ public sealed record DriveItemVersionDto
         };
     }
 }
+
+/// <summary>Graph <c>itemPreviewInfo</c>: only <c>getUrl</c> (no form to post).</summary>
+public sealed record ItemPreviewInfoDto
+{
+    public required string GetUrl { get; init; }
+
+    public string? PostUrl { get; init; }
+
+    public string? PostParameters { get; init; }
+}
