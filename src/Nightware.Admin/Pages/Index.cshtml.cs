@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 using Nightware.Application.Administration;
 using Nightware.Application.Administration.Entities;
+using Nightware.Application.Administration.Groups;
 using Nightware.Application.Administration.SharedMailboxes;
 using Nightware.Application.Administration.Status;
 using Nightware.Application.Administration.Users;
@@ -14,7 +15,7 @@ namespace Nightware.Admin.Pages;
 
 /// <summary>
 /// Dashboard: what needs the admin, backend health, and the actor's entities. Each worklist row carries its
-/// fix where the fix is safe to repeat (finish an offboarding, repair a user, a domain or a shared mailbox); a conflict needs a
+/// fix where the fix is safe to repeat (finish an offboarding, repair a user, a domain, a shared mailbox or a group); a conflict needs a
 /// person to decide, so it links to the user instead.
 /// </summary>
 public sealed class IndexModel(
@@ -28,6 +29,7 @@ public sealed class IndexModel(
     VerifyUserEmail verifyEmail,
     AddEntityDomain repairDomain,
     RepairSharedMailbox repairMailbox,
+    RepairGroup repairGroup,
     AdministrationOptions options,
     IGrafanaStatus grafana,
     Microsoft.Extensions.Options.IOptions<Nightware.Admin.Auth.AdminAuthOptions> console) : ConsolePageModel(actor)
@@ -64,14 +66,14 @@ public sealed class IndexModel(
     /// <summary>Grafana's health, checked only when <see cref="GrafanaUrl"/> is shown; null otherwise.</summary>
     public GrafanaHealth? Grafana { get; private set; }
 
-    public Attention Attention { get; private set; } = new([], [], [], [], new Dictionary<string, int>());
+    public Attention Attention { get; private set; } = new([], [], [], [], [], new Dictionary<string, int>());
 
     public IReadOnlyList<BackendHealth> Health { get; private set; } = [];
 
     public IReadOnlyList<Entity> Entities { get; private set; } = [];
 
     /// <summary>
-    /// The users, domains and shared mailboxes a backend failed to answer for in the sweep, though its health check passed:
+    /// The users, domains, shared mailboxes and groups a backend failed to answer for in the sweep, though its health check passed:
     /// the two disagree, and the dashboard says so instead of showing a plain "OK".
     /// </summary>
     public IReadOnlyList<string> FailedFor(BackendKind backend) =>
@@ -79,6 +81,7 @@ public sealed class IndexModel(
             .. Attention.Users.Where(a => a.User.Links.Any(l => l.Backend == backend && l.State == LinkState.Error)).Select(a => a.User.User.Identity.DisplayName),
             .. Attention.Domains.Where(d => backend == BackendKind.Mail && d.Domain.Mail.State == LinkState.Error).Select(d => d.Domain.Domain.Name),
             .. Attention.Mailboxes.Where(m => m.Mailbox.Links.Any(l => l.Backend == backend && l.State == LinkState.Error)).Select(m => m.Mailbox.Mailbox.Name),
+            .. Attention.Groups.Where(g => g.Group.Links.Any(l => l.Backend == backend && l.State == LinkState.Error)).Select(g => g.Group.Group.Name),
         ];
 
     public Task<IActionResult> OnGetAsync(CancellationToken cancellationToken) => RenderAsync(cancellationToken);
@@ -113,6 +116,12 @@ public sealed class IndexModel(
         await AfterAsync(
             await repairMailbox.ExecuteAsync(entityId, mailboxId, cancellationToken),
             o => string.Join(" ", o.Notes.Prepend($"{o.Mailbox.Name} was brought into line.")),
+            cancellationToken);
+
+    public async Task<IActionResult> OnPostRepairGroupAsync(string entityId, string groupId, CancellationToken cancellationToken) =>
+        await AfterAsync(
+            await repairGroup.ExecuteAsync(entityId, groupId, cancellationToken),
+            o => string.Join(" ", o.Notes.Prepend($"{o.Group.Name} was brought into line.")),
             cancellationToken);
 
     private async Task<IActionResult> AfterAsync<T>(Result<T> result, Func<T, string> notice, CancellationToken cancellationToken)

@@ -49,6 +49,38 @@ public sealed class GroupPagesTests : IDisposable
         ConsoleHost.PostFormAsync(_host.ClientAs(sub), page, handler.Length == 0 ? page : $"{page}?handler={handler}", fields);
 
     [Fact]
+    public async Task A_group_that_needs_repair_is_on_the_dashboard_and_repaired_from_there()
+    {
+        GivenFinance();
+
+        string html = (await GetAsync("/", ConsoleHost.EntityAdmin)).Html;
+
+        html.ShouldNotContain("Nothing needs you.");
+        html.ShouldContain($"href=\"/entities/{ConsoleHost.Acme}/groups/g-fin\">Finance</a> (finance@acme.example, Acme Pty)");
+        html.ShouldContain("Mail: Missing");
+        html.ShouldContain("handler=RepairGroup");
+
+        using HttpResponseMessage response = await ConsoleHost.PostFormAsync(
+            _host.ClientAs(ConsoleHost.EntityAdmin), "/", "/?handler=RepairGroup", new Dictionary<string, string> { ["entityId"] = ConsoleHost.Acme, ["groupId"] = "g-fin" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        await _host.Lists.ReceivedWithAnyArgs(1).CreateAsync(default!, default!, default!, default!, Ct);
+    }
+
+    [Fact]
+    public async Task A_group_a_system_failed_for_is_on_the_dashboard_and_the_systems_chip_names_it()
+    {
+        GivenFinance();
+        _host.Lists.FindByAddressAsync(Address("finance@acme.example"), Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("stalwart:443 refused"));
+
+        string html = (await GetAsync("/")).Html;
+
+        html.ShouldContain("Mail gave no answer for it");
+        html.ShouldContain("stalwart:443 refused");
+        html.ShouldContain("failed to answer for Finance");
+    }
+
+    [Fact]
     public async Task The_entity_menu_has_groups_and_the_list_offers_a_new_one()
     {
         (HttpStatusCode status, string html) = await GetAsync(ListUrl);

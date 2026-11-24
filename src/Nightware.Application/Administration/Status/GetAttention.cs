@@ -1,4 +1,5 @@
 using Nightware.Application.Administration.Entities;
+using Nightware.Application.Administration.Groups;
 using Nightware.Application.Administration.SharedMailboxes;
 using Nightware.Application.Administration.Users;
 using Nightware.Domain.Administration;
@@ -24,23 +25,29 @@ public sealed record MailboxNeedingAttention(SharedMailboxDetail Mailbox)
     public Entity Entity => Mailbox.Entity;
 }
 
+/// <summary>A group whose list or Nextcloud group a system is missing, is out of step with its members or could not be checked for; Repair fixes it.</summary>
+public sealed record GroupNeedingAttention(GroupDetail Group)
+{
+    public Entity Entity => Group.Entity;
+}
+
 /// <summary>
 /// What needs an admin across their entities. <see cref="NotChecked"/> names the entities that were too large
 /// to read in full or could not be read, so an empty list is never mistaken for "all clear".
 /// </summary>
 /// <param name="UserCounts">Each entity's number of users, by entity id; absent for an entity whose users could not be read.</param>
-public sealed record Attention(IReadOnlyList<UserNeedingAttention> Users, IReadOnlyList<DomainNeedingAttention> Domains, IReadOnlyList<MailboxNeedingAttention> Mailboxes, IReadOnlyList<Entity> NotChecked, IReadOnlyDictionary<string, int> UserCounts)
+public sealed record Attention(IReadOnlyList<UserNeedingAttention> Users, IReadOnlyList<DomainNeedingAttention> Domains, IReadOnlyList<MailboxNeedingAttention> Mailboxes, IReadOnlyList<GroupNeedingAttention> Groups, IReadOnlyList<Entity> NotChecked, IReadOnlyDictionary<string, int> UserCounts)
 {
-    public bool IsClear => Users.Count == 0 && Domains.Count == 0 && Mailboxes.Count == 0 && NotChecked.Count == 0;
+    public bool IsClear => Users.Count == 0 && Domains.Count == 0 && Mailboxes.Count == 0 && Groups.Count == 0 && NotChecked.Count == 0;
 }
 
 /// <summary>
 /// The dashboard's worklist: every user of the actor's entities whose offboarding is incomplete, who conflicts
-/// or who needs repair, every domain not served properly, and every shared mailbox that needs Repair. Read on each visit, stored nowhere (ADR 0002 D1);
+/// or who needs repair, every domain not served properly, and every shared mailbox and group that needs Repair. Read on each visit, stored nowhere (ADR 0002 D1);
 /// an entity above <see cref="ListUsers"/>' link limit is reported as not checked rather than half-read. For a
 /// global administrator, a served domain of an entity connected to a DNS host is also compared with its zone, and
 /// needs attention while publishing would change it (publishing is theirs alone); a zone that cannot be read leaves
-/// its entity not checked, as does a shared mailbox that cannot be read.
+/// its entity not checked, as does a shared mailbox or group that cannot be read.
 /// </summary>
 public sealed class GetAttention(
     IAdminActor actor,
@@ -49,7 +56,9 @@ public sealed class GetAttention(
     ListUsers listUsers,
     PlanDnsPublication planPublication,
     ListSharedMailboxes listMailboxes,
-    GetSharedMailbox getMailbox)
+    GetSharedMailbox getMailbox,
+    ListGroups listGroups,
+    GetGroup getGroup)
 {
     public async Task<Result<Attention>> ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -62,6 +71,7 @@ public sealed class GetAttention(
         var users = new List<UserNeedingAttention>();
         var domains = new List<DomainNeedingAttention>();
         var mailboxes = new List<MailboxNeedingAttention>();
+        var groups = new List<GroupNeedingAttention>();
         var notChecked = new List<Entity>();
         var userCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (Entity entity in manageable.Value)
@@ -104,7 +114,9 @@ public sealed class GetAttention(
                     .Where(static u => u.Status is UserStatus.OffboardingIncomplete or UserStatus.Conflict or UserStatus.EmailNotVerified or UserStatus.NeedsRepair));
             }
 
-            if (!await AddMailboxesAsync(entity, mailboxes, cancellationToken).ConfigureAwait(false) && !notChecked.Contains(entity))
+            if ((!await AddMailboxesAsync(entity, mailboxes, cancellationToken).ConfigureAwait(false)
+                    | !await AddGroupsAsync(entity, groups, cancellationToken).ConfigureAwait(false))
+                && !notChecked.Contains(entity))
             {
                 notChecked.Add(entity);
             }
@@ -114,7 +126,7 @@ public sealed class GetAttention(
         users.Sort(static (a, b) => Rank(a.Status).CompareTo(Rank(b.Status)) is var byRank and not 0
             ? byRank
             : string.Compare(a.User.User.Identity.DisplayName, b.User.User.Identity.DisplayName, StringComparison.OrdinalIgnoreCase));
-        return new Attention(users, domains, mailboxes, notChecked, userCounts);
+        return new Attention(users, domains, mailboxes, groups, notChecked, userCounts);
     }
 
     /// <summary>Adds the entity's shared mailboxes that need Repair, by name; false when one (or the list) could not be read.</summary>
@@ -137,6 +149,32 @@ public sealed class GetAttention(
             else if (detail.Value.NeedsRepair)
             {
                 found.Add(new MailboxNeedingAttention(detail.Value));
+            }
+        }
+
+        return complete;
+    }
+
+    /// <summary>Adds the entity's groups that need Repair, by name; false when one (or the list) could not be read.</summary>
+    private async Task<bool> AddGroupsAsync(Entity entity, List<GroupNeedingAttention> found, CancellationToken cancellationToken)
+    {
+        Result<(Entity Entity, IReadOnlyList<Group> Groups)> listed = await listGroups.ExecuteAsync(entity.Id, cancellationToken).ConfigureAwait(false);
+        if (!listed.IsSuccess)
+        {
+            return false;
+        }
+
+        bool complete = true;
+        foreach (Group group in listed.Value.Groups)
+        {
+            Result<GroupDetail> detail = await getGroup.ExecuteAsync(entity.Id, group.Id, cancellationToken).ConfigureAwait(false);
+            if (!detail.IsSuccess)
+            {
+                complete = false;
+            }
+            else if (detail.Value.NeedsRepair)
+            {
+                found.Add(new GroupNeedingAttention(detail.Value));
             }
         }
 

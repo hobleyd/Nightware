@@ -8,6 +8,9 @@ public sealed record GroupDetail(Entity Entity, Group Group, IReadOnlyList<Ident
 {
     /// <summary>Null when the group has no facet for that backend.</summary>
     public BackendLink? For(BackendKind backend) => Links.SingleOrDefault(l => l.Backend == backend);
+
+    /// <summary>A system is missing it, out of step with the record or could not be checked: what Repair is for.</summary>
+    public bool NeedsRepair => Links.Any(static l => l.State is LinkState.Missing or LinkState.Conflict or LinkState.Error);
 }
 
 /// <param name="Notes">What could not be done yet and needs nothing from the admin (a member who has not signed in to Nextcloud).</param>

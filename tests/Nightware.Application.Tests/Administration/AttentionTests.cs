@@ -1,5 +1,6 @@
 using Nightware.Application.Administration;
 using Nightware.Application.Administration.Entities;
+using Nightware.Application.Administration.Groups;
 using Nightware.Application.Administration.SharedMailboxes;
 using Nightware.Application.Administration.Status;
 using Nightware.Application.Administration.Users;
@@ -24,7 +25,9 @@ public sealed class AttentionTests
         new ListUsers(_bed.Actor, _bed.Entities, _bed.UserAccess()),
         new PlanDnsPublication(_bed.Actor, Records(), new DnsHosts(Vault(), [_hosting])),
         new ListSharedMailboxes(_bed.SharedMailboxAccess(), _bed.Mailboxes),
-        new GetSharedMailbox(_bed.SharedMailboxAccess()));
+        new GetSharedMailbox(_bed.SharedMailboxAccess()),
+        new ListGroups(_bed.GroupAccess(), _bed.Groups),
+        new GetGroup(_bed.GroupAccess()));
 
     public AttentionTests()
     {
@@ -165,6 +168,38 @@ public sealed class AttentionTests
         _bed.Mailboxes.ListMembersAsync(AdminTestBed.Acme, "s-sup", Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("Keycloak is down."));
         _bed.Mailboxes.GetAsync(AdminTestBed.Acme, "s-sup", Arg.Any<CancellationToken>()).Returns(SharedMailboxSyncTests.Support());
         (await Attention.ExecuteAsync(Ct)).Value.NotChecked.ShouldHaveSingleItem().Id.ShouldBe(AdminTestBed.Acme);
+    }
+
+    [Fact]
+    public async Task A_group_that_needs_repair_is_listed_and_one_in_step_is_not()
+    {
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        var finance = new Group("g-fin", AdminTestBed.Acme, GroupSyncTests.Key("finance"), "Finance") { Mail = new GroupMail(AdminTestBed.Address("finance@acme.example"), SenderPolicy.Members) };
+        _bed.Groups.ListAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<Group>>.Success([finance]));
+        _bed.Groups.GetAsync(AdminTestBed.Acme, finance.Id, Arg.Any<CancellationToken>()).Returns(finance);
+        _bed.Groups.ListMembersAsync(AdminTestBed.Acme, finance.Id, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success(
+            [new IdentityAccount("u-carol", "carol", "carol@acme.example", true)]));
+
+        Attention found = (await Attention.ExecuteAsync(Ct)).Value;
+        GroupNeedingAttention flagged = found.Groups.ShouldHaveSingleItem();
+        flagged.Group.Group.Id.ShouldBe(finance.Id);
+        flagged.Entity.Id.ShouldBe(AdminTestBed.Acme);
+        flagged.Group.For(BackendKind.Mail)!.State.ShouldBe(LinkState.Missing);
+        found.IsClear.ShouldBeFalse();
+
+        _bed.Lists.FindByAddressAsync(finance.Mail!.Address, Arg.Any<CancellationToken>()).Returns(new MailingList("l1", "finance@acme.example") { Recipients = ["carol@acme.example"] });
+        (await Attention.ExecuteAsync(Ct)).Value.IsClear.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Groups_that_cannot_be_read_leave_their_entity_not_checked()
+    {
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        _bed.Groups.ListAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("Keycloak is down."));
+
+        Attention found = (await Attention.ExecuteAsync(Ct)).Value;
+        found.Groups.ShouldBeEmpty();
+        found.NotChecked.ShouldHaveSingleItem().Id.ShouldBe(AdminTestBed.Acme);
     }
 
     private void ConnectToCloudflare(params ZoneRecord[] zone)

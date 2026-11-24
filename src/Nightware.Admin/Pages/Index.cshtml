@@ -12,7 +12,7 @@
     <h2>Needs attention</h2>
     @if (Model.Attention.IsClear)
     {
-        <p>Nothing needs you. Every user, domain and shared mailbox in @(Model.Actor.IsGlobal ? "every entity" : "your entities") is in order.</p>
+        <p>Nothing needs you. Every user, domain, shared mailbox and group in @(Model.Actor.IsGlobal ? "every entity" : "your entities") is in order.</p>
     }
     else
     {
@@ -126,6 +126,28 @@
                             <span class="hint">@Systems.TellOperator</span>
                         }
                         <form method="post" asp-page-handler="RepairMailbox" class="inline"><input type="hidden" name="entityId" value="@m.Entity.Id"><input type="hidden" name="mailboxId" value="@mailbox.Id"><button type="submit" class="secondary">Repair</button></form>
+                    </li>
+                }
+            </ul>
+        }
+        @if (Model.Attention.Groups.Count > 0)
+        {
+            <ul class="plain">
+                @foreach (var ga in Model.Attention.Groups)
+                {
+                    var group = ga.Group.Group;
+                    var wrong = ga.Group.Links.Where(l => l.State is LinkState.Missing or LinkState.Conflict or LinkState.Error).ToList();
+                    <li>
+                        Group <a asp-page="/Entities/Groups/Detail" asp-route-id="@ga.Entity.Id" asp-route-groupId="@group.Id">@group.Name</a> (@(group.Mail is { } mail ? $"{mail.Address}, " : "")@ga.Entity.Name): @string.Join("; ", wrong.Select(l => l.State == LinkState.Error ? $"{Systems.ShortName(l.Backend)} gave no answer for it" : $"{Systems.ShortName(l.Backend)}: {Systems.StateLabel(l.State)}"))
+                        @foreach (var failed in wrong.Where(l => l.State == LinkState.Error && !string.IsNullOrEmpty(l.Detail)))
+                        {
+                            <span class="hint">@failed.Detail</span>
+                        }
+                        @if (!Model.Actor.IsGlobal && wrong.Any(l => l.State == LinkState.Error))
+                        {
+                            <span class="hint">@Systems.TellOperator</span>
+                        }
+                        <form method="post" asp-page-handler="RepairGroup" class="inline"><input type="hidden" name="entityId" value="@ga.Entity.Id"><input type="hidden" name="groupId" value="@group.Id"><button type="submit" class="secondary">Repair</button></form>
                     </li>
                 }
             </ul>
