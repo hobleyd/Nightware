@@ -596,6 +596,31 @@ DRIVE = [
     setup("DELETE", "/v1.0/me/drive/items/${folderId}", always=True),
 ]
 
+# Phase 27: the rest of the drive (ADR 0008 D3, D6, D8–D11) and the cloud picker's spellings, in a folder of its own.
+DRIVE_MORE = [
+    setup("GET", "/v1.0/me/drive", query={"$select": "id"}, save={"driveId": "id"}),
+    step("files.drive.root.children", "GET", "/v1.0/me/drive/root/children", query={"$top": "200"}),
+    step("files.drive.recent", "GET", "/v1.0/me/drive/recent"),
+    step("files.drive.shared-with-me", "GET", "/v1.0/me/drive/sharedWithMe", query={"$top": "200"}),
+    step("search.query", "POST", "/v1.0/search/query",
+         body={"requests": [{"entityTypes": ["driveItem"], "query": {"queryString": "notes"}, "from": 0, "size": 50}]}),
+    setup("POST", "/v1.0/me/drive/root/children",
+          body={"name": "nw-capture-27-${run}", "folder": {}, "@microsoft.graph.conflictBehavior": "rename"}, save={"folderId": "id"}),
+    setup("PUT", "/v1.0/me/drive/items/${folderId}:/notes.txt:/content",
+          binary={"range": [0, 4]}, headers={"Content-Type": "text/plain"}, save={"fileId": "id"}),
+    setup("PUT", "/v1.0/me/drive/items/${fileId}/content", binary={"range": [0, 8]}, headers={"Content-Type": "text/plain"}),
+    step("files.drives.items.get", "GET", "/v1.0/drives/${driveId}/items/${fileId}"),
+    step("files.drive.items.versions", "GET", "/v1.0/me/drive/items/${fileId}/versions", save={"versionId": "value[1].id"}),
+    step("files.drive.items.versions.get", "GET", "/v1.0/me/drive/items/${fileId}/versions/${versionId}"),
+    step("files.drive.items.versions.content", "GET", "/v1.0/me/drive/items/${fileId}/versions/${versionId}/content"),
+    step("files.drive.items.versions.restore", "POST", "/v1.0/me/drive/items/${fileId}/versions/${versionId}/restoreVersion"),
+    step("files.drive.items.checkout", "POST", "/v1.0/me/drive/items/${fileId}/checkout"),
+    step("files.drive.items.checkin", "POST", "/v1.0/me/drive/items/${fileId}/checkin",
+         body={"checkInAs": "published", "comment": "Updated the totals"}),
+    step("files.drive.items.preview", "POST", "/v1.0/me/drive/items/${fileId}/preview", body={}),
+    setup("DELETE", "/v1.0/me/drive/items/${folderId}", always=True),
+]
+
 PHASES = {
     11: [("batch", BATCH)],
     12: [("mail", MAIL)],
@@ -607,4 +632,5 @@ PHASES = {
     19: [("folders", FOLDERS), ("counts", COUNTS), ("photos", PHOTOS), ("mime", MIME), ("event upload", EVENT_UPLOAD), ("item aliases", ITEM_ALIASES), ("small", SMALL)],
     20: [("drive", DRIVE)],
     21: [("directory", DIRECTORY)],
+    27: [("drive more", DRIVE_MORE)],
 }
