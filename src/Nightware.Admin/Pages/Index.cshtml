@@ -12,7 +12,7 @@
     <h2>Needs attention</h2>
     @if (Model.Attention.IsClear)
     {
-        <p>Nothing needs you. Every user and domain in @(Model.Actor.IsGlobal ? "every entity" : "your entities") is in order.</p>
+        <p>Nothing needs you. Every user, domain and shared mailbox in @(Model.Actor.IsGlobal ? "every entity" : "your entities") is in order.</p>
     }
     else
     {
@@ -104,6 +104,28 @@
                         {
                             <a asp-page="/Entities/Dns" asp-route-id="@d.Entity.Id" asp-route-domain="@d.Domain.Domain.Name">@(d.DnsChanges > 0 ? "Review and publish" : "DNS records")</a>
                         }
+                    </li>
+                }
+            </ul>
+        }
+        @if (Model.Attention.Mailboxes.Count > 0)
+        {
+            <ul class="plain">
+                @foreach (var m in Model.Attention.Mailboxes)
+                {
+                    var mailbox = m.Mailbox.Mailbox;
+                    var wrong = m.Mailbox.Links.Where(l => l.State is LinkState.Missing or LinkState.Conflict or LinkState.Error).ToList();
+                    <li>
+                        Shared mailbox <a asp-page="/Entities/Mailboxes/Detail" asp-route-id="@m.Entity.Id" asp-route-mailboxId="@mailbox.Id">@mailbox.Name</a> (@mailbox.Address, @m.Entity.Name): @string.Join("; ", wrong.Select(l => l.State == LinkState.Error ? $"{Systems.ShortName(l.Backend)} gave no answer for it" : $"{Systems.ShortName(l.Backend)}: {Systems.StateLabel(l.State)}"))
+                        @foreach (var failed in wrong.Where(l => l.State == LinkState.Error && !string.IsNullOrEmpty(l.Detail)))
+                        {
+                            <span class="hint">@failed.Detail</span>
+                        }
+                        @if (!Model.Actor.IsGlobal && wrong.Any(l => l.State == LinkState.Error))
+                        {
+                            <span class="hint">@Systems.TellOperator</span>
+                        }
+                        <form method="post" asp-page-handler="RepairMailbox" class="inline"><input type="hidden" name="entityId" value="@m.Entity.Id"><input type="hidden" name="mailboxId" value="@mailbox.Id"><button type="submit" class="secondary">Repair</button></form>
                     </li>
                 }
             </ul>

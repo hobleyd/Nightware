@@ -20,6 +20,9 @@ public sealed record SharedMailboxForm(string Name)
 public sealed record SharedMailboxDetail(Entity Entity, SharedMailbox Mailbox, IReadOnlyList<IdentityAccount> Members, IReadOnlyList<BackendLink> Links)
 {
     public BackendLink? For(BackendKind backend) => Links.SingleOrDefault(l => l.Backend == backend);
+
+    /// <summary>A system is missing it, out of step with the record or could not be checked: what Repair is for.</summary>
+    public bool NeedsRepair => Links.Any(static l => l.State is LinkState.Missing or LinkState.Conflict or LinkState.Error);
 }
 
 /// <summary>

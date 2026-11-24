@@ -20,7 +20,7 @@
     <h1>@mailbox.Name <small>@entity.Name</small></h1>
     <partial name="_Messages" />
     <partial name="_MailboxLinks" model="Model.Detail.Links" />
-    @if (Model.Detail.Links.Any(l => l.State is LinkState.Missing or LinkState.Conflict or LinkState.Error))
+    @if (Model.Detail.NeedsRepair)
     {
         <form method="post" asp-page-handler="Repair">
             <button type="submit" class="secondary">Repair</button>

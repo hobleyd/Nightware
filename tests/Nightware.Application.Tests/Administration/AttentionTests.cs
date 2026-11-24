@@ -1,5 +1,6 @@
 using Nightware.Application.Administration;
 using Nightware.Application.Administration.Entities;
+using Nightware.Application.Administration.SharedMailboxes;
 using Nightware.Application.Administration.Status;
 using Nightware.Application.Administration.Users;
 using Nightware.Domain.Administration;
@@ -21,7 +22,9 @@ public sealed class AttentionTests
         new ListEntities(_bed.Actor, _bed.Entities),
         new GetEntity(_bed.Actor, _bed.Entities, _bed.DomainProvisioning()),
         new ListUsers(_bed.Actor, _bed.Entities, _bed.UserAccess()),
-        new PlanDnsPublication(_bed.Actor, Records(), new DnsHosts(Vault(), [_hosting])));
+        new PlanDnsPublication(_bed.Actor, Records(), new DnsHosts(Vault(), [_hosting])),
+        new ListSharedMailboxes(_bed.SharedMailboxAccess(), _bed.Mailboxes),
+        new GetSharedMailbox(_bed.SharedMailboxAccess()));
 
     public AttentionTests()
     {
@@ -121,6 +124,47 @@ public sealed class AttentionTests
         found.Domains.ShouldBeEmpty();
         found.NotChecked.ShouldHaveSingleItem().Id.ShouldBe(AdminTestBed.Acme);
         found.UserCounts[AdminTestBed.Acme].ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task A_shared_mailbox_that_needs_repair_is_listed_and_one_in_step_or_waiting_is_not()
+    {
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        SharedMailbox support = SharedMailboxSyncTests.Support();
+        _bed.Mailboxes.ListAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<SharedMailbox>>.Success([support]));
+        _bed.Mailboxes.GetAsync(AdminTestBed.Acme, support.Id, Arg.Any<CancellationToken>()).Returns(support);
+        _bed.Mailboxes.ListMembersAsync(AdminTestBed.Acme, support.Id, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success(
+            [new IdentityAccount("u-carol", "carol", "carol@acme.example", true)]));
+
+        Attention found = (await Attention.ExecuteAsync(Ct)).Value;
+        MailboxNeedingAttention flagged = found.Mailboxes.ShouldHaveSingleItem();
+        flagged.Mailbox.Mailbox.Id.ShouldBe(support.Id);
+        flagged.Entity.Id.ShouldBe(AdminTestBed.Acme);
+        flagged.Mailbox.For(BackendKind.Mail)!.State.ShouldBe(LinkState.Missing);
+        found.IsClear.ShouldBeFalse();
+
+        // On the mail server, with a calendar whose member has not signed in to Nextcloud yet: waiting, not broken.
+        _bed.SharedMail.FindByAddressAsync(support.Address, Arg.Any<CancellationToken>()).Returns(new SharedMailAccount("sm1", "support@acme.example") { Name = "Support" });
+        _bed.SharedCalendars.FindAsync(support.Address, Arg.Any<CancellationToken>()).Returns(new SharedCalendarAccount(support.CalendarGroupId, "Support"));
+        _bed.GroupwareGroups.FindAsync(support.CalendarGroupId, Arg.Any<CancellationToken>()).Returns(new GroupwareGroup(support.CalendarGroupId, "Support", []));
+        (await Attention.ExecuteAsync(Ct)).Value.IsClear.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Shared_mailboxes_that_cannot_be_read_leave_their_entity_not_checked()
+    {
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        _bed.Mailboxes.ListAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("Keycloak is down."));
+
+        Attention found = (await Attention.ExecuteAsync(Ct)).Value;
+        found.Mailboxes.ShouldBeEmpty();
+        found.NotChecked.ShouldHaveSingleItem().Id.ShouldBe(AdminTestBed.Acme);
+
+        // Listed, but one of them cannot be read.
+        _bed.Mailboxes.ListAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<SharedMailbox>>.Success([SharedMailboxSyncTests.Support()]));
+        _bed.Mailboxes.ListMembersAsync(AdminTestBed.Acme, "s-sup", Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("Keycloak is down."));
+        _bed.Mailboxes.GetAsync(AdminTestBed.Acme, "s-sup", Arg.Any<CancellationToken>()).Returns(SharedMailboxSyncTests.Support());
+        (await Attention.ExecuteAsync(Ct)).Value.NotChecked.ShouldHaveSingleItem().Id.ShouldBe(AdminTestBed.Acme);
     }
 
     private void ConnectToCloudflare(params ZoneRecord[] zone)

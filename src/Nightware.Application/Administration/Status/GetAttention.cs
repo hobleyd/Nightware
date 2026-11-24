@@ -1,4 +1,5 @@
 using Nightware.Application.Administration.Entities;
+using Nightware.Application.Administration.SharedMailboxes;
 using Nightware.Application.Administration.Users;
 using Nightware.Domain.Administration;
 using Nightware.Domain.Kernel;
@@ -17,25 +18,38 @@ public sealed record DomainNeedingAttention(DomainStatus Domain, Entity Entity, 
     public bool NeedsRepair => Domain.Mail.State != LinkState.Linked || !Domain.DkimPresent;
 }
 
+/// <summary>A shared mailbox a system is missing, out of step with its members or could not be checked for; Repair fixes it.</summary>
+public sealed record MailboxNeedingAttention(SharedMailboxDetail Mailbox)
+{
+    public Entity Entity => Mailbox.Entity;
+}
+
 /// <summary>
 /// What needs an admin across their entities. <see cref="NotChecked"/> names the entities that were too large
 /// to read in full or could not be read, so an empty list is never mistaken for "all clear".
 /// </summary>
 /// <param name="UserCounts">Each entity's number of users, by entity id; absent for an entity whose users could not be read.</param>
-public sealed record Attention(IReadOnlyList<UserNeedingAttention> Users, IReadOnlyList<DomainNeedingAttention> Domains, IReadOnlyList<Entity> NotChecked, IReadOnlyDictionary<string, int> UserCounts)
+public sealed record Attention(IReadOnlyList<UserNeedingAttention> Users, IReadOnlyList<DomainNeedingAttention> Domains, IReadOnlyList<MailboxNeedingAttention> Mailboxes, IReadOnlyList<Entity> NotChecked, IReadOnlyDictionary<string, int> UserCounts)
 {
-    public bool IsClear => Users.Count == 0 && Domains.Count == 0 && NotChecked.Count == 0;
+    public bool IsClear => Users.Count == 0 && Domains.Count == 0 && Mailboxes.Count == 0 && NotChecked.Count == 0;
 }
 
 /// <summary>
 /// The dashboard's worklist: every user of the actor's entities whose offboarding is incomplete, who conflicts
-/// or who needs repair, and every domain not served properly. Read on each visit, stored nowhere (ADR 0002 D1);
+/// or who needs repair, every domain not served properly, and every shared mailbox that needs Repair. Read on each visit, stored nowhere (ADR 0002 D1);
 /// an entity above <see cref="ListUsers"/>' link limit is reported as not checked rather than half-read. For a
 /// global administrator, a served domain of an entity connected to a DNS host is also compared with its zone, and
 /// needs attention while publishing would change it (publishing is theirs alone); a zone that cannot be read leaves
-/// its entity not checked.
+/// its entity not checked, as does a shared mailbox that cannot be read.
 /// </summary>
-public sealed class GetAttention(IAdminActor actor, ListEntities entities, GetEntity getEntity, ListUsers listUsers, PlanDnsPublication planPublication)
+public sealed class GetAttention(
+    IAdminActor actor,
+    ListEntities entities,
+    GetEntity getEntity,
+    ListUsers listUsers,
+    PlanDnsPublication planPublication,
+    ListSharedMailboxes listMailboxes,
+    GetSharedMailbox getMailbox)
 {
     public async Task<Result<Attention>> ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -47,6 +61,7 @@ public sealed class GetAttention(IAdminActor actor, ListEntities entities, GetEn
 
         var users = new List<UserNeedingAttention>();
         var domains = new List<DomainNeedingAttention>();
+        var mailboxes = new List<MailboxNeedingAttention>();
         var notChecked = new List<Entity>();
         var userCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (Entity entity in manageable.Value)
@@ -88,13 +103,44 @@ public sealed class GetAttention(IAdminActor actor, ListEntities entities, GetEn
                     .Select(u => new UserNeedingAttention(u, UserStatuses.Of(u), entity))
                     .Where(static u => u.Status is UserStatus.OffboardingIncomplete or UserStatus.Conflict or UserStatus.EmailNotVerified or UserStatus.NeedsRepair));
             }
+
+            if (!await AddMailboxesAsync(entity, mailboxes, cancellationToken).ConfigureAwait(false) && !notChecked.Contains(entity))
+            {
+                notChecked.Add(entity);
+            }
         }
 
         // The most urgent first: an open way in, then accounts that disagree, then repairs.
         users.Sort(static (a, b) => Rank(a.Status).CompareTo(Rank(b.Status)) is var byRank and not 0
             ? byRank
             : string.Compare(a.User.User.Identity.DisplayName, b.User.User.Identity.DisplayName, StringComparison.OrdinalIgnoreCase));
-        return new Attention(users, domains, notChecked, userCounts);
+        return new Attention(users, domains, mailboxes, notChecked, userCounts);
+    }
+
+    /// <summary>Adds the entity's shared mailboxes that need Repair, by name; false when one (or the list) could not be read.</summary>
+    private async Task<bool> AddMailboxesAsync(Entity entity, List<MailboxNeedingAttention> found, CancellationToken cancellationToken)
+    {
+        Result<(Entity Entity, IReadOnlyList<SharedMailbox> Mailboxes)> listed = await listMailboxes.ExecuteAsync(entity.Id, cancellationToken).ConfigureAwait(false);
+        if (!listed.IsSuccess)
+        {
+            return false;
+        }
+
+        bool complete = true;
+        foreach (SharedMailbox mailbox in listed.Value.Mailboxes)
+        {
+            Result<SharedMailboxDetail> detail = await getMailbox.ExecuteAsync(entity.Id, mailbox.Id, cancellationToken).ConfigureAwait(false);
+            if (!detail.IsSuccess)
+            {
+                complete = false;
+            }
+            else if (detail.Value.NeedsRepair)
+            {
+                found.Add(new MailboxNeedingAttention(detail.Value));
+            }
+        }
+
+        return complete;
     }
 
     /// <summary>

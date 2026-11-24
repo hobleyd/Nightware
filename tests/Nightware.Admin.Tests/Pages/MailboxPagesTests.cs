@@ -130,6 +130,37 @@ public sealed class MailboxPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task A_mailbox_that_needs_repair_is_on_the_dashboard_and_repaired_from_there()
+    {
+        GivenSupport();
+
+        string html = (await GetAsync("/", ConsoleHost.EntityAdmin)).Html;
+
+        html.ShouldNotContain("Nothing needs you.");
+        html.ShouldContain($"href=\"{MailboxUrl}\">Support</a> (support@acme.example, Acme Pty)");
+        html.ShouldContain("Mail: Missing");
+        html.ShouldContain("handler=RepairMailbox");
+
+        using HttpResponseMessage response = await PostAsync("/", "RepairMailbox", new() { ["entityId"] = ConsoleHost.Acme, ["mailboxId"] = "s-sup" }, ConsoleHost.EntityAdmin);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        await _host.SharedMail.ReceivedWithAnyArgs(1).CreateAsync(default!, default!, default!, Ct);
+    }
+
+    [Fact]
+    public async Task A_mailbox_a_system_failed_for_is_on_the_dashboard_and_the_systems_chip_names_it()
+    {
+        GivenSupport();
+        _host.SharedCalendars.FindAsync(Address("support@acme.example"), Arg.Any<CancellationToken>()).Returns(Error.BackendUnavailable("nextcloud:443 refused"));
+
+        string html = (await GetAsync("/")).Html;
+
+        html.ShouldContain("Mail: Missing; Files &amp; calendar gave no answer for it");
+        html.ShouldContain("nextcloud:443 refused");
+        html.ShouldContain("failed to answer for Support");
+    }
+
+    [Fact]
     public async Task The_calendar_panel_shows_its_state_and_who_is_waiting()
     {
         GivenSupport();
