@@ -59,6 +59,13 @@ public sealed class IndexModel(
             ? webAdmin
             : $"{webAdmin.TrimEnd('/')}/login?login_hint={Uri.EscapeDataString(email)}";
 
+    /// <summary>
+    /// Where a worklist form posts: the console's root with its trailing slash (<c>/console/?handler=…</c>).
+    /// Razor builds the dashboard's own address without it (<c>/console?handler=…</c>), which the proxy
+    /// redirects to <c>/console/</c>, and the browser follows that redirect as a GET, so the repair never ran.
+    /// </summary>
+    public string PostTo(string handler) => $"{Url.Content("~/")}?handler={Uri.EscapeDataString(handler)}";
+
     /// <summary>Grafana, the stack's telemetry, for a global administrator when it is configured; null otherwise.</summary>
     public string? GrafanaUrl =>
         Actor.IsGlobal && console.Value.GrafanaUrl is { } url && !string.IsNullOrWhiteSpace(url) ? url : null;
