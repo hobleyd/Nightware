@@ -269,7 +269,8 @@ public sealed class DriveLiveTests
             var bobDrive = entry["remoteItem"]!["parentReference"]!["driveId"]!.GetValue<string>();
             (await SendAsync(bob, HttpMethod.Get, $"/v1.0/drives/{Uri.EscapeDataString(bobDrive)}/items/{fileId}"))["name"]!.GetValue<string>()
                 .ShouldBe(entry["remoteItem"]!["name"]!.GetValue<string>());
-            (await SendAsync(alice, HttpMethod.Get, "/v1.0/me/drive/recent"))["value"]![0]!["remoteItem"]!["id"]!.GetValue<string>().ShouldBe(fileId);
+            // Other tests write alice's files at the same time, so hers is among the newest, not necessarily first.
+            (await SendAsync(alice, HttpMethod.Get, "/v1.0/me/drive/recent"))["value"]!.AsArray().Select(e => e!["remoteItem"]!["id"]!.GetValue<string>()).ShouldContain(fileId);
 
             var permissions = (await SendAsync(alice, HttpMethod.Get, $"/v1.0/me/drive/items/{fileId}/permissions"))["value"]!.AsArray();
             permissions.Count.ShouldBe(3);

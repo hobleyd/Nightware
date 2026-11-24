@@ -1,9 +1,16 @@
 # Phase 27 — OneDrive, calendar, directory and settings gaps
 
-> **Status (2026-11-24): in progress, local only.** Asked for: "fix the gaps in
+> **Status (2026-11-24): done, local only.** Asked for: "fix the gaps in
 > OneDrive, Calendar, Directory & Settings" listed in `docs/known-issues.md`.
 > Each gap is triaged below; the table at the end records what closed and in
-> which version.
+> which version. What the backend can't do stays in `docs/known-issues.md`:
+> another person's drive, delta without the activity app, SharePoint,
+> cancel/forward comments and RSVP comments to organizers inside Nextcloud.
+> No tenant captures were possible: the new fixtures are constructed and
+> `tools/capture --phase 27` replaces them. The full live suite (108 tests)
+> ran once: 104 passed; the four failures passed when rerun alone and come
+> from tests sharing alice's data in parallel (one of them, `recent` order in
+> the drive sharing test, was this phase's and is fixed).
 
 ## Triage
 | Gap (known-issues) | Bucket | Plan |
