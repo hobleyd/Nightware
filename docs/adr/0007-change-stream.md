@@ -21,7 +21,7 @@ never see it, and a generic Graph client is unaffected. Discovery advertises it
 as the optional `changesUrl` (derived from `graphBaseUrl` unless configured).
 
 ### D2 — Signals, not data
-An event names the areas that changed (`mail`, `calendar`), never items. The
+An event names the areas that changed (`mail`, `calendar`, `chat`), never items. The
 client already has delta sync for each; a signal only says when to run it. That
 keeps the stream free of Graph shapes, ids and `$select`, and a missed signal
 costs only latency, since the client still polls on a long timer.
@@ -45,7 +45,26 @@ reconnects with a refreshed token. The request budget does not apply to it
 (`LongLivedRequest` metadata). A user may hold `ChangeStream:MaxStreamsPerUser`
 (8) streams per instance.
 
+### D5 — Chats (2026-11-25)
+`chat` covers the caller's Talk conversations that Graph shows as chats or
+channels (ADR 0009 D3). Its state is the one room listing
+(`noStatusUpdate=1`, so a watching client does not keep the user "online"):
+per conversation, its newest message id, the caller's read marker and unread
+count, and its name. A message posted, a conversation read elsewhere, renamed,
+created, joined or left is a signal. An edit, a deletion or a reaction is not:
+Talk posts those without moving the room's last message, and finding them
+costs a read per conversation (what the Graph subscriptions do, ADR 0009 D11),
+too much every 10 s per open stream. A client's open conversation is polled
+anyway.
+
+Chats belong to the signed-in user, so a stream for a shared mailbox has no
+`chat` area. Talk refusing the caller (a user Nextcloud has no account for)
+drops the area instead of ending the stream, so mail and calendar signals
+carry on.
+
 ## Consequences
 - Signals arrive within ~10 s instead of at NightMail's next poll.
-- Backend load per open stream: one JMAP request and one PROPFIND per interval.
-- Contacts and To Do can join as further probes without changing the wire.
+- Backend load per open stream: one JMAP request, one PROPFIND and one Talk
+  room listing per interval.
+- Contacts and To Do can join as further probes without changing the wire; a
+  client ignores an area it does not know.

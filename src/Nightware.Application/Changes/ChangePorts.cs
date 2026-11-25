@@ -10,6 +10,12 @@ public enum ChangeArea
 
     /// <summary>Any event of the mailbox's calendars.</summary>
     Calendar,
+
+    /// <summary>
+    /// The signed-in user's chats and channels: a new message, a conversation read, renamed, joined or left. Not
+    /// edits, deletions or reactions (ADR 0007 D5).
+    /// </summary>
+    Chat,
 }
 
 /// <summary>

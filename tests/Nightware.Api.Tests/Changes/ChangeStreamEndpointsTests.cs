@@ -70,6 +70,23 @@ public sealed class ChangeStreamEndpointsTests
     }
 
     [Fact]
+    public async Task The_chat_area_is_named_chat_on_the_wire()
+    {
+        await using var host = await Host(new ScriptedProbe(ChangeArea.Chat, Result<string>.Success("a"), Result<string>.Success("b")));
+        using var client = host.AuthorizedClient();
+        using var response = await client.GetAsync(ChangeStreamEndpoints.Path, HttpCompletionOption.ResponseHeadersRead, Ct);
+        using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(Ct));
+        var lines = new List<string>();
+        while (!lines.Contains("event: changed"))
+        {
+            lines.Add((await reader.ReadLineAsync(Ct))!);
+        }
+
+        lines.ShouldContain("""data: {"areas":["chat"]}""");
+        (await reader.ReadLineAsync(Ct)).ShouldBe("""data: {"areas":["chat"]}""");
+    }
+
+    [Fact]
     public async Task Nothing_to_watch_is_404_and_a_refused_credential_401()
     {
         await using (var host = await Host(new ScriptedProbe(ChangeArea.Calendar, Error.NotFound("none"))))

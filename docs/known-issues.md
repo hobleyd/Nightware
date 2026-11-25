@@ -157,6 +157,9 @@ what a fix needs. Ordered by impact within each section.
 - A signal is up to `ChangeStream:PollInterval` (10 s) late: it polls backend
   state rather than following Stalwart's JMAP push.
 - Contacts and To Do have no area yet; NightMail syncs them on its own timers.
+- The `chat` area does not signal edits, deletions or reactions (D5): Talk
+  doesn't move a room's last message for them. Clients still poll the open
+  conversation.
 - The per-user cap is per façade instance.
 
 ## Operations and security

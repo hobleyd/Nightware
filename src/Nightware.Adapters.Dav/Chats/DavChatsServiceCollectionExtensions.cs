@@ -31,6 +31,9 @@ internal static class DavChatsServiceCollectionExtensions
         services.TryAddScoped<IChatMessages, TalkChatMessages>();
         services.TryAddScoped<IChatPins, TalkChatPins>();
         services.TryAddScoped<IChatSearch, TalkChatSearch>();
+        // The caller comes from the host's user context; an adapter composed without one (as in tests) has no chat area.
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<Application.Changes.IChangeStateProbe, TalkChatChangeProbe>(
+            static sp => new TalkChatChangeProbe(sp.GetRequiredService<TalkChatClient>(), sp.GetService<Application.Common.Identity.IUserContext>())));
         return services;
     }
 }

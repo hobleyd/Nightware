@@ -21,14 +21,14 @@ namespace Nightware.Api.Changes;
 
 /// <summary>
 /// <c>GET /nightware/v1/changes[?mailbox={address}]</c> (ADR 0007): a Server-Sent Events stream that tells
-/// NightMail when a mailbox's mail or calendar changed, so it syncs then instead of on a timer. It is not Graph
+/// NightMail when a mailbox's mail, calendar or chats changed, so it syncs then instead of on a timer. It is not Graph
 /// surface: it lives outside <c>/v1.0</c>, is advertised by discovery's <c>changesUrl</c>, and carries no item data,
 /// only which areas moved; the client fetches the changes over its usual delta routes.
 /// </summary>
 /// <remarks>
 /// Events, each <c>event:</c> + one JSON <c>data:</c> line:
 /// <list type="bullet">
-/// <item><c>ready</c> <c>{"areas":["mail","calendar"]}</c>: the baseline is read; changes after this are signalled.</item>
+/// <item><c>ready</c> <c>{"areas":["mail","calendar","chat"]}</c>: the baseline is read; changes after this are signalled.</item>
 /// <item><c>changed</c> <c>{"areas":["mail"]}</c>: those areas moved since the last round.</item>
 /// <item><c>end</c> <c>{"reason":"expired"|"credentials"}</c>: the stream is closing; reconnect (with a fresh token).</item>
 /// </list>
@@ -130,6 +130,12 @@ public static class ChangeStreamEndpoints
                         await WriteEventAsync(context, "end", new { reason = "credentials" }, aborted).ConfigureAwait(false);
                         return;
                 }
+            }
+
+            // The watch also stops without throwing when the deadline lands between two rounds.
+            if (started && !aborted.IsCancellationRequested)
+            {
+                await WriteEventAsync(context, "end", new { reason = "expired" }, aborted).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (deadline.IsCancellationRequested && !aborted.IsCancellationRequested)
