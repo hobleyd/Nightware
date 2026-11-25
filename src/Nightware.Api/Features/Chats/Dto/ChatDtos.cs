@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using System.Xml;
 
+using Nightware.Api.Graph.Json;
 using Nightware.Domain.Chats;
 
 namespace Nightware.Api.Features.Chats.Dto;
@@ -49,6 +50,24 @@ public sealed record ChatDto
             Members = members?.Select(ConversationMemberDto.From).ToList(),
             LastMessagePreview = withLastMessage && chat.LastMessage is { } last ? ChatMessageInfoDto.Of(last) : null,
         };
+    }
+
+    /// <summary>
+    /// A listed chat. With <c>$expand=lastMessagePreview</c>, one nobody has written in carries the preview as an
+    /// explicit <c>null</c>, as Graph's does; elsewhere a missing preview is left out (not known, or not asked for).
+    /// </summary>
+    public static object Listed(Chat chat, IReadOnlyList<ChatMember>? members, bool withLastMessage)
+    {
+        ArgumentNullException.ThrowIfNull(chat);
+        var dto = From(chat, members, withLastMessage);
+        if (!withLastMessage || dto.LastMessagePreview is not null || !chat.NeverWritten)
+        {
+            return dto;
+        }
+
+        var json = GraphJson.ToObject(dto);
+        json["lastMessagePreview"] = null;
+        return json;
     }
 
     public static string ChatTypeName(ChatType type) => type switch

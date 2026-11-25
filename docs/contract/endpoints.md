@@ -3832,7 +3832,7 @@ operation:
 
 - Client reads: `id`, `topic`, `chatType`, `createdDateTime`, `lastUpdatedDateTime`, `webUrl`, `viewpoint`, `onlineMeetingInfo`, `isHiddenForAllMembers`
 - Graph parity (ADR 0006); reference: chat-list
-- Notes: The caller's Talk conversations (ADR 0009 D3): one-to-one, group, meeting. Note to self, changelog, sample and channel rooms left out. /users/{x} only for the caller. $top up to 50; $expand=members and lastMessagePreview. Also served as GET /chats.
+- Notes: The caller's Talk conversations (ADR 0009 D3): one-to-one, group, meeting. Note to self, changelog, sample and channel rooms left out. /users/{x} only for the caller. $top up to 50; $expand=members and lastMessagePreview (null, as Graph's, for a conversation nobody has written in; left out where Talk's newest message is bookkeeping). Also served as GET /chats.
 - Fixture: `tests/Nightware.Conformance.Tests/Fixtures/chats.list.json`
 
 #### `chats.get`

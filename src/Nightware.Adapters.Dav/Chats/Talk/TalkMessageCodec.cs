@@ -34,6 +34,9 @@ internal static partial class TalkMessageCodec
     public const string CallEndedEveryone = "call_ended_everyone";
     public const string MessageDeleted = "message_deleted";
 
+    /// <summary>A room's first message, Talk's own: a room whose newest message it still is has never been written in.</summary>
+    public const string ConversationCreated = "conversation_created";
+
     /// <summary>System messages about another message (their parent), which a delta or a change feed re-reports.</summary>
     public static readonly IReadOnlySet<string> ChangesToParent = new HashSet<string>(StringComparer.Ordinal)
     {

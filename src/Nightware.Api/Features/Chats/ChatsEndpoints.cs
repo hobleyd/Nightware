@@ -76,7 +76,7 @@ public static class ChatsEndpoints
         var withMembers = odata.Query.ExpandOf("members") is not null;
         return GraphResults.Match(
             await useCase.ExecuteAsync(query.Value, withMembers, cancellationToken).ConfigureAwait(false),
-            page => GraphResults.Page(page, v => ChatDto.From(v.Chat, v.Members, query.Value.WithLastMessage), "chats", odata.Query));
+            page => GraphResults.Page(page, v => ChatDto.Listed(v.Chat, v.Members, query.Value.WithLastMessage), "chats", odata.Query));
     }
 
     private static async Task<IResult> GetAsync(Mailbox mailbox, string chatId, IUserContext caller, ODataQuery odata, GetChat useCase, CancellationToken cancellationToken)

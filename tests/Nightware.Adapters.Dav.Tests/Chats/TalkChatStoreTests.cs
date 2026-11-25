@@ -90,6 +90,24 @@ public sealed class TalkChatStoreTests : IDisposable
         page.Value.Items[1].LastMessage!.EventDetail.ShouldBeOfType<ChatEventDetail.CallEnded>();
         page.Value.Items[2].LastMessage.ShouldBeNull();
         _talk.Requests.ShouldNotContain(r => r.RequestMessage!.Path.Contains("/reaction/", StringComparison.Ordinal));
+
+        // No preview isn't no messages: the one-to-one has been written in, its newest message is just bookkeeping.
+        page.Value.Items.ShouldAllBe(c => !c.NeverWritten);
+    }
+
+    [Fact]
+    public async Task A_room_whose_newest_message_is_its_creation_or_none_has_never_been_written_in()
+    {
+        var created = JsonNode.Parse(TalkTestServer.RoomData("jxcmpbgy"))!["lastMessage"]!;
+        var room = JsonNode.Parse(TalkTestServer.RoomData(Group))!;
+        room["lastMessage"] = created.DeepClone();
+        _talk.Reply("GET", TalkTestServer.Rooms + "/" + Group, 200, room.ToJsonString());
+        var bare = JsonNode.Parse(TalkTestServer.RoomData(OneToOne))!;
+        bare["lastMessage"] = new JsonArray();
+        _talk.Reply("GET", TalkTestServer.Rooms + "/" + OneToOne, 200, bare.ToJsonString());
+
+        (await _talk.Store().GetAsync(Group, Ct)).Value.NeverWritten.ShouldBeTrue();
+        (await _talk.Store().GetAsync(OneToOne, Ct)).Value.NeverWritten.ShouldBeTrue();
     }
 
     [Fact]

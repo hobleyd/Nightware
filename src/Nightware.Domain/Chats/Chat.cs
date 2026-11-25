@@ -32,6 +32,12 @@ public sealed record Chat(string Id, ChatType ChatType)
 
     /// <summary>The newest message (Graph's <c>lastMessagePreview</c>), when the backend had one to hand.</summary>
     public ChatMessage? LastMessage { get; init; }
+
+    /// <summary>
+    /// Nobody has written in it — Graph's <c>lastMessagePreview</c> is then <c>null</c> rather than left out. False
+    /// where the backend can't tell, which a missing <see cref="LastMessage"/> alone doesn't.
+    /// </summary>
+    public bool NeverWritten { get; init; }
 }
 
 /// <param name="IsHidden">The caller hid (archived) the chat.</param>

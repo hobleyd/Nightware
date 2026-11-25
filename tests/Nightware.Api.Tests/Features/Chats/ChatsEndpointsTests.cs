@@ -134,6 +134,24 @@ public sealed class ChatsEndpointsTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_chat_nobody_has_written_in_previews_null_as_graphs_does()
+    {
+        _store.ListAsync(Arg.Any<ChatPageQuery>(), Arg.Any<CancellationToken>())
+            .Returns(new Page<Chat>([OneOnOne with { NeverWritten = true }, Group]));
+
+        var expanded = await GetAsync("/v1.0/me/chats?$expand=lastMessagePreview");
+        var plain = await GetAsync("/v1.0/me/chats");
+
+        // Never written in: the key is there, null. Not known (no preview to hand) or not asked for: left out.
+        var empty = expanded["value"]![0]!.AsObject();
+        empty.ContainsKey("lastMessagePreview").ShouldBeTrue();
+        empty["lastMessagePreview"].ShouldBeNull();
+        empty.Str("id").ShouldBe(ChatId);
+        expanded["value"]![1]!.AsObject().ContainsKey("lastMessagePreview").ShouldBeFalse();
+        plain["value"]![0]!.AsObject().ContainsKey("lastMessagePreview").ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task A_chat_is_read_with_or_without_members_and_404s_when_missing()
     {
         _store.GetAsync(ChatId, Arg.Any<CancellationToken>()).Returns(OneOnOne);

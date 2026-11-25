@@ -58,6 +58,10 @@ internal sealed class TalkChatRooms(TalkChatClient talk, TalkLinks links)
             Viewpoint = new ChatViewpoint(room.IsArchived, read),
             JoinWebUrl = type == ChatType.Meeting ? url : null,
             LastMessage = lastMessage,
+
+            // Talk names no last message, or only the one it made the room with. A newest message that is Talk's
+            // bookkeeping (a reaction, an edit, a deletion) says nothing about the comments before it.
+            NeverWritten = room.LastMessage is not { } newest || newest.SystemMessage == TalkMessageCodec.ConversationCreated,
         };
     }
 }
