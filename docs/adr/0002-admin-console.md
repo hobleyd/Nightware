@@ -620,6 +620,15 @@ Where the build refined the decisions above:
   answer is the adapter tests' fixture.
   Publishing a domain's discovery names is not enough for production; see
   "A new domain's public mail discovery" in `deploy/README.md`.
+  A served domain is on the dashboard's worklist while a sender's **newest** TLS
+  report for it found no MTA-STS policy (`DomainReportSummary.LatestFoundNoTlsPolicy`;
+  older reports stay held for 30 days, so judging by any report would keep it
+  there long after the fix). `GetAttention` reads the reports once, and skips
+  the check when Stalwart refuses them (a deployment that has not re-run
+  `configure.sh`). The domain's DNS page then says what is missing: the
+  `mta-sts`/`_mta-sts` records still to publish, or, once they are published,
+  the policy host (proxy, certificate, `x:MtaSts` `mxHosts`), which the console
+  cannot change.
 - **Verified end to end** on an isolated stack (Keycloak 26.8.2, Stalwart 1.1.0,
   Nextcloud 35): MFA sign-in, entity and domain creation (DNS records shown),
   linking existing users, creating a user who then signs in to NightMail and

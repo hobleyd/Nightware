@@ -1,5 +1,6 @@
 using Nightware.Application.Administration.Entities;
 using Nightware.Application.Administration.Groups;
+using Nightware.Application.Administration.Reports;
 using Nightware.Application.Administration.SharedMailboxes;
 using Nightware.Application.Administration.Users;
 using Nightware.Domain.Administration;
@@ -10,10 +11,14 @@ namespace Nightware.Application.Administration.Status;
 /// <summary>A user whose status needs an admin, in the entity they were found in.</summary>
 public sealed record UserNeedingAttention(UserDetail User, UserStatus Status, Entity Entity);
 
-/// <summary>A domain the mail server does not serve, or serves without signing keys, or whose records are not yet in its zone at the entity's DNS host.</summary>
+/// <summary>
+/// A domain the mail server does not serve, or serves without signing keys, whose records are not yet in its zone at
+/// the entity's DNS host, or that senders' latest TLS reports say has no MTA-STS policy.
+/// </summary>
 /// <param name="Unsafe">What in the domain's own SPF or DMARC lets anyone send as it; empty when nothing does.</param>
 /// <param name="DnsChanges">The changes publishing to the entity's DNS host would write; 0 when none, or when not compared.</param>
-public sealed record DomainNeedingAttention(DomainStatus Domain, Entity Entity, IReadOnlyList<MailAuthenticationWeakness> Unsafe, int DnsChanges = 0)
+/// <param name="NoTlsPolicy">A sender's newest TLS report says it found no MTA-STS policy for the domain, so it would deliver without TLS.</param>
+public sealed record DomainNeedingAttention(DomainStatus Domain, Entity Entity, IReadOnlyList<MailAuthenticationWeakness> Unsafe, int DnsChanges = 0, bool NoTlsPolicy = false)
 {
     /// <summary>The mail server's side is what needs fixing (Repair), not the domain's own records.</summary>
     public bool NeedsRepair => Domain.Mail.State != LinkState.Linked || !Domain.DkimPresent;
@@ -47,7 +52,9 @@ public sealed record Attention(IReadOnlyList<UserNeedingAttention> Users, IReadO
 /// an entity above <see cref="ListUsers"/>' link limit is reported as not checked rather than half-read. For a
 /// global administrator, a served domain of an entity connected to a DNS host is also compared with its zone, and
 /// needs attention while publishing would change it (publishing is theirs alone); a zone that cannot be read leaves
-/// its entity not checked, as does a shared mailbox or group that cannot be read.
+/// its entity not checked, as does a shared mailbox or group that cannot be read. A served domain also needs attention
+/// while senders' latest TLS reports find no MTA-STS policy for it; the reports are read once, and when the mail server
+/// will not give them (an older deployment without the permission) that check is skipped, as the reports page says why.
 /// </summary>
 public sealed class GetAttention(
     IAdminActor actor,
@@ -58,7 +65,8 @@ public sealed class GetAttention(
     ListSharedMailboxes listMailboxes,
     GetSharedMailbox getMailbox,
     ListGroups listGroups,
-    GetGroup getGroup)
+    GetGroup getGroup,
+    IMailReports reports)
 {
     public async Task<Result<Attention>> ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -74,6 +82,7 @@ public sealed class GetAttention(
         var groups = new List<GroupNeedingAttention>();
         var notChecked = new List<Entity>();
         var userCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+        MailReports? held = null;
         foreach (Entity entity in manageable.Value)
         {
             Result<EntityDetail> detail = await getEntity.ExecuteAsync(entity.Id, cancellationToken).ConfigureAwait(false);
@@ -99,8 +108,15 @@ public sealed class GetAttention(
                         notChecked.Add(entity);
                     }
 
-                    var domain = new DomainNeedingAttention(d, entity, UnsafeIn(detail.Value.Entity.MailPolicyFor(d.Domain)), dnsChanges ?? 0);
-                    if (domain.NeedsRepair || domain.Unsafe.Count > 0 || domain.DnsChanges > 0)
+                    bool noTlsPolicy = false;
+                    if (d.Mail.State == LinkState.Linked)
+                    {
+                        held ??= await HeldReportsAsync(cancellationToken).ConfigureAwait(false);
+                        noTlsPolicy = DomainReportSummary.For(d.Domain.Name, held).LatestFoundNoTlsPolicy;
+                    }
+
+                    var domain = new DomainNeedingAttention(d, entity, UnsafeIn(detail.Value.Entity.MailPolicyFor(d.Domain)), dnsChanges ?? 0, noTlsPolicy);
+                    if (domain.NeedsRepair || domain.Unsafe.Count > 0 || domain.DnsChanges > 0 || domain.NoTlsPolicy)
                     {
                         domains.Add(domain);
                     }
@@ -194,6 +210,13 @@ public sealed class GetAttention(
 
         Result<DnsPublicationPreview> preview = await planPublication.ExecuteAsync(entity.Id, domain.Domain.Name, cancellationToken).ConfigureAwait(false);
         return preview.IsSuccess ? preview.Value.Plan.Changes.Count(static c => c.IsWrite) : null;
+    }
+
+    /// <summary>The DMARC and TLS reports the mail server holds; none when it cannot or will not give them.</summary>
+    private async Task<MailReports> HeldReportsAsync(CancellationToken cancellationToken)
+    {
+        Result<MailReports> listed = await reports.ListAsync(cancellationToken).ConfigureAwait(false);
+        return listed.IsSuccess ? listed.Value : MailReports.None;
     }
 
     private static int Rank(UserStatus status) => status switch

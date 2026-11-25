@@ -95,4 +95,26 @@ public sealed class MailReportsTests
         summary.TlsReports.ShouldBe(0);
         summary.SendersFoundNoTlsPolicy.ShouldBeFalse();
     }
+
+    [Fact]
+    public void Only_a_senders_newest_TLS_report_says_whether_the_domain_still_has_no_policy()
+    {
+        TlsReport Report(string organization, int day, string type) =>
+            new("t-" + organization + day, organization, "t", Day.AddDays(day), Day.AddDays(day + 1), null, [Policy("acme.example", type, 3, 0)]);
+
+        DomainReportSummary Summary(params TlsReport[] tls) => DomainReportSummary.For("acme.example", new MailReports([], tls));
+
+        // Fixed since: Google's later report found the policy, though the older one is still held.
+        DomainReportSummary fixedSince = Summary(Report("Google Inc.", 0, "noPolicyFound"), Report("Google Inc.", 1, "sts"));
+        fixedSince.SendersFoundNoTlsPolicy.ShouldBeTrue();
+        fixedSince.LatestFoundNoTlsPolicy.ShouldBeFalse();
+
+        // Still missing for Microsoft, whose newest report says so, whatever Google's says.
+        Summary(Report("Google Inc.", 1, "sts"), Report("Microsoft", 1, "noPolicyFound"), Report("microsoft", 0, "sts"))
+            .LatestFoundNoTlsPolicy.ShouldBeTrue();
+
+        // Another domain's missing policy is not this one's.
+        DomainReportSummary.For("acme.example", new MailReports([], [Tls(Policy("other.example", "noPolicyFound", 1, 0), Policy("acme.example", "sts", 1, 0))]))
+            .LatestFoundNoTlsPolicy.ShouldBeFalse();
+    }
 }

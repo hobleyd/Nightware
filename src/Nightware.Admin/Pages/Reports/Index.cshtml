@@ -4,7 +4,7 @@
 @{ ViewData["Title"] = "DMARC reports"; ViewData["Wide"] = true; }
 @if (Model.Unread is not null) { <partial name="_Unread" /> return; }
 @{ var o = Model.Overview; }
-<section class="panel">
+<section class="panel reports">
 <h1>DMARC reports</h1>
 <partial name="_Messages" />
 <p class="hint">Mail systems that receive mail claiming your domains (Google, Microsoft, Yahoo and others) send a daily report to the address in each domain's DMARC record, usually postmaster. The mail server reads those reports instead of delivering them, and the console shows them here. <strong>DMARC reports</strong> list who sent mail as your domain and whether it passed DKIM and SPF. <strong>TLS reports</strong> say whether other servers delivered to yours over a secure connection. The mail server keeps reports for 30 days.</p>
@@ -33,7 +33,7 @@ else
         @foreach (var s in o.Summaries)
         {
             <tr>
-                <td>@s.Domain</td>
+                <td>@if (o.EntityOf.TryGetValue(s.Domain, out var entityId)) { <a href="@Url.Page("/Entities/Dns", null, new { id = entityId, domain = s.Domain }, null, null, s.LatestFoundNoTlsPolicy ? "mta-sts" : null)">@s.Domain</a> } else { @s.Domain }</td>
                 <td data-label="DMARC reports">@IndexModel.Count(s.DmarcReports)</td>
                 <td data-label="Messages">@IndexModel.Count(s.Messages)</td>
                 <td data-label="Failed DMARC">@if (s.Failing > 0) { <span class="chip error">@IndexModel.Count(s.Failing)</span> } else if (s.DmarcReports > 0) { <span class="chip linked">None</span> } else { <text>—</text> }</td>
@@ -50,10 +50,6 @@ else
         <div class="warning">
             <p><strong>Some mail claiming your domains failed DMARC.</strong> Check each address it was sent from. If it is a service you use (a newsletter or billing system, say), add it to the domain's SPF record or have it sign with DKIM for your domain. If you don't recognise it, someone is sending as your domain, and your DMARC policy decides what receivers do with that mail.</p>
         </div>
-    }
-    @if (o.Summaries.Any(s => s.SendersFoundNoTlsPolicy))
-    {
-        <p class="hint">"None found" under TLS means a sender found no MTA-STS policy for the domain, so it would have accepted an insecure connection. Publish the domain's MTA-STS records from its DNS page, and make sure https://mta-sts.&lt;domain&gt;/.well-known/mta-sts.txt is reachable.</p>
     }
 
     <h2>DMARC reports</h2>
@@ -158,6 +154,12 @@ else
             }
             </tbody>
         </table>
+        @if (o.Summaries.Any(s => s.SendersFoundNoTlsPolicy))
+        {
+            <div class="warning" id="no-tls-policy">
+                <p><strong>"None found" means a sender found no MTA-STS policy for the domain</strong>, so it would have accepted an unencrypted connection. Open the domain's DNS page from the summary above: it says whether the MTA-STS records still need publishing, or whether https://mta-sts.&lt;domain&gt;/.well-known/mta-sts.txt is not being served.@if (o.Summaries.Any(s => s.SendersFoundNoTlsPolicy && !s.LatestFoundNoTlsPolicy)) { <text> Older reports keep saying so after it is fixed; a domain whose senders' latest reports find the policy is in order.</text> }</p>
+            </div>
+        }
     }
 }
 </section>

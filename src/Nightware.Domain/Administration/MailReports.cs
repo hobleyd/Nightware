@@ -97,6 +97,11 @@ public sealed record MailReports(IReadOnlyList<DmarcAggregateReport> Dmarc, IRea
 public sealed record FailingSource(string SourceIp, long Messages);
 
 /// <summary>What the reports say about one domain, over every report held.</summary>
+/// <param name="SendersFoundNoTlsPolicy">Some report held, however old, says a sender found no MTA-STS policy.</param>
+/// <param name="LatestFoundNoTlsPolicy">
+/// A sender's newest TLS report for the domain says it found no MTA-STS policy: the problem is current, not one
+/// fixed since. Older reports stay held for 30 days, so only this one says the domain still needs fixing.
+/// </param>
 public sealed record DomainReportSummary(
     string Domain,
     int DmarcReports,
@@ -106,7 +111,8 @@ public sealed record DomainReportSummary(
     int TlsReports,
     long TlsSuccessful,
     long TlsFailed,
-    bool SendersFoundNoTlsPolicy)
+    bool SendersFoundNoTlsPolicy,
+    bool LatestFoundNoTlsPolicy)
 {
     /// <summary>
     /// The summary of <paramref name="reports"/> for <paramref name="domain"/>: reports about it or one of its
@@ -131,8 +137,19 @@ public sealed record DomainReportSummary(
             reports.Tls.Count(r => r.Policies.Any(p => ReportDomains.Covers(domain, p.Domain))),
             tls.Sum(static p => p.Successful),
             tls.Sum(static p => p.Failed),
-            tls.Any(static p => p.NoPolicyFound));
+            tls.Any(static p => p.NoPolicyFound),
+            NewestFindsNoTlsPolicy(domain, reports.Tls));
     }
+
+    /// <summary>
+    /// Whether any sender's newest report for <paramref name="domain"/> (by period end, then arrival) has a
+    /// "no policy found" result for it. Each sending organization is judged by its own latest report.
+    /// </summary>
+    private static bool NewestFindsNoTlsPolicy(string domain, IReadOnlyList<TlsReport> reports) =>
+        reports.Where(r => r.Policies.Any(p => ReportDomains.Covers(domain, p.Domain)))
+            .GroupBy(static r => r.Organization, StringComparer.OrdinalIgnoreCase)
+            .Select(static g => g.OrderByDescending(static r => r.PeriodEnd).ThenByDescending(static r => r.ReceivedAt).First())
+            .Any(r => r.Policies.Any(p => p.NoPolicyFound && ReportDomains.Covers(domain, p.Domain)));
 }
 
 /// <summary>Which of our domains a report is about.</summary>

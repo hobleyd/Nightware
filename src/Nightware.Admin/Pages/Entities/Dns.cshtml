@@ -33,6 +33,29 @@
         }
     </div>
 }
+@if (Model.NoTlsPolicy)
+{
+    var policyUrl = $"https://mta-sts.{Model.Domain}/.well-known/mta-sts.txt";
+    <div class="warning" id="mta-sts">
+        <p><strong>Senders found no MTA-STS policy for @Model.Domain</strong> in their latest <a asp-page="/Reports/Index" asp-route-domain="@Model.Domain">TLS reports</a>, so they may deliver its mail without encryption.</p>
+        @if (!Model.Actor.IsGlobal)
+        {
+            <p>Ask your Nightware operator to publish the domain's MTA-STS records and make its policy reachable.</p>
+        }
+        else if (Model.MtaStsUnpublished)
+        {
+            <p>Its MTA-STS records are not all at @Model.DnsHostName yet. Publishing the changes below adds them.</p>
+        }
+        else
+        {
+            <p>@(Model.Entity.Entity.HasDnsToken && Model.Publication is not null
+                ? $"Its MTA-STS records are published at {Model.DnsHostName}, so the policy itself is not being served."
+                : "Publish the mta-sts and _mta-sts records below at your DNS provider if they are not there yet.")
+                Check that <a href="@policyUrl" rel="noopener noreferrer" target="_blank">@policyUrl</a> opens and lists this domain's MX. The mail server's proxy must serve mta-sts.@Model.Domain with a certificate that covers it; see "A new domain's public mail discovery" in the deployment guide.</p>
+        }
+        <p class="hint">Reports arrive about once a day, so this stays until senders' next reports find the policy.</p>
+    </div>
+}
 </section>
 
 @{

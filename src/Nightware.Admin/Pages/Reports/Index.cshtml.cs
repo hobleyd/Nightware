@@ -19,7 +19,7 @@ public sealed class IndexModel(IAdminActor actor, ListMailReports list) : Consol
     [BindProperty(SupportsGet = true)]
     public string? Domain { get; set; }
 
-    public MailReportOverview Overview { get; private set; } = new([], null, [], [], []);
+    public MailReportOverview Overview { get; private set; } = MailReportOverview.Empty;
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {

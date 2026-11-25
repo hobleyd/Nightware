@@ -18,12 +18,17 @@ public interface IMailReports
 /// The reports for the domains the actor manages, and a summary per domain. <see cref="Domain"/> is the one domain
 /// asked for, or null for all of them.
 /// </summary>
+/// <param name="EntityOf">The id of the entity each domain belongs to, by domain name (any case), for links to its pages.</param>
 public sealed record MailReportOverview(
     IReadOnlyList<string> Domains,
     string? Domain,
     IReadOnlyList<DomainReportSummary> Summaries,
     IReadOnlyList<DmarcAggregateReport> Dmarc,
-    IReadOnlyList<TlsReport> Tls);
+    IReadOnlyList<TlsReport> Tls,
+    IReadOnlyDictionary<string, string> EntityOf)
+{
+    public static MailReportOverview Empty { get; } = new([], null, [], [], [], new Dictionary<string, string>());
+}
 
 /// <summary>
 /// Lists DMARC and TLS reports for the actor's domains: a global admin's are every entity's, an entity admin's
@@ -46,9 +51,16 @@ public sealed class ListMailReports(IAdminActor actor, IEntityRegistry entities,
             return all.Error;
         }
 
-        List<string> domains = [.. all.Value.Where(e => actor.Current.MayManage(e.Id))
-            .SelectMany(static e => e.Domains).Select(static d => d.Name)
-            .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase)];
+        var entityOf = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (Entity entity in all.Value.Where(e => actor.Current.MayManage(e.Id)))
+        {
+            foreach (MailDomain d in entity.Domains)
+            {
+                entityOf.TryAdd(d.Name, entity.Id);
+            }
+        }
+
+        List<string> domains = [.. entityOf.Keys.Order(StringComparer.OrdinalIgnoreCase)];
 
         string? selected = null;
         if (!string.IsNullOrWhiteSpace(domain))
@@ -62,7 +74,7 @@ public sealed class ListMailReports(IAdminActor actor, IEntityRegistry entities,
 
         if (domains.Count == 0)
         {
-            return new MailReportOverview([], null, [], [], []);
+            return MailReportOverview.Empty;
         }
 
         Result<MailReports> held = await reports.ListAsync(cancellationToken).ConfigureAwait(false);
@@ -85,6 +97,7 @@ public sealed class ListMailReports(IAdminActor actor, IEntityRegistry entities,
             selected,
             [.. shown.Select(d => DomainReportSummary.For(d, scoped))],
             scoped.Dmarc,
-            scoped.Tls);
+            scoped.Tls,
+            entityOf);
     }
 }

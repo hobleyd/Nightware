@@ -1,6 +1,7 @@
 using Nightware.Application.Administration;
 using Nightware.Application.Administration.Entities;
 using Nightware.Application.Administration.Groups;
+using Nightware.Application.Administration.Reports;
 using Nightware.Application.Administration.SharedMailboxes;
 using Nightware.Application.Administration.Status;
 using Nightware.Application.Administration.Users;
@@ -15,6 +16,7 @@ public sealed class AttentionTests
 
     private readonly AdminTestBed _bed = new();
     private readonly IDnsHosting _hosting = Substitute.For<IDnsHosting>();
+    private readonly IMailReports _reports = Substitute.For<IMailReports>();
 
     private static CancellationToken Ct => AdminTestBed.Ct;
 
@@ -27,12 +29,14 @@ public sealed class AttentionTests
         new ListSharedMailboxes(_bed.SharedMailboxAccess(), _bed.Mailboxes),
         new GetSharedMailbox(_bed.SharedMailboxAccess()),
         new ListGroups(_bed.GroupAccess(), _bed.Groups),
-        new GetGroup(_bed.GroupAccess()));
+        new GetGroup(_bed.GroupAccess()),
+        _reports);
 
     public AttentionTests()
     {
         _bed.Entities.ListAsync(Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<Entity>>.Success([AdminTestBed.AcmeEntity]));
         _bed.MailDomains.FindAsync(default!, Ct).ReturnsForAnyArgs(c => Result<MailDomainInfo>.Success(new MailDomainInfo("d", c.Arg<MailDomain>(), true)));
+        _reports.ListAsync(Arg.Any<CancellationToken>()).Returns(MailReports.None);
     }
 
     [Fact]
@@ -200,6 +204,39 @@ public sealed class AttentionTests
         Attention found = (await Attention.ExecuteAsync(Ct)).Value;
         found.Groups.ShouldBeEmpty();
         found.NotChecked.ShouldHaveSingleItem().Id.ShouldBe(AdminTestBed.Acme);
+    }
+
+    [Fact]
+    public async Task A_served_domain_whose_senders_latest_TLS_reports_find_no_MTA_STS_policy_needs_attention_until_they_find_one()
+    {
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        DateTimeOffset day = new(2026, 11, 24, 0, 0, 0, TimeSpan.Zero);
+        TlsReport Report(int on, string type) => new("t" + on, "Google Inc.", "t", day.AddDays(on), day.AddDays(on + 1), null, [new TlsPolicyResult(type, "acme.example", [], 3, 0, [])]);
+
+        _reports.ListAsync(Arg.Any<CancellationToken>()).Returns(new MailReports([], [Report(0, "noPolicyFound")]));
+        DomainNeedingAttention flagged = (await Attention.ExecuteAsync(Ct)).Value.Domains.ShouldHaveSingleItem();
+        flagged.NoTlsPolicy.ShouldBeTrue();
+        flagged.NeedsRepair.ShouldBeFalse();
+        flagged.DnsChanges.ShouldBe(0);
+
+        // Fixed: the next day's report found the policy, though the older one is still held.
+        _reports.ListAsync(Arg.Any<CancellationToken>()).Returns(new MailReports([], [Report(0, "noPolicyFound"), Report(1, "sts")]));
+        (await Attention.ExecuteAsync(Ct)).Value.IsClear.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Reports_the_mail_server_will_not_give_skip_the_TLS_check_without_hiding_the_rest()
+    {
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        _reports.ListAsync(Arg.Any<CancellationToken>()).Returns(Error.Forbidden("Not allowed to read reports."));
+
+        (await Attention.ExecuteAsync(Ct)).Value.IsClear.ShouldBeTrue();
+
+        // A domain the mail server does not serve is Repair's, and its reports are not read.
+        _reports.ClearReceivedCalls();
+        _bed.MailDomains.FindAsync(default!, Ct).ReturnsForAnyArgs(Error.NotFound("no domain"));
+        (await Attention.ExecuteAsync(Ct)).Value.Domains.ShouldHaveSingleItem().NoTlsPolicy.ShouldBeFalse();
+        await _reports.DidNotReceive().ListAsync(Arg.Any<CancellationToken>());
     }
 
     private void ConnectToCloudflare(params ZoneRecord[] zone)
