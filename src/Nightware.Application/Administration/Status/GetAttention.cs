@@ -72,7 +72,7 @@ public sealed class GetAttention(
     ListGroups listGroups,
     GetGroup getGroup,
     IMailReports reports,
-    GetEntityDnsRecords dnsRecords,
+    IMailDomains mailDomains,
     IMtaStsPolicies mtaSts)
 {
     public async Task<Result<Attention>> ExecuteAsync(CancellationToken cancellationToken)
@@ -127,7 +127,7 @@ public sealed class GetAttention(
                     if (actor.Current.IsGlobal && d.Mail.State == LinkState.Linked)
                     {
                         policy ??= await mtaSts.GetAsync(cancellationToken).ConfigureAwait(false);
-                        mtaStsMissing = await MtaStsMissingAsync(entity, d, policy.GetValueOrDefault(), cancellationToken).ConfigureAwait(false);
+                        mtaStsMissing = await MtaStsMissingAsync(d, policy.GetValueOrDefault(), cancellationToken).ConfigureAwait(false);
                     }
 
                     var domain = new DomainNeedingAttention(d, entity, UnsafeIn(detail.Value.Entity.MailPolicyFor(d.Domain)), dnsChanges ?? 0, noTlsPolicy) { MtaStsMissing = mtaStsMissing };
@@ -227,16 +227,19 @@ public sealed class GetAttention(
         return preview.IsSuccess ? preview.Value.Plan.Changes.Count(static c => c.IsWrite) : null;
     }
 
-    /// <summary>The domain's MX hosts a served policy leaves out; none when there is no policy, or it or the records cannot be read.</summary>
-    private async Task<IReadOnlyList<string>> MtaStsMissingAsync(Entity entity, DomainStatus domain, Result<MtaStsPolicy> policy, CancellationToken cancellationToken)
+    /// <summary>
+    /// The domain's MX hosts a served policy leaves out, read from the mail server's own records (only the MX matters,
+    /// so none of the DNS page's additions are needed); none when there is no policy, or it or the records cannot be read.
+    /// </summary>
+    private async Task<IReadOnlyList<string>> MtaStsMissingAsync(DomainStatus domain, Result<MtaStsPolicy> policy, CancellationToken cancellationToken)
     {
         if (!policy.IsSuccess || policy.Value.IsDisabled)
         {
             return [];
         }
 
-        Result<DomainDns> records = await dnsRecords.ExecuteAsync(entity.Id, domain.Domain.Name, cancellationToken).ConfigureAwait(false);
-        return records.IsSuccess ? policy.Value.Missing(MtaStsPolicy.MxHostsIn(records.Value.Records)) : [];
+        Result<IReadOnlyList<DnsRecord>> records = await mailDomains.GetDnsRecordsAsync(domain.Domain, cancellationToken).ConfigureAwait(false);
+        return records.IsSuccess ? policy.Value.Missing(MtaStsPolicy.MxHostsIn(records.Value)) : [];
     }
 
     /// <summary>The DMARC and TLS reports the mail server holds; none when it cannot or will not give them.</summary>

@@ -642,8 +642,10 @@ Where the build refined the decisions above:
   same request: the object reference does not say whether a reload is
   needed. The policy id is derived from its contents, so every domain's
   `_mta-sts` TXT changes, and the DNS page shows that as a change to publish.
-  Permissions `sysMtaStsGet` and `sysMtaStsUpdate` (from the object
-  reference) are granted by `configure.sh`. The read shape was recorded on
+  Permissions `sysMtaStsGet`, `sysMtaStsUpdate` and `sysSystemSettingsGet`
+  (from the object reference) are granted by `configure.sh`. A system settings
+  read that fails is an error, not empty defaults: adding to empty defaults
+  would drop the server's own host from the policy. The read shape was recorded on
   Stalwart 1.1.0. The write shape follows the documented set encoding and
   was **not verified** against a live server.
 - **Verified end to end** on an isolated stack (Keycloak 26.8.2, Stalwart 1.1.0,

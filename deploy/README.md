@@ -362,7 +362,8 @@ output: anything they cannot do is printed as a WARNING.
      policy's id changes with it, so publish every domain's `_mta-sts` record
      again afterwards. A missing MX is harmless while `mode` is `testing`
      (failures only show in TLS reports), but under `enforce` senders refuse
-     to deliver. The console needs `sysMtaStsGet` and `sysMtaStsUpdate`, which
+     to deliver. The console needs `sysMtaStsGet`, `sysMtaStsUpdate` and
+     `sysSystemSettingsGet`, which
      `stalwart/configure.sh` grants; re-run it on an existing deployment.
   4. Run `scripts/verify-mail-discovery.sh <domain>` in the ansible repo.
   DMARC and TLS reports need nothing per domain: the console publishes

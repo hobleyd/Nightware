@@ -32,7 +32,7 @@ public sealed class AttentionTests
         new ListGroups(_bed.GroupAccess(), _bed.Groups),
         new GetGroup(_bed.GroupAccess()),
         _reports,
-        Records(),
+        _bed.MailDomains,
         _mtaSts);
 
     public AttentionTests()

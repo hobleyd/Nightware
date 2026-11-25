@@ -90,4 +90,15 @@ public sealed class StalwartMtaStsPoliciesTests : IAsyncDisposable
 
         (await Policies.GetAsync(Ct)).IsSuccess.ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task System_settings_that_cannot_be_read_are_an_error_never_empty_defaults()
+    {
+        // Empty defaults would make an added host replace the server's own in the policy.
+        _host.Stub("x:MtaSts/get", """
+            [["x:MtaSts/get",{"list":[{"mode":"testing","mxHosts":{},"id":"singleton"}],"notFound":[]},"c0"],["error",{"type":"forbidden","description":"sysSystemSettingsGet"},"c1"]]
+            """);
+
+        (await Policies.GetAsync(Ct)).IsSuccess.ShouldBeFalse();
+    }
 }
