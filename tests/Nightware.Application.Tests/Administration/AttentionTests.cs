@@ -17,6 +17,7 @@ public sealed class AttentionTests
     private readonly AdminTestBed _bed = new();
     private readonly IDnsHosting _hosting = Substitute.For<IDnsHosting>();
     private readonly IMailReports _reports = Substitute.For<IMailReports>();
+    private readonly IMtaStsPolicies _mtaSts = Substitute.For<IMtaStsPolicies>();
 
     private static CancellationToken Ct => AdminTestBed.Ct;
 
@@ -30,13 +31,16 @@ public sealed class AttentionTests
         new GetSharedMailbox(_bed.SharedMailboxAccess()),
         new ListGroups(_bed.GroupAccess(), _bed.Groups),
         new GetGroup(_bed.GroupAccess()),
-        _reports);
+        _reports,
+        Records(),
+        _mtaSts);
 
     public AttentionTests()
     {
         _bed.Entities.ListAsync(Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<Entity>>.Success([AdminTestBed.AcmeEntity]));
         _bed.MailDomains.FindAsync(default!, Ct).ReturnsForAnyArgs(c => Result<MailDomainInfo>.Success(new MailDomainInfo("d", c.Arg<MailDomain>(), true)));
         _reports.ListAsync(Arg.Any<CancellationToken>()).Returns(MailReports.None);
+        _mtaSts.GetAsync(Arg.Any<CancellationToken>()).Returns(Error.Forbidden("Not allowed to read MTA-STS."));
     }
 
     [Fact]
@@ -237,6 +241,29 @@ public sealed class AttentionTests
         _bed.MailDomains.FindAsync(default!, Ct).ReturnsForAnyArgs(Error.NotFound("no domain"));
         (await Attention.ExecuteAsync(Ct)).Value.Domains.ShouldHaveSingleItem().NoTlsPolicy.ShouldBeFalse();
         await _reports.DidNotReceive().ListAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_global_administrator_sees_a_served_domain_whose_MX_the_MTA_STS_policy_leaves_out()
+    {
+        _bed.Entities.ListMembersAsync(AdminTestBed.Acme, Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<IdentityAccount>>.Success([]));
+        _bed.MailDomains.GetDnsRecordsAsync(default!, Ct).ReturnsForAnyArgs(Result<IReadOnlyList<DnsRecord>>.Success([new DnsRecord("acme.example", "MX", 3600, "10 mail.acme.example.")]));
+        _mtaSts.GetAsync(Arg.Any<CancellationToken>()).Returns(new MtaStsPolicy("testing", [], ["mail.server.example"]));
+
+        DomainNeedingAttention flagged = (await Attention.ExecuteAsync(Ct)).Value.Domains.ShouldHaveSingleItem();
+        flagged.MtaStsMissing.ShouldBe(["mail.acme.example"]);
+        flagged.NeedsRepair.ShouldBeFalse();
+
+        // An entity administrator cannot change the server's policy, so it is not on their list.
+        _bed.ActAsEntityAdmin();
+        (await Attention.ExecuteAsync(Ct)).Value.Domains.ShouldBeEmpty();
+
+        // Listed, or no policy served: nothing to do.
+        _bed.ActAsGlobal();
+        _mtaSts.GetAsync(Arg.Any<CancellationToken>()).Returns(new MtaStsPolicy("enforce", ["*.acme.example"], ["mail.server.example"]));
+        (await Attention.ExecuteAsync(Ct)).Value.IsClear.ShouldBeTrue();
+        _mtaSts.GetAsync(Arg.Any<CancellationToken>()).Returns(new MtaStsPolicy("disable", [], ["mail.server.example"]));
+        (await Attention.ExecuteAsync(Ct)).Value.IsClear.ShouldBeTrue();
     }
 
     private void ConnectToCloudflare(params ZoneRecord[] zone)

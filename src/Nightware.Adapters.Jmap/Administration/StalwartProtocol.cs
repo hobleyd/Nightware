@@ -166,6 +166,29 @@ internal sealed record StalwartExternalReport
     public JsonElement? Report { get; init; }
 }
 
+/// <summary>The <c>x:MtaSts</c> singleton as read (https://stalw.art/docs/ref/object/mta-sts/): <c>mxHosts</c> is a set.</summary>
+internal sealed record StalwartMtaSts
+{
+    public string Id { get; init; } = string.Empty;
+
+    public string? Mode { get; init; }
+
+    public JsonElement? MxHosts { get; init; }
+}
+
+/// <summary>
+/// The parts of the <c>x:SystemSettings</c> singleton the MTA-STS policy falls back on: <c>mailExchangers</c> (a list,
+/// so a map keyed by index, of <c>{hostname, priority}</c>; a null hostname is <c>defaultHostname</c>; read on 1.1.0).
+/// </summary>
+internal sealed record StalwartSystemSettings
+{
+    public string Id { get; init; } = string.Empty;
+
+    public string? DefaultHostname { get; init; }
+
+    public JsonElement? MailExchangers { get; init; }
+}
+
 /// <summary><c>x:MailingList/query</c> condition <c>text</c>: Stalwart 1.1 refuses <c>name</c> and <c>domainId</c> (phase 9 step 0 b).</summary>
 internal sealed record MailingListFilter(string Text);
 
@@ -218,6 +241,8 @@ internal sealed record StalwartSieveScript
 [JsonSerializable(typeof(GetResponse<StalwartSieveScript>))]
 [JsonSerializable(typeof(SetResponse<StalwartCreated>))]
 [JsonSerializable(typeof(GetResponse<StalwartExternalReport>))]
+[JsonSerializable(typeof(GetResponse<StalwartMtaSts>))]
+[JsonSerializable(typeof(GetResponse<StalwartSystemSettings>))]
 internal sealed partial class StalwartJsonContext : JsonSerializerContext;
 
 /// <summary>Capability and method descriptors of the management API.</summary>
@@ -282,6 +307,15 @@ internal static class StalwartMethods
 
     public static JmapMethod<StalwartGetRequest, GetResponse<StalwartExternalReport>> TlsExternalReportGet { get; } =
         new("x:TlsExternalReport/get", JmapMethodKind.Get, Caps, Json.StalwartGetRequest, Json.GetResponseStalwartExternalReport);
+
+    public static JmapMethod<StalwartGetRequest, GetResponse<StalwartMtaSts>> MtaStsGet { get; } =
+        new("x:MtaSts/get", JmapMethodKind.Get, Caps, Json.StalwartGetRequest, Json.GetResponseStalwartMtaSts);
+
+    public static JmapMethod<StalwartSetRequest, SetResponse<StalwartCreated>> MtaStsSet { get; } =
+        new("x:MtaSts/set", JmapMethodKind.Set, Caps, Json.StalwartSetRequest, Json.SetResponseStalwartCreated);
+
+    public static JmapMethod<StalwartGetRequest, GetResponse<StalwartSystemSettings>> SystemSettingsGet { get; } =
+        new("x:SystemSettings/get", JmapMethodKind.Get, Caps, Json.StalwartGetRequest, Json.GetResponseStalwartSystemSettings);
 
     public static JmapMethod<StalwartSetRequest, SetResponse<StalwartCreated>> ActionSet { get; } =
         new("x:Action/set", JmapMethodKind.Set, Caps, Json.StalwartSetRequest, Json.SetResponseStalwartCreated);

@@ -132,6 +132,9 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
 
         Grafana.CheckAsync(Arg.Any<CancellationToken>()).Returns(new GrafanaHealth(true));
         Reports.ListAsync(default).ReturnsForAnyArgs(Nightware.Domain.Administration.MailReports.None);
+        // No policy served unless a test arranges one, so domains are not flagged for it.
+        MtaSts.GetAsync(default).ReturnsForAnyArgs(new MtaStsPolicy("disable", [], []));
+        MtaSts.SetMxHostsAsync(default!, default).ReturnsForAnyArgs(Result.Success());
 
         ClientOptions.BaseAddress = new Uri("https://localhost");
         ClientOptions.AllowAutoRedirect = false;
@@ -179,6 +182,8 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
     public IPublicDns PublicDns { get; } = Substitute.For<IPublicDns>();
 
     public Nightware.Application.Administration.Reports.IMailReports Reports { get; } = Substitute.For<Nightware.Application.Administration.Reports.IMailReports>();
+
+    public Nightware.Application.Administration.Entities.IMtaStsPolicies MtaSts { get; } = Substitute.For<Nightware.Application.Administration.Entities.IMtaStsPolicies>();
 
     /// <summary><c>Admin:PublicHost</c>; unset unless a test sets it before the first client.</summary>
     public string? PublicHost { get; set; }
@@ -284,6 +289,8 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
             services.AddSingleton(AutoReplies);
             services.RemoveAll<Nightware.Application.Administration.Reports.IMailReports>();
             services.AddSingleton(Reports);
+            services.RemoveAll<Nightware.Application.Administration.Entities.IMtaStsPolicies>();
+            services.AddSingleton(MtaSts);
             services.RemoveAll<IGrafanaStatus>();
             services.AddSingleton(Grafana);
             services.RemoveAll<IBackendStatus>();

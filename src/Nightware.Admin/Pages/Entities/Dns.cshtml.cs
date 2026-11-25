@@ -15,7 +15,8 @@ namespace Nightware.Admin.Pages.Entities;
 /// offered here because it fixes exactly those two cases. The domain's SPF and DMARC records are the mail
 /// server's unless the entity chose its own, which a global administrator edits here. When the entity is connected
 /// to a DNS host, a global administrator sees what publishing would change in the zone and publishes it here.
-/// When senders' latest TLS reports found no MTA-STS policy for the domain, the page says what is still missing.
+/// When senders' latest TLS reports found no MTA-STS policy for the domain, or the mail server's MTA-STS policy does
+/// not list the domain's MX host, the page says what is missing; a global administrator adds the host here.
 /// Each plan read is logged line by line (public DNS data only), so a publish refused as stale can be compared
 /// with the plan the page showed.
 /// </summary>
@@ -29,6 +30,8 @@ public sealed partial class DnsModel(
     SuggestMailAuthentication suggest,
     PublishDnsRecords publish,
     ListMailReports reports,
+    GetMtaStsCoverage mtaStsCoverage,
+    AddDomainToMtaStsPolicy addToMtaSts,
     ILogger<DnsModel> logger) : ConsolePageModel(actor)
 {
     [BindProperty(SupportsGet = true)]
@@ -131,6 +134,9 @@ public sealed partial class DnsModel(
     /// <summary>A sender's newest TLS report found no MTA-STS policy for the domain (see the DMARC reports page).</summary>
     public bool NoTlsPolicy { get; private set; }
 
+    /// <summary>How the mail server's MTA-STS policy covers the domain's MX hosts; null when it could not be read.</summary>
+    public MtaStsCoverage? MtaSts { get; private set; }
+
     /// <summary>The domain's MTA-STS records (<c>mta-sts</c> and <c>_mta-sts</c>) as the mail server generated them.</summary>
     public IEnumerable<DnsRecord> MtaStsRecords => Records.Where(r => IsMtaSts(r.Name));
 
@@ -156,6 +162,20 @@ public sealed partial class DnsModel(
         }
 
         return Fail(repaired.Error) ?? await RenderAsync(cancellationToken);
+    }
+
+    public async Task<IActionResult> OnPostMtaStsHostsAsync(CancellationToken cancellationToken)
+    {
+        Result<MtaStsCoverage> added = await addToMtaSts.ExecuteAsync(Id, Domain, cancellationToken);
+        if (added.IsSuccess)
+        {
+            Notice = added.Value.Missing.Count == 0
+                ? $"The mail server's MTA-STS policy now lists {string.Join(" and ", added.Value.DomainMxHosts)}. Its id changed, so publish the _mta-sts record for each domain again."
+                : $"The mail server's MTA-STS policy still does not list {string.Join(" and ", added.Value.Missing)}.";
+            return RedirectToPage(new { id = Id, domain = Domain });
+        }
+
+        return Fail(added.Error) ?? await RenderAsync(cancellationToken);
     }
 
     public async Task<IActionResult> OnPostPublishAsync(CancellationToken cancellationToken)
@@ -283,6 +303,8 @@ public sealed partial class DnsModel(
         // Never fails the page: without the reports the warning is simply not shown (the reports page says why).
         NoTlsPolicy = await reports.ExecuteAsync(Domain, cancellationToken) is { IsSuccess: true } read
             && read.Value.Summaries.Any(static s => s.LatestFoundNoTlsPolicy);
+        // Likewise: an older deployment's console may not read the policy yet.
+        MtaSts = Records.Count > 0 && await mtaStsCoverage.ExecuteAsync(Id, Domain, cancellationToken) is { IsSuccess: true } coverage ? coverage.Value : null;
         if (Actor.IsGlobal && entity.Entity.HasDnsToken && Records.Count > 0)
         {
             // Never fails the page: the records are still worth showing when the DNS host cannot be read.

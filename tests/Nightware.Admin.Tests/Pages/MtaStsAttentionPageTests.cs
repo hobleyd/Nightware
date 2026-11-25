@@ -113,7 +113,7 @@ public sealed class MtaStsAttentionPageTests : IDisposable
         string dns = await GetAsync(DnsUrl, ConsoleHost.EntityAdmin);
 
         dns.ShouldContain("Senders found no MTA-STS policy for acme.example</strong>");
-        dns.ShouldContain("Ask your Nightware operator to publish the domain's MTA-STS records and make its policy reachable.");
+        dns.ShouldContain("Ask your Nightware operator to publish the domain&#x27;s MTA-STS records and make its policy reachable.");
     }
 
     [Fact]
@@ -135,5 +135,40 @@ public sealed class MtaStsAttentionPageTests : IDisposable
         string fixedSince = await GetAsync("/reports", ConsoleHost.EntityAdmin);
         fixedSince.ShouldContain("Older reports keep saying so after it is fixed");
         fixedSince.ShouldContain($"<a href=\"{DnsUrl}\">acme.example</a>");
+    }
+
+    [Fact]
+    public async Task A_policy_that_leaves_out_the_domains_MX_is_on_the_dashboard_and_fixed_from_the_DNS_page()
+    {
+        Connected(AllPublished);
+        _host.MtaSts.GetAsync(Arg.Any<CancellationToken>()).Returns(new MtaStsPolicy("testing", [], ["mail.server.example"]));
+
+        string dashboard = await GetAsync("/");
+        dashboard.ShouldContain("the mail server&#x27;s MTA-STS policy does not list its mail server (mail.acme.example)");
+        dashboard.ShouldContain($"href=\"{DnsUrl}#mta-sts\">Fix MTA-STS</a>");
+
+        string dns = await GetAsync(DnsUrl);
+        dns.ShouldContain("The mail server's MTA-STS policy does not list mail.acme.example</strong>");
+        dns.ShouldContain("It lists mail.server.example.");
+        dns.ShouldContain("report each delivery to the domain as a failure");
+        dns.ShouldContain("Add mail.acme.example to the policy</button>");
+
+        using HttpResponseMessage posted = await ConsoleHost.PostFormAsync(_host.ClientAs(ConsoleHost.GlobalAdmin), DnsUrl, $"{DnsUrl}?handler=MtaStsHosts", new Dictionary<string, string>());
+
+        posted.StatusCode.ShouldBe(System.Net.HttpStatusCode.Redirect);
+        await _host.MtaSts.Received(1).SetMxHostsAsync(Arg.Is<IReadOnlyList<string>>(h => h.SequenceEqual(new[] { "mail.server.example", "mail.acme.example" })), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task An_entity_admin_sees_the_missing_MX_but_no_button()
+    {
+        _host.MtaSts.GetAsync(Arg.Any<CancellationToken>()).Returns(new MtaStsPolicy("enforce", [], ["mail.server.example"]));
+
+        string dns = await GetAsync(DnsUrl, ConsoleHost.EntityAdmin);
+
+        dns.ShouldContain("refuse to deliver the domain&#x27;s mail");
+        dns.ShouldContain("Ask your Nightware operator to add the domain&#x27;s MX to the mail server&#x27;s MTA-STS policy.");
+        dns.ShouldNotContain("handler=MtaStsHosts");
+        (await GetAsync("/", ConsoleHost.EntityAdmin)).ShouldNotContain("MTA-STS policy does not list");
     }
 }

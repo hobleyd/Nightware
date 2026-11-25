@@ -33,27 +33,43 @@
         }
     </div>
 }
-@if (Model.NoTlsPolicy)
+@if (Model.NoTlsPolicy || Model.MtaSts is { NeedsHosts: true })
 {
     var policyUrl = $"https://mta-sts.{Model.Domain}/.well-known/mta-sts.txt";
+    var missing = Model.MtaSts is { NeedsHosts: true } c ? c.Missing : [];
     <div class="warning" id="mta-sts">
-        <p><strong>Senders found no MTA-STS policy for @Model.Domain</strong> in their latest <a asp-page="/Reports/Index" asp-route-domain="@Model.Domain">TLS reports</a>, so they may deliver its mail without encryption.</p>
+        @if (Model.NoTlsPolicy)
+        {
+            <p><strong>Senders found no MTA-STS policy for @Model.Domain</strong> in their latest <a asp-page="/Reports/Index" asp-route-domain="@Model.Domain">TLS reports</a>, so they may deliver its mail without encryption.</p>
+        }
+        @if (missing.Count > 0)
+        {
+            var enforced = string.Equals(Model.MtaSts!.Policy.Mode, "enforce", StringComparison.OrdinalIgnoreCase);
+            <p><strong>The mail server's MTA-STS policy does not list @string.Join(" or ", missing)</strong>, @(missing.Count == 1 ? "the MX" : "MX hosts") of @Model.Domain. It lists @string.Join(", ", Model.MtaSts.Policy.Hosts). Senders that apply the policy @(enforced ? "refuse to deliver the domain's mail" : "report each delivery to the domain as a failure (the policy is in testing mode, so they still deliver)").</p>
+            @if (Model.Actor.IsGlobal)
+            {
+                <form method="post" asp-page-handler="MtaStsHosts"><button type="submit" class="secondary">Add @string.Join(" and ", missing) to the policy</button><span class="hint">One policy serves every domain, so its other hosts stay. Its id changes, so each domain's _mta-sts record needs publishing again.</span></form>
+            }
+        }
         @if (!Model.Actor.IsGlobal)
         {
-            <p>Ask your Nightware operator to publish the domain's MTA-STS records and make its policy reachable.</p>
+            <p>Ask your Nightware operator to @(missing.Count > 0 ? "add the domain's MX to the mail server's MTA-STS policy" : "publish the domain's MTA-STS records and make its policy reachable").</p>
         }
-        else if (Model.MtaStsUnpublished)
+        else if (Model.NoTlsPolicy && Model.MtaStsUnpublished)
         {
             <p>Its MTA-STS records are not all at @Model.DnsHostName yet. Publishing the changes below adds them.</p>
         }
-        else
+        else if (Model.NoTlsPolicy && missing.Count == 0)
         {
             <p>@(Model.Entity.Entity.HasDnsToken && Model.Publication is not null
                 ? $"Its MTA-STS records are published at {Model.DnsHostName}, so the policy itself is not being served."
                 : "Publish the mta-sts and _mta-sts records below at your DNS provider if they are not there yet.")
-                Check that <a href="@policyUrl" rel="noopener noreferrer" target="_blank">@policyUrl</a> opens and lists this domain's MX. The mail server's proxy must serve mta-sts.@Model.Domain with a certificate that covers it; see "A new domain's public mail discovery" in the deployment guide.</p>
+                Check that <a href="@policyUrl" rel="noopener noreferrer" target="_blank">@policyUrl</a> opens. The mail server's proxy must serve mta-sts.@Model.Domain with a certificate that covers it; see "A new domain's public mail discovery" in the deployment guide.</p>
         }
-        <p class="hint">Reports arrive about once a day, so this stays until senders' next reports find the policy.</p>
+        @if (Model.NoTlsPolicy)
+        {
+            <p class="hint">Reports arrive about once a day, so the report warning stays until senders' next reports find the policy.</p>
+        }
     </div>
 }
 </section>

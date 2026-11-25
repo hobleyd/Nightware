@@ -627,8 +627,25 @@ Where the build refined the decisions above:
   the check when Stalwart refuses them (a deployment that has not re-run
   `configure.sh`). The domain's DNS page then says what is missing: the
   `mta-sts`/`_mta-sts` records still to publish, or, once they are published,
-  the policy host (proxy, certificate, `x:MtaSts` `mxHosts`), which the console
-  cannot change.
+  the policy host (proxy, certificate), which the console cannot change.
+- **MTA-STS policy hosts (2026-11-26).** Stalwart serves one MTA-STS policy for
+  every domain (`x:MtaSts`, a singleton). Its `mxHosts` set (a map of host to
+  `true`) overrides the `mx:` lines, which otherwise come from
+  `x:SystemSettings.mailExchangers` (a null hostname there is
+  `defaultHostname`). A served domain's MX is `mail.<domain>`, which those
+  defaults do not list. For a global administrator, `GetAttention` lists a
+  served domain whose MX the policy leaves out. The domain's DNS page shows
+  this to every admin and lets a global administrator add the host
+  (`AddDomainToMtaStsPolicy`, audited `mail.mta-sts.mx-hosts`). A policy with
+  no hosts of its own starts from the defaults, so domains already covered
+  stay covered. The write replaces the set and sends `ReloadSettings` in the
+  same request: the object reference does not say whether a reload is
+  needed. The policy id is derived from its contents, so every domain's
+  `_mta-sts` TXT changes, and the DNS page shows that as a change to publish.
+  Permissions `sysMtaStsGet` and `sysMtaStsUpdate` (from the object
+  reference) are granted by `configure.sh`. The read shape was recorded on
+  Stalwart 1.1.0. The write shape follows the documented set encoding and
+  was **not verified** against a live server.
 - **Verified end to end** on an isolated stack (Keycloak 26.8.2, Stalwart 1.1.0,
   Nextcloud 35): MFA sign-in, entity and domain creation (DNS records shown),
   linking existing users, creating a user who then signs in to NightMail and

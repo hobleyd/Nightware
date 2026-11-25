@@ -88,6 +88,7 @@
                             d.Unsafe.Count > 0 ? "its SPF lets any server send mail as it" : null,
                             d.DnsChanges > 0 ? $"{d.DnsChanges} DNS {(d.DnsChanges == 1 ? "change" : "changes")} not yet published to the DNS host" : null,
                             d.NoTlsPolicy ? "senders found no MTA-STS policy for it, so they may deliver its mail unencrypted" : null,
+                            d.MtaStsMissing.Count > 0 ? $"the mail server's MTA-STS policy does not list its mail server ({string.Join(", ", d.MtaStsMissing)})" : null,
                         }.Where(static x => x is not null))
                         @if (Model.Actor.IsGlobal && d.Unsafe.Count > 0)
                         {
@@ -103,7 +104,7 @@
                         }
                         @if (served)
                         {
-                            <a href="@Url.Page("/Entities/Dns", null, new { id = d.Entity.Id, domain = d.Domain.Domain.Name }, null, null, d.NoTlsPolicy && d.DnsChanges == 0 ? "mta-sts" : null)">@(d.DnsChanges > 0 ? "Review and publish" : d.NoTlsPolicy ? "Fix MTA-STS" : "DNS records")</a>
+                            <a href="@Url.Page("/Entities/Dns", null, new { id = d.Entity.Id, domain = d.Domain.Domain.Name }, null, null, (d.NoTlsPolicy || d.MtaStsMissing.Count > 0) && d.DnsChanges == 0 ? "mta-sts" : null)">@(d.DnsChanges > 0 ? "Review and publish" : d.NoTlsPolicy || d.MtaStsMissing.Count > 0 ? "Fix MTA-STS" : "DNS records")</a>
                         }
                         @if (d.NoTlsPolicy)
                         {

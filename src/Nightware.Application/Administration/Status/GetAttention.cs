@@ -20,6 +20,9 @@ public sealed record UserNeedingAttention(UserDetail User, UserStatus Status, En
 /// <param name="NoTlsPolicy">A sender's newest TLS report says it found no MTA-STS policy for the domain, so it would deliver without TLS.</param>
 public sealed record DomainNeedingAttention(DomainStatus Domain, Entity Entity, IReadOnlyList<MailAuthenticationWeakness> Unsafe, int DnsChanges = 0, bool NoTlsPolicy = false)
 {
+    /// <summary>The domain's MX hosts the mail server's MTA-STS policy does not list (global administrators only); empty when it lists them all.</summary>
+    public IReadOnlyList<string> MtaStsMissing { get; init; } = [];
+
     /// <summary>The mail server's side is what needs fixing (Repair), not the domain's own records.</summary>
     public bool NeedsRepair => Domain.Mail.State != LinkState.Linked || !Domain.DkimPresent;
 }
@@ -55,6 +58,8 @@ public sealed record Attention(IReadOnlyList<UserNeedingAttention> Users, IReadO
 /// its entity not checked, as does a shared mailbox or group that cannot be read. A served domain also needs attention
 /// while senders' latest TLS reports find no MTA-STS policy for it; the reports are read once, and when the mail server
 /// will not give them (an older deployment without the permission) that check is skipped, as the reports page says why.
+/// For a global administrator, a served domain whose MX host the mail server's MTA-STS policy does not list needs
+/// attention too (adding it is theirs alone); a policy or records that cannot be read skip that check the same way.
 /// </summary>
 public sealed class GetAttention(
     IAdminActor actor,
@@ -66,7 +71,9 @@ public sealed class GetAttention(
     GetSharedMailbox getMailbox,
     ListGroups listGroups,
     GetGroup getGroup,
-    IMailReports reports)
+    IMailReports reports,
+    GetEntityDnsRecords dnsRecords,
+    IMtaStsPolicies mtaSts)
 {
     public async Task<Result<Attention>> ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -83,6 +90,7 @@ public sealed class GetAttention(
         var notChecked = new List<Entity>();
         var userCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         MailReports? held = null;
+        Result<MtaStsPolicy>? policy = null;
         foreach (Entity entity in manageable.Value)
         {
             Result<EntityDetail> detail = await getEntity.ExecuteAsync(entity.Id, cancellationToken).ConfigureAwait(false);
@@ -115,8 +123,15 @@ public sealed class GetAttention(
                         noTlsPolicy = DomainReportSummary.For(d.Domain.Name, held).LatestFoundNoTlsPolicy;
                     }
 
-                    var domain = new DomainNeedingAttention(d, entity, UnsafeIn(detail.Value.Entity.MailPolicyFor(d.Domain)), dnsChanges ?? 0, noTlsPolicy);
-                    if (domain.NeedsRepair || domain.Unsafe.Count > 0 || domain.DnsChanges > 0 || domain.NoTlsPolicy)
+                    IReadOnlyList<string> mtaStsMissing = [];
+                    if (actor.Current.IsGlobal && d.Mail.State == LinkState.Linked)
+                    {
+                        policy ??= await mtaSts.GetAsync(cancellationToken).ConfigureAwait(false);
+                        mtaStsMissing = await MtaStsMissingAsync(entity, d, policy.GetValueOrDefault(), cancellationToken).ConfigureAwait(false);
+                    }
+
+                    var domain = new DomainNeedingAttention(d, entity, UnsafeIn(detail.Value.Entity.MailPolicyFor(d.Domain)), dnsChanges ?? 0, noTlsPolicy) { MtaStsMissing = mtaStsMissing };
+                    if (domain.NeedsRepair || domain.Unsafe.Count > 0 || domain.DnsChanges > 0 || domain.NoTlsPolicy || domain.MtaStsMissing.Count > 0)
                     {
                         domains.Add(domain);
                     }
@@ -210,6 +225,18 @@ public sealed class GetAttention(
 
         Result<DnsPublicationPreview> preview = await planPublication.ExecuteAsync(entity.Id, domain.Domain.Name, cancellationToken).ConfigureAwait(false);
         return preview.IsSuccess ? preview.Value.Plan.Changes.Count(static c => c.IsWrite) : null;
+    }
+
+    /// <summary>The domain's MX hosts a served policy leaves out; none when there is no policy, or it or the records cannot be read.</summary>
+    private async Task<IReadOnlyList<string>> MtaStsMissingAsync(Entity entity, DomainStatus domain, Result<MtaStsPolicy> policy, CancellationToken cancellationToken)
+    {
+        if (!policy.IsSuccess || policy.Value.IsDisabled)
+        {
+            return [];
+        }
+
+        Result<DomainDns> records = await dnsRecords.ExecuteAsync(entity.Id, domain.Domain.Name, cancellationToken).ConfigureAwait(false);
+        return records.IsSuccess ? policy.Value.Missing(MtaStsPolicy.MxHostsIn(records.Value.Records)) : [];
     }
 
     /// <summary>The DMARC and TLS reports the mail server holds; none when it cannot or will not give them.</summary>

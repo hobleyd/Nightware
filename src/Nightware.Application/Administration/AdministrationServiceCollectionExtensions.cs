@@ -46,6 +46,8 @@ public static class AdministrationServiceCollectionExtensions
         services.TryAddScoped<AccessHistoryRecorder>();
         services.TryAddScoped<SuggestMailAuthentication>();
         services.TryAddScoped<PublishDnsRecords>();
+        services.TryAddScoped<GetMtaStsCoverage>();
+        services.TryAddScoped<AddDomainToMtaStsPolicy>();
         services.TryAddScoped<ListEntityAdmins>();
         services.TryAddScoped<GrantEntityAdmin>();
         services.TryAddScoped<RevokeEntityAdmin>();

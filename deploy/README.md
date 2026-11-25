@@ -356,10 +356,14 @@ output: anything they cannot do is printed as a WARNING.
      file, so `mail.<domain>` needs it too.
   3. Make Stalwart's MTA-STS policy list the domain's MX. With `x:MtaSts`
      `mxHosts` empty (the default), the policy's only `mx:` is Stalwart's
-     hostname, `mail.<MAIL_DOMAIN>`. Add `mail.<domain>` to `mxHosts`, or point
-     the domain's MX at that hostname. A missing MX is harmless while `mode`
-     is `testing` (failures only show in TLS reports), but under `enforce`
-     senders refuse to deliver.
+     hostname, `mail.<MAIL_DOMAIN>`. The dashboard lists a domain whose MX the
+     policy leaves out, and the domain's DNS page adds it ("Add mail.<domain>
+     to the policy"; it keeps the hosts the policy already served). The
+     policy's id changes with it, so publish every domain's `_mta-sts` record
+     again afterwards. A missing MX is harmless while `mode` is `testing`
+     (failures only show in TLS reports), but under `enforce` senders refuse
+     to deliver. The console needs `sysMtaStsGet` and `sysMtaStsUpdate`, which
+     `stalwart/configure.sh` grants; re-run it on an existing deployment.
   4. Run `scripts/verify-mail-discovery.sh <domain>` in the ansible repo.
   DMARC and TLS reports need nothing per domain: the console publishes
   `rua=mailto:postmaster@<domain>`, Stalwart analyses `postmaster@*`, and the
