@@ -140,6 +140,19 @@ what a fix needs. Ordered by impact within each section.
   user page ("Profile"). `keycloak/configure.sh` declares their attributes;
   until it has run on a stack they are null.
 
+### Chat and channel change notifications (phase 29, ADR 0009 D11)
+- **`getAllMessages` reads every chat each poll.** Talk doesn't move a room's
+  last message on an edit or delete, so the room list can't say which chats
+  changed: one request per chat per `Subscriptions:PollInterval`.
+- **A chat's `updated` is its topic only.** Member changes come through
+  `chats/{id}/members`; Graph's chat `updated` may also fire for other chat
+  properties.
+- **A deleted chat, or one the subscriber left, fails each poll** (backing off
+  to an hour) until the subscription expires; no `subscriptionRemoved` is sent.
+- **Reply resources are constructed** (`…/messages('{post}')/replies('{id}')`):
+  Graph's page shows none. A soft delete is `deleted`, which Graph doesn't
+  document either.
+
 ### Change stream (ADR 0007)
 - A signal is up to `ChangeStream:PollInterval` (10 s) late: it polls backend
   state rather than following Stalwart's JMAP push.

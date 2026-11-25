@@ -340,12 +340,12 @@ TODO = [
 
 # ---------------------------------------------------------------- phase 16
 
-def subscription(op, resource, var):
+def subscription(op, resource, var, expiry="${expiry1h}"):
     return step(op, "POST", "/v1.0/subscriptions", requires="notification_url", body={
         "changeType": "created,updated,deleted",
         "notificationUrl": "${notificationUrl}",
         "resource": resource,
-        "expirationDateTime": "${expiry1h}",
+        "expirationDateTime": expiry,
         "clientState": "${clientState}",
     }, save={var: "id"})
 
@@ -627,6 +627,22 @@ CHAT_SEARCH = [
          body={"requests": [{"entityTypes": ["chatMessage"], "query": {"queryString": "meeting"}, "from": 0, "size": 25}]}),
 ]
 
+# Phase 29: change notifications for Teams resources (ADR 0009 D11). The tenant's first chat (and the
+# signed-in user's first joined team's first channel) are subscribed to, under an hour so no lifecycle URL is needed.
+TEAMS_NOTIFICATIONS = [
+    setup("GET", "/v1.0/me/chats", query={"$top": "1"}, requires="notification_url", save={"chatId": "value[0].id"}),
+    setup("GET", "/v1.0/me/joinedTeams", requires="notification_url", save={"teamId": "value[0].id"}),
+    setup("GET", "/v1.0/teams/${teamId}/primaryChannel", requires="notification_url", save={"channelId": "id"}),
+    subscription("subscriptions.create-chat-messages", "chats/${chatId}/messages", "subChatMsgId", "${expiry50m}"),
+    subscription("subscriptions.create-channel-messages", "teams/${teamId}/channels/${channelId}/messages", "subChannelMsgId", "${expiry50m}"),
+    subscription("subscriptions.create-chats", "me/chats", "subChatsId", "${expiry50m}"),
+    subscription("subscriptions.create-chat-members", "chats/${chatId}/members", "subMembersId", "${expiry50m}"),
+    setup("DELETE", "/v1.0/subscriptions/${subChatMsgId}", always=True),
+    setup("DELETE", "/v1.0/subscriptions/${subChannelMsgId}", always=True),
+    setup("DELETE", "/v1.0/subscriptions/${subChatsId}", always=True),
+    setup("DELETE", "/v1.0/subscriptions/${subMembersId}", always=True),
+]
+
 PHASES = {
     11: [("batch", BATCH)],
     12: [("mail", MAIL)],
@@ -640,4 +656,5 @@ PHASES = {
     21: [("directory", DIRECTORY)],
     27: [("drive more", DRIVE_MORE)],
     28: [("chat search", CHAT_SEARCH)],
+    29: [("teams notifications", TEAMS_NOTIFICATIONS)],
 }

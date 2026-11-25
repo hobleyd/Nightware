@@ -238,4 +238,62 @@ public sealed class SubscriptionLiveTests : IAsyncLifetime
             }
         }
     }
+
+    [Fact]
+    public async Task Chat_messages_are_notified_as_created_updated_and_deleted_with_resources_that_resolve()
+    {
+        Assert.SkipUnless(DevStack.Enabled, "Live integration tests run only with NIGHTWARE_INTEGRATION=1.");
+        var alice = await _stack!.GraphClientAsync("alice", Ct);
+        var bob = await _stack!.GraphClientAsync("bob", Ct);
+        static string Id(JsonObject node) => node["id"]!.GetValue<string>();
+        var aliceId = Id(await SendAsync(alice, HttpMethod.Get, $"/v1.0/users/{Uri.EscapeDataString(DevStack.Address("alice"))}"));
+        var bobId = Id(await SendAsync(alice, HttpMethod.Get, $"/v1.0/users/{Uri.EscapeDataString(DevStack.Address("bob"))}"));
+        static string Bind(string id) => $$"""{"@odata.type":"#microsoft.graph.aadUserConversationMember","roles":["owner"],"user@odata.bind":"https://graph.microsoft.com/v1.0/users('{{id}}')"}""";
+        var chatId = Id(await SendAsync(alice, HttpMethod.Post, "/v1.0/chats",
+            $$"""{"chatType":"oneOnOne","members":[{{Bind(aliceId)}},{{Bind(bobId)}}]}""", HttpStatusCode.Created));
+
+        // An hour or less needs no lifecycle URL; past it, Graph (and Nightware) wants one.
+        var expiry = DateTimeOffset.UtcNow.AddMinutes(59);
+        (await SendAsync(bob, HttpMethod.Post, "/v1.0/subscriptions", $$"""
+            {"changeType":"created","notificationUrl":"{{_receiver!.NotifyUrl}}","resource":"chats/{{chatId}}/messages","expirationDateTime":"{{DateTimeOffset.UtcNow.AddHours(2):O}}"}
+            """, HttpStatusCode.BadRequest))["error"]!["message"]!.GetValue<string>().ShouldContain("lifecycleNotificationUrl");
+        var subscriptions = new Dictionary<string, string>();
+        foreach (var resource in new[] { $"chats/{chatId}/messages", "me/chats/getAllMessages" })
+        {
+            var created = await SendAsync(bob, HttpMethod.Post, "/v1.0/subscriptions", $$"""
+                {"changeType":"created,updated,deleted","notificationUrl":"{{_receiver!.NotifyUrl}}","resource":"{{resource}}","expirationDateTime":"{{expiry:O}}"}
+                """, HttpStatusCode.Created);
+            subscriptions[resource] = Id(created);
+        }
+
+        try
+        {
+            var messageId = Id(await SendAsync(alice, HttpMethod.Post, $"/v1.0/chats/{chatId}/messages",
+                """{"body":{"contentType":"text","content":"Notify me"}}""", HttpStatusCode.Created));
+
+            foreach (var subscription in subscriptions.Values)
+            {
+                var created = (await WaitForAsync(subscription, messageId, "created")).ShouldNotBeNull("a created notification");
+                created["resource"]!.GetValue<string>().ShouldBe($"chats('{chatId}')/messages('{messageId}')");
+                created["resourceData"]!["@odata.type"]!.GetValue<string>().ShouldBe("#Microsoft.Graph.chatMessage");
+            }
+
+            // The resource reads the message over Graph, as bob.
+            (await SendAsync(bob, HttpMethod.Get, $"/v1.0/chats('{chatId}')/messages('{messageId}')"))["body"]!["content"]!.GetValue<string>().ShouldContain("Notify me");
+
+            await SendAsync(alice, HttpMethod.Patch, $"/v1.0/chats/{chatId}/messages/{messageId}",
+                """{"body":{"contentType":"text","content":"Notify me (edited)"}}""", HttpStatusCode.NoContent);
+            (await WaitForAsync(subscriptions[$"chats/{chatId}/messages"], messageId, "updated")).ShouldNotBeNull("an edit is an update");
+
+            await SendAsync(alice, HttpMethod.Post, $"/v1.0/me/chats/{chatId}/messages/{messageId}/softDelete", expected: HttpStatusCode.NoContent);
+            (await WaitForAsync(subscriptions["me/chats/getAllMessages"], messageId, "deleted")).ShouldNotBeNull("a delete");
+        }
+        finally
+        {
+            foreach (var id in subscriptions.Values)
+            {
+                await SendAsync(bob, HttpMethod.Delete, $"/v1.0/subscriptions/{id}", expected: HttpStatusCode.NoContent);
+            }
+        }
+    }
 }

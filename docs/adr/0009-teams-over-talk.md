@@ -389,6 +389,53 @@ chat and channel messages over Talk's unified search provider `talk-message`
   Graph. `driveItem` (ADR 0008) stays its own request, and other types are
   `400 notSupported`.
 
+### D11 — Change notifications for chats and channels
+*Added (phase 29, 2026-11-25).* `POST /subscriptions` takes Graph's delegated
+Teams resources, on the façade's subscription store and poller (ADR 0006 D10):
+
+| Resource | Notifies |
+|---|---|
+| `chats/{id}/messages` | one chat's messages |
+| `{me\|users/{id}}/chats/getAllMessages` | every chat's messages |
+| `teams/{id}/channels/{id}/messages` | one channel's posts and replies |
+| `{me\|users/{id}}/chats` | chats that appear (`created`), group chat topic changes (`updated`) |
+| `chats/{id}` | its topic changing (`updated`) |
+| `chats/{id}/members` | joins (`created`) and leaves (`deleted`) |
+
+- Ids may be segments or Graph's key form (`chats('{id}')`). A named user must be
+  the caller: Graph has these resources delegated for the signed-in user only, and
+  the tenant-wide ones (`chats`, `chats/getAllMessages`, `teams/getAllMessages`) are
+  application-only, so they are refused. A channel's room isn't a chat here (D3).
+  Query options on the resource (`$filter`, `$search`,
+  `notifyOnUserSpecificProperties`) are 400, and so is `includeResourceData`.
+- Lifetimes are Graph's for Teams: at most 4,320 minutes, and past one hour a
+  `lifecycleNotificationUrl` is required, on create and on renewal.
+- Messages follow each room's chat after the last message id seen
+  (`lookIntoFuture=1`, `timeout=0`, read markers and notifications left alone).
+  Talk's ids only grow, so a listed message past the cursor is `created`; Talk's
+  system message about another message names its parent: `message_deleted` is
+  `deleted`, an edit, reaction or thread rename `updated`. A subscription starts
+  at the room's newest message, so nothing that exists is announced and the
+  subscription keeps no item set. Talk doesn't move a room's last message on an
+  edit or delete, so `getAllMessages` reads every chat each poll (at most 500
+  messages per room per poll). A chat that appears later is read back to the
+  previous poll's time, which the state keeps, so a retried delivery is the same.
+- Chats and members are compared with a snapshot in the state: topics (a group
+  chat's name; a one-on-one chat has none) and membership ids.
+- Notifications name `chats('{id}')/messages('{id}')`,
+  `teams('{id}')/channels('{id}')/messages('{id}')` and, for a reply,
+  `…/messages('{post}')/replies('{id}')` (Graph's page shows no reply resource:
+  this is the form the façade reads), with `@odata.type`
+  `#Microsoft.Graph.chatMessage`; `chats('{id}')` with `#microsoft.graph.chat`;
+  `chats('{id}')/members('{id}')` with
+  `#microsoft.graph.aadUserConversationMember`. The façade routes these key
+  forms (`ChatKeySegmentMiddleware`), so a resource reads back as given. A Teams
+  soft delete's change type isn't documented; `deleted` is used.
+- A chat or channel that is gone, or that the subscriber has left, fails each
+  poll (backing off to an hour) until the subscription expires.
+- Not included: rich notifications (resource data), `sendActivityNotification`
+  (the Teams activity feed) and the tenant-wide resources.
+
 ## Consequences
 - The contract gains phases 23–26, with every fixture constructed from
   Microsoft's reference pages, as phase 20's were. Capture scenarios need a

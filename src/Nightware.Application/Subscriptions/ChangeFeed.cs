@@ -8,10 +8,18 @@ using Nightware.Domain.Subscriptions;
 namespace Nightware.Application.Subscriptions;
 
 /// <summary>One change to report: the item's Graph id and what happened to it.</summary>
-public sealed record ResourceChange(string Id, SubscriptionChangeType ChangeType);
+public sealed record ResourceChange(string Id, SubscriptionChangeType ChangeType)
+{
+    /// <summary>The notification's <c>resource</c> when the feed names it (Teams resources); null to derive it from the subscription.</summary>
+    public string? Resource { get; init; }
+
+    /// <summary>The <c>resourceData</c> <c>@odata.type</c> that goes with <see cref="Resource"/>.</summary>
+    public string? ODataType { get; init; }
+}
 
 /// <summary>A page of changes and the state to resume from once they have been delivered.</summary>
-public sealed record ChangeBatch(IReadOnlyList<ResourceChange> Changes, string State);
+/// <param name="Classified">The feed knows created from updated itself, so the notifier keeps its change types as they are.</param>
+public sealed record ChangeBatch(IReadOnlyList<ResourceChange> Changes, string State, bool Classified = false);
 
 /// <summary>The state as of now, and the ids of the items that exist at it (what a subscription starts out knowing).</summary>
 public sealed record FeedBaseline(string State, IReadOnlyList<string> Ids);
@@ -26,13 +34,26 @@ public interface IEventChangeFeed
 }
 
 /// <summary>
+/// Changes to Microsoft Teams resources (ADR 0009 D11): chat and channel messages, chats and chat members. The feed
+/// starts at "now" rather than listing what exists, and its batches are <see cref="ChangeBatch.Classified"/>. Starting
+/// checks the resource is the subscriber's (NotFound otherwise).
+/// </summary>
+public interface ITeamsChangeFeed
+{
+    Task<Result<string>> StartAsync(SubscriptionTarget target, CancellationToken cancellationToken);
+
+    Task<Result<ChangeBatch>> ChangesAsync(SubscriptionTarget target, string state, CancellationToken cancellationToken);
+}
+
+/// <summary>
 /// What changed in a subscription's resource since its state, over the same delta ports clients use. Delta does not
 /// say whether an item is new, so an item created after the previous poll (less <see cref="CreatedTolerance"/>) is
 /// reported as created and any other as updated. That guess stands only for subscriptions the notifier does not
 /// track (<see cref="ISubscriptionItems"/>); tracked ones are classified by the items they have seen. Runs as the
 /// subscriber: in a request, or in the notifier's scope.
 /// </summary>
-public sealed class ChangeFeed(IMailDeltaReader mail, IContactFolderStore contactFolders, IContactDelta contacts, ITaskDelta tasks, IEventChangeFeed events)
+public sealed class ChangeFeed(
+    IMailDeltaReader mail, IContactFolderStore contactFolders, IContactDelta contacts, ITaskDelta tasks, IEventChangeFeed events, ITeamsChangeFeed? teams = null)
 {
     /// <summary>
     /// Backends keep whole seconds (Stalwart's receivedAt) and their clocks may differ slightly from this host's, so
@@ -51,6 +72,17 @@ public sealed class ChangeFeed(IMailDeltaReader mail, IContactFolderStore contac
             return await events.BaselineAsync(target.Mailbox, cancellationToken).ConfigureAwait(false);
         }
 
+        if (target.Kind.IsTeams())
+        {
+            if (teams is null)
+            {
+                return NoTeams();
+            }
+
+            var started = await teams.StartAsync(target, cancellationToken).ConfigureAwait(false);
+            return started.IsSuccess ? new FeedBaseline(started.Value, []) : started.Error;
+        }
+
         // An initial delta lists every item once, as an upsert.
         var batch = await DrainAsync(target, null, DateTimeOffset.MaxValue, cancellationToken).ConfigureAwait(false);
         return batch.IsSuccess
@@ -62,10 +94,17 @@ public sealed class ChangeFeed(IMailDeltaReader mail, IContactFolderStore contac
     {
         ArgumentNullException.ThrowIfNull(target);
         ArgumentNullException.ThrowIfNull(state);
+        if (target.Kind.IsTeams())
+        {
+            return teams is null ? Task.FromResult<Result<ChangeBatch>>(NoTeams()) : teams.ChangesAsync(target, state, cancellationToken);
+        }
+
         return target.Kind == SubscriptionResourceKind.Events
             ? events.ChangesAsync(target.Mailbox, state, since, cancellationToken)
             : DrainAsync(target, new DeltaToken(state), since, cancellationToken);
     }
+
+    private static Error NoTeams() => Error.Unsupported("Change notifications for chats and channels need Talk, which isn't configured.");
 
     /// <summary>The folder a mail subscription names: a well-known name (<c>Inbox</c>) or an id.</summary>
     public static FolderRef MailFolder(string folder) =>

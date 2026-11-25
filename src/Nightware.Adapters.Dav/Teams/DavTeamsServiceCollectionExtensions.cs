@@ -21,6 +21,7 @@ internal static class DavTeamsServiceCollectionExtensions
         services.TryAddScoped<ITeamMembers, NextcloudTeamMembers>();
         services.TryAddScoped<IChannelStore>(static sp => sp.GetRequiredService<TalkChannelStore>());
         services.TryAddScoped<IChannelMessages, TalkChannelMessages>();
+        services.TryAddScoped<Application.Subscriptions.ITeamsChangeFeed, Chats.TalkChangeFeed>();
         return services;
     }
 }

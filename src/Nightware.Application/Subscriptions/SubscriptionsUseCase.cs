@@ -34,9 +34,16 @@ public sealed partial class SubscriptionsUseCase(
 
     public const int MaxClientStateLength = 128;
 
+    /// <summary>Past this, a Teams subscription needs a <c>lifecycleNotificationUrl</c>, as Graph's does.</summary>
+    public static readonly TimeSpan TeamsWithoutLifecycle = TimeSpan.FromHours(1);
+
     /// <summary>Graph's maximum lifetime per resource (subscription resource type, "Subscription lifetime").</summary>
-    public static TimeSpan MaximumLifetime(SubscriptionResourceKind kind) =>
-        kind == SubscriptionResourceKind.Tasks ? TimeSpan.FromMinutes(4230) : TimeSpan.FromMinutes(10080);
+    public static TimeSpan MaximumLifetime(SubscriptionResourceKind kind) => kind switch
+    {
+        SubscriptionResourceKind.Tasks => TimeSpan.FromMinutes(4230),
+        _ when kind.IsTeams() => TimeSpan.FromMinutes(4320),
+        _ => TimeSpan.FromMinutes(10080),
+    };
 
     public async Task<Result<Subscription>> CreateAsync(SubscriptionRequest request, CancellationToken cancellationToken)
     {
@@ -81,7 +88,7 @@ public sealed partial class SubscriptionsUseCase(
             return Error.Validation($"clientState may have at most {MaxClientStateLength} characters.", "clientState");
         }
 
-        var expiry = Expiry(request.ExpirationDateTime, target.Value.Kind);
+        var expiry = Expiry(request.ExpirationDateTime, target.Value.Kind, lifecycle is not null);
         if (!expiry.IsSuccess)
         {
             return expiry.Error;
@@ -124,7 +131,7 @@ public sealed partial class SubscriptionsUseCase(
             SyncState = baseline.Value.State,
         };
         var created = await store.CreateAsync(subscription, credential.Value, cancellationToken).ConfigureAwait(false);
-        if (created.IsSuccess)
+        if (created.IsSuccess && !target.Value.Kind.IsTeams())
         {
             // Best effort: untracked, the subscription falls back to the feed's own created/updated guess.
             await items.ReplaceAsync(subscription.Id, baseline.Value.Ids, cancellationToken).ConfigureAwait(false);
@@ -155,7 +162,7 @@ public sealed partial class SubscriptionsUseCase(
         var updated = existing.Value;
         if (patch.ExpirationDateTime is { } wanted)
         {
-            var expiry = Expiry(wanted, updated.Target.Kind);
+            var expiry = Expiry(wanted, updated.Target.Kind, updated.LifecycleNotificationUrl is not null);
             if (!expiry.IsSuccess)
             {
                 return expiry.Error;
@@ -189,7 +196,7 @@ public sealed partial class SubscriptionsUseCase(
     public Task<Result> DeleteAsync(string id, CancellationToken cancellationToken) =>
         store.DeleteAsync(caller.Principal.Id, id, cancellationToken);
 
-    private Result<DateTimeOffset> Expiry(DateTimeOffset? wanted, SubscriptionResourceKind kind)
+    private Result<DateTimeOffset> Expiry(DateTimeOffset? wanted, SubscriptionResourceKind kind, bool hasLifecycleUrl)
     {
         if (wanted is not { } value)
         {
@@ -201,6 +208,13 @@ public sealed partial class SubscriptionsUseCase(
         if (value > now + max)
         {
             return Error.Validation($"Subscription expiration can only be {max.TotalMinutes} minutes in the future.", "expirationDateTime");
+        }
+
+        if (kind.IsTeams() && !hasLifecycleUrl && value > now + TeamsWithoutLifecycle)
+        {
+            return Error.Validation(
+                "lifecycleNotificationUrl is a required property for subscription creation on this resource when the expirationDateTime value is set to greater than 1 hour.",
+                "lifecycleNotificationUrl");
         }
 
         return value < now + MinimumLifetime ? now + MinimumLifetime : value;
@@ -233,7 +247,19 @@ public sealed partial class SubscriptionsUseCase(
     /// </summary>
     internal async Task<Result<SubscriptionTarget>> ParseResourceAsync(string? resource, CancellationToken cancellationToken)
     {
-        var match = ResourcePattern().Match((resource ?? string.Empty).Trim().Trim('/'));
+        var path = (resource ?? string.Empty).Trim().Trim('/');
+        if (path.Contains('?', StringComparison.Ordinal))
+        {
+            return Error.Validation("Query options on a subscription's resource ($filter, $search, notifyOnUserSpecificProperties) are not supported.", "resource");
+        }
+
+        var teams = TeamsResource(path);
+        if (teams.Kind is { } teamsKind)
+        {
+            return await TeamsTargetAsync(teamsKind, teams.User, teams.Folder, cancellationToken).ConfigureAwait(false);
+        }
+
+        var match = ResourcePattern().Match(path);
         if (!match.Success)
         {
             return Error.Validation($"Resource '{resource}' does not support change notifications here.", "resource");
@@ -258,6 +284,71 @@ public sealed partial class SubscriptionsUseCase(
             _ => new SubscriptionTarget(mailbox.Value, SubscriptionResourceKind.Tasks, list),
         };
     }
+
+    /// <summary>
+    /// The Teams resources (ADR 0009 D11): <c>chats/{id}/messages</c>, <c>{me|users/{id}}/chats/getAllMessages</c>,
+    /// <c>teams/{id}/channels/{id}/messages</c>, <c>{me|users/{id}}/chats</c>, <c>chats/{id}</c> and
+    /// <c>chats/{id}/members</c>, with ids as segments or <c>('…')</c>; null kind for anything else.
+    /// </summary>
+    internal static (SubscriptionResourceKind? Kind, string? User, string? Folder) TeamsResource(string path)
+    {
+        static string Id(Match m, string group) => Uri.UnescapeDataString(m.Groups[group].Value);
+        if (ChatPattern().Match(path) is { Success: true } chat)
+        {
+            var kind = chat.Groups["part"].Value.ToUpperInvariant() switch
+            {
+                "MESSAGES" => SubscriptionResourceKind.ChatMessages,
+                "MEMBERS" => SubscriptionResourceKind.ChatMembers,
+                _ => SubscriptionResourceKind.Chat,
+            };
+            return (kind, null, Id(chat, "chat"));
+        }
+
+        if (UserChatsPattern().Match(path) is { Success: true } user)
+        {
+            var kind = user.Groups["all"].Success ? SubscriptionResourceKind.AllChatMessages : SubscriptionResourceKind.Chats;
+            return (kind, user.Groups["user"].Success ? Id(user, "user") : null, null);
+        }
+
+        return ChannelPattern().Match(path) is { Success: true } channel
+            ? (SubscriptionResourceKind.ChannelMessages, null, Id(channel, "team") + "/" + Id(channel, "channel"))
+            : (null, null, null);
+    }
+
+    /// <summary>A Teams target: delegated only, so a named user must be the caller.</summary>
+    private async Task<Result<SubscriptionTarget>> TeamsTargetAsync(SubscriptionResourceKind kind, string? user, string? folder, CancellationToken cancellationToken)
+    {
+        var own = await mailboxes.ResolveAsync(null, cancellationToken).ConfigureAwait(false);
+        if (!own.IsSuccess)
+        {
+            return own.Error;
+        }
+
+        if (user is not null)
+        {
+            var named = await mailboxes.ResolveAsync(user, cancellationToken).ConfigureAwait(false);
+            if (!named.IsSuccess)
+            {
+                return named.Error;
+            }
+
+            if (!string.Equals(named.Value.Address, own.Value.Address, StringComparison.OrdinalIgnoreCase))
+            {
+                return Error.Forbidden("Chat change notifications are only for the signed-in user's own chats.");
+            }
+        }
+
+        return new SubscriptionTarget(own.Value, kind, folder);
+    }
+
+    [GeneratedRegex(@"^chats(?!/getAll|\('getAll)(?:\('(?<chat>[^'/]+)'\)|/(?<chat>[^/()']+))(?:/(?<part>messages|members))?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex ChatPattern();
+
+    [GeneratedRegex(@"^(?:me|users/(?<user>[^/]+))/chats(?<all>/getAllMessages)?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex UserChatsPattern();
+
+    [GeneratedRegex(@"^teams(?:\('(?<team>[^'/]+)'\)|/(?<team>[^/()']+))/channels(?:\('(?<channel>[^'/]+)'\)|/(?<channel>[^/()']+))/messages$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex ChannelPattern();
 
     [GeneratedRegex(@"^(?:me|users/(?<user>[^/]+))/(?:mailFolders(?:\('(?<folder>[^']+)'\)|/(?<folder>[^/]+))/(?<kind>messages)|(?<kind>messages|events|contacts)|todo/lists/(?<list>[^/]+)/(?<kind>tasks))$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex ResourcePattern();

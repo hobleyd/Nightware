@@ -34,6 +34,12 @@ internal static partial class TalkMessageCodec
     public const string CallEndedEveryone = "call_ended_everyone";
     public const string MessageDeleted = "message_deleted";
 
+    /// <summary>System messages about another message (their parent), which a delta or a change feed re-reports.</summary>
+    public static readonly IReadOnlySet<string> ChangesToParent = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "message_edited", MessageDeleted, "thread_renamed", "reaction", "reaction_revoked", "reaction_deleted",
+    };
+
     private static readonly HashSet<string> ReportedSystemMessages = new(StringComparer.Ordinal)
     {
         UserAdded, UserRemoved, ConversationRenamed, CallEnded, CallEndedEveryone,

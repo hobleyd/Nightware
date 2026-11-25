@@ -137,6 +137,8 @@ public static class NightwareComposition
 
         // Graph's drive path addressing (root:/a/b:) can't be routed; it is rewritten to an internal segment first.
         app.UseMiddleware<DrivePathRewriteMiddleware>();
+        // Graph's key form for chats and channels (chats('x')/messages('y')), as change notifications name them.
+        app.UseMiddleware<Features.Chats.ChatKeySegmentMiddleware>();
         app.UseRouting();
         app.UseCors();
         app.UseMiddleware<RequestBodyLimitMiddleware>();

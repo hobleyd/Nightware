@@ -6977,6 +6977,198 @@
     "notes": "The façade's subscription store (ADR 0006 D10). Validates as Graph does (45-minute minimum; 10080 minutes for messages, events and contacts, 4230 for tasks), runs the validationToken handshake (10 s), and keeps a sealed same-session refresh token for the caller. includeResourceData is 400. 501 when the store is not configured. {mailbox}/todo/lists/{id}/tasks."
   },
   {
+    "id": "subscriptions.create-chat-messages",
+    "phase": 29,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "subscriptions",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "resource",
+        "changeType",
+        "notificationUrl",
+        "expirationDateTime",
+        "clientState",
+        "lifecycleNotificationUrl"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "resource",
+      "applicationId",
+      "changeType",
+      "clientState",
+      "notificationUrl",
+      "lifecycleNotificationUrl",
+      "expirationDateTime",
+      "creatorId"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/teams-changenotifications-chatmessage",
+    "notes": "Teams change notifications (ADR 0009 D11) for chats/{id}/messages (one chat) and {me|users/{id}}/chats/getAllMessages (every chat of the caller's; the user must be the caller). Delegated only; channels' rooms are not chats here. Up to 4320 minutes; past 1 hour lifecycleNotificationUrl is required (on renewal too). Notifications name chats('{id}')/messages('{id}') with @odata.type #Microsoft.Graph.chatMessage: created for a new message, updated for an edit or reaction, deleted for a delete. Query options on the resource ($filter, $search) are 400; includeResourceData is 400."
+  },
+  {
+    "id": "subscriptions.create-channel-messages",
+    "phase": 29,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "subscriptions",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "resource",
+        "changeType",
+        "notificationUrl",
+        "expirationDateTime",
+        "clientState",
+        "lifecycleNotificationUrl"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "resource",
+      "applicationId",
+      "changeType",
+      "clientState",
+      "notificationUrl",
+      "lifecycleNotificationUrl",
+      "expirationDateTime",
+      "creatorId"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/teams-changenotifications-chatmessage",
+    "notes": "Teams change notifications (ADR 0009 D11) for teams/{id}/channels/{id}/messages: posts and replies in one channel the caller is in. Up to 4320 minutes; past 1 hour lifecycleNotificationUrl is required. A post is teams('{id}')/channels('{id}')/messages('{id}'), a reply \u2026/messages('{post}')/replies('{id}') (constructed: Graph's page shows no reply resource); created, updated (edit, reaction, thread rename) and deleted."
+  },
+  {
+    "id": "subscriptions.create-chats",
+    "phase": 29,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "subscriptions",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "resource",
+        "changeType",
+        "notificationUrl",
+        "expirationDateTime",
+        "clientState",
+        "lifecycleNotificationUrl"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "resource",
+      "applicationId",
+      "changeType",
+      "clientState",
+      "notificationUrl",
+      "lifecycleNotificationUrl",
+      "expirationDateTime",
+      "creatorId"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/teams-changenotifications-chat",
+    "notes": "Teams change notifications (ADR 0009 D11) for {me|users/{id}}/chats (created when a chat appears, updated when a group chat's topic changes) and chats/{id} (updated on a topic change). Resource chats('{id}'), @odata.type #microsoft.graph.chat. Up to 4320 minutes; past 1 hour lifecycleNotificationUrl is required. notifyOnUserSpecificProperties is 400."
+  },
+  {
+    "id": "subscriptions.create-chat-members",
+    "phase": 29,
+    "method": "POST",
+    "version": "v1.0",
+    "path": "subscriptions",
+    "forms": [
+      "root"
+    ],
+    "query": {
+      "select": [],
+      "filter": [],
+      "orderby": [],
+      "top": [],
+      "search": [],
+      "expand": [],
+      "other": {}
+    },
+    "headers": {},
+    "requestBody": {
+      "fields": [
+        "resource",
+        "changeType",
+        "notificationUrl",
+        "expirationDateTime",
+        "clientState",
+        "lifecycleNotificationUrl"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "resource",
+      "applicationId",
+      "changeType",
+      "clientState",
+      "notificationUrl",
+      "lifecycleNotificationUrl",
+      "expirationDateTime",
+      "creatorId"
+    ],
+    "successStatus": 201,
+    "paging": "none",
+    "clientErrorHandling": "",
+    "clientCallSites": [],
+    "source": "graph-parity",
+    "docs": "https://learn.microsoft.com/graph/teams-changenotifications-chatmembership",
+    "notes": "Teams change notifications (ADR 0009 D11) for chats/{id}/members: created when someone joins, deleted when they leave. Resource chats('{id}')/members('{membershipId}'), @odata.type #microsoft.graph.aadUserConversationMember. Up to 4320 minutes; past 1 hour lifecycleNotificationUrl is required."
+  },
+  {
     "id": "subscriptions.list",
     "phase": 16,
     "method": "GET",

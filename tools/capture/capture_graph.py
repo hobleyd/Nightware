@@ -537,6 +537,8 @@ def time_vars(run: Run) -> None:
         "windowStart": now.strftime(fmt),
         "windowEnd": (now + timedelta(days=35)).strftime(fmt),
         "expiry1h": (now + timedelta(hours=1)).strftime(fmt) + "Z",
+        # Teams subscriptions past an hour need a lifecycle URL; this stays under it.
+        "expiry50m": (now + timedelta(minutes=50)).strftime(fmt) + "Z",
         "expiry2h": (now + timedelta(hours=2)).strftime(fmt) + "Z",
         "dueDate": (day + timedelta(days=2)).strftime(fmt),
         "run": hashlib.sha1(str(time.time()).encode()).hexdigest()[:6],

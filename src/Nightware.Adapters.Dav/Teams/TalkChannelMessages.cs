@@ -24,12 +24,6 @@ internal sealed class TalkChannelMessages(TalkChatClient talk, TalkChannelStore 
     /// <summary>Rounds a delta reads before it hands back a link to read on.</summary>
     internal const int DeltaRounds = 5;
 
-    /// <summary>System messages about another message, whose parent a delta re-reports.</summary>
-    private static readonly HashSet<string> ChangesToParent = new(StringComparer.Ordinal)
-    {
-        "message_edited", "message_deleted", "thread_renamed", "reaction", "reaction_revoked", "reaction_deleted",
-    };
-
     public async Task<Result<Page<ChatMessage>>> ListPostsAsync(string teamId, string channelId, ChatPageQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
@@ -245,7 +239,7 @@ internal sealed class TalkChannelMessages(TalkChatClient talk, TalkChannelStore 
                 {
                     changed[message.Id] = message;
                 }
-                else if (message.IsSystem && ChangesToParent.Contains(message.SystemMessage) && message.Parent is { } parent && TalkMessageCodec.IsListed(parent))
+                else if (message.IsSystem && TalkMessageCodec.ChangesToParent.Contains(message.SystemMessage) && message.Parent is { } parent && TalkMessageCodec.IsListed(parent))
                 {
                     changed.TryAdd(parent.Id, parent);
                 }

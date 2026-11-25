@@ -446,7 +446,8 @@ adds web links). `Chats/Talk/` is conversation-generic, for channels (phase 24) 
 The chat ports are `TalkChatStore` (`IChatStore`), `TalkChatMembers`, `TalkChatMessages`, `TalkChatPins` and
 `TalkChatSearch` (`IChatSearch`, phase 28: Talk's `talk-message` unified search through `TalkChatClient.SearchMessagesAsync`
 with its `term`/`since`/`until`/`person` filters, every match checked against the whole KQL query and kept to the caller's
-chats and channels; ADR 0009 D10); `TalkChatRooms` says which rooms are chats. Talk's behaviour behind them is in `docs/phases/phase-23-chats.md`.
+chats and channels; ADR 0009 D10); `TalkChangeFeed` (`ITeamsChangeFeed`, phase 29: change notifications for chat and channel messages, chats
+and chat members, ADR 0009 D11); `TalkChatRooms` says which rooms are chats. Talk's behaviour behind them is in `docs/phases/phase-23-chats.md`.
 
 ## Teams and channels (phase 24, ADR 0009 D5)
 

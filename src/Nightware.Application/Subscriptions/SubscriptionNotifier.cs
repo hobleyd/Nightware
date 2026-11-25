@@ -44,7 +44,9 @@ public sealed class SubscriptionNotifier(ChangeFeed feed, INotificationEndpoint 
             return batch.Error;
         }
 
-        var changes = await ClassifyAsync(subscription, batch.Value.Changes, cancellationToken).ConfigureAwait(false);
+        var changes = batch.Value.Classified
+            ? batch.Value.Changes
+            : await ClassifyAsync(subscription, batch.Value.Changes, cancellationToken).ConfigureAwait(false);
         var notifications = changes
             .Where(c => subscription.ChangeType.HasFlag(c.ChangeType))
             .Select(c => ToNotification(subscription, c))
@@ -56,6 +58,11 @@ public sealed class SubscriptionNotifier(ChangeFeed feed, INotificationEndpoint 
             {
                 return delivered.Error;
             }
+        }
+
+        if (batch.Value.Classified)
+        {
+            return new PollOutcome(batch.Value.State, notifications.Count);
         }
 
         // Best effort: if this fails, an item seen now reads as created again on a later change.
@@ -119,6 +126,14 @@ public sealed class SubscriptionNotifier(ChangeFeed feed, INotificationEndpoint 
 
     internal static ChangeNotification ToNotification(Subscription subscription, ResourceChange change)
     {
+        if (change.Resource is { } resource)
+        {
+            return new ChangeNotification(subscription.Id, subscription.ExpirationDateTime, change.ChangeType.ToString().ToLowerInvariant(), resource, change.ODataType ?? string.Empty, change.Id)
+            {
+                ClientState = subscription.ClientState,
+            };
+        }
+
         var user = $"Users/{subscription.Target.Mailbox.Address}";
         var (path, type) = subscription.Target.Kind switch
         {

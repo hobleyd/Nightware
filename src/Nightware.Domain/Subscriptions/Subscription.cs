@@ -16,6 +16,30 @@ public enum SubscriptionResourceKind
 
     /// <summary>Tasks in one To Do list.</summary>
     Tasks,
+
+    /// <summary>Messages in one chat (<see cref="SubscriptionTarget.Folder"/> is the chat id; ADR 0009 D11).</summary>
+    ChatMessages,
+
+    /// <summary>Messages in every chat of the subscriber's (<c>getAllMessages</c>).</summary>
+    AllChatMessages,
+
+    /// <summary>Posts and replies in one channel (<see cref="SubscriptionTarget.Folder"/> is <c>{teamId}/{channelId}</c>).</summary>
+    ChannelMessages,
+
+    /// <summary>The subscriber's chats: new ones and topic changes.</summary>
+    Chats,
+
+    /// <summary>One chat's topic (<see cref="SubscriptionTarget.Folder"/> is the chat id).</summary>
+    Chat,
+
+    /// <summary>One chat's members (<see cref="SubscriptionTarget.Folder"/> is the chat id).</summary>
+    ChatMembers,
+}
+
+public static class SubscriptionResourceKinds
+{
+    /// <summary>Microsoft Teams resources, which Graph gives their own lifetime and lifecycle rules.</summary>
+    public static bool IsTeams(this SubscriptionResourceKind kind) => kind >= SubscriptionResourceKind.ChatMessages;
 }
 
 [Flags]

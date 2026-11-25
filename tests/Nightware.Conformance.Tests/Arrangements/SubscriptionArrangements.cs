@@ -38,7 +38,7 @@ public sealed class SubscriptionArrangements : IConformanceArrangements
     private static ConformanceArrangement Create(string operation, string id, SubscriptionTarget target) =>
         new(operation, fakes =>
         {
-            fakes.For<INotificationEndpoint>().ValidateAsync(new Uri("https://webhook.example.com/notify"), Arg.Any<CancellationToken>()).Returns(Result.Success());
+            fakes.For<INotificationEndpoint>().ValidateAsync(Arg.Is<Uri>(u => u.Host == "webhook.example.com"), Arg.Any<CancellationToken>()).Returns(Result.Success());
             fakes.For<ISubscriberCredentials>().IssueAsync(Arg.Any<CancellationToken>()).Returns("refresh");
             Baselines(fakes);
             fakes.For<ISubscriptionStore>()
@@ -58,6 +58,7 @@ public sealed class SubscriptionArrangements : IConformanceArrangements
         fakes.For<IContactDelta>().DeltaAsync(Me, new ContactFolderId("c"), null, Arg.Any<CancellationToken>()).Returns(DeltaPage<Contact>.Done([], new DeltaToken("contacts")));
         fakes.For<ITaskDelta>().DeltaAsync(Me, Arg.Any<TaskListId>(), null, Arg.Any<CancellationToken>()).Returns(DeltaPage<TodoTask>.Done([], new DeltaToken("tasks")));
         fakes.For<IEventChangeFeed>().BaselineAsync(Me, Arg.Any<CancellationToken>()).Returns(new FeedBaseline("events", []));
+        fakes.For<ITeamsChangeFeed>().StartAsync(Arg.Is<SubscriptionTarget>(t => t.Mailbox == Me), Arg.Any<CancellationToken>()).Returns("teams");
         fakes.For<ISubscriptionItems>().ReplaceAsync(Arg.Any<string>(), Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<CancellationToken>()).Returns(Result.Success());
     }
 
@@ -67,6 +68,13 @@ public sealed class SubscriptionArrangements : IConformanceArrangements
         yield return Create("subscriptions.create-events", "00000000-0000-0000-0000-000000000003", new SubscriptionTarget(Me, SubscriptionResourceKind.Events, null));
         yield return Create("subscriptions.create-contacts", "00000000-0000-0000-0000-000000000004", new SubscriptionTarget(Me, SubscriptionResourceKind.Contacts, null));
         yield return Create("subscriptions.create-tasks", "00000000-0000-0000-0000-000000000005", new SubscriptionTarget(Me, SubscriptionResourceKind.Tasks, "AAMk-ref-0001="));
+
+        // Phase 29: Teams resources (ADR 0009 D11).
+        yield return Create("subscriptions.create-chat-messages", "00000000-0000-0000-0000-000000000006", new SubscriptionTarget(Me, SubscriptionResourceKind.ChatMessages, "nge9dkks"));
+        yield return Create("subscriptions.create-channel-messages", "00000000-0000-0000-0000-000000000007",
+            new SubscriptionTarget(Me, SubscriptionResourceKind.ChannelMessages, "6LOrxifQ5p4vRt2I3iplImWqdpjlADT/xtugjbpy"));
+        yield return Create("subscriptions.create-chats", "00000000-0000-0000-0000-000000000008", new SubscriptionTarget(Me, SubscriptionResourceKind.Chats, null));
+        yield return Create("subscriptions.create-chat-members", "00000000-0000-0000-0000-000000000009", new SubscriptionTarget(Me, SubscriptionResourceKind.ChatMembers, "nge9dkks"));
 
         yield return new ConformanceArrangement("subscriptions.list", static fakes =>
             fakes.For<ISubscriptionStore>().ListAsync("conformance-user", Arg.Any<CancellationToken>()).Returns(Result<IReadOnlyList<Subscription>>.Success([Inbox])));

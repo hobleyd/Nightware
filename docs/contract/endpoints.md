@@ -337,7 +337,7 @@ operation:
 | Phase 25 — Presence over Nextcloud user status (Graph parity, ADR 0009) | 8 |
 | Phase 26 — Online meetings and calls over Talk (Graph parity, ADR 0009) | 14 |
 | Phase 27 — OneDrive, calendar, directory and settings gaps | 12 |
-| **Total** | **413** |
+| **Total** | **417** |
 
 ### Phase 2 — Mail, read side
 

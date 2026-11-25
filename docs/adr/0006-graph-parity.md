@@ -229,6 +229,10 @@ Required:
   sends nothing. Each subscription keeps a set of hashed item ids it has seen, so
   `created` and `updated` are exact rather than guessed.
 - Rich notifications (`includeResourceData`) are `400 notSupported`.
+- *Amended 2026-11-25 (phase 29):* Teams resources (chats, chat and channel
+  messages, chat members; ADR 0009 D11) live at most 4,320 minutes and need a
+  `lifecycleNotificationUrl` past one hour, as Graph's do. Their feed classifies
+  created/updated itself (Talk's ids only grow), so they keep no item set.
 
 ### D11 — The directory, read-only (phase 21, 2026-11-22)
 A user's `manager`, `directReports` and `memberOf`/`transitiveMemberOf`,

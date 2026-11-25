@@ -201,4 +201,32 @@ public sealed class SubscriptionNotifierTests
 
         await _items.Received(1).ReplaceAsync("s1", Arg.Is<IReadOnlyCollection<string>>(ids => ids.SequenceEqual(new[] { "a", "b" })), Arg.Any<CancellationToken>());
     }
+
+    [Fact]
+    public async Task A_teams_feeds_changes_keep_their_types_and_resources_and_track_nothing()
+    {
+        var teams = Substitute.For<ITeamsChangeFeed>();
+        var target = new SubscriptionTarget(Me, SubscriptionResourceKind.ChatMessages, "19abc");
+        var subscription = Inbox() with { Resource = "chats/19abc/messages", Target = target, ChangeType = SubscriptionChangeType.Created | SubscriptionChangeType.Deleted };
+        teams.ChangesAsync(target, "t0", Arg.Any<CancellationToken>()).Returns(new ChangeBatch(
+            [
+                new ResourceChange("7", SubscriptionChangeType.Created) { Resource = "chats('19abc')/messages('7')", ODataType = "#Microsoft.Graph.chatMessage" },
+                new ResourceChange("3", SubscriptionChangeType.Updated) { Resource = "chats('19abc')/messages('3')", ODataType = "#Microsoft.Graph.chatMessage" },
+                new ResourceChange("2", SubscriptionChangeType.Deleted) { Resource = "chats('19abc')/messages('2')", ODataType = "#Microsoft.Graph.chatMessage" },
+            ],
+            "t1",
+            Classified: true));
+        IReadOnlyList<ChangeNotification>? sent = null;
+        _endpoint.DeliverAsync(Arg.Any<Uri>(), Arg.Do<IReadOnlyList<ChangeNotification>>(n => sent = n), Arg.Any<CancellationToken>()).Returns(Result.Success());
+
+        var outcome = await new SubscriptionNotifier(new ChangeFeed(_mail, _folders, _contacts, _tasks, _events, teams), _endpoint, _items).PollAsync(subscription, LastPoll, Ct);
+
+        outcome.Value.ShouldBe(new PollOutcome("t1", 2));
+        sent!.Select(n => (n.ChangeType, n.Resource, n.ODataType, n.Id)).ShouldBe([
+            ("created", "chats('19abc')/messages('7')", "#Microsoft.Graph.chatMessage", "7"),
+            ("deleted", "chats('19abc')/messages('2')", "#Microsoft.Graph.chatMessage", "2"),
+        ]);
+        await _items.DidNotReceiveWithAnyArgs().KnownAsync(default!, default!, Ct);
+        await _items.DidNotReceiveWithAnyArgs().RecordAsync(default!, default!, default!, Ct);
+    }
 }
