@@ -341,6 +341,29 @@ output: anything they cannot do is printed as a WARNING.
   SPF and DMARC are Stalwart's unless a global administrator sets the domain's
   own on that page (kept as Keycloak organization attributes); start DMARC at
   `p=none` while other services still send as the domain.
+- **A new domain's public mail discovery is not automatic.** The console
+  publishes `mta-sts`, `autoconfig`, `autodiscover` and `ua-auto-config` CNAMEs,
+  an `_mta-sts` TXT and `mail.<domain>` for every domain. The production proxy
+  only serves the names it lists, though, and Stalwart serves **one** MTA-STS
+  policy for all domains. So for each domain added to production:
+  1. Add its names to `conf.d/mail-discovery.conf` in the ansible repo
+     (`roles/docker_apps/files/config/proxy/nginx/`). Copy the bitcheeky.com
+     server blocks. Until then those names get the proxy's default 403, and
+     senders report "no policy found".
+  2. Make sure the proxy's certificate covers `*.<domain>`
+     (`proxy/letsencrypt/renew.sh` in the ansible repo, which issues it
+     through Cloudflare DNS). Stalwart's STARTTLS uses the same certificate
+     file, so `mail.<domain>` needs it too.
+  3. Make Stalwart's MTA-STS policy list the domain's MX. With `x:MtaSts`
+     `mxHosts` empty (the default), the policy's only `mx:` is Stalwart's
+     hostname, `mail.<MAIL_DOMAIN>`. Add `mail.<domain>` to `mxHosts`, or point
+     the domain's MX at that hostname. A missing MX is harmless while `mode`
+     is `testing` (failures only show in TLS reports), but under `enforce`
+     senders refuse to deliver.
+  4. Run `scripts/verify-mail-discovery.sh <domain>` in the ansible repo.
+  DMARC and TLS reports need nothing per domain: the console publishes
+  `rua=mailto:postmaster@<domain>`, Stalwart analyses `postmaster@*`, and the
+  console's DMARC reports page lists every entity domain.
 - **DNS hosting.** A global administrator can connect an entity's DNS host on
   its DNS hosting page: Cloudflare (an API token from the "Edit zone DNS"
   template), DigitalOcean, Gandi, Hetzner, Amazon Route 53 (an access key as

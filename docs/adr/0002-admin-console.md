@@ -618,6 +618,8 @@ Where the build refined the decisions above:
   several domains down to the actor's. Shapes verified on Stalwart 1.1.0 by
   mailing it a DMARC aggregate report and Google's TLS report; the recorded
   answer is the adapter tests' fixture.
+  Publishing a domain's discovery names is not enough for production; see
+  "A new domain's public mail discovery" in `deploy/README.md`.
 - **Verified end to end** on an isolated stack (Keycloak 26.8.2, Stalwart 1.1.0,
   Nextcloud 35): MFA sign-in, entity and domain creation (DNS records shown),
   linking existing users, creating a user who then signs in to NightMail and
