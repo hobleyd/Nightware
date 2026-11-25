@@ -11,8 +11,9 @@ namespace Nightware.Api.Features.Chats;
 /// <c>teams('{id}')/channels('{id}')/messages('{id}')/replies('{id}')</c>, <c>members('{id}')</c>,
 /// <c>teams('{id}')/operations('{id}')</c>) rewritten, before
 /// routing, to the segment form every chat and channel route maps. Change notifications name resources this way
-/// (ADR 0009 D11), and a client may read one as given. Only these entity sets are rewritten: a parenthesis elsewhere is a
-/// function call (<c>delta()</c>) or another feature's key.
+/// (ADR 0009 D11), and a client may read one as given. Only paths under <c>chats</c> (also <c>me/chats</c>,
+/// <c>users/{id}/chats</c>) or <c>teams</c> are rewritten, and only these entity sets in them: a parenthesis elsewhere
+/// is a function call (<c>delta()</c>) or another feature's key (mail's <c>messages('…')</c> is left as it is).
 /// </summary>
 public sealed partial class ChatKeySegmentMiddleware(RequestDelegate next)
 {
@@ -37,7 +38,15 @@ public sealed partial class ChatKeySegmentMiddleware(RequestDelegate next)
             return false;
         }
 
-        var replaced = Keyed().Replace(value, static m => $"{m.Groups["set"].Value}/{m.Groups["key"].Value}");
+        // Only a chat or team path is rewritten, from its chats/teams segment on: mail's and groups' paths are left alone.
+        var anchor = Anchor().Match(value);
+        if (!anchor.Success)
+        {
+            return false;
+        }
+
+        var start = anchor.Groups["set"].Index;
+        var replaced = value[..start] + Keyed().Replace(value[start..], static m => $"{m.Groups["set"].Value}/{m.Groups["key"].Value}");
         if (replaced == value)
         {
             return false;
@@ -47,6 +56,10 @@ public sealed partial class ChatKeySegmentMiddleware(RequestDelegate next)
         return true;
     }
 
-    [GeneratedRegex(@"(?<=/)(?<set>chats|messages|replies|members|teams|channels|operations)\('(?<key>[^'/]+)'\)(?=/|$)", RegexOptions.CultureInvariant)]
+    /// <summary><c>/{version}[/me | /users/{id}]/chats…</c> or <c>/{version}/teams…</c>.</summary>
+    [GeneratedRegex(@"^/[^/]+(?:/me|/users/[^/]+)?/(?<set>chats|teams)(?:\(|/|$)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex Anchor();
+
+    [GeneratedRegex(@"(?<set>chats|messages|replies|members|teams|channels|operations)\('(?<key>[^'/]+)'\)(?=/|$)", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex Keyed();
 }

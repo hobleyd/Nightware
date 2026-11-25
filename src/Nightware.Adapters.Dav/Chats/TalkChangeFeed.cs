@@ -53,7 +53,7 @@ internal sealed class TalkChangeFeed(
 
             case SubscriptionResourceKind.AllChatMessages:
             {
-                var chats = await ChatRoomsAsync(new HashSet<string>(StringComparer.Ordinal), cancellationToken).ConfigureAwait(false);
+                var chats = await ChatRoomsAsync(new HashSet<string>(StringComparer.Ordinal), new HashSet<string>(StringComparer.Ordinal), cancellationToken).ConfigureAwait(false);
                 if (!chats.IsSuccess)
                 {
                     return chats.Error;
@@ -76,7 +76,7 @@ internal sealed class TalkChangeFeed(
 
             case SubscriptionResourceKind.Chats:
             {
-                var chats = await ChatRoomsAsync(new HashSet<string>(StringComparer.Ordinal), cancellationToken).ConfigureAwait(false);
+                var chats = await ChatRoomsAsync(new HashSet<string>(StringComparer.Ordinal), new HashSet<string>(StringComparer.Ordinal), cancellationToken).ConfigureAwait(false);
                 return chats.IsSuccess ? Encode(new ChatsState(chats.Value.Rooms.ToDictionary(r => r.Token, Topic, StringComparer.Ordinal), [.. chats.Value.Channels])) : chats.Error;
             }
 
@@ -128,7 +128,7 @@ internal sealed class TalkChangeFeed(
 
             case SubscriptionResourceKind.Chats when Decode<ChatsState>(state) is { } known:
             {
-                var chats = await ChatRoomsAsync(known.Channels.ToHashSet(StringComparer.Ordinal), cancellationToken).ConfigureAwait(false);
+                var chats = await ChatRoomsAsync(known.Channels.ToHashSet(StringComparer.Ordinal), known.Topics.Keys.ToHashSet(StringComparer.Ordinal), cancellationToken).ConfigureAwait(false);
                 if (!chats.IsSuccess)
                 {
                     return chats.Error;
@@ -254,7 +254,7 @@ internal sealed class TalkChangeFeed(
     private async Task<Result<ChangeBatch>> AllMessagesAsync(AllChatsState state, CancellationToken cancellationToken)
     {
         var now = Now();
-        var chats = await ChatRoomsAsync(state.Channels.ToHashSet(StringComparer.Ordinal), cancellationToken).ConfigureAwait(false);
+        var chats = await ChatRoomsAsync(state.Channels.ToHashSet(StringComparer.Ordinal), state.Rooms.Keys.ToHashSet(StringComparer.Ordinal), cancellationToken).ConfigureAwait(false);
         if (!chats.IsSuccess)
         {
             return chats.Error;
@@ -309,9 +309,10 @@ internal sealed class TalkChangeFeed(
 
     /// <summary>
     /// The subscriber's chats (D3: channels, the note to self and samples left out). The teams' channel rooms are listed
-    /// again only when a group room appears that <paramref name="knownChannels"/> doesn't already account for.
+    /// again only when a group room appears that is neither a known channel nor a known chat.
     /// </summary>
-    private async Task<Result<(List<TalkRoom> Rooms, IReadOnlySet<string> Channels)>> ChatRoomsAsync(HashSet<string> knownChannels, CancellationToken cancellationToken)
+    private async Task<Result<(List<TalkRoom> Rooms, IReadOnlySet<string> Channels)>> ChatRoomsAsync(
+        HashSet<string> knownChannels, HashSet<string> knownChats, CancellationToken cancellationToken)
     {
         var listed = await talk.ListRoomsAsync(cancellationToken).ConfigureAwait(false);
         if (!listed.IsSuccess)
@@ -321,7 +322,7 @@ internal sealed class TalkChangeFeed(
 
         var chats = listed.Value.Where(TalkChatRooms.IsChat).ToList();
         IReadOnlySet<string> channelTokens = knownChannels;
-        if (knownChannels.Count == 0 || chats.Any(r => !r.IsOneToOne && !knownChannels.Contains(r.Token)))
+        if (chats.Any(r => !r.IsOneToOne && !knownChannels.Contains(r.Token) && !knownChats.Contains(r.Token)))
         {
             channelTokens = await channelRooms.TokensAsync(cancellationToken).ConfigureAwait(false);
         }

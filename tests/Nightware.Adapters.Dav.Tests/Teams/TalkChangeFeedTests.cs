@@ -92,6 +92,35 @@ public sealed class TalkChangeFeedTests : IDisposable
     }
 
     [Fact]
+    public async Task An_edit_to_a_reply_names_the_reply_under_its_post()
+    {
+        const string Reply = """{"id":212,"token":"xtugjbpy","actorType":"users","actorId":"bob","actorDisplayName":"Bob Brown","timestamp":1795500000,"messageType":"comment","systemMessage":"","message":"reply","messageParameters":[],"threadId":209,"isThread":true}""";
+        Future(General, 219, Message(220, General, "system", "message_edited", Reply), Message(221, General, "system", "message_deleted", Reply));
+        Future(General, 221);
+
+        var batch = await Feed().ChangesAsync(Target(SubscriptionResourceKind.ChannelMessages, $"{Team}/{General}"), State(new { cursor = 219 }), Ct);
+
+        var reply = $"teams('{Team}')/channels('{General}')/messages('209')/replies('212')";
+        batch.Value.Changes.Select(c => (c.Id, c.ChangeType, c.Resource)).ShouldBe([
+            ("212", SubscriptionChangeType.Updated, reply),
+            ("212", SubscriptionChangeType.Deleted, reply),
+        ]);
+    }
+
+    [Fact]
+    public async Task Known_chats_and_channels_dont_list_the_teams_again()
+    {
+        var start = await Feed().StartAsync(Target(SubscriptionResourceKind.Chats), Ct);
+        var circlesAtStart = _teams.To("GET", TeamTestServer.Circles).Count();
+
+        var batch = await Feed().ChangesAsync(Target(SubscriptionResourceKind.Chats), start.Value, Ct);
+
+        batch.Value.Changes.ShouldBeEmpty();
+        circlesAtStart.ShouldBe(1);
+        _teams.To("GET", TeamTestServer.Circles).Count().ShouldBe(1);
+    }
+
+    [Fact]
     public async Task Chat_edits_and_deletes_name_their_message_and_a_new_messages_edit_is_not_an_update()
     {
         Future(OneToOne, 180,
