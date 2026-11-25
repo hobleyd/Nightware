@@ -55,11 +55,15 @@ any method.
 `external` operation, such as the upload-session PUT, is never matched against
 client paths.
 
-The two known false-positive shapes are skipped:
+These are skipped:
 
 - a line that only builds or tests the mailbox base (`_base = … ? '/me' :
   '/users/$x'`, `startsWith('/users/')`);
-- the threat-submission `messageUrl` body value, listed in `NOT_A_CALL`.
+- the threat-submission `messageUrl` body value, listed in `NOT_A_CALL`;
+- a call the client makes only to Microsoft 365, behind an
+  `isNightmailServer` check that sends Nightware a covered call instead,
+  listed in `MICROSOFT_ONLY` with the call Nightware gets. Check the guard in
+  the client before adding one; an unguarded call is a missing operation.
 
 When the client gains a new Graph call, add an operation to `endpoints.json`,
 add its fixture, then run `render_endpoints_md.py`.

@@ -84,6 +84,15 @@ NOT_A_CALL = {
     ("graph_api_datasource_impl.dart", "beta:/{}/messages/{}"),
 }
 
+# Calls the client makes only to Microsoft 365, behind a check that the account
+# is not on a NightMail Server, so Nightware never receives them. Keyed like
+# NOT_A_CALL; each names the call it makes to Nightware instead.
+MICROSOFT_ONLY = {
+    # GraphChatDatasource.photo: Microsoft's 64-pixel rendition. On a NightMail
+    # Server it asks for /users/{id}/photo/$value (directory.users.photo-value).
+    ("graph_chat_datasource.dart", "v1.0:/users/{}/photos/64x64/{}"),
+}
+
 
 def normalise(literal: str, raw: bool) -> tuple[str, str] | None:
     """Return (version, path) for a literal, or None if it is not a path."""
@@ -265,7 +274,7 @@ def extract_calls(src: Source) -> list[tuple[str | None, str, str, str]]:
                 version = const_version(texts[rel], line) or version
                 if path == "/":
                     continue  # a bare root (base URL constant), not a call
-                if (name, f"{version}:{path}") in NOT_A_CALL:
+                if (name, f"{version}:{path}") in NOT_A_CALL | MICROSOFT_ONLY:
                     continue
                 out.append((method_near(lines, n - 1), version, path,
                             f"{rel}:{n}"))
