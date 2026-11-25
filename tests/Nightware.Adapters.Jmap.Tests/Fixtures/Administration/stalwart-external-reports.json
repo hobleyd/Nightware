@@ -1,0 +1,188 @@
+[
+  [
+    "x:DmarcExternalReport/query",
+    {
+      "accountId": "d333333",
+      "queryState": "n",
+      "canCalculateChanges": true,
+      "position": 0,
+      "ids": [
+        "jqji0rgcaaqa"
+      ]
+    },
+    "c0"
+  ],
+  [
+    "x:DmarcExternalReport/get",
+    {
+      "accountId": "d333333",
+      "list": [
+        {
+          "report": {
+            "version": 0.0,
+            "orgName": "google.com",
+            "email": "noreply-dmarc-support@google.com",
+            "extraContactInfo": "https://support.google.com/a/answer/2466580",
+            "reportId": "1234567890123456789",
+            "dateRangeStart": "2026-11-24T00:00:00Z",
+            "dateRangeEnd": "2026-11-24T23:59:59Z",
+            "errors": {},
+            "policyDomain": "acme.example",
+            "policyVersion": null,
+            "policyAdkim": "strict",
+            "policyAspf": "strict",
+            "policyDisposition": "reject",
+            "policySubdomainDisposition": "reject",
+            "policyTestingMode": false,
+            "policyFailureReportingOptions": {},
+            "records": {
+              "0": {
+                "sourceIp": "192.0.2.10",
+                "count": 12,
+                "evaluatedDisposition": "none",
+                "evaluatedDkim": "pass",
+                "evaluatedSpf": "pass",
+                "policyOverrideReasons": {},
+                "envelopeTo": null,
+                "envelopeFrom": "acme.example",
+                "headerFrom": "acme.example",
+                "dkimResults": {
+                  "0": {
+                    "domain": "acme.example",
+                    "selector": "v1-rsa-20260101",
+                    "result": "pass",
+                    "humanResult": null
+                  }
+                },
+                "spfResults": {
+                  "0": {
+                    "domain": "acme.example",
+                    "scope": "mailFrom",
+                    "result": "pass",
+                    "humanResult": null
+                  }
+                },
+                "extensions": {}
+              },
+              "1": {
+                "sourceIp": "198.51.100.7",
+                "count": 3,
+                "evaluatedDisposition": "reject",
+                "evaluatedDkim": "fail",
+                "evaluatedSpf": "fail",
+                "policyOverrideReasons": {},
+                "envelopeTo": null,
+                "envelopeFrom": "spoof.example",
+                "headerFrom": "acme.example",
+                "dkimResults": {},
+                "spfResults": {
+                  "0": {
+                    "domain": "spoof.example",
+                    "scope": "mailFrom",
+                    "result": "softFail",
+                    "humanResult": null
+                  }
+                },
+                "extensions": {}
+              }
+            },
+            "extensions": {},
+            "generator": null,
+            "policyNp": "reject",
+            "policyDiscoveryMethod": "unspecified"
+          },
+          "from": "noreply-dmarc-support@google.example",
+          "subject": "Report Domain: acme.example Submitter: google.com Report-ID: <2026.11.24T00.00.00Z+acme.example@google.com>",
+          "to": {
+            "postmaster@acme.example": true
+          },
+          "receivedAt": "2026-11-25T22:07:10Z",
+          "expiresAt": "2026-12-25T22:07:10Z",
+          "memberTenantId": null,
+          "id": "jqji0rgcaaqa"
+        }
+      ],
+      "notFound": []
+    },
+    "c1"
+  ],
+  [
+    "x:TlsExternalReport/query",
+    {
+      "accountId": "d333333",
+      "queryState": "n",
+      "canCalculateChanges": true,
+      "position": 0,
+      "ids": [
+        "jqji1qc1abqa"
+      ]
+    },
+    "c2"
+  ],
+  [
+    "x:TlsExternalReport/get",
+    {
+      "accountId": "d333333",
+      "list": [
+        {
+          "report": {
+            "organizationName": "Google Inc.",
+            "contactInfo": "smtp-tls-reporting@google.com",
+            "reportId": "2026-11-24T00:00:00Z_acme.example",
+            "dateRangeStart": "2026-11-24T00:00:00Z",
+            "dateRangeEnd": "2026-11-24T23:59:59Z",
+            "policies": {
+              "0": {
+                "policyType": "noPolicyFound",
+                "policyStrings": {},
+                "policyDomain": "acme.example",
+                "mxHosts": {},
+                "totalSuccessfulSessions": 3,
+                "totalFailedSessions": 0,
+                "failureDetails": {}
+              },
+              "1": {
+                "policyType": "sts",
+                "policyStrings": {
+                  "version: STSv1": true,
+                  "mode: testing": true,
+                  "mx: mail.acme.example": true,
+                  "max_age: 604800": true
+                },
+                "policyDomain": "acme.example",
+                "mxHosts": {
+                  "mail.acme.example": true
+                },
+                "totalSuccessfulSessions": 5,
+                "totalFailedSessions": 2,
+                "failureDetails": {
+                  "0": {
+                    "resultType": "certificateHostMismatch",
+                    "sendingMtaIp": "209.85.220.41",
+                    "receivingMxHostname": "mail.acme.example",
+                    "receivingMxHelo": null,
+                    "receivingIp": "192.0.2.10",
+                    "failedSessionCount": 2,
+                    "additionalInformation": null,
+                    "failureReasonCode": null
+                  }
+                }
+              }
+            }
+          },
+          "from": "noreply-smtp-tls-reporting@google.example",
+          "subject": "Report Domain: acme.example Submitter: google.com Report-ID: <2026.11.24T00.00.00Z+acme.example@google.com>",
+          "to": {
+            "postmaster@acme.example": true
+          },
+          "receivedAt": "2026-11-25T22:07:26Z",
+          "expiresAt": "2026-12-25T22:07:26Z",
+          "memberTenantId": null,
+          "id": "jqji1qc1abqa"
+        }
+      ],
+      "notFound": []
+    },
+    "c3"
+  ]
+]

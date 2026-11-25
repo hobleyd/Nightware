@@ -131,6 +131,7 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
         }
 
         Grafana.CheckAsync(Arg.Any<CancellationToken>()).Returns(new GrafanaHealth(true));
+        Reports.ListAsync(default).ReturnsForAnyArgs(Nightware.Domain.Administration.MailReports.None);
 
         ClientOptions.BaseAddress = new Uri("https://localhost");
         ClientOptions.AllowAutoRedirect = false;
@@ -176,6 +177,8 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
 
     /// <summary>Public DNS; answers nothing unless a test arranges it, so no test reaches the real resolver.</summary>
     public IPublicDns PublicDns { get; } = Substitute.For<IPublicDns>();
+
+    public Nightware.Application.Administration.Reports.IMailReports Reports { get; } = Substitute.For<Nightware.Application.Administration.Reports.IMailReports>();
 
     /// <summary><c>Admin:PublicHost</c>; unset unless a test sets it before the first client.</summary>
     public string? PublicHost { get; set; }
@@ -279,6 +282,8 @@ public sealed partial class ConsoleHost : WebApplicationFactory<Program>
             services.AddSingleton(Subscriptions).AddSingleton(Webhooks);
             services.RemoveAll<Nightware.Application.Administration.AutoReplies.IMailboxAutoReplies>();
             services.AddSingleton(AutoReplies);
+            services.RemoveAll<Nightware.Application.Administration.Reports.IMailReports>();
+            services.AddSingleton(Reports);
             services.RemoveAll<IGrafanaStatus>();
             services.AddSingleton(Grafana);
             services.RemoveAll<IBackendStatus>();

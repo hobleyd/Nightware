@@ -19,7 +19,8 @@
 #      invitations to other domains are relayed
 #   6. mail claiming our domains only signed-in or from the trusted network;
 #      who may send to each group's list: the system Sieve scripts
-#      nightware-lists(-unauthenticated), run at RCPT (the console writes them)
+#      nightware-lists(-unauthenticated), run at RCPT (the console writes them);
+#      incoming DMARC and TLS reports to postmaster@ analysed and kept
 #   7. ReloadSettings
 #
 # Authenticates as the recovery administrator (STALWART_RECOVERY_ADMIN).
@@ -198,7 +199,8 @@ fi
 #   - roles are extended through roleIds, and the built-in role "User" holds
 #     `authenticate` plus the user permissions Stalwart requires a principal to
 #     hold before it may change user accounts.
-# Our role adds the management permissions (account destroy only for "delete
+# Our role adds the management permissions (the received DMARC and TLS reports
+# read-only, for the console's DMARC reports page; account destroy only for "delete
 # mail", which the console's policy gates; domain and DKIM-key destroy for
 # removing a domain, which Stalwart refuses while any account is on it); no
 # impersonation. With ADMIN_GLOBAL_ADMINS_ADMINISTER_SERVERS (the default) the
@@ -217,7 +219,7 @@ if [[ -z "${STALWART_MANAGEMENT_LOGIN:-}" ]]; then
   MGMT_USER="${STALWART_MANAGEMENT_USER:-nightware-admin}"
   role_id() { call '[["x:Role/query",{},"q"],["x:Role/get",{"#ids":{"resultOf":"q","name":"x:Role/query","path":"/ids"},"properties":["description"]},"g"]]' \
     | jq -r --arg d "$1" '.methodResponses[1][1].list[]? | select(.description==$d) | .id' | head -n1; }
-  PERMS='{"sysAccountGet":true,"sysAccountQuery":true,"sysAccountCreate":true,"sysAccountUpdate":true,"sysAccountDestroy":true,"sysDomainGet":true,"sysDomainQuery":true,"sysDomainCreate":true,"sysDomainUpdate":true,"sysDomainDestroy":true,"sysDkimSignatureGet":true,"sysDkimSignatureQuery":true,"sysDkimSignatureDestroy":true,"sysActionCreate":true,"actionReloadSettings":true,"sysMailingListGet":true,"sysMailingListQuery":true,"sysMailingListCreate":true,"sysMailingListUpdate":true,"sysMailingListDestroy":true,"sysSieveSystemScriptGet":true,"sysSieveSystemScriptQuery":true,"sysSieveSystemScriptCreate":true,"sysSieveSystemScriptUpdate":true}'
+  PERMS='{"sysAccountGet":true,"sysAccountQuery":true,"sysAccountCreate":true,"sysAccountUpdate":true,"sysAccountDestroy":true,"sysDomainGet":true,"sysDomainQuery":true,"sysDomainCreate":true,"sysDomainUpdate":true,"sysDomainDestroy":true,"sysDkimSignatureGet":true,"sysDkimSignatureQuery":true,"sysDkimSignatureDestroy":true,"sysActionCreate":true,"actionReloadSettings":true,"sysMailingListGet":true,"sysMailingListQuery":true,"sysMailingListCreate":true,"sysMailingListUpdate":true,"sysMailingListDestroy":true,"sysSieveSystemScriptGet":true,"sysSieveSystemScriptQuery":true,"sysSieveSystemScriptCreate":true,"sysSieveSystemScriptUpdate":true,"sysDmarcExternalReportGet":true,"sysDmarcExternalReportQuery":true,"sysTlsExternalReportGet":true,"sysTlsExternalReportQuery":true}'
   USER_ROLE=$(role_id "User")
   ROLE_ID=$(role_id "Nightware admin console")
   if [[ -z "$ROLE_ID" ]]; then
@@ -458,6 +460,32 @@ if [[ "$(jq -S . <<<"$rcpt_script")" != "$(jq -S . <<<"$wanted")" ]]; then
   call "$(jq -cn --argjson w "$wanted" '[["x:MtaStageRcpt/set",{"update":{"singleton":{script:$w}}},"c"]]')" \
     | jq -e '.methodResponses[0][1].updated' >/dev/null \
     || echo "Stalwart: WARNING could not set the RCPT script; lists accept mail from anyone" >&2
+fi
+
+# ---------------------------------------- 6c. incoming DMARC and TLS reports
+# Reports other mail systems send to a domain's rua= address (postmaster@, as
+# the console publishes it) are analysed and stored by Stalwart and shown on the
+# console's DMARC reports page. Stalwart's defaults (verified on 1.1.0) already
+# analyse postmaster@*; asserted here so a changed setting cannot silently stop
+# it. Reports are not also delivered to postmaster's inbox unless
+# STALWART_REPORT_FORWARDING=true; other mail to postmaster is delivered as
+# usual either way (verified). Stalwart keeps them for holdMtaReportsFor (30 days
+# by default); null would analyse and drop them, so that is put back.
+FORWARD_REPORTS="${STALWART_REPORT_FORWARDING:-false}"
+reports_now=$(call '[["x:ReportSettings/get",{"ids":["singleton"],"properties":["inboundReportAddresses","inboundReportForwarding"]},"c"]]' | jq -c '.methodResponses[0][1].list[0]')
+if ! jq -e --argjson f "$FORWARD_REPORTS" '.inboundReportAddresses["postmaster@*"] == true and .inboundReportForwarding == $f' <<<"$reports_now" >/dev/null; then
+  log "Stalwart: analysing reports sent to postmaster@ (forwarded to the inbox: ${FORWARD_REPORTS})"
+  call "$(jq -cn --argjson f "$FORWARD_REPORTS" --argjson now "$reports_now" '[["x:ReportSettings/set",{"update":{"singleton":{
+      inboundReportAddresses:(($now.inboundReportAddresses // {}) + {"postmaster@*":true}), inboundReportForwarding:$f}}},"c"]]')" \
+    | jq -e '.methodResponses[0][1].updated | has("singleton")' >/dev/null \
+    || echo "Stalwart: WARNING could not set the report analysis settings" >&2
+fi
+hold=$(call '[["x:DataRetention/get",{"ids":["singleton"],"properties":["holdMtaReportsFor"]},"c"]]' | jq -c '.methodResponses[0][1].list[0].holdMtaReportsFor')
+if [[ "$hold" == null ]]; then
+  log "Stalwart: keeping received reports for 30 days"
+  call '[["x:DataRetention/set",{"update":{"singleton":{"holdMtaReportsFor":2592000000}}},"c"]]' \
+    | jq -e '.methodResponses[0][1].updated | has("singleton")' >/dev/null \
+    || echo "Stalwart: WARNING could not set how long reports are kept" >&2
 fi
 
 # ------------------------------------------------------------------ 7. reload

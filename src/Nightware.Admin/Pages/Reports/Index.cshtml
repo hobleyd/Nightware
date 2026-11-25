@@ -1,0 +1,163 @@
+@page "/reports"
+@model Nightware.Admin.Pages.Reports.IndexModel
+@using Nightware.Admin.Pages.Reports
+@{ ViewData["Title"] = "DMARC reports"; ViewData["Wide"] = true; }
+@if (Model.Unread is not null) { <partial name="_Unread" /> return; }
+@{ var o = Model.Overview; }
+<section class="panel">
+<h1>DMARC reports</h1>
+<partial name="_Messages" />
+<p class="hint">Mail systems that receive mail claiming your domains (Google, Microsoft, Yahoo and others) send a daily report to the address in each domain's DMARC record, usually postmaster. The mail server reads those reports instead of delivering them, and the console shows them here. <strong>DMARC reports</strong> list who sent mail as your domain and whether it passed DKIM and SPF. <strong>TLS reports</strong> say whether other servers delivered to yours over a secure connection. The mail server keeps reports for 30 days.</p>
+@if (o.Domains.Count == 0)
+{
+    <p>None of your entities has a mail domain yet.</p>
+}
+else
+{
+    @if (o.Domains.Count > 1)
+    {
+        <ul class="chips" aria-label="Domain">
+            <li><a class="chip@(o.Domain is null ? " linked" : null)" aria-current="@(o.Domain is null ? "page" : null)" asp-page="/Reports/Index">All domains</a></li>
+            @foreach (var d in o.Domains)
+            {
+                var on = string.Equals(d, o.Domain, StringComparison.OrdinalIgnoreCase);
+                <li><a class="chip@(on ? " linked" : null)" aria-current="@(on ? "page" : null)" asp-page="/Reports/Index" asp-route-domain="@d">@d</a></li>
+            }
+        </ul>
+    }
+
+    <h2>Summary</h2>
+    <table aria-label="Summary by domain">
+        <thead><tr><th>Domain</th><th>DMARC reports</th><th>Messages</th><th>Failed DMARC</th><th>Sent from (failed)</th><th>TLS reports</th><th>Secure deliveries</th><th>Failed deliveries</th></tr></thead>
+        <tbody>
+        @foreach (var s in o.Summaries)
+        {
+            <tr>
+                <td>@s.Domain</td>
+                <td data-label="DMARC reports">@IndexModel.Count(s.DmarcReports)</td>
+                <td data-label="Messages">@IndexModel.Count(s.Messages)</td>
+                <td data-label="Failed DMARC">@if (s.Failing > 0) { <span class="chip error">@IndexModel.Count(s.Failing)</span> } else if (s.DmarcReports > 0) { <span class="chip linked">None</span> } else { <text>—</text> }</td>
+                <td data-label="Sent from (failed)">@if (s.FailingSources.Count == 0) { <text>—</text> } else { @string.Join(", ", s.FailingSources.Take(5).Select(f => $"{f.SourceIp} ({IndexModel.Count(f.Messages)})"))@(s.FailingSources.Count > 5 ? $" and {s.FailingSources.Count - 5} more" : "") }</td>
+                <td data-label="TLS reports">@IndexModel.Count(s.TlsReports)</td>
+                <td data-label="Secure deliveries">@(s.TlsReports > 0 ? IndexModel.Count(s.TlsSuccessful) : "—")</td>
+                <td data-label="Failed deliveries">@if (s.TlsFailed > 0) { <span class="chip error">@IndexModel.Count(s.TlsFailed)</span> } else if (s.TlsReports > 0) { <span class="chip linked">None</span> } else { <text>—</text> }</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    @if (o.Summaries.Any(s => s.Failing > 0))
+    {
+        <div class="warning">
+            <p><strong>Some mail claiming your domains failed DMARC.</strong> Check each address it was sent from. If it is a service you use (a newsletter or billing system, say), add it to the domain's SPF record or have it sign with DKIM for your domain. If you don't recognise it, someone is sending as your domain, and your DMARC policy decides what receivers do with that mail.</p>
+        </div>
+    }
+    @if (o.Summaries.Any(s => s.SendersFoundNoTlsPolicy))
+    {
+        <p class="hint">"None found" under TLS means a sender found no MTA-STS policy for the domain, so it would have accepted an insecure connection. Publish the domain's MTA-STS records from its DNS page, and make sure https://mta-sts.&lt;domain&gt;/.well-known/mta-sts.txt is reachable.</p>
+    }
+
+    <h2>DMARC reports</h2>
+    @if (o.Dmarc.Count == 0)
+    {
+        <p>No DMARC reports yet. Receivers usually send them once a day for domains that sent them mail.</p>
+    }
+    else
+    {
+        <table aria-label="DMARC reports">
+            <thead><tr><th>Period</th><th>From</th><th>Domain</th><th>Policy</th><th>Messages</th><th>Failed DMARC</th></tr></thead>
+            <tbody>
+            @foreach (var r in o.Dmarc)
+            {
+                <tr>
+                    <td>@IndexModel.Period(r.PeriodStart, r.PeriodEnd)</td>
+                    <td data-label="From">@r.Organization</td>
+                    <td data-label="Domain">@r.Domain</td>
+                    <td data-label="Policy">@IndexModel.Policy(r.Policy.Disposition)@(r.Policy.Testing ? " (testing)" : "")</td>
+                    <td data-label="Messages">@IndexModel.Count(r.Messages)</td>
+                    <td data-label="Failed DMARC">@if (r.Failing > 0) { <span class="chip error">@IndexModel.Count(r.Failing)</span> } else { <span class="chip linked">None</span> }</td>
+                </tr>
+                <tr class="detail">
+                    <td colspan="6">
+                        <details class="more">
+                            <summary>@r.Sources.Count @(r.Sources.Count == 1 ? "sending address" : "sending addresses") · report @r.ReportId</summary>
+                            <table aria-label="Sending addresses in @r.Organization's report for @r.Domain">
+                                <thead><tr><th>Sent from</th><th>Messages</th><th>DKIM</th><th>SPF</th><th>Receiver</th><th>From header</th><th>Envelope from</th><th>Checks</th></tr></thead>
+                                <tbody>
+                                @foreach (var s in r.Sources)
+                                {
+                                    <tr>
+                                        <td>@(s.SourceIp ?? "unknown")</td>
+                                        <td data-label="Messages">@IndexModel.Count(s.Count)</td>
+                                        <td data-label="DKIM"><span class="chip @IndexModel.VerdictClass(s.Dkim)">@IndexModel.Verdict(s.Dkim)</span></td>
+                                        <td data-label="SPF"><span class="chip @IndexModel.VerdictClass(s.Spf)">@IndexModel.Verdict(s.Spf)</span></td>
+                                        <td data-label="Receiver">@IndexModel.Disposition(s.Disposition)</td>
+                                        <td data-label="From header">@(s.HeaderFrom ?? "—")</td>
+                                        <td data-label="Envelope from">@(s.EnvelopeFrom ?? "—")</td>
+                                        <td data-label="Checks" class="hint">@string.Join("; ", s.DkimResults.Select(c => $"DKIM {c.Domain}{(c.SelectorOrScope is null ? "" : $" ({c.SelectorOrScope})")}: {c.Result}").Concat(s.SpfResults.Select(c => $"SPF {c.Domain}: {c.Result}")))</td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                            <p class="hint">Published policy: p=@r.Policy.Disposition, sp=@r.Policy.SubdomainDisposition, DKIM alignment @r.Policy.DkimAlignment, SPF alignment @r.Policy.SpfAlignment.@if (r.ReceivedAt is { } at) { <text> Received @at.ToString("d MMM yyyy HH:mm 'UTC'", System.Globalization.CultureInfo.InvariantCulture).</text> }</p>
+                        </details>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+
+    <h2>TLS reports</h2>
+    @if (o.Tls.Count == 0)
+    {
+        <p>No TLS reports yet.</p>
+    }
+    else
+    {
+        <table aria-label="TLS reports">
+            <thead><tr><th>Period</th><th>From</th><th>Domain</th><th>Policy</th><th>Secure deliveries</th><th>Failed deliveries</th></tr></thead>
+            <tbody>
+            @foreach (var r in o.Tls)
+            {
+                foreach (var p in r.Policies)
+                {
+                    <tr>
+                        <td>@IndexModel.Period(r.PeriodStart, r.PeriodEnd)</td>
+                        <td data-label="From">@r.Organization</td>
+                        <td data-label="Domain">@p.Domain</td>
+                        <td data-label="Policy">@if (p.NoPolicyFound) { <span class="chip missing">@IndexModel.TlsPolicy(p.PolicyType)</span> } else { @IndexModel.TlsPolicy(p.PolicyType) }</td>
+                        <td data-label="Secure deliveries">@IndexModel.Count(p.Successful)</td>
+                        <td data-label="Failed deliveries">@if (p.Failed > 0) { <span class="chip error">@IndexModel.Count(p.Failed)</span> } else { <span class="chip linked">None</span> }</td>
+                    </tr>
+                    @if (p.Failures.Count > 0)
+                    {
+                        <tr class="detail">
+                            <td colspan="6">
+                                <details class="more">
+                                    <summary>Why @IndexModel.Count(p.Failed) @(p.Failed == 1 ? "delivery" : "deliveries") failed</summary>
+                                    <table aria-label="TLS failures in @r.Organization's report for @p.Domain">
+                                        <thead><tr><th>Failure</th><th>Sessions</th><th>Sending server</th><th>Our server</th><th>Detail</th></tr></thead>
+                                        <tbody>
+                                        @foreach (var f in p.Failures)
+                                        {
+                                            <tr>
+                                                <td>@IndexModel.TlsResult(f.ResultType)</td>
+                                                <td data-label="Sessions">@IndexModel.Count(f.Sessions)</td>
+                                                <td data-label="Sending server">@(f.SendingIp ?? "—")</td>
+                                                <td data-label="Our server">@(f.ReceivingMx ?? f.ReceivingIp ?? "—")</td>
+                                                <td data-label="Detail" class="hint">@(f.Detail ?? "")</td>
+                                            </tr>
+                                        }
+                                        </tbody>
+                                    </table>
+                                </details>
+                            </td>
+                        </tr>
+                    }
+                }
+            }
+            </tbody>
+        </table>
+    }
+}
+</section>

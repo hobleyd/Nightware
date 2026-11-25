@@ -139,6 +139,7 @@
                     Chain(0);
                 }
             </li>
+            <li><a asp-page="/Reports/Index" aria-current="@(page == "/Reports/Index" ? "page" : null)">DMARC reports</a></li>
             <li><a asp-page="/Api/Index" aria-current="@(page == "/Api/Index" ? "page" : null)">API reference</a></li>
             @if (actor!.IsGlobal)
             {

@@ -31,6 +31,7 @@ public static class AdministrationServiceCollectionExtensions
         services.TryAddScoped<DnsHosts>();
 
         services.TryAddScoped<ListEntities>();
+        services.TryAddScoped<Reports.ListMailReports>();
         services.TryAddScoped<GetEntity>();
         services.TryAddScoped<CreateEntity>();
         services.TryAddScoped<AddEntityDomain>();

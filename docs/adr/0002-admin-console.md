@@ -604,6 +604,20 @@ Where the build refined the decisions above:
   etag; api-version 2018-05-01 has no TLSA. Google writes create, patch or
   delete one record set, so no deletion must match exactly. Both are
   **unverified** against the live APIs (WireMock only).
+- **DMARC reports (2026-11-26).** `/reports` ("DMARC reports" in the menu, every
+  admin) shows the DMARC aggregate and SMTP TLS reports other mail systems sent
+  to a domain's `rua=` address. Stalwart analyses and stores them itself
+  (`x:ReportSettings.inboundReportAddresses` `postmaster@*`, its default,
+  asserted by `stalwart/configure.sh`, which also stops delivering them to the
+  inbox unless `STALWART_REPORT_FORWARDING=true` and keeps them 30 days through
+  `x:DataRetention.holdMtaReportsFor`). The console reads
+  `x:DmarcExternalReport` and `x:TlsExternalReport` (`/query` then `/get`, the
+  newest 250 of each, permissions `sys{Dmarc,Tls}ExternalReport{Get,Query}`)
+  and stores nothing, as D1 requires. `ListMailReports` limits them to the
+  actor's entities' domains and their subdomains, and cuts a TLS report covering
+  several domains down to the actor's. Shapes verified on Stalwart 1.1.0 by
+  mailing it a DMARC aggregate report and Google's TLS report; the recorded
+  answer is the adapter tests' fixture.
 - **Verified end to end** on an isolated stack (Keycloak 26.8.2, Stalwart 1.1.0,
   Nextcloud 35): MFA sign-in, entity and domain creation (DNS records shown),
   linking existing users, creating a user who then signs in to NightMail and

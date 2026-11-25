@@ -153,6 +153,19 @@ internal sealed record StalwartDomain
 
 internal sealed record StalwartAlias(string Name, string DomainId);
 
+/// <summary>
+/// An <c>x:DmarcExternalReport</c> or <c>x:TlsExternalReport</c> as read: a report another mail system sent and
+/// Stalwart analysed (verified on 1.1). <see cref="Report"/> is the parsed report, read by <see cref="StalwartMailReports"/>.
+/// </summary>
+internal sealed record StalwartExternalReport
+{
+    public string Id { get; init; } = string.Empty;
+
+    public DateTimeOffset? ReceivedAt { get; init; }
+
+    public JsonElement? Report { get; init; }
+}
+
 /// <summary><c>x:MailingList/query</c> condition <c>text</c>: Stalwart 1.1 refuses <c>name</c> and <c>domainId</c> (phase 9 step 0 b).</summary>
 internal sealed record MailingListFilter(string Text);
 
@@ -204,6 +217,7 @@ internal sealed record StalwartSieveScript
 [JsonSerializable(typeof(GetResponse<StalwartMailingList>))]
 [JsonSerializable(typeof(GetResponse<StalwartSieveScript>))]
 [JsonSerializable(typeof(SetResponse<StalwartCreated>))]
+[JsonSerializable(typeof(GetResponse<StalwartExternalReport>))]
 internal sealed partial class StalwartJsonContext : JsonSerializerContext;
 
 /// <summary>Capability and method descriptors of the management API.</summary>
@@ -256,6 +270,18 @@ internal static class StalwartMethods
 
     public static JmapMethod<StalwartSetRequest, SetResponse<StalwartCreated>> SieveSystemScriptSet { get; } =
         new("x:SieveSystemScript/set", JmapMethodKind.Set, Caps, Json.StalwartSetRequest, Json.SetResponseStalwartCreated);
+
+    public static JmapMethod<StalwartQueryRequest<object>, QueryResponse> DmarcExternalReportQuery { get; } =
+        new("x:DmarcExternalReport/query", JmapMethodKind.Query, Caps, Json.StalwartQueryRequestObject, Json.QueryResponse);
+
+    public static JmapMethod<StalwartGetRequest, GetResponse<StalwartExternalReport>> DmarcExternalReportGet { get; } =
+        new("x:DmarcExternalReport/get", JmapMethodKind.Get, Caps, Json.StalwartGetRequest, Json.GetResponseStalwartExternalReport);
+
+    public static JmapMethod<StalwartQueryRequest<object>, QueryResponse> TlsExternalReportQuery { get; } =
+        new("x:TlsExternalReport/query", JmapMethodKind.Query, Caps, Json.StalwartQueryRequestObject, Json.QueryResponse);
+
+    public static JmapMethod<StalwartGetRequest, GetResponse<StalwartExternalReport>> TlsExternalReportGet { get; } =
+        new("x:TlsExternalReport/get", JmapMethodKind.Get, Caps, Json.StalwartGetRequest, Json.GetResponseStalwartExternalReport);
 
     public static JmapMethod<StalwartSetRequest, SetResponse<StalwartCreated>> ActionSet { get; } =
         new("x:Action/set", JmapMethodKind.Set, Caps, Json.StalwartSetRequest, Json.SetResponseStalwartCreated);
