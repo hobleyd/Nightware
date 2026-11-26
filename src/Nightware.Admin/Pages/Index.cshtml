@@ -77,38 +77,54 @@
         }
         @if (Model.Attention.Domains.Count > 0)
         {
+            @* One line per problem, each with its own fix: the mail server's side (Repair), the domain's records (published
+               from its DNS page, MTA-STS's like any other), its SPF, and the mail server's MTA-STS policy. *@
             <ul class="plain">
                 @foreach (var d in Model.Attention.Domains)
                 {
                     var served = d.Domain.Mail.State == LinkState.Linked;
+                    var global = Model.Actor.IsGlobal;
                     <li>
-                        <a asp-page="/Entities/Detail" asp-route-id="@d.Entity.Id">@d.Domain.Domain</a> (@d.Entity.Name): @string.Join("; ", new[]
-                        {
-                            !served ? $"the mail server does not serve it ({Systems.StateLabel(d.Domain.Mail.State)})" : served && !d.Domain.DkimPresent ? "no signing (DKIM) keys" : null,
-                            d.Unsafe.Count > 0 ? "its SPF lets any server send mail as it" : null,
-                            d.DnsChanges > 0 ? $"{d.DnsChanges} DNS {(d.DnsChanges == 1 ? "change" : "changes")} not yet published to the DNS host" : null,
-                            d.NoTlsPolicy ? "senders found no MTA-STS policy for it, so they may deliver its mail unencrypted" : null,
-                            d.MtaStsMissing.Count > 0 ? $"the mail server's MTA-STS policy does not list its mail server ({string.Join(", ", d.MtaStsMissing)})" : null,
-                        }.Where(static x => x is not null))
-                        @if (Model.Actor.IsGlobal && d.Unsafe.Count > 0)
-                        {
-                            <a asp-page="/Entities/Dns" asp-route-id="@d.Entity.Id" asp-route-domain="@d.Domain.Domain.Name" asp-route-edit="true" asp-fragment="mail-policy">Fix SPF and DMARC</a>
-                        }
-                        @if (d.NeedsRepair && Model.Actor.IsGlobal)
-                        {
-                            <form method="post" action="@Model.PostTo("RepairDomain")" asp-antiforgery="true" class="inline"><input type="hidden" name="entityId" value="@d.Entity.Id"><input type="hidden" name="domain" value="@d.Domain.Domain.Name"><button type="submit" class="secondary">Repair</button></form>
-                        }
-                        else if (!Model.Actor.IsGlobal)
+                        <a asp-page="/Entities/Dns" asp-route-id="@d.Entity.Id" asp-route-domain="@d.Domain.Domain.Name">@d.Domain.Domain</a> (@d.Entity.Name)
+                        <ul class="plain issues">
+                            @if (d.NeedsRepair)
+                            {
+                                <li>
+                                    @(!served ? $"The mail server does not serve it ({Systems.StateLabel(d.Domain.Mail.State)})." : "The mail server has no signing (DKIM) keys for it.")
+                                    @if (global)
+                                    {
+                                        <form method="post" action="@Model.PostTo("RepairDomain")" asp-antiforgery="true" class="inline"><input type="hidden" name="entityId" value="@d.Entity.Id"><input type="hidden" name="domain" value="@d.Domain.Domain.Name"><button type="submit" class="secondary">Repair</button></form>
+                                    }
+                                </li>
+                            }
+                            @if (d.DnsChanges > 0)
+                            {
+                                <li>
+                                    @(d.DnsChanges == 1 ? "1 DNS record is" : $"{d.DnsChanges} DNS records are") missing or out of date at @(d.Entity.DnsHost?.Name() ?? "the DNS host").
+                                    <a class="button secondary" href="@Url.Page("/Entities/Dns", null, new { id = d.Entity.Id, domain = d.Domain.Domain.Name }, null, null, "publish")">Review and publish</a>
+                                </li>
+                            }
+                            @if (d.Unsafe.Count > 0)
+                            {
+                                <li>
+                                    Its SPF lets any server send mail as it.
+                                    @if (global)
+                                    {
+                                        <a class="button secondary" asp-page="/Entities/Dns" asp-route-id="@d.Entity.Id" asp-route-domain="@d.Domain.Domain.Name" asp-route-edit="true" asp-fragment="mail-policy">Fix SPF and DMARC</a>
+                                    }
+                                </li>
+                            }
+                            @if (d.MtaStsMissing.Count > 0)
+                            {
+                                <li>
+                                    The mail server's MTA-STS policy does not list its MX, @string.Join(" or ", d.MtaStsMissing).
+                                    <form method="post" action="@Model.PostTo("MtaStsHosts")" asp-antiforgery="true" class="inline"><input type="hidden" name="entityId" value="@d.Entity.Id"><input type="hidden" name="domain" value="@d.Domain.Domain.Name"><button type="submit" class="secondary">Add to the policy</button></form>
+                                </li>
+                            }
+                        </ul>
+                        @if (!global)
                         {
                             <span class="hint">Ask your Nightware operator to @(d.NeedsRepair ? "repair" : "fix") it.</span>
-                        }
-                        @if (served)
-                        {
-                            <a href="@Url.Page("/Entities/Dns", null, new { id = d.Entity.Id, domain = d.Domain.Domain.Name }, null, null, (d.NoTlsPolicy || d.MtaStsMissing.Count > 0) && d.DnsChanges == 0 ? "mta-sts" : null)">@(d.DnsChanges > 0 ? "Review and publish" : d.NoTlsPolicy || d.MtaStsMissing.Count > 0 ? "Fix MTA-STS" : "DNS records")</a>
-                        }
-                        @if (d.NoTlsPolicy)
-                        {
-                            <a asp-page="/Reports/Index" asp-route-domain="@d.Domain.Domain.Name">TLS reports</a>
                         }
                     </li>
                 }

@@ -33,7 +33,7 @@ else
         @foreach (var s in o.Summaries)
         {
             <tr>
-                <td>@if (o.EntityOf.TryGetValue(s.Domain, out var entityId)) { <a href="@Url.Page("/Entities/Dns", null, new { id = entityId, domain = s.Domain }, null, null, s.LatestFoundNoTlsPolicy ? "mta-sts" : null)">@s.Domain</a> } else { @s.Domain }</td>
+                <td>@if (Model.DnsPageFor(s.Domain) is { } dnsPage) { <a href="@dnsPage">@s.Domain</a> } else { @s.Domain }</td>
                 <td data-label="DMARC reports">@IndexModel.Count(s.DmarcReports)</td>
                 <td data-label="Messages">@IndexModel.Count(s.Messages)</td>
                 <td data-label="Failed DMARC">@if (s.Failing > 0) { <span class="chip error">@IndexModel.Count(s.Failing)</span> } else if (s.DmarcReports > 0) { <span class="chip linked">None</span> } else { <text>—</text> }</td>
@@ -121,7 +121,21 @@ else
                         <td>@IndexModel.Period(r.PeriodStart, r.PeriodEnd)</td>
                         <td data-label="From">@r.Organization</td>
                         <td data-label="Domain">@p.Domain</td>
-                        <td data-label="Policy">@if (p.NoPolicyFound) { <span class="chip missing">@IndexModel.TlsPolicy(p.PolicyType)</span> } else { @IndexModel.TlsPolicy(p.PolicyType) }</td>
+                        <td data-label="Policy">@if (p.NoPolicyFound)
+                            {
+                                var owner = Model.SummaryFor(p.Domain);
+                                var changes = owner is not null && owner.CurrentNoTlsPolicyReports.Contains(r.Id) ? Model.ChangesFor(owner.Domain) : 0;
+                                <span class="chip missing">@IndexModel.TlsPolicy(p.PolicyType)</span>
+                                @if (changes > 0 && Model.DnsPageFor(owner!.Domain) is { } fix)
+                                {
+                                    var label = $"Fix: publish {changes} DNS {(changes == 1 ? "change" : "changes")} for {owner.Domain}";
+                                    <a class="fix" href="@fix" title="@label" aria-label="@label"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path fill="currentColor" d="M10.6 1.1a4.2 4.2 0 0 0-4.3 5.6L1.4 11.6a1.6 1.6 0 0 0 0 2.3l.7.7a1.6 1.6 0 0 0 2.3 0l4.9-4.9a4.2 4.2 0 0 0 5.6-4.3l-2.5 2.5-2.3-.4-.4-2.3z"/></svg></a>
+                                }
+                            }
+                            else
+                            {
+                                @IndexModel.TlsPolicy(p.PolicyType)
+                            }</td>
                         <td data-label="Secure deliveries">@IndexModel.Count(p.Successful)</td>
                         <td data-label="Failed deliveries">@if (p.Failed > 0) { <span class="chip error">@IndexModel.Count(p.Failed)</span> } else { <span class="chip linked">None</span> }</td>
                     </tr>
@@ -156,8 +170,27 @@ else
         </table>
         @if (o.Summaries.Any(s => s.SendersFoundNoTlsPolicy))
         {
+            var current = o.Summaries.Where(s => s.LatestFoundNoTlsPolicy).ToList();
+            var publishable = current.Where(s => Model.ChangesFor(s.Domain) > 0).ToList();
+            var published = Model.Actor.IsGlobal ? current.Where(s => Model.ChangesFor(s.Domain) == 0).ToList() : [];
             <div class="warning" id="no-tls-policy">
-                <p><strong>"None found" means a sender found no MTA-STS policy for the domain</strong>, so it would have accepted an unencrypted connection. Open the domain's DNS page from the summary above: it says whether the MTA-STS records still need publishing, or whether https://mta-sts.&lt;domain&gt;/.well-known/mta-sts.txt is not being served.@if (o.Summaries.Any(s => s.SendersFoundNoTlsPolicy && !s.LatestFoundNoTlsPolicy)) { <text> Older reports keep saying so after it is fixed; a domain whose senders' latest reports find the policy is in order.</text> }</p>
+                <p><strong>"None found" means the sender found no MTA-STS policy for the domain</strong> when it delivered, so it would have accepted an unencrypted connection. Reports cover the day before they arrive, so they lag behind a fix.</p>
+                @if (publishable.Count > 0)
+                {
+                    <p>@string.Join(", ", publishable.Select(s => s.Domain)) @(publishable.Count == 1 ? "has" : "have") DNS changes to publish. The fix icon beside "None found" opens them.</p>
+                }
+                @if (published.Count > 0)
+                {
+                    <p>No DNS changes are waiting for @string.Join(", ", published.Select(s => s.Domain)) at a connected DNS host. If the next reports still find no policy once the records on @(published.Count == 1 ? "its" : "each") DNS page are in place, check that https://mta-sts.&lt;domain&gt;/.well-known/mta-sts.txt opens (see "A new domain's public mail discovery" in the deployment guide).</p>
+                }
+                @if (!Model.Actor.IsGlobal && current.Count > 0)
+                {
+                    <p>Ask your Nightware operator to publish @string.Join(", ", current.Select(s => s.Domain))'s DNS records.</p>
+                }
+                @if (o.Summaries.Any(s => s.SendersFoundNoTlsPolicy && !s.LatestFoundNoTlsPolicy))
+                {
+                    <p>Older reports keep saying so after it is fixed; a domain whose senders' latest reports find the policy is in order.</p>
+                }
             </div>
         }
     }

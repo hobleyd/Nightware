@@ -15,7 +15,8 @@ namespace Nightware.Admin.Pages;
 
 /// <summary>
 /// Dashboard: what needs the admin, backend health, and the actor's entities. Each worklist row carries its
-/// fix where the fix is safe to repeat (finish an offboarding, repair a user, a domain, a shared mailbox or a group); a conflict needs a
+/// fix where the fix is safe to repeat (finish an offboarding, repair a user, a domain, a shared mailbox or a group, add a
+/// domain's MX to the MTA-STS policy); DNS changes are reviewed on the domain's DNS page first; a conflict needs a
 /// person to decide, so it links to the user instead.
 /// </summary>
 public sealed class IndexModel(
@@ -28,6 +29,7 @@ public sealed class IndexModel(
     RepairUser repair,
     VerifyUserEmail verifyEmail,
     AddEntityDomain repairDomain,
+    AddDomainToMtaStsPolicy addToMtaSts,
     RepairSharedMailbox repairMailbox,
     RepairGroup repairGroup,
     AdministrationOptions options,
@@ -118,6 +120,9 @@ public sealed class IndexModel(
 
     public async Task<IActionResult> OnPostRepairDomainAsync(string entityId, string domain, CancellationToken cancellationToken) =>
         await AfterAsync(await repairDomain.ExecuteAsync(entityId, domain, cancellationToken), Systems.DomainRepairNotice, cancellationToken);
+
+    public async Task<IActionResult> OnPostMtaStsHostsAsync(string entityId, string domain, CancellationToken cancellationToken) =>
+        await AfterAsync(await addToMtaSts.ExecuteAsync(entityId, domain, cancellationToken), Systems.MtaStsHostsNotice, cancellationToken);
 
     public async Task<IActionResult> OnPostRepairMailboxAsync(string entityId, string mailboxId, CancellationToken cancellationToken) =>
         await AfterAsync(

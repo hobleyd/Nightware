@@ -8,8 +8,9 @@ using Nightware.Domain.Kernel;
 namespace Nightware.Admin.Tests.Pages;
 
 /// <summary>
-/// A domain whose senders' latest TLS reports found no MTA-STS policy: on the dashboard's worklist, explained on the
-/// domain's DNS page (publish the records, or make the policy reachable), and on the reports page under its TLS table.
+/// MTA-STS across the console: its records are DNS changes like any other (dashboard, DNS page); a TLS report finding
+/// no policy is dated evidence, with a fix beside it on the reports page while changes wait; the mail server's policy
+/// leaving out the domain's MX is a server setting, fixed from the dashboard or the DNS page.
 /// </summary>
 public sealed class MtaStsAttentionPageTests : IDisposable
 {
@@ -64,77 +65,96 @@ public sealed class MtaStsAttentionPageTests : IDisposable
         await (await _host.ClientAs(sub).GetAsync(new Uri(url, UriKind.Relative), Ct)).Content.ReadAsStringAsync(Ct);
 
     [Fact]
-    public async Task Unpublished_MTA_STS_records_are_published_from_the_DNS_page_the_dashboard_links_to()
+    public async Task Unpublished_MTA_STS_records_are_DNS_changes_like_any_other()
+    {
+        Connected([.. AllPublished.Where(r => !r.Name.Contains("mta-sts", StringComparison.Ordinal))]);
+        Reported(Report(0, "noPolicyFound"));
+
+        string dashboard = await GetAsync("/");
+        dashboard.ShouldContain("2 DNS records are missing or out of date at Cloudflare.");
+        dashboard.ShouldContain($"href=\"{DnsUrl}#publish\">Review and publish</a>");
+        dashboard.ShouldNotContain("MTA-STS");
+        dashboard.ShouldNotContain("TLS reports</a>");
+
+        string dns = await GetAsync(DnsUrl);
+        dns.ShouldContain("<section class=\"panel\" id=\"publish\">");
+        dns.ShouldContain("<td data-label=\"Name\">_mta-sts.acme.example</td>");
+        dns.ShouldContain("<td data-label=\"Name\">mta-sts.acme.example</td>");
+        dns.ShouldNotContain("id=\"mta-sts\"");
+    }
+
+    [Fact]
+    public async Task A_TLS_report_finding_no_policy_alone_puts_nothing_on_the_dashboard_or_the_DNS_page()
+    {
+        Connected(AllPublished);
+        Reported(Report(0, "noPolicyFound"));
+
+        (await GetAsync("/")).ShouldContain("Nothing needs you.");
+        string dns = await GetAsync(DnsUrl);
+        dns.ShouldNotContain("class=\"warning\"");
+        dns.ShouldContain("has every record acme.example needs.");
+    }
+
+    [Fact]
+    public async Task The_reports_page_puts_a_fix_beside_a_current_none_found_while_DNS_changes_wait()
     {
         Connected(Needed[0]);
-        Reported(Report(0, "noPolicyFound"));
+        // The same sender, a day apart.
+        Reported(Report(1, "noPolicyFound"), Report(0, "noPolicyFound"));
 
-        string dashboard = await GetAsync("/");
-        dashboard.ShouldContain("senders found no MTA-STS policy for it, so they may deliver its mail unencrypted");
-        dashboard.ShouldContain($"href=\"{DnsUrl}\">Review and publish</a>");
-        dashboard.ShouldContain("href=\"/reports?domain=acme.example\">TLS reports</a>");
+        string html = await GetAsync("/reports");
 
-        string dns = await GetAsync(DnsUrl);
-        dns.ShouldContain("<div class=\"warning\" id=\"mta-sts\">");
-        dns.ShouldContain("Its MTA-STS records are not all at Cloudflare yet. Publishing the changes below adds them.");
-        dns.ShouldContain("<td data-label=\"Name\">_mta-sts.acme.example</td>");
+        html.ShouldContain($"<a href=\"{DnsUrl}#publish\">acme.example</a>");
+        html.ShouldContain($"<a class=\"fix\" href=\"{DnsUrl}#publish\" title=\"Fix: publish ");
+        html.ShouldContain(" DNS changes for acme.example\" aria-label=\"Fix: publish ");
+        // Only the sender's newest report carries it; the older one is history.
+        CountOf(html, "class=\"fix\"").ShouldBe(1);
+        html.ShouldContain("acme.example has DNS changes to publish. The fix icon beside \"None found\" opens them.");
+        html.ShouldNotContain("Older reports keep saying so");
     }
 
     [Fact]
-    public async Task Published_records_point_at_the_policy_host_instead()
+    public async Task With_every_record_published_the_reports_page_points_at_the_policy_host_instead()
     {
         Connected(AllPublished);
         Reported(Report(0, "noPolicyFound"));
 
-        string dashboard = await GetAsync("/");
-        dashboard.ShouldContain($"href=\"{DnsUrl}#mta-sts\">Fix MTA-STS</a>");
-        dashboard.ShouldNotContain("not yet published to the DNS host");
+        string html = await GetAsync("/reports");
 
-        string dns = await GetAsync(DnsUrl);
-        dns.ShouldContain("Its MTA-STS records are published at Cloudflare, so the policy itself is not being served.");
-        dns.ShouldContain("href=\"https://mta-sts.acme.example/.well-known/mta-sts.txt\"");
+        html.ShouldNotContain("class=\"fix\"");
+        html.ShouldContain($"<a href=\"{DnsUrl}\">acme.example</a>");
+        html.ShouldContain("No DNS changes are waiting for acme.example at a connected DNS host.");
+        html.ShouldContain("https://mta-sts.&lt;domain&gt;/.well-known/mta-sts.txt opens");
     }
 
     [Fact]
-    public async Task Once_the_latest_reports_find_the_policy_nothing_needs_attention()
-    {
-        Connected(AllPublished);
-        Reported(Report(0, "noPolicyFound"), Report(1, "sts"));
-
-        (await GetAsync("/")).ShouldNotContain("MTA-STS");
-        (await GetAsync(DnsUrl)).ShouldNotContain("id=\"mta-sts\"");
-    }
-
-    [Fact]
-    public async Task An_entity_admin_is_told_to_ask_the_operator()
-    {
-        Reported(Report(0, "noPolicyFound"));
-
-        string dns = await GetAsync(DnsUrl, ConsoleHost.EntityAdmin);
-
-        dns.ShouldContain("Senders found no MTA-STS policy for acme.example</strong>");
-        dns.ShouldContain("Ask your Nightware operator to publish the domain&#x27;s MTA-STS records and make its policy reachable.");
-    }
-
-    [Fact]
-    public async Task The_reports_page_explains_none_found_under_the_TLS_table_and_links_each_domain_to_its_DNS_page()
+    public async Task An_entity_admin_is_told_to_ask_the_operator_and_older_reports_are_history()
     {
         Reported(Report(0, "noPolicyFound"));
 
         string html = await GetAsync("/reports", ConsoleHost.EntityAdmin);
 
         html.ShouldContain("<section class=\"panel reports\">");
-        html.ShouldContain($"<a href=\"{DnsUrl}#mta-sts\">acme.example</a>");
+        html.ShouldNotContain("class=\"fix\"");
+        html.ShouldContain("Ask your Nightware operator to publish acme.example's DNS records.");
         int table = html.IndexOf("aria-label=\"TLS reports\"", StringComparison.Ordinal);
-        int note = html.IndexOf("id=\"no-tls-policy\"", StringComparison.Ordinal);
-        table.ShouldBeGreaterThan(0);
-        note.ShouldBeGreaterThan(table);
-        html.ShouldNotContain("Older reports keep saying so");
+        html.IndexOf("id=\"no-tls-policy\"", StringComparison.Ordinal).ShouldBeGreaterThan(table);
 
         Reported(Report(0, "noPolicyFound"), Report(1, "sts"));
         string fixedSince = await GetAsync("/reports", ConsoleHost.EntityAdmin);
         fixedSince.ShouldContain("Older reports keep saying so after it is fixed");
-        fixedSince.ShouldContain($"<a href=\"{DnsUrl}\">acme.example</a>");
+        fixedSince.ShouldNotContain("Ask your Nightware operator");
+    }
+
+    private static int CountOf(string text, string part)
+    {
+        int count = 0;
+        for (int at = text.IndexOf(part, StringComparison.Ordinal); at >= 0; at = text.IndexOf(part, at + part.Length, StringComparison.Ordinal))
+        {
+            count++;
+        }
+
+        return count;
     }
 
     [Fact]
@@ -144,8 +164,8 @@ public sealed class MtaStsAttentionPageTests : IDisposable
         _host.MtaSts.GetAsync(Arg.Any<CancellationToken>()).Returns(new MtaStsPolicy("testing", [], ["mail.server.example"]));
 
         string dashboard = await GetAsync("/");
-        dashboard.ShouldContain("the mail server&#x27;s MTA-STS policy does not list its mail server (mail.acme.example)");
-        dashboard.ShouldContain($"href=\"{DnsUrl}#mta-sts\">Fix MTA-STS</a>");
+        dashboard.ShouldContain("The mail server's MTA-STS policy does not list its MX, mail.acme.example.");
+        dashboard.ShouldContain("Add to the policy</button>");
 
         string dns = await GetAsync(DnsUrl);
         dns.ShouldContain("The mail server's MTA-STS policy does not list mail.acme.example</strong>");
@@ -157,6 +177,11 @@ public sealed class MtaStsAttentionPageTests : IDisposable
 
         posted.StatusCode.ShouldBe(System.Net.HttpStatusCode.Redirect);
         await _host.MtaSts.Received(1).SetMxHostsAsync(Arg.Is<IReadOnlyList<string>>(h => h.SequenceEqual(new[] { "mail.server.example", "mail.acme.example" })), Arg.Any<CancellationToken>());
+
+        // The dashboard's button does the same.
+        using HttpResponseMessage fromDashboard = await ConsoleHost.PostFormAsync(_host.ClientAs(ConsoleHost.GlobalAdmin), "/", "/?handler=MtaStsHosts", new Dictionary<string, string> { ["entityId"] = ConsoleHost.Acme, ["domain"] = "acme.example" });
+        fromDashboard.StatusCode.ShouldBe(System.Net.HttpStatusCode.Redirect);
+        await _host.MtaSts.Received(2).SetMxHostsAsync(Arg.Is<IReadOnlyList<string>>(h => h.SequenceEqual(new[] { "mail.server.example", "mail.acme.example" })), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -167,7 +192,7 @@ public sealed class MtaStsAttentionPageTests : IDisposable
         string dns = await GetAsync(DnsUrl, ConsoleHost.EntityAdmin);
 
         dns.ShouldContain("refuse to deliver the domain&#x27;s mail");
-        dns.ShouldContain("Ask your Nightware operator to add the domain&#x27;s MX to the mail server&#x27;s MTA-STS policy.");
+        dns.ShouldContain("Ask your Nightware operator to add the domain's MX to the mail server's MTA-STS policy.");
         dns.ShouldNotContain("handler=MtaStsHosts");
         (await GetAsync("/", ConsoleHost.EntityAdmin)).ShouldNotContain("MTA-STS policy does not list");
     }

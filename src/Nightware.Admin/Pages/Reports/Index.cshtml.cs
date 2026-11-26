@@ -3,6 +3,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 
 using Nightware.Application.Administration;
+using Nightware.Application.Administration.Entities;
 using Nightware.Application.Administration.Reports;
 using Nightware.Domain.Administration;
 using Nightware.Domain.Kernel;
@@ -12,14 +13,36 @@ namespace Nightware.Admin.Pages.Reports;
 /// <summary>
 /// The DMARC aggregate and SMTP TLS reports other mail systems sent about the actor's domains, as the mail server
 /// analysed them: a summary per domain, then each report with its sending addresses (DMARC) or its policy results
-/// (TLS). Read-only; <c>?domain=</c> narrows it to one domain.
+/// (TLS). Read-only; <c>?domain=</c> narrows it to one domain. A TLS report is dated evidence: when a sender's newest
+/// one found no MTA-STS policy and the domain has DNS changes to publish (compared for a global administrator, as on
+/// the dashboard), the row links to that fix; the records themselves are judged only on the DNS page.
 /// </summary>
-public sealed class IndexModel(IAdminActor actor, ListMailReports list) : ConsolePageModel(actor)
+public sealed class IndexModel(IAdminActor actor, ListMailReports list, PlanDnsPublication planPublication) : ConsolePageModel(actor)
 {
     [BindProperty(SupportsGet = true)]
     public string? Domain { get; set; }
 
     public MailReportOverview Overview { get; private set; } = MailReportOverview.Empty;
+
+    /// <summary>
+    /// The DNS changes waiting to be published, by domain, for each domain a sender's newest TLS report found without an
+    /// MTA-STS policy; absent where none wait, or where the zone is not compared (not a global administrator, no DNS
+    /// host, or it could not be read).
+    /// </summary>
+    public IReadOnlyDictionary<string, int> DnsChanges { get; private set; } = new Dictionary<string, int>();
+
+    /// <summary>The summary of our domain that a TLS result for <paramref name="reported"/> (it or a subdomain) counts towards.</summary>
+    public DomainReportSummary? SummaryFor(string reported) =>
+        Overview.Summaries.FirstOrDefault(s => ReportDomains.Covers(s.Domain, reported));
+
+    /// <summary>The DNS changes waiting for a domain a current TLS report found without a policy; 0 when none or not compared.</summary>
+    public int ChangesFor(string domain) => DnsChanges.TryGetValue(domain, out int n) ? n : 0;
+
+    /// <summary>The domain's DNS page, at its publish step when changes wait there.</summary>
+    public string? DnsPageFor(string domain) =>
+        Overview.EntityOf.TryGetValue(domain, out string? entityId)
+            ? Url.Page("/Entities/Dns", null, new { id = entityId, domain }, null, null, ChangesFor(domain) > 0 ? "publish" : null)
+            : null;
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
@@ -29,6 +52,23 @@ public sealed class IndexModel(IAdminActor actor, ListMailReports list) : Consol
         }
 
         Overview = overview;
+        if (Actor.IsGlobal)
+        {
+            var changes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (DomainReportSummary flagged in overview.Summaries.Where(static s => s.LatestFoundNoTlsPolicy))
+            {
+                // Never fails the page: an unconnected or unreadable zone simply offers no link.
+                if (overview.EntityOf.TryGetValue(flagged.Domain, out string? entityId)
+                    && await planPublication.ExecuteAsync(entityId, flagged.Domain, cancellationToken) is { IsSuccess: true } preview
+                    && preview.Value.Plan.Changes.Count(static c => c.IsWrite) is > 0 and var writes)
+                {
+                    changes[flagged.Domain] = writes;
+                }
+            }
+
+            DnsChanges = changes;
+        }
+
         return Page();
     }
 

@@ -221,6 +221,12 @@ td.add-cell { width: 1%; text-align: right; }
 .confirm h3 { margin: 0 0 4px; font-size: 1em; }
 button.link { background: none; border: none; color: var(--accent); padding: 0; }
 ul.plain { list-style: none; padding: 0; }
+/* A dashboard domain's problems, one per line, each beside its fix. */
+ul.plain.issues { margin: 2px 0 6px 1.25em; }
+ul.plain.issues > li { margin: 4px 0; }
+/* The fix beside a finding (a TLS report's "None found"): a small coloured round link to where it is fixed. */
+a.fix { display: inline-flex; align-items: center; justify-content: center; width: 1.6em; height: 1.6em; margin-left: 4px; border-radius: 999px; background: var(--warn); color: var(--panel); vertical-align: middle; }
+a.fix:hover, a.fix:focus-visible { background: var(--accent); }
 
 @media (max-width: 640px) {
   table, thead, tbody, tr, th, td { display: block; }

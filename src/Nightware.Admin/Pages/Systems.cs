@@ -95,6 +95,15 @@ public static class Systems
         _ => $"{status.Domain} is served by the mail server, with DKIM keys.",
     };
 
+    /// <summary>What adding a domain's MX to the mail server's MTA-STS policy achieved, the same on every page.</summary>
+    public static string MtaStsHostsNotice(Nightware.Application.Administration.Entities.MtaStsCoverage coverage)
+    {
+        ArgumentNullException.ThrowIfNull(coverage);
+        return coverage.Missing.Count == 0
+            ? $"The mail server's MTA-STS policy now lists {string.Join(" and ", coverage.DomainMxHosts)}. Its id changed, so every domain's _mta-sts record has a change to publish."
+            : $"The mail server's MTA-STS policy still does not list {string.Join(" and ", coverage.Missing)}.";
+    }
+
     /// <summary>A moment in a user's history, in UTC so every admin reads the same time: "18 Nov 2026, 09:12 UTC".</summary>
     public static string When(DateTimeOffset at) =>
         at.UtcDateTime.ToString("d MMM yyyy, HH:mm 'UTC'", System.Globalization.CultureInfo.InvariantCulture);

@@ -1,6 +1,5 @@
 using Nightware.Application.Administration.Entities;
 using Nightware.Application.Administration.Groups;
-using Nightware.Application.Administration.Reports;
 using Nightware.Application.Administration.SharedMailboxes;
 using Nightware.Application.Administration.Users;
 using Nightware.Domain.Administration;
@@ -12,13 +11,13 @@ namespace Nightware.Application.Administration.Status;
 public sealed record UserNeedingAttention(UserDetail User, UserStatus Status, Entity Entity);
 
 /// <summary>
-/// A domain the mail server does not serve, or serves without signing keys, whose records are not yet in its zone at
-/// the entity's DNS host, or that senders' latest TLS reports say has no MTA-STS policy.
+/// A domain the mail server does not serve, or serves without signing keys, whose records (any of them: MX, SPF,
+/// DKIM, DMARC, MTA-STS, discovery) are not yet in its zone at the entity's DNS host, or whose MX the mail server's
+/// MTA-STS policy leaves out.
 /// </summary>
 /// <param name="Unsafe">What in the domain's own SPF or DMARC lets anyone send as it; empty when nothing does.</param>
 /// <param name="DnsChanges">The changes publishing to the entity's DNS host would write; 0 when none, or when not compared.</param>
-/// <param name="NoTlsPolicy">A sender's newest TLS report says it found no MTA-STS policy for the domain, so it would deliver without TLS.</param>
-public sealed record DomainNeedingAttention(DomainStatus Domain, Entity Entity, IReadOnlyList<MailAuthenticationWeakness> Unsafe, int DnsChanges = 0, bool NoTlsPolicy = false)
+public sealed record DomainNeedingAttention(DomainStatus Domain, Entity Entity, IReadOnlyList<MailAuthenticationWeakness> Unsafe, int DnsChanges = 0)
 {
     /// <summary>The domain's MX hosts the mail server's MTA-STS policy does not list (global administrators only); empty when it lists them all.</summary>
     public IReadOnlyList<string> MtaStsMissing { get; init; } = [];
@@ -55,9 +54,8 @@ public sealed record Attention(IReadOnlyList<UserNeedingAttention> Users, IReadO
 /// an entity above <see cref="ListUsers"/>' link limit is reported as not checked rather than half-read. For a
 /// global administrator, a served domain of an entity connected to a DNS host is also compared with its zone, and
 /// needs attention while publishing would change it (publishing is theirs alone); a zone that cannot be read leaves
-/// its entity not checked, as does a shared mailbox or group that cannot be read. A served domain also needs attention
-/// while senders' latest TLS reports find no MTA-STS policy for it; the reports are read once, and when the mail server
-/// will not give them (an older deployment without the permission) that check is skipped, as the reports page says why.
+/// its entity not checked, as does a shared mailbox or group that cannot be read. Every record the domain needs counts
+/// alike, MTA-STS's included: TLS reports are dated evidence shown on the reports page, not a check of their own.
 /// For a global administrator, a served domain whose MX host the mail server's MTA-STS policy does not list needs
 /// attention too (adding it is theirs alone); a policy or records that cannot be read skip that check the same way.
 /// </summary>
@@ -71,7 +69,6 @@ public sealed class GetAttention(
     GetSharedMailbox getMailbox,
     ListGroups listGroups,
     GetGroup getGroup,
-    IMailReports reports,
     IMailDomains mailDomains,
     IMtaStsPolicies mtaSts)
 {
@@ -89,7 +86,6 @@ public sealed class GetAttention(
         var groups = new List<GroupNeedingAttention>();
         var notChecked = new List<Entity>();
         var userCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-        MailReports? held = null;
         Result<MtaStsPolicy>? policy = null;
         foreach (Entity entity in manageable.Value)
         {
@@ -116,13 +112,6 @@ public sealed class GetAttention(
                         notChecked.Add(entity);
                     }
 
-                    bool noTlsPolicy = false;
-                    if (d.Mail.State == LinkState.Linked)
-                    {
-                        held ??= await HeldReportsAsync(cancellationToken).ConfigureAwait(false);
-                        noTlsPolicy = DomainReportSummary.For(d.Domain.Name, held).LatestFoundNoTlsPolicy;
-                    }
-
                     IReadOnlyList<string> mtaStsMissing = [];
                     if (actor.Current.IsGlobal && d.Mail.State == LinkState.Linked)
                     {
@@ -130,8 +119,8 @@ public sealed class GetAttention(
                         mtaStsMissing = await MtaStsMissingAsync(d, policy.GetValueOrDefault(), cancellationToken).ConfigureAwait(false);
                     }
 
-                    var domain = new DomainNeedingAttention(d, entity, UnsafeIn(detail.Value.Entity.MailPolicyFor(d.Domain)), dnsChanges ?? 0, noTlsPolicy) { MtaStsMissing = mtaStsMissing };
-                    if (domain.NeedsRepair || domain.Unsafe.Count > 0 || domain.DnsChanges > 0 || domain.NoTlsPolicy || domain.MtaStsMissing.Count > 0)
+                    var domain = new DomainNeedingAttention(d, detail.Value.Entity, UnsafeIn(detail.Value.Entity.MailPolicyFor(d.Domain)), dnsChanges ?? 0) { MtaStsMissing = mtaStsMissing };
+                    if (domain.NeedsRepair || domain.Unsafe.Count > 0 || domain.DnsChanges > 0 || domain.MtaStsMissing.Count > 0)
                     {
                         domains.Add(domain);
                     }
@@ -240,13 +229,6 @@ public sealed class GetAttention(
 
         Result<IReadOnlyList<DnsRecord>> records = await mailDomains.GetDnsRecordsAsync(domain.Domain, cancellationToken).ConfigureAwait(false);
         return records.IsSuccess ? policy.Value.Missing(MtaStsPolicy.MxHostsIn(records.Value)) : [];
-    }
-
-    /// <summary>The DMARC and TLS reports the mail server holds; none when it cannot or will not give them.</summary>
-    private async Task<MailReports> HeldReportsAsync(CancellationToken cancellationToken)
-    {
-        Result<MailReports> listed = await reports.ListAsync(cancellationToken).ConfigureAwait(false);
-        return listed.IsSuccess ? listed.Value : MailReports.None;
     }
 
     private static int Rank(UserStatus status) => status switch

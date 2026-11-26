@@ -357,10 +357,10 @@ output: anything they cannot do is printed as a WARNING.
   3. Make Stalwart's MTA-STS policy list the domain's MX. With `x:MtaSts`
      `mxHosts` empty (the default), the policy's only `mx:` is Stalwart's
      hostname, `mail.<MAIL_DOMAIN>`. The dashboard lists a domain whose MX the
-     policy leaves out, and the domain's DNS page adds it ("Add mail.<domain>
-     to the policy"; it keeps the hosts the policy already served). The
-     policy's id changes with it, so publish every domain's `_mta-sts` record
-     again afterwards. A missing MX is harmless while `mode` is `testing`
+     policy leaves out; "Add to the policy" there, or on the domain's DNS page,
+     adds it (it keeps the hosts the policy already served). The policy's id
+     changes with it, so every domain's `_mta-sts` record then shows on the
+     dashboard as a DNS change to publish. A missing MX is harmless while `mode` is `testing`
      (failures only show in TLS reports), but under `enforce` senders refuse
      to deliver. The console needs `sysMtaStsGet`, `sysMtaStsUpdate` and
      `sysSystemSettingsGet`, which

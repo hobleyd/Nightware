@@ -620,28 +620,35 @@ Where the build refined the decisions above:
   answer is the adapter tests' fixture.
   Publishing a domain's discovery names is not enough for production; see
   "A new domain's public mail discovery" in `deploy/README.md`.
-  A served domain is on the dashboard's worklist while a sender's **newest** TLS
-  report for it found no MTA-STS policy (`DomainReportSummary.LatestFoundNoTlsPolicy`;
-  older reports stay held for 30 days, so judging by any report would keep it
-  there long after the fix). `GetAttention` reads the reports once, and skips
-  the check when Stalwart refuses them (a deployment that has not re-run
-  `configure.sh`). The domain's DNS page then says what is missing: the
-  `mta-sts`/`_mta-sts` records still to publish, or, once they are published,
-  the policy host (proxy, certificate), which the console cannot change.
+  **MTA-STS records are DNS records like any other (2026-11-26, revised).** The
+  `mta-sts` CNAME, `_mta-sts` TXT and `_smtp._tls` TXT are in the mail server's
+  generated set, so they are compared, counted on the worklist ("N DNS records
+  are missing or out of date") and published with the rest; nothing special-cases
+  them. TLS reports are dated evidence: they cover the day before they arrive,
+  so they lag a fix, and they no longer put a domain on the worklist or a
+  banner on its DNS page (first tried in bcc82a4). On the reports page, a
+  "None found" on a sender's **newest** report for a domain
+  (`DomainReportSummary.CurrentNoTlsPolicyReports`) gets a fix link to the
+  domain's DNS publish step while the zone has changes waiting (compared for a
+  global administrator only). With every record published, the note under the
+  table points at the policy host (proxy, certificate), which the console
+  cannot change and does not check; `verify-mail-discovery.sh` does. Comparing
+  records with public DNS for an entity without a DNS host is a follow-up.
 - **MTA-STS policy hosts (2026-11-26).** Stalwart serves one MTA-STS policy for
   every domain (`x:MtaSts`, a singleton). Its `mxHosts` set (a map of host to
   `true`) overrides the `mx:` lines, which otherwise come from
   `x:SystemSettings.mailExchangers` (a null hostname there is
   `defaultHostname`). A served domain's MX is `mail.<domain>`, which those
   defaults do not list. For a global administrator, `GetAttention` lists a
-  served domain whose MX the policy leaves out. The domain's DNS page shows
-  this to every admin and lets a global administrator add the host
-  (`AddDomainToMtaStsPolicy`, audited `mail.mta-sts.mx-hosts`). A policy with
+  served domain whose MX the policy leaves out, with an "Add to the policy"
+  button. The domain's DNS page shows this to every admin and lets a global
+  administrator add the host there too (`AddDomainToMtaStsPolicy`, audited
+  `mail.mta-sts.mx-hosts`). A policy with
   no hosts of its own starts from the defaults, so domains already covered
   stay covered. The write replaces the set and sends `ReloadSettings` in the
   same request: the object reference does not say whether a reload is
   needed. The policy id is derived from its contents, so every domain's
-  `_mta-sts` TXT changes, and the DNS page shows that as a change to publish.
+  `_mta-sts` TXT changes, and that is an ordinary change to publish.
   Permissions `sysMtaStsGet`, `sysMtaStsUpdate` and `sysSystemSettingsGet`
   (from the object reference) are granted by `configure.sh`. A system settings
   read that fails is an error, not empty defaults: adding to empty defaults
