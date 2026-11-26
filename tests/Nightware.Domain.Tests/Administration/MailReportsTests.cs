@@ -109,11 +109,14 @@ public sealed class MailReportsTests
         fixedSince.SendersFoundNoTlsPolicy.ShouldBeTrue();
         fixedSince.LatestFoundNoTlsPolicy.ShouldBeFalse();
         fixedSince.CurrentNoTlsPolicyReports.ShouldBeEmpty();
+        fixedSince.FixedNoTlsPolicyReports.ShouldBe(["t-Google Inc.0"]);
 
         // Still missing for Microsoft, whose newest report says so, whatever Google's says; that report alone is current.
         DomainReportSummary stillMissing = Summary(Report("Google Inc.", 1, "sts"), Report("Microsoft", 1, "noPolicyFound"), Report("microsoft", 0, "noPolicyFound"));
         stillMissing.LatestFoundNoTlsPolicy.ShouldBeTrue();
         stillMissing.CurrentNoTlsPolicyReports.ShouldBe(["t-Microsoft1"]);
+        // Microsoft's older report is not fixed: its newest still finds no policy.
+        stillMissing.FixedNoTlsPolicyReports.ShouldBeEmpty();
 
         // Another domain's missing policy is not this one's.
         DomainReportSummary.For("acme.example", new MailReports([], [Tls(Policy("other.example", "noPolicyFound", 1, 0), Policy("acme.example", "sts", 1, 0))]))

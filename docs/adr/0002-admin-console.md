@@ -630,7 +630,10 @@ Where the build refined the decisions above:
   "None found" on a sender's **newest** report for a domain
   (`DomainReportSummary.CurrentNoTlsPolicyReports`) gets a fix link to the
   domain's DNS publish step while the zone has changes waiting (compared for a
-  global administrator only). With every record published, the note under the
+  global administrator only). A "None found" from a sender whose newest report
+  found the policy reads "None found (fixed)" in green
+  (`FixedNoTlsPolicyReports`); the note under the table appears only while a
+  sender's newest report still finds none. With every record published, the note under the
   table points at the policy host (proxy, certificate), which the console
   cannot change and does not check; `verify-mail-discovery.sh` does. Comparing
   records with public DNS for an entity without a DNS host is a follow-up.

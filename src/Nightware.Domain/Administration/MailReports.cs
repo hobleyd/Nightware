@@ -102,6 +102,10 @@ public sealed record FailingSource(string SourceIp, long Messages);
 /// The ids of the TLS reports that are their sender's newest for the domain and found no MTA-STS policy for it: what
 /// senders last saw, not a finding fixed since. Older reports stay held for 30 days.
 /// </param>
+/// <param name="FixedNoTlsPolicyReports">
+/// The ids of the TLS reports that found no MTA-STS policy for the domain from a sender whose newest report found one:
+/// findings the fix has reached since.
+/// </param>
 public sealed record DomainReportSummary(
     string Domain,
     int DmarcReports,
@@ -112,7 +116,8 @@ public sealed record DomainReportSummary(
     long TlsSuccessful,
     long TlsFailed,
     bool SendersFoundNoTlsPolicy,
-    IReadOnlyList<string> CurrentNoTlsPolicyReports)
+    IReadOnlyList<string> CurrentNoTlsPolicyReports,
+    IReadOnlyList<string> FixedNoTlsPolicyReports)
 {
     /// <summary>A sender's newest TLS report for the domain found no MTA-STS policy (see <see cref="CurrentNoTlsPolicyReports"/>).</summary>
     public bool LatestFoundNoTlsPolicy => CurrentNoTlsPolicyReports.Count > 0;
@@ -131,6 +136,7 @@ public sealed record DomainReportSummary(
             .GroupBy(static s => s.SourceIp ?? "unknown", StringComparer.Ordinal)
             .Select(static g => new FailingSource(g.Key, g.Sum(static s => s.Count)))
             .OrderByDescending(static f => f.Messages).ThenBy(static f => f.SourceIp, StringComparer.Ordinal)];
+        (IReadOnlyList<TlsReport> Reports, TlsReport Newest)[] bySender = BySender(domain, reports.Tls);
         return new DomainReportSummary(
             domain,
             dmarc.Count,
@@ -141,19 +147,20 @@ public sealed record DomainReportSummary(
             tls.Sum(static p => p.Successful),
             tls.Sum(static p => p.Failed),
             tls.Any(static p => p.NoPolicyFound),
-            NewestFindingNoTlsPolicy(domain, reports.Tls));
+            [.. bySender.Select(static g => g.Newest).Where(FindsNone).Select(static r => r.Id)],
+            [.. bySender.Where(g => !FindsNone(g.Newest)).SelectMany(static g => g.Reports).Where(FindsNone).Select(static r => r.Id)]);
+
+        bool FindsNone(TlsReport r) => r.Policies.Any(p => p.NoPolicyFound && ReportDomains.Covers(domain, p.Domain));
     }
 
     /// <summary>
-    /// The ids of each sender's newest report for <paramref name="domain"/> (by period end, then arrival) that has a
-    /// "no policy found" result for it. Each sending organization is judged by its own latest report.
+    /// The TLS reports about <paramref name="domain"/> by sending organization, each with its newest (by period end,
+    /// then arrival): each sender is judged by its own latest report.
     /// </summary>
-    private static string[] NewestFindingNoTlsPolicy(string domain, IReadOnlyList<TlsReport> reports) =>
+    private static (IReadOnlyList<TlsReport> Reports, TlsReport Newest)[] BySender(string domain, IReadOnlyList<TlsReport> reports) =>
         [.. reports.Where(r => r.Policies.Any(p => ReportDomains.Covers(domain, p.Domain)))
             .GroupBy(static r => r.Organization, StringComparer.OrdinalIgnoreCase)
-            .Select(static g => g.OrderByDescending(static r => r.PeriodEnd).ThenByDescending(static r => r.ReceivedAt).First())
-            .Where(r => r.Policies.Any(p => p.NoPolicyFound && ReportDomains.Covers(domain, p.Domain)))
-            .Select(static r => r.Id)];
+            .Select(static g => ((IReadOnlyList<TlsReport>)[.. g], g.OrderByDescending(static r => r.PeriodEnd).ThenByDescending(static r => r.ReceivedAt).First()))];
 }
 
 /// <summary>Which of our domains a report is about.</summary>

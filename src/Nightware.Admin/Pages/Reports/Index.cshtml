@@ -125,7 +125,14 @@ else
                             {
                                 var owner = Model.SummaryFor(p.Domain);
                                 var changes = owner is not null && owner.CurrentNoTlsPolicyReports.Contains(r.Id) ? Model.ChangesFor(owner.Domain) : 0;
-                                <span class="chip missing">@IndexModel.TlsPolicy(p.PolicyType)</span>
+                                @if (owner is not null && owner.FixedNoTlsPolicyReports.Contains(r.Id))
+                                {
+                                    <span class="chip linked" title="This sender's newest report for @owner.Domain found the MTA-STS policy">@IndexModel.TlsPolicy(p.PolicyType) (fixed)</span>
+                                }
+                                else
+                                {
+                                    <span class="chip missing">@IndexModel.TlsPolicy(p.PolicyType)</span>
+                                }
                                 @if (changes > 0 && Model.DnsPageFor(owner!.Domain) is { } fix)
                                 {
                                     var label = $"Fix: publish {changes} DNS {(changes == 1 ? "change" : "changes")} for {owner.Domain}";
@@ -168,7 +175,7 @@ else
             }
             </tbody>
         </table>
-        @if (o.Summaries.Any(s => s.SendersFoundNoTlsPolicy))
+        @if (o.Summaries.Any(s => s.LatestFoundNoTlsPolicy))
         {
             var current = o.Summaries.Where(s => s.LatestFoundNoTlsPolicy).ToList();
             var publishable = current.Where(s => Model.ChangesFor(s.Domain) > 0).ToList();
@@ -186,10 +193,6 @@ else
                 @if (!Model.Actor.IsGlobal && current.Count > 0)
                 {
                     <p>If @string.Join(", ", current.Select(s => s.Domain)) still @(current.Count == 1 ? "shows" : "show") "None found" in the next reports, ask your Nightware operator to check @(current.Count == 1 ? "its" : "their") DNS records and MTA-STS policy.</p>
-                }
-                @if (o.Summaries.Any(s => s.SendersFoundNoTlsPolicy && !s.LatestFoundNoTlsPolicy))
-                {
-                    <p>Older reports keep saying so after it is fixed; a domain whose senders' latest reports find the policy is in order.</p>
                 }
             </div>
         }

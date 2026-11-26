@@ -110,7 +110,8 @@ public sealed class MtaStsAttentionPageTests : IDisposable
         // Only the sender's newest report carries it; the older one is history.
         CountOf(html, "class=\"fix\"").ShouldBe(1);
         html.ShouldContain("acme.example has DNS changes to publish. The fix icon beside \"None found\" opens them.");
-        html.ShouldNotContain("Older reports keep saying so");
+        // Google's older report is not fixed: its newest still finds no policy.
+        html.ShouldNotContain("(fixed)");
     }
 
     [Fact]
@@ -142,8 +143,9 @@ public sealed class MtaStsAttentionPageTests : IDisposable
 
         Reported(Report(0, "noPolicyFound"), Report(1, "sts"));
         string fixedSince = await GetAsync("/reports", ConsoleHost.EntityAdmin);
-        fixedSince.ShouldContain("Older reports keep saying so after it is fixed");
-        fixedSince.ShouldNotContain("ask your Nightware operator");
+        fixedSince.ShouldContain("<span class=\"chip linked\" title=\"This sender's newest report for acme.example found the MTA-STS policy\">None found (fixed)</span>");
+        fixedSince.ShouldNotContain("chip missing");
+        fixedSince.ShouldNotContain("id=\"no-tls-policy\"");
     }
 
     private static int CountOf(string text, string part)
