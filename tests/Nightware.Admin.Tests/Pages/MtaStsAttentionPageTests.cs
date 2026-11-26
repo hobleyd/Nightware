@@ -71,7 +71,7 @@ public sealed class MtaStsAttentionPageTests : IDisposable
         Reported(Report(0, "noPolicyFound"));
 
         string dashboard = await GetAsync("/");
-        dashboard.ShouldContain("2 DNS records are missing or out of date at Cloudflare.");
+        dashboard.ShouldContain("2 DNS changes to publish at Cloudflare.");
         dashboard.ShouldContain($"href=\"{DnsUrl}#publish\">Review and publish</a>");
         dashboard.ShouldNotContain("MTA-STS");
         dashboard.ShouldNotContain("TLS reports</a>");
@@ -136,14 +136,14 @@ public sealed class MtaStsAttentionPageTests : IDisposable
 
         html.ShouldContain("<section class=\"panel reports\">");
         html.ShouldNotContain("class=\"fix\"");
-        html.ShouldContain("Ask your Nightware operator to publish acme.example's DNS records.");
+        html.ShouldContain("If acme.example still shows \"None found\" in the next reports, ask your Nightware operator to check its DNS records and MTA-STS policy.");
         int table = html.IndexOf("aria-label=\"TLS reports\"", StringComparison.Ordinal);
         html.IndexOf("id=\"no-tls-policy\"", StringComparison.Ordinal).ShouldBeGreaterThan(table);
 
         Reported(Report(0, "noPolicyFound"), Report(1, "sts"));
         string fixedSince = await GetAsync("/reports", ConsoleHost.EntityAdmin);
         fixedSince.ShouldContain("Older reports keep saying so after it is fixed");
-        fixedSince.ShouldNotContain("Ask your Nightware operator");
+        fixedSince.ShouldNotContain("ask your Nightware operator");
     }
 
     private static int CountOf(string text, string part)

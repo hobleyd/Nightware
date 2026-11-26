@@ -30,6 +30,18 @@ public sealed class SystemsTests
     }
 
     [Fact]
+    public void Adding_to_the_MTA_STS_policy_says_whether_the_domains_MX_is_now_listed()
+    {
+        MailDomain acme = MailDomain.TryParse("acme.example", out MailDomain? d) ? d : throw new InvalidOperationException();
+        var listed = new MtaStsPolicy("testing", ["mail.server.example", "mail.acme.example"], []);
+
+        Systems.MtaStsHostsNotice(new Nightware.Application.Administration.Entities.MtaStsCoverage(acme, listed, ["mail.acme.example"], []))
+            .ShouldBe("The mail server's MTA-STS policy now lists mail.acme.example. Its id changed, so every domain's _mta-sts record has a change to publish.");
+        Systems.MtaStsHostsNotice(new Nightware.Application.Administration.Entities.MtaStsCoverage(acme, listed, ["mx.acme.example"], ["mx.acme.example"]))
+            .ShouldBe("The mail server's MTA-STS policy still does not list mx.acme.example.");
+    }
+
+    [Fact]
     public void States_and_statuses_read_as_words()
     {
         Systems.StateLabel(LinkState.Error).ShouldBe("Failed");

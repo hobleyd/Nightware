@@ -622,8 +622,8 @@ Where the build refined the decisions above:
   "A new domain's public mail discovery" in `deploy/README.md`.
   **MTA-STS records are DNS records like any other (2026-11-26, revised).** The
   `mta-sts` CNAME, `_mta-sts` TXT and `_smtp._tls` TXT are in the mail server's
-  generated set, so they are compared, counted on the worklist ("N DNS records
-  are missing or out of date") and published with the rest; nothing special-cases
+  generated set, so they are compared, counted on the worklist ("N DNS changes to
+  publish") and published with the rest; nothing special-cases
   them. TLS reports are dated evidence: they cover the day before they arrive,
   so they lag a fix, and they no longer put a domain on the worklist or a
   banner on its DNS page (first tried in bcc82a4). On the reports page, a

@@ -185,7 +185,7 @@ else
                 }
                 @if (!Model.Actor.IsGlobal && current.Count > 0)
                 {
-                    <p>Ask your Nightware operator to publish @string.Join(", ", current.Select(s => s.Domain))'s DNS records.</p>
+                    <p>If @string.Join(", ", current.Select(s => s.Domain)) still @(current.Count == 1 ? "shows" : "show") "None found" in the next reports, ask your Nightware operator to check @(current.Count == 1 ? "its" : "their") DNS records and MTA-STS policy.</p>
                 }
                 @if (o.Summaries.Any(s => s.SendersFoundNoTlsPolicy && !s.LatestFoundNoTlsPolicy))
                 {

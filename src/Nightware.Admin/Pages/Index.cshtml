@@ -100,7 +100,7 @@
                             @if (d.DnsChanges > 0)
                             {
                                 <li>
-                                    @(d.DnsChanges == 1 ? "1 DNS record is" : $"{d.DnsChanges} DNS records are") missing or out of date at @(d.Entity.DnsHost?.Name() ?? "the DNS host").
+                                    @(d.DnsChanges == 1 ? "1 DNS change" : $"{d.DnsChanges} DNS changes") to publish at @(d.Entity.DnsHost?.Name() ?? "the DNS host").
                                     <a class="button secondary" href="@Url.Page("/Entities/Dns", null, new { id = d.Entity.Id, domain = d.Domain.Domain.Name }, null, null, "publish")">Review and publish</a>
                                 </li>
                             }
