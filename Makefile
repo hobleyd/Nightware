@@ -44,6 +44,7 @@ coverage: build ## Unit, endpoint, adapter and conformance tests with coverage, 
 	rm -rf $(RESULTS)
 	dotnet test --solution scripts/ci/coverage.slnf --no-build -c $(CONFIGURATION) \
 		--coverage --coverage-output-format cobertura --coverage-settings $(COVERAGE_SETTINGS) \
+		--hangdump --hangdump-timeout 10m --hangdump-type Mini \
 		--results-directory $(RESULTS)
 	python3 scripts/ci/coverage-gate.py $$(ls $(RESULTS)/merged/*.cobertura.xml) $(COVERAGE_LINE) $(COVERAGE_BRANCH)
 

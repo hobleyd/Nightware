@@ -32,6 +32,8 @@
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <!-- Coverage under Microsoft.Testing.Platform (coverlet.collector is a VSTest data collector). -->
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
+    <!-- A test session that stalls is dumped and named, not left to the CI job timeout; matches Microsoft.Testing.Platform 2.5.2. -->
+    <PackageVersion Include="Microsoft.Testing.Extensions.HangDump" Version="2.5.2" />
     <PackageVersion Include="WireMock.Net" Version="2.31.0" />
     <PackageVersion Include="TngTech.ArchUnitNET.xUnitV3" Version="0.13.5" />
     <PackageVersion Include="Testcontainers" Version="4.16.0" />
